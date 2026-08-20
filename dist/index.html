@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      (function() {
+        var ignorePattern = /should only be loaded in a browser extension|chrome-extension|moz-extension/i;
+        
+        // 1. Mock chrome and browser environment to satisfy extension script checks and prevent throws
+        var mockRuntime = {
+          id: 'mock-extension-id',
+          getManifest: function() { return { manifest_version: 3, version: '1.0' }; },
+          getURL: function(path) { return path || ''; },
+          sendMessage: function() { return Promise.resolve(); },
+          connect: function() {
+            return {
+              onMessage: { addListener: function() {}, removeListener: function() {} },
+              onDisconnect: { addListener: function() {}, removeListener: function() {} },
+              postMessage: function() {},
+              disconnect: function() {}
+            };
+          },
+          onMessage: { addListener: function() {}, removeListener: function() {} },
+          onMessageExternal: { addListener: function() {}, removeListener: function() {} },
+          onConnect: { addListener: function() {}, removeListener: function() {} }
+        };
+
+        window.chrome = window.chrome || {};
+        window.chrome.runtime = window.chrome.runtime || mockRuntime;
+        window.browser = window.browser || { runtime: mockRuntime };
+
+        // 2. Intercept window error events at the capture phase (using stopImmediatePropagation to completely silence them)
+        window.addEventListener('error', function(e) {
+          var message = e.message || '';
+          var filename = e.filename || '';
+          var errStr = e.error ? String(e.error.message || e.error.stack || '') : '';
+          if (ignorePattern.test(message) || ignorePattern.test(filename) || ignorePattern.test(errStr)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+          }
+        }, true);
+
+        // 3. Intercept unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+          var reason = e.reason;
+          var message = reason ? (reason.message || String(reason)) : '';
+          if (ignorePattern.test(message)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+          }
+        }, true);
+
+        // 4. Classic window.onerror interceptor (must return true to suppress browser console error)
+        window.onerror = function(message, source, lineno, colno, error) {
+          var msg = String(message || '');
+          var src = String(source || '');
+          var errStr = error ? String(error.message || error.stack || '') : '';
+          if (ignorePattern.test(msg) || ignorePattern.test(src) || ignorePattern.test(errStr)) {
+            return true; // Prevents the browser from displaying the error in console
+          }
+        };
+
+        // 5. Intercept and silence console.error for extension messages
+        var originalConsoleError = console.error;
+        console.error = function() {
+          var args = Array.prototype.slice.call(arguments);
+          var strArgs = args.join(' ');
+          if (ignorePattern.test(strArgs)) {
+            return;
+          }
+          originalConsoleError.apply(console, arguments);
+        };
+      })();
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="google-site-verification" content="google8702ced00c370b9f" />
+    <meta name="msvalidate.01" content="DF920B7BA056D2F570EF55466D492F65" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>InvoCentric | Free GST Billing App & Invoice Maker</title>
+    <meta name="title" content="InvoCentric | Free GST Billing App & Invoice Maker" />
+    <meta name="application-name" content="InvoCentric" />
+    <meta name="apple-mobile-web-app-title" content="InvoCentric" />
+    <meta name="description" content="InvoCentric is a 100% free GST billing app and invoice maker with no watermark. Note: InvoCentric is a cloud billing software for small businesses, distinct from IT staffing firms." />
+    <meta name="keywords" content="GST billing software, free bill book app without watermark, dukan ka bill banane wala app, free invoice maker mobile, barcode billing app, retail billing scanner, mobile invoice creator, offline vyapar khata book app, bahi khata generator, thermal print bill book software, inventory manager free, daily book ledger India, GST billing app for small shop, Indian accounting app, estimate and quotation maker app free, barcode scanning invoicing, bill book software free, vyapar billing software, my billbook app, vyapar app, margins calculator, hsn search online, indian bill book software, invoice maker offline, direct print billing, thermal printer bill format, gst invoice generator hindi, cash book ledger, billing software with barcode scanner, retail billing app, free billing app for shop, pos software india, free inventory tracking app, invocentric software" />
+    <meta name="author" content="InvoCentric" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://invocentric.in/" />
+    
+    <!-- Geo Targeting and Local SEO for India -->
+    <meta name="geo.region" content="IN" />
+    <meta name="geo.placename" content="India" />
+    <meta name="geo.position" content="20.593684;78.96288" />
+    <meta name="ICBM" content="20.593684, 78.96288" />
+    
+    <!-- Indexing and Distribution Directives -->
+    <meta name="language" content="English, Hindi, Hinglish" />
+    <meta name="distribution" content="global" />
+    <meta name="rating" content="general" />
+    <meta name="revisit-after" content="1 days" />
+
+    <!-- Performance Preconnect & Resource Hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Optimized Non-Blocking Google Fonts Loading for High PageSpeed Score -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" media="print" onload="this.media='all'" crossorigin="anonymous" />
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" crossorigin="anonymous" />
+    </noscript>
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+    <link rel="preconnect" href="https://firestore.googleapis.com" />
+    <link rel="preconnect" href="https://www.gstatic.com" />
+
+    <!-- Deferred Non-blocking Analytics Initialization for High PageSpeed Score -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){ window.dataLayer.push(arguments); }
+      window.gtag = gtag;
+      gtag('js', new Date());
+      gtag('config', 'G-P3CQTMB4J1');
+      gtag('config', 'G-D111WDP74G');
+      gtag('config', 'G-JBWG5MKM9Y');
+
+      (function() {
+        var analyticsLoaded = false;
+        function loadAnalyticsScripts() {
+          if (analyticsLoaded) return;
+          analyticsLoaded = true;
+
+          // 1. Google Tag (gtag.js)
+          var gScript = document.createElement('script');
+          gScript.async = true;
+          gScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-P3CQTMB4J1';
+          document.head.appendChild(gScript);
+
+          // 2. Google Tag Manager (GTM)
+          (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+          new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+          j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+          'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+          })(window,document,'script','dataLayer','GTM-MR8PVKXT');
+        }
+
+        var events = ['mouseover', 'keydown', 'touchmove', 'touchstart', 'scroll'];
+        function triggerAnalytics() {
+          loadAnalyticsScripts();
+          events.forEach(function(evt) { window.removeEventListener(evt, triggerAnalytics, { passive: true }); });
+        }
+
+        events.forEach(function(evt) { window.addEventListener(evt, triggerAnalytics, { passive: true }); });
+
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(function() { setTimeout(loadAnalyticsScripts, 3000); });
+        } else {
+          window.addEventListener('load', function() { setTimeout(loadAnalyticsScripts, 3500); });
+        }
+      })();
+    </script>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://invocentric.in/" />
+    <meta property="og:site_name" content="InvoCentric" />
+    <meta property="og:title" content="InvoCentric | Free GST Billing App & Invoice Maker" />
+    <meta property="og:description" content="InvoCentric is a 100% free GST billing app and invoice maker with no watermark. Scan barcodes, print thermal receipts, and manage khata book offline." />
+    <meta property="og:image" content="https://invocentric.in/logo.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="InvoCentric Logo" />
+    <meta property="og:locale" content="en_IN" />
+
+    <!-- Highly Detailed Unified JSON-LD Schema Graph (Website, App, Organization, FAQs) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://invocentric.in/#website",
+            "url": "https://invocentric.in/",
+            "name": "InvoCentric",
+            "alternateName": ["Invo Centric", "InvoCentric Billing", "InvoCentric App", "InvoCentric Invoice Maker"],
+            "description": "InvoCentric is a Free GST Billing Software and Invoice Maker web application. (Note: Not to be confused with IT staffing firms like Innovcentric LLC).",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://invocentric.in/?search={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://invocentric.in/#software",
+            "name": "InvoCentric",
+            "operatingSystem": "All (Web, Android, iOS, Windows)",
+            "applicationCategory": "BusinessApplication, AccountingApplication",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "INR"
+            },
+            "description": "100% Free GST Billing & Invoicing software application with Live Camera Barcode Scanner, PDF Invoice Sharing, and Offline Khata Book Ledger for retail shops and small businesses.",
+            "featureList": [
+              "GST & Non-GST Invoice Generation with CGST/SGST/IGST calculation",
+              "Direct Mobile Camera Barcode Scanning for items",
+              "Offline-ready Vyapar Khata ledger log & Bahi-Khata books",
+              "Immediate PDF invoice download and quick WhatsApp sharing",
+              "Thermal Printer support (2-inch and 3-inch bluetooth & USB)",
+              "Daily Cash Book & profit/loss bookkeeping ledger",
+              "Automatic offline local storage backup & security"
+            ],
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "4.9",
+              "reviewCount": "1280"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://invocentric.in/#organization",
+            "name": "InvoCentric",
+            "url": "https://invocentric.in/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://invocentric.in/logo.png",
+              "width": "512",
+              "height": "512"
+            },
+            "sameAs": [
+              "https://github.com/InvoCentric"
+            ],
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "contactType": "customer support",
+              "email": "nomanshaikh1999@gmail.com"
+            }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://invocentric.in/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is InvoCentric GST Billing App free forever? (क्या InvoCentric सच में हमेशा के लिए फ्री है?)",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes! InvoCentric is 100% free forever with no credit card required, no hidden trial limits, and no monthly fees. You can create unlimited GST invoices, print bills, and manage inventory with zero subscription costs."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do I print GST bills offline to a thermal printer?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "You can connect any standard thermal printer (2-inch or 3-inch bluetooth/USB receipt printers) or standard laser printers directly from your web browser or phone. InvoCentric generates perfectly formatted thermal bills."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I scan product barcodes using my mobile camera?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes! InvoCentric features a fully integrated mobile camera barcode scanner. Simply open the app on your phone, point the camera at any product barcode, and it will automatically find the item and add it to the bill instantly."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does InvoCentric work offline without internet? (क्या यह ऑफलाइन बिना इंटरनेट के काम करता है?)",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Absolutely! InvoCentric is offline-first. It saves all your sales, bills, invoices, and ledgers locally on your device. Once your device connects to the internet, it auto-syncs your data securely."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I manage customer credit (Bahi Khata/Udhar Ledger) in InvoCentric?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. It has a built-in Customer Ledger and Statement Generator (Khata Book). You can track credit (Udhaar) and payments (Jama) for each customer, generate professional PDF ledgers, and share client statements on WhatsApp."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://invocentric.in/" />
+    <meta name="twitter:title" content="InvoCentric | Free GST Billing App & Invoice Maker" />
+    <meta name="twitter:description" content="InvoCentric is a 100% free GST billing app and invoice maker with no watermark. Scan barcodes, print thermal receipts, and manage khata book offline." />
+    <meta name="twitter:image" content="https://invocentric.in/logo.png" />
+    <meta name="twitter:site" content="@InvoCentric" />
+    <meta name="twitter:creator" content="@InvoCentric" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/192x192.png" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/512x512.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/192x192.png" />
+    
+    <!-- Progressive Web App Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    
+    <meta name="theme-color" content="#0D635D" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="InvoCentric" />
+    <meta name="application-name" content="InvoCentric" />
+    <meta name="msapplication-TileColor" content="#0D635D" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <script type="module" crossorigin src="/assets/index-DlY4YOvd.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-icons-Dk-HDMTW.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-charts-DUZJXLvo.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-export-CG6ZR80q.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-firebase-CDn5KKD8.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-CZLhAwJD.css">
+  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:inline-sw">if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/sw.js', { scope: '/' })})}</script></head>
+  <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MR8PVKXT"
+    height="0" width="0" style="display:none;visibility:hidden" title="Google Tag Manager"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div id="root">
+      <!-- Fallback SEO content for static crawlers -->
+      <header style="display: none;">
+        <h1>InvoCentric | Free GST Invoicing App & Mobile Barcode Billing Generator</h1>
+        <p>Manage your small business accounts, GST invoices, inventory ledger, and customer ledger offline with InvoCentric.</p>
+      </header>
+    </div>
+  </body>
+</html>
+

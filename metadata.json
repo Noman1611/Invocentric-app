@@ -1,0 +1,6 @@
+{
+  "name": "InvoCentric",
+  "description": "Free GST Invoicing & Billing Software for Small Businesses and Retailers. Easily track sales, scan barcodes, manage inventory, print professional PDF receipts, and track customer daily accounts ledger.",
+  "requestFramePermissions": ["web-share", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

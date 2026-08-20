@@ -1,0 +1,27 @@
+# InvoCentric Robots Configuration - Production Ready
+# Optimized for Googlebot, Bingbot, Gemini, and ChatGPT crawlers
+
+User-agent: *
+Allow: /
+Allow: /terms
+Allow: /login
+Allow: /blog
+Allow: /blogs
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /pos/
+Disallow: /invoices/
+Disallow: /customers/
+Disallow: /items/
+Disallow: /expenses/
+Disallow: /purchases/
+Disallow: /payments/
+Disallow: /quotations/
+Disallow: /reports/
+Disallow: /settings/
+Disallow: /admin/
+Disallow: /qr-generator/
+
+# Host and Sitemap references
+Host: https://invocentric.in
+Sitemap: https://invocentric.in/sitemap.xml

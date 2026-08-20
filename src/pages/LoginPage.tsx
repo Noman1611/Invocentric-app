@@ -1,0 +1,761 @@
+import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Logo } from '../components/Logo';
+import { motion, AnimatePresence } from 'motion/react';
+import { Link, Navigate } from 'react-router-dom';
+import { 
+  AlertCircle, 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowLeft, 
+  ShieldCheck, 
+  Globe, 
+  HelpCircle,
+  CheckCircle2,
+  Sparkles
+} from 'lucide-react';
+import { WhatsAppIcon } from '../components/WhatsAppIcon';
+
+const InvoiceMockup = () => {
+  return (
+    <div className="relative w-full h-full rounded-[36px] overflow-hidden p-8 md:p-12 flex flex-col justify-center items-center bg-[#1A4B4B] text-white shadow-inner">
+      {/* Decorative ambient glowing background circles */}
+      <motion.div 
+        animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.25, 0.15] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-0 right-0 w-80 h-80 bg-emerald-400 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" 
+      />
+      <motion.div 
+        animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        className="absolute bottom-0 left-0 w-96 h-96 bg-teal-300 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" 
+      />
+
+      {/* Floating Badge 1: Top Right */}
+      <motion.div
+        animate={{ y: [0, -14, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-8 right-8 md:top-14 md:right-14 z-20 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 px-4 border border-white/20 shadow-2xl hidden md:flex items-center gap-3"
+      >
+        <div className="w-9 h-9 bg-emerald-500/30 border border-emerald-400/40 rounded-xl flex items-center justify-center text-emerald-300">
+          <CheckCircle2 size={18} />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest leading-none mb-1">New Entry</p>
+          <p className="text-sm font-bold text-white tracking-tight">+₹24,500.00</p>
+        </div>
+      </motion.div>
+
+      {/* Floating Badge 2: Bottom Left */}
+      <motion.div
+        animate={{ y: [0, 14, 0] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+        className="absolute bottom-10 left-8 md:bottom-16 md:left-12 z-20 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 px-4 border border-white/20 shadow-2xl hidden md:flex items-center gap-3"
+      >
+        <div className="w-9 h-9 bg-teal-500/30 border border-teal-400/40 rounded-xl flex items-center justify-center text-teal-300">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+          >
+            <Sparkles size={18} />
+          </motion.div>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold text-teal-200 uppercase tracking-widest leading-none mb-1">Cloud Sync</p>
+          <p className="text-sm font-bold text-white tracking-tight">Realtime Active</p>
+        </div>
+      </motion.div>
+
+      {/* Main Invoice Card with 3D entry */}
+      <motion.div
+        initial={{ opacity: 0, y: 35, rotateX: 8 }}
+        animate={{ opacity: 1, y: 0, rotateX: 0 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-sm rounded-3xl shadow-2xl p-6 md:p-8 bg-white text-slate-900 border border-white/40"
+      >
+        {/* Header */}
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <Logo size={40} className="mb-2" />
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Invoice #INV-2026-001</p>
+          </div>
+          <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+            Paid
+          </span>
+        </div>
+
+        {/* Customer Info */}
+        <div className="mb-5 pb-4 border-b border-slate-100">
+          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Billed To</p>
+          <p className="font-bold text-slate-900 text-sm">Enterprise Retailer Pvt Ltd</p>
+          <p className="text-xs text-slate-500 font-mono">GSTIN: 27AABCV1234F1Z5</p>
+        </div>
+
+        {/* Line Items */}
+        <div className="space-y-3 mb-6">
+          <div className="flex justify-between items-center text-xs pb-3 border-b border-slate-50">
+            <div>
+              <p className="font-bold text-slate-900">GST Billing & POS Terminal</p>
+              <p className="text-[11px] text-slate-400">Annual License (1 Node)</p>
+            </div>
+            <p className="font-bold text-slate-900">₹4,999.00</p>
+          </div>
+          <div className="flex justify-between items-center text-xs pb-3 border-b border-slate-50">
+            <div>
+              <p className="font-bold text-slate-900">Automated WhatsApp Reminders</p>
+              <p className="text-[11px] text-slate-400">Included Addon</p>
+            </div>
+            <p className="font-bold text-emerald-700">Free</p>
+          </div>
+        </div>
+
+        {/* Total Section */}
+        <div className="rounded-2xl p-4 flex justify-between items-center bg-slate-50 border border-slate-100">
+          <div>
+            <p className="text-xs font-bold text-slate-600">Total Net Amount</p>
+            <p className="text-[10px] text-slate-400">Incl. 18% GST</p>
+          </div>
+          <p className="text-xl font-extrabold text-slate-950">₹5,898.82</p>
+        </div>
+
+        {/* Footer info / Signature */}
+        <div className="mt-5 pt-3 border-t border-dashed border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
+          <span className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+            <CheckCircle2 size={13} /> Verified Digital Receipt
+          </span>
+          <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600">AUTH#9842</span>
+        </div>
+      </motion.div>
+
+      {/* Floating Trust Metrics */}
+      <div className="mt-8 flex items-center gap-6 text-xs text-white/80 font-medium">
+        <div className="flex items-center gap-2">
+          <ShieldCheck size={16} className="text-emerald-300" />
+          <span>256-bit SSL Encrypted</span>
+        </div>
+        <div className="w-1 h-1 bg-white/30 rounded-full" />
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-emerald-300" />
+          <span>GST Ready & Compliant</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function LoginPage() {
+  const { 
+    signInWithGoogle, 
+    loginWithPassword,
+    registerWithPasswordAndOtp,
+    resetPasswordWithOtp,
+    user 
+  } = useAuth();
+  
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  
+  // Form states
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [devOtpNotice, setDevOtpNotice] = useState<string | null>(null);
+  
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      console.error("Google Login Error:", err);
+      let message = err.message || "Failed to sign in with Google. Please try again.";
+      if (err.code === 'auth/popup-blocked') {
+        message = "Login popup was blocked by your browser. Please allow popups for this site and try again.";
+      }
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput || !passwordInput) {
+      setError("Please enter both your email and password.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await loginWithPassword(emailInput, passwordInput);
+    } catch (err: any) {
+      setError(err.message || "Invalid credentials. Please verify your email and password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput || !emailInput.includes('@')) {
+      setError("Please enter a valid business email address.");
+      return;
+    }
+
+    if (authMode === 'signup') {
+      if (!passwordInput || passwordInput.length < 6) {
+        setError("Password must be at least 6 characters long.");
+        return;
+      }
+      if (passwordInput !== confirmPasswordInput) {
+        setError("Passwords do not match. Please re-enter.");
+        return;
+      }
+    }
+
+    setLoading(true);
+    setError(null);
+    setDevOtpNotice(null);
+    try {
+      const res = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      
+      setOtpSent(true);
+      if (data.devOtp) {
+        setDevOtpNotice(`Test Verification Code: ${data.devOtp}`);
+      }
+    } catch (err: any) {
+      setError(err.message || "Unable to send verification code. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.length !== 6) {
+      setError("Please enter the complete 6-digit verification code.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await registerWithPasswordAndOtp(emailInput, passwordInput, otpCode);
+    } catch (err: any) {
+      setError(err.message || "Account creation failed. Please check the verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.length !== 6) {
+      setError("Please enter the complete 6-digit verification code.");
+      return;
+    }
+    if (!passwordInput || passwordInput.length < 6) {
+      setError("New password must be at least 6 characters long.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await resetPasswordWithOtp(emailInput, passwordInput, otpCode);
+    } catch (err: any) {
+      setError(err.message || "Password reset failed. Please check the verification code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return (
+    <div className="min-h-screen flex font-sans bg-slate-50 text-slate-900">
+      {/* Left Column: Visual Showcase (Desktop) */}
+      <div className="hidden lg:flex lg:w-1/2 p-6 lg:p-10">
+        <InvoiceMockup />
+      </div>
+
+      {/* Right Column: Authentication Card */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12 lg:p-16">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md bg-white rounded-2xl p-8 md:p-10 border border-slate-200/80 shadow-sm"
+        >
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-5">
+              <Link to="/" className="inline-block focus:outline-none">
+                <Logo size={42} />
+              </Link>
+
+              {authMode === 'forgot' ? (
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('login'); setOtpSent(false); setError(null); }}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+                >
+                  <ArrowLeft size={14} /> Back to Sign In
+                </button>
+              ) : (
+                <div className="inline-flex p-1 bg-slate-100 rounded-lg text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('login'); setOtpSent(false); setError(null); }}
+                    className={`px-3 py-1.5 rounded-md transition-all ${
+                      authMode === 'login' 
+                        ? 'bg-white text-slate-900 shadow-sm' 
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('signup'); setOtpSent(false); setError(null); }}
+                    className={`px-3 py-1.5 rounded-md transition-all ${
+                      authMode === 'signup' 
+                        ? 'bg-white text-slate-900 shadow-sm' 
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Create Account
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <h1 className="text-2xl font-bold text-slate-950 tracking-tight">
+              {authMode === 'login' && 'Sign in to InvoCentric'}
+              {authMode === 'signup' && 'Create your account'}
+              {authMode === 'forgot' && 'Reset your password'}
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              {authMode === 'login' && 'Enter your account credentials to access your billing dashboard.'}
+              {authMode === 'signup' && 'Set up your business profile and start generating GST invoices.'}
+              {authMode === 'forgot' && 'Enter your registered email to receive a password reset code.'}
+            </p>
+          </div>
+
+          {/* Social Google Login Button (Shown on Login & Signup) */}
+          {authMode !== 'forgot' && (
+            <div className="mb-6">
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                type="button"
+                className="w-full h-11 px-4 flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 transition-colors shadow-sm active:scale-[0.99] disabled:opacity-50"
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+
+              <div className="relative my-6 text-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200" />
+                </div>
+                <span className="relative px-3 bg-white text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Or continue with email
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          <AnimatePresence mode="wait">
+            {error && (
+              <motion.div 
+                key={error}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="mb-5 p-3.5 rounded-xl border bg-rose-50 border-rose-200/80 text-rose-700 flex items-start gap-2.5 text-xs font-medium"
+              >
+                <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" />
+                <p className="leading-relaxed">{error}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Dev OTP helper */}
+          {devOtpNotice && (
+            <div className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+              <CheckCircle2 size={15} className="shrink-0 text-emerald-600" />
+              <span>{devOtpNotice}</span>
+            </div>
+          )}
+
+          {/* FORM 1: SIGN IN */}
+          {authMode === 'login' && (
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Email Address</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Mail size={16} />
+                  </span>
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="name@company.com"
+                    className="w-full h-11 pl-10 pr-3.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-semibold text-slate-700">Password</label>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('forgot'); setError(null); }}
+                    className="text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Lock size={16} />
+                  </span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full h-11 pl-10 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+              >
+                {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Sign In to Dashboard</span>}
+              </button>
+            </form>
+          )}
+
+          {/* FORM 2: SIGN UP */}
+          {authMode === 'signup' && (
+            <div className="space-y-4">
+              {!otpSent ? (
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Business Email Address</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Mail size={16} />
+                      </span>
+                      <input
+                        type="email"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        placeholder="name@company.com"
+                        className="w-full h-11 pl-10 pr-3.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Set Password</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Lock size={16} />
+                      </span>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        className="w-full h-11 pl-10 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Confirm Password</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Lock size={16} />
+                      </span>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={confirmPasswordInput}
+                        onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                        placeholder="Re-enter password"
+                        className="w-full h-11 pl-10 pr-3.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+                  >
+                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Send Verification Code</span>}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleCompleteSignup} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Enter 6-Digit Email Code</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      placeholder="123456"
+                      className="w-full h-12 text-center tracking-[0.6em] text-lg font-bold bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all font-mono"
+                      required
+                    />
+                    <p className="text-[11px] text-slate-500 text-center mt-2">Verification code sent to <span className="font-semibold text-slate-800">{emailInput}</span></p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Verify & Create Account</span>}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOtpSent(false)}
+                    className="w-full text-xs font-medium text-slate-500 hover:text-slate-900 text-center py-1 cursor-pointer"
+                  >
+                    Edit Email / Resend Code
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* FORM 3: FORGOT PASSWORD */}
+          {authMode === 'forgot' && (
+            <div className="space-y-4">
+              {!otpSent ? (
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Registered Email Address</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Mail size={16} />
+                      </span>
+                      <input
+                        type="email"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        placeholder="name@company.com"
+                        className="w-full h-11 pl-10 pr-3.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+                  >
+                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Send Reset Code</span>}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleCompleteReset} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Enter 6-Digit Reset Code</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      placeholder="123456"
+                      className="w-full h-12 text-center tracking-[0.6em] text-lg font-bold bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all font-mono"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Enter New Password</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Lock size={16} />
+                      </span>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder="Minimum 6 characters"
+                        className="w-full h-11 pl-10 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Update Password & Sign In</span>}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOtpSent(false)}
+                    className="w-full text-xs font-medium text-slate-500 hover:text-slate-900 text-center py-1 cursor-pointer"
+                  >
+                    Resend Code / Change Email
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* Footer Terms */}
+          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+            <p className="text-xs text-slate-500">
+              By proceeding, you agree to InvoCentric's{' '}
+              <Link to="/terms" className="font-semibold text-slate-800 hover:underline">Terms of Service</Link>{' '}
+              and{' '}
+              <Link to="/terms" className="font-semibold text-slate-800 hover:underline">Privacy Policy</Link>.
+            </p>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Floating Support Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => setIsSupportOpen(true)}
+          className="h-11 px-4 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 rounded-full shadow-lg flex items-center gap-2 text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+        >
+          <HelpCircle size={16} className="text-emerald-600" />
+          <span>Need Help?</span>
+        </button>
+      </div>
+
+      {/* Official Support Modal */}
+      <AnimatePresence>
+        {isSupportOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSupportOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm bg-white rounded-2xl p-6 border border-slate-200 shadow-xl"
+            >
+              <div className="text-center mb-5">
+                <Logo size={44} className="mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-slate-900">InvoCentric Support</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Need help accessing your business account?</p>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <WhatsAppIcon size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-900">WhatsApp Helpdesk</p>
+                    <p className="text-xs text-slate-500">+91 98241 94869</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                    <Mail size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-900">Email Support</p>
+                    <p className="text-xs text-slate-500">working.for.home69@gmail.com</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                    <Globe size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-slate-900">Official Portal</p>
+                    <p className="text-xs text-slate-500">www.invocentric.in</p>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsSupportOpen(false)}
+                className="mt-5 w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+

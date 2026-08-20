@@ -1,0 +1,216 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'nomanshaikh1999@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('is_admin', false) == true)
+      );
+    }
+
+    // Collection: Users
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if ((isOwner(userId) || isAdmin()) && 
+                    (!incoming().diff(existing()).affectedKeys().hasAny(['is_admin']) || isAdmin()))
+                    || incoming().diff(existing()).affectedKeys().hasOnly(['inactivity_reminder_status', 'inactivity_reminder_sent_at', 'inactivity_reminder_cycle_id', 'inactivity_reminder_error', 'last_active_at', 'updated_at']);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Shared Entity Validation Helpers
+    function isValidEntity(data) {
+      return data.get('user_id', null) == request.auth.uid || isAdmin();
+    }
+
+    // Collection: Items
+    match /items/{itemId} {
+      function isValidItem(data) {
+        return data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+               data.price is number && data.price >= 0 &&
+               data.stock is number;
+      }
+
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(itemId) && 
+                    isValidEntity(incoming()) && isValidItem(incoming());
+      allow update: if (isOwner(existing().get('user_id', null)) || isAdmin()) &&
+                    incoming().user_id == existing().get('user_id', incoming().user_id) &&
+                    isValidItem(incoming());
+      allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
+    }
+
+    // Collection: Customers
+    match /customers/{customerId} {
+      function isValidCustomer(data) {
+        return data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+               (data.email == null || (data.email is string && data.email.size() <= 200));
+      }
+
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(customerId) &&
+                    isValidEntity(incoming()) && isValidCustomer(incoming());
+      allow update: if (isOwner(existing().get('user_id', null)) || isAdmin()) &&
+                    incoming().user_id == existing().get('user_id', incoming().user_id) &&
+                    isValidCustomer(incoming());
+      allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
+    }
+
+    // Collection: Invoices
+    match /invoices/{invoiceId} {
+      function isValidInvoice(data) {
+        let amount = data.get('amount', data.get('total', 0));
+        return (data.get('invoice_number', null) == null || data.invoice_number is string) &&
+               data.items is list && data.items.size() <= 100 &&
+               amount is number && amount >= 0;
+      }
+
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && 
+                    isValidEntity(incoming()) && isValidInvoice(incoming()) &&
+                    (incoming().get('customer_id', null) == null || exists(/databases/$(database)/documents/customers/$(incoming().customer_id)));
+      allow update: if (isOwner(existing().get('user_id', null)) || isAdmin()) &&
+                    incoming().user_id == existing().get('user_id', incoming().user_id) &&
+                    isValidInvoice(incoming()) &&
+                    // Action: Mark as Paid or basic update
+                    (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updated_at']) ||
+                     incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updated_at', 'amount', 'items', 'due_date', 'currency', 'bill_type', 'discount', 'sales_return', 'amount_words', 'customer_id', 'customer_name', 'advance_amount', 'advanceAmount', 'balance_due', 'notes', 'columnVisibility']) ||
+                     existing().get('status', null) != 'paid' || isAdmin());
+      allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
+    }
+
+    // Collection: Payments
+    match /payments/{paymentId} {
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidEntity(incoming()) &&
+                    (incoming().get('customer_id', null) == null || exists(/databases/$(database)/documents/customers/$(incoming().customer_id)));
+      allow update: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
+    }
+
+    // Collection: Expenses
+    match /expenses/{expenseId} {
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidEntity(incoming());
+      allow update: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
+    }
+
+    // Collection: Purchases
+    match /purchases/{purchaseId} {
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidEntity(incoming());
+      allow update: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
+    }
+
+    // Collection: Notifications
+    match /notifications/{notificationId} {
+      function isValidNotification(data) {
+        return data.text is string && data.text.size() >= 1 && data.text.size() <= 1000 &&
+               data.read is bool &&
+               (!data.keys().hasAny(['category']) || data.category is string) &&
+               (!data.keys().hasAny(['target_id']) || data.target_id is string) &&
+               (!data.keys().hasAny(['target_collection']) || data.target_collection is string);
+      }
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(notificationId) &&
+                    isValidEntity(incoming()) && isValidNotification(incoming());
+      allow update: if (isOwner(existing().get('user_id', null)) || isAdmin()) &&
+                    incoming().user_id == existing().get('user_id', incoming().user_id) &&
+                    isValidNotification(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['read', 'updated_at']);
+      allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
+    }
+
+    // Collection: Recycle Bin
+    match /recycle_bin/{binDocId} {
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidEntity(incoming());
+      allow update: if (isOwner(existing().get('user_id', null)) || isAdmin());
+      allow delete: if (isOwner(existing().get('user_id', null)) || isAdmin());
+    }
+
+    // Collection: Payments Subscription
+    match /payments_subscription/{paymentSubId} {
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidEntity(incoming());
+      allow update: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Collection: Subscription Requests
+    match /subscription_requests/{requestId} {
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidEntity(incoming());
+      allow update: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
+    }
+
+    // Collection: Subscription Receipts
+    match /subscription_receipts/{receiptId} {
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidEntity(incoming());
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Collection: Email Logs
+    match /email_logs/{logId} {
+      allow get, list: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Collection: Templates
+    match /templates/{templateId} {
+      function isValidTemplate(data) {
+        return data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+               data.base_template is string && data.base_template.size() >= 1 && data.base_template.size() <= 100;
+      }
+
+      allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
+      allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(templateId) &&
+                    isValidEntity(incoming()) && isValidTemplate(incoming());
+      allow update: if (isOwner(existing().get('user_id', null)) || isAdmin()) &&
+                    incoming().user_id == existing().get('user_id', incoming().user_id) &&
+                    isValidTemplate(incoming());
+      allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
+    }
+  }
+}
