@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useItems } from '../hooks/useData';
+import { useItems, useCustomers } from '../hooks/useData';
 import { dbService } from '../services/dbService';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { cn } from '../lib/utils';
@@ -25,26 +25,37 @@ import {
   Volume2,
   VolumeX,
   Phone,
-  HelpCircle
+  HelpCircle,
+  CreditCard,
+  Banknote,
+  QrCode,
+  User,
+  Layers,
+  ChevronRight,
+  Sparkles,
+  AlertTriangle,
+  RotateCcw,
+  Tag
 } from 'lucide-react';
 import { configureCameraTrackFocusAndZoom, triggerCameraRefocus, setCameraTorch, setCameraZoom, requestExplicitCameraPermission, startHtml5ScannerRobust, playScanBeepSound, playErrorBeepSound } from '../utils/cameraUtils';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScannerHelpGuide } from '../components/ScannerHelpGuide';
-import { initializeUsbScanner, registerScanListener, registerStatusListener, getScannerSessionId } from '../utils/usbScanner';
+import { initializeUsbScanner, registerScanListener, registerStatusListener } from '../utils/usbScanner';
 import { QRCodeSVG } from 'qrcode.react';
-
 import { toWords } from 'number-to-words';
 
 interface CartItem {
   id: string;
   item: any;
   quantity: number;
+  selectedSerials?: string[];
 }
 
 export default function QuickPOSPage() {
   const navigate = useNavigate();
   const { user, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { items } = useItems();
+  const { customers } = useCustomers();
 
   useEffect(() => {
     if (!isPro) {
@@ -58,7 +69,7 @@ export default function QuickPOSPage() {
   }, [isPro, navigate]);
   
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [isScanning, setIsScanning] = useState(true);
+  const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraMode, setCameraMode] = useState<'environment' | 'user'>('environment');
@@ -66,24 +77,32 @@ export default function QuickPOSPage() {
   const [currentZoom, setCurrentZoom] = useState(1.4);
   const [tapFocusPos, setTapFocusPos] = useState<{ x: number; y: number } | null>(null);
   const qrCodeRef = useRef<Html5Qrcode | null>(null);
-  const [scannerSource, setScannerSource] = useState<'pc-camera' | 'usb-gun' | 'mobile-usb'>('pc-camera');
+  const [scannerSource, setScannerSource] = useState<'pc-camera' | 'usb-gun' | 'mobile-usb'>('usb-gun');
   const [mobileScannerConnected, setMobileScannerConnected] = useState(false);
   const [showHelpGuide, setShowHelpGuide] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [searchInput, setSearchInput] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  
+  // Customer & Payment state
+  const [customerName, setCustomerName] = useState('Cash Sale');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'card' | 'credit'>('cash');
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [showMobileCart, setShowMobileCart] = useState(false);
+  
+  // Serial Number Modal for specific item
+  const [activeSerialModalItem, setActiveSerialModalItem] = useState<CartItem | null>(null);
+  const [tempSerials, setTempSerials] = useState<string[]>([]);
+  const [serialScanInput, setSerialScanInput] = useState('');
   
   // Hardware Barcode Machine scanner keystroke buffer
   const scanBufferRef = useRef<string>('');
   const lastKeyTimeRef = useRef<number>(0);
-  
-  // Ref to prevent rapid duplicate scans of the same item
   const lastScannedRef = useRef<{ code: string; time: number } | null>(null);
-  
-  // Audio context for beep sound
   const audioContext = useRef<AudioContext | null>(null);
 
   useEffect(() => {
-    // Initialize audio context on mount
     audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     return () => {
       if (audioContext.current?.state !== 'closed') {
@@ -92,30 +111,35 @@ export default function QuickPOSPage() {
     };
   }, []);
 
-  const playBeep = () => {
-    if (!audioContext.current) return;
-    try {
-      if (audioContext.current.state === 'suspended') {
-        audioContext.current.resume();
+  // Unique categories from items list
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    cats.add('All');
+    items.forEach(i => {
+      if (i.category && typeof i.category === 'string' && i.category.trim()) {
+        cats.add(i.category.trim());
       }
-      const oscillator = audioContext.current.createOscillator();
-      const gainNode = audioContext.current.createGain();
-      
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(1000, audioContext.current.currentTime); // Standard high-frequency scanner beep (1000Hz)
-      
-      gainNode.gain.setValueAtTime(0.15, audioContext.current.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.current.currentTime + 0.12);
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.current.destination);
-      
-      oscillator.start();
-      oscillator.stop(audioContext.current.currentTime + 0.12);
-    } catch (e) {
-      console.log('Audio playback failed');
-    }
-  };
+    });
+    return Array.from(cats);
+  }, [items]);
+
+  // Filtered items based on search and category
+  const filteredProducts = useMemo(() => {
+    return items.filter(item => {
+      if (selectedCategory !== 'All' && item.category !== selectedCategory) {
+        return false;
+      }
+      if (searchInput.trim()) {
+        const q = searchInput.trim().toLowerCase();
+        const nameMatch = (item.name || '').toLowerCase().includes(q);
+        const barcodeMatch = (item.barcode || '').toLowerCase().includes(q);
+        const categoryMatch = (item.category || '').toLowerCase().includes(q);
+        const serialMatch = Array.isArray(item.serials) && item.serials.some((s: any) => String(s).toLowerCase().includes(q));
+        return nameMatch || barcodeMatch || categoryMatch || serialMatch;
+      }
+      return true;
+    });
+  }, [items, selectedCategory, searchInput]);
 
   useEffect(() => {
     let active = true;
@@ -172,14 +196,6 @@ export default function QuickPOSPage() {
               setTimeout(async () => {
                 await configureCameraTrackFocusAndZoom(element, 1.4);
               }, 250);
-            } else {
-              if (html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
-                  try { html5QrCode.clear(); } catch (e) {}
-                }).catch(() => {});
-              } else {
-                try { html5QrCode.clear(); } catch (e) {}
-              }
             }
           }).catch((err) => {
             if (active) {
@@ -216,7 +232,7 @@ export default function QuickPOSPage() {
       }
       setCameraActive(false);
     };
-  }, [isScanning, cameraMode, scannerSource]); // Re-run if scanning state, camera mode or scanner source changes
+  }, [isScanning, cameraMode, scannerSource]);
 
   const handleScanRef = useRef<any>(null);
   useEffect(() => {
@@ -226,9 +242,7 @@ export default function QuickPOSPage() {
   useEffect(() => {
     initializeUsbScanner();
     const unsubScan = registerScanListener((code) => {
-      if (isScanning) {
-        handleScanRef.current(code);
-      }
+      handleScanRef.current(code);
     });
 
     const unsubStatus = registerStatusListener((connected) => {
@@ -239,15 +253,13 @@ export default function QuickPOSPage() {
       unsubScan();
       unsubStatus();
     };
-  }, [isScanning]);
+  }, []);
 
-  // Must wrap items in a ref to avoid stale closures in handleScan
   const itemsRef = useRef(items);
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
 
-  // Sound enable/disable toggle with local storage persistence
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     return localStorage.getItem('invocentric_scanner_sound') !== 'false';
   });
@@ -260,86 +272,113 @@ export default function QuickPOSPage() {
     });
   };
 
+  // Add Item to Cart with Serial detection
+  const addItemToCart = (itemToAdd: any, attachedSerial?: string) => {
+    if (appMode !== 'freelancer') {
+      const itemStock = typeof itemToAdd.stock === 'number' ? itemToAdd.stock : 0;
+      const existingInCart = cart.find(c => c.id === itemToAdd.id);
+      const currentQty = existingInCart ? existingInCart.quantity : 0;
+
+      if (itemStock <= 0) {
+        playErrorBeepSound(soundEnabled);
+        alert(`⚠️ OUT OF STOCK!\n\nItem "${itemToAdd.name}" is completely out of stock (Stock: 0).`);
+        return;
+      }
+
+      if (currentQty + 1 > itemStock) {
+        playErrorBeepSound(soundEnabled);
+        alert(`⚠️ INSUFFICIENT STOCK!\n\nOnly ${itemStock} unit(s) of "${itemToAdd.name}" available in stock.`);
+        return;
+      }
+    }
+
+    playScanBeepSound(soundEnabled);
+    setCart(prev => {
+      const existing = prev.find(c => c.id === itemToAdd.id);
+      if (existing) {
+        const nextSerials = existing.selectedSerials ? [...existing.selectedSerials] : [];
+        if (attachedSerial && !nextSerials.includes(attachedSerial)) {
+          nextSerials.push(attachedSerial);
+        }
+        return prev.map(c => c.id === itemToAdd.id ? { 
+          ...c, 
+          quantity: c.quantity + 1,
+          selectedSerials: nextSerials 
+        } : c);
+      }
+      return [...prev, { 
+        id: itemToAdd.id, 
+        item: itemToAdd, 
+        quantity: 1, 
+        selectedSerials: attachedSerial ? [attachedSerial] : [] 
+      }];
+    });
+  };
+
   function handleScan(barcode: string) {
     if (!barcode) return;
     
     const now = Date.now();
-    if (lastScannedRef.current && lastScannedRef.current.code === barcode && now - lastScannedRef.current.time < 1200) {
-      // Cooldown to prevent multi-scanning the same barcode multiple times on rapid camera frames
+    if (lastScannedRef.current && lastScannedRef.current.code === barcode && now - lastScannedRef.current.time < 1000) {
       return;
     }
-    
-    // Save last scanned barcode with the current timestamp
     lastScannedRef.current = { code: barcode, time: now };
 
-    const processItemScan = (matchedItem: any) => {
-      if (appMode !== 'freelancer') {
-        const itemStock = typeof matchedItem.stock === 'number' ? matchedItem.stock : 0;
-        const existingInCart = cart.find(c => c.id === matchedItem.id);
-        const currentQty = existingInCart ? existingInCart.quantity : 0;
+    const trimmed = barcode.trim();
 
-        if (itemStock <= 0) {
-          playErrorBeepSound(soundEnabled);
-          alert(`⚠️ OUT OF STOCK!\n\nItem "${matchedItem.name}" is completely out of stock (Stock: 0).\n\nThis item CANNOT be added to the invoice/bill.`);
-          return;
-        }
+    // 1. Check exact match by Product Barcode, SKU, ID, or Name
+    let matchedItem = itemsRef.current.find(item => 
+      item.barcode === trimmed || 
+      item.id === trimmed || 
+      item.name.toLowerCase() === trimmed.toLowerCase()
+    );
 
-        if (currentQty + 1 > itemStock) {
-          playErrorBeepSound(soundEnabled);
-          alert(`⚠️ INSUFFICIENT STOCK!\n\nItem "${matchedItem.name}" only has ${itemStock} unit(s) in stock.\nYou already have ${currentQty} in cart. Cannot add more.`);
-          return;
+    // 2. Check if scanned code matches a SPECIFIC SERIAL / IMEI NUMBER in inventory!
+    let matchedSerial: string | undefined = undefined;
+    if (!matchedItem) {
+      matchedItem = itemsRef.current.find(item => {
+        if (Array.isArray(item.serials)) {
+          const hasSerial = item.serials.some((s: any) => {
+            const code = typeof s === 'string' ? s : (s && s.code ? s.code : '');
+            return code.toLowerCase() === trimmed.toLowerCase();
+          });
+          if (hasSerial) {
+            matchedSerial = trimmed;
+            return true;
+          }
         }
-      }
-
-      playScanBeepSound(soundEnabled);
-      setCart(prev => {
-        const existing = prev.find(c => c.id === matchedItem.id);
-        if (existing) {
-          return prev.map(c => c.id === matchedItem.id ? { ...c, quantity: c.quantity + 1 } : c);
+        if (item.serialNumber && String(item.serialNumber).toLowerCase().includes(trimmed.toLowerCase())) {
+          matchedSerial = trimmed;
+          return true;
         }
-        return [...prev, { id: matchedItem.id, item: matchedItem, quantity: 1 }];
+        return false;
       });
-    };
-
-    const matchedItem = itemsRef.current.find(item => {
-      if (item.barcode === barcode || item.id === barcode || item.name.toLowerCase() === barcode.toLowerCase()) {
-        return true;
-      }
-      if (Array.isArray((item as any).serials)) {
-        return (item as any).serials.some((s: any) => {
-          const code = typeof s === 'string' ? s : (s && s.code ? s.code : '');
-          return code.toLowerCase() === barcode.toLowerCase();
-        });
-      }
-      if ((item as any).serialNumber) {
-        return String((item as any).serialNumber).toLowerCase().includes(barcode.toLowerCase());
-      }
-      return false;
-    });
+    }
 
     if (matchedItem) {
-      processItemScan(matchedItem);
+      addItemToCart(matchedItem, matchedSerial);
     } else {
-      // Optional: search by partial text if exact barcode match fails
+      // Partial match fallback
       const partialItem = itemsRef.current.find(item => 
-        item.name.toLowerCase().includes(barcode.toLowerCase()) || 
-        (item.barcode && item.barcode.includes(barcode))
+        item.name.toLowerCase().includes(trimmed.toLowerCase()) || 
+        (item.barcode && item.barcode.includes(trimmed))
       );
       if (partialItem) {
-        processItemScan(partialItem);
+        addItemToCart(partialItem);
       } else {
         playErrorBeepSound(soundEnabled);
-        alert(`❌ Item Not Found!\n\nNo inventory product matching "${barcode}" was found.`);
+        alert(`❌ Item Not Found!\n\nNo product matching "${trimmed}" found in catalog.`);
       }
     }
-  };
+  }
 
-  // Hardware Barcode Gun / Keyboard Listener
+  // Global Hardware USB Laser Gun Scanner Listener
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is inside a normal textarea
       const target = e.target as HTMLElement;
-      if (target && target.tagName === 'TEXTAREA') return;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        if (target.id !== 'pos-search-input') return;
+      }
 
       const currentTime = Date.now();
       const timeDiff = currentTime - lastKeyTimeRef.current;
@@ -351,11 +390,9 @@ export default function QuickPOSPage() {
           handleScan(scannedCode);
           scanBufferRef.current = '';
           setSearchInput('');
-          // Prevent form submit if any
           e.preventDefault();
         }
       } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        // If keystrokes arrive very rapidly (< 80ms), it's a hardware barcode scanner gun typing
         if (timeDiff > 120) {
           scanBufferRef.current = e.key;
         } else {
@@ -382,7 +419,9 @@ export default function QuickPOSPage() {
     setCart(prev => prev.map(c => {
       if (c.id === id) {
         const newQ = c.quantity + delta;
-        return { ...c, quantity: newQ > 0 ? newQ : 1 };
+        // Trim serials if quantity decreases
+        const nextSerials = c.selectedSerials ? c.selectedSerials.slice(0, newQ > 0 ? newQ : 1) : [];
+        return { ...c, quantity: newQ > 0 ? newQ : 1, selectedSerials: nextSerials };
       }
       return c;
     }));
@@ -392,16 +431,40 @@ export default function QuickPOSPage() {
     setCart(prev => prev.filter(c => c.id !== id));
   };
 
-  const totals = useMemo(() => {
-    const totalAmount = cart.reduce((acc, curr) => acc + (curr.item.price * curr.quantity), 0);
-    const totalItems = cart.reduce((acc, curr) => acc + curr.quantity, 0);
-    return { totalAmount, totalItems };
-  }, [cart]);
+  // Open Serial Selector Modal for a cart item
+  const openSerialModal = (cartItem: CartItem) => {
+    setActiveSerialModalItem(cartItem);
+    setTempSerials(cartItem.selectedSerials ? [...cartItem.selectedSerials] : []);
+    setSerialScanInput('');
+  };
 
+  const saveSerialModal = () => {
+    if (!activeSerialModalItem) return;
+    setCart(prev => prev.map(c => {
+      if (c.id === activeSerialModalItem.id) {
+        return { ...c, selectedSerials: tempSerials };
+      }
+      return c;
+    }));
+    setActiveSerialModalItem(null);
+  };
+
+  const totals = useMemo(() => {
+    const rawSubtotal = cart.reduce((acc, curr) => acc + (Number(curr.item.price || 0) * curr.quantity), 0);
+    const totalGst = cart.reduce((acc, curr) => {
+      const gstPct = Number(curr.item.gstPercent || 0);
+      const price = Number(curr.item.price || 0);
+      return acc + (price * curr.quantity * (gstPct / 100));
+    }, 0);
+    const totalItems = cart.reduce((acc, curr) => acc + curr.quantity, 0);
+    const finalTotal = Math.max(0, rawSubtotal + totalGst - discountAmount);
+    return { rawSubtotal, totalGst, totalItems, finalTotal };
+  }, [cart, discountAmount]);
+
+  // Complete POS Sale
   const handleCreateBill = async () => {
     if (!user || cart.length === 0) return;
 
-    // Strict stock check before generating invoice / bill
     if (appMode !== 'freelancer') {
       for (const cartItem of cart) {
         const inventoryItem = itemsRef.current.find(i => i.id === cartItem.item.id || i.name === cartItem.item.name);
@@ -409,12 +472,12 @@ export default function QuickPOSPage() {
           const stock = typeof inventoryItem.stock === 'number' ? inventoryItem.stock : 0;
           if (stock <= 0) {
             playErrorBeepSound(soundEnabled);
-            alert(`⚠️ INVOICE CANNOT BE CREATED!\n\nItem "${cartItem.item.name}" is OUT OF STOCK (Stock: 0).\n\nPlease remove this item from the cart or add stock before creating invoice.`);
+            alert(`⚠️ Cannot create bill! "${cartItem.item.name}" is OUT OF STOCK.`);
             return;
           }
           if (cartItem.quantity > stock) {
             playErrorBeepSound(soundEnabled);
-            alert(`⚠️ INVOICE CANNOT BE CREATED!\n\nRequested quantity for "${cartItem.item.name}" (${cartItem.quantity}) exceeds available stock (${stock}).\n\nPlease reduce quantity.`);
+            alert(`⚠️ Cannot create bill! Quantity for "${cartItem.item.name}" exceeds available stock (${stock}).`);
             return;
           }
         }
@@ -424,21 +487,28 @@ export default function QuickPOSPage() {
     setIsCreating(true);
     
     try {
-      const invoiceItems = cart.map(c => ({
-        description: c.item.name,
-        quantity: c.quantity,
-        price: c.item.price,
-        size: c.item.size || '',
-        hsn: c.item.hsn || '',
-        mrp: c.item.mrp || c.item.price || 0,
-        discount: c.item.discount || 0,
-        gstPercent: c.item.gstPercent || 0,
-        custom_box: c.item.custom_box || c.item.description || ''
-      }));
+      const invoiceItems = cart.map(c => {
+        const serialsList = c.selectedSerials || [];
+        const serialsStr = serialsList.join(', ');
+        return {
+          description: c.item.name,
+          quantity: c.quantity,
+          price: Number(c.item.price || 0),
+          size: c.item.size || '',
+          hsn: c.item.hsn || '',
+          mrp: c.item.mrp || c.item.price || 0,
+          discount: c.item.discount || 0,
+          gstPercent: c.item.gstPercent || 0,
+          custom_box: c.item.custom_box || c.item.description || '',
+          serials: serialsList,
+          serialNumber: serialsStr,
+          serial_number: serialsStr
+        };
+      });
 
       let amountWordsStr = "ZERO RUPEES ONLY";
       try {
-        const valFloor = Math.floor(totals.totalAmount);
+        const valFloor = Math.floor(totals.finalTotal);
         if (isFinite(valFloor) && !isNaN(valFloor) && valFloor >= 0) {
           amountWordsStr = `${toWords(valFloor)} RUPEES ONLY`.toUpperCase();
         }
@@ -448,15 +518,17 @@ export default function QuickPOSPage() {
 
       const invoiceData = {
         customer_id: null,
-        customer_name: 'Cash Sale',
-        amount: totals.totalAmount,
+        customer_name: customerName.trim() || 'Cash Sale',
+        customer_phone: customerPhone.trim() || '',
+        amount: totals.finalTotal,
         currency: 'INR',
         bill_type: 'INVOICE',
-        discount: 0,
+        discount: discountAmount,
         sales_return: 0,
-        columnVisibility: { size: false, hsn: false, mrp: false, discount: false, gstPercent: false },
+        payment_mode: paymentMethod.toUpperCase(),
+        columnVisibility: { size: false, hsn: true, mrp: false, discount: false, gstPercent: false },
         amount_words: amountWordsStr,
-        status: 'paid', // Mark POS bills as paid directly
+        status: 'paid',
         due_date: new Date().toISOString(),
         items: invoiceItems,
       };
@@ -464,40 +536,50 @@ export default function QuickPOSPage() {
       const res = await dbService.add('invoices', invoiceData, { offlineMode: false, userId: user.uid });
       const newInvoiceId = res.id;
 
-      // Automatically record a payment entry in the payments collection
+      // Record payment entry
       await dbService.add('payments', {
         user_id: user.uid,
         customer_id: null,
-        customer_name: 'Cash Sale',
-        amount: totals.totalAmount,
+        customer_name: customerName.trim() || 'Cash Sale',
+        amount: totals.finalTotal,
         date: new Date().toISOString(),
-        note: `POS Invoice #${res.id.slice(0, 8).toUpperCase()} Paid`,
-        method: 'cash',
+        note: `POS Invoice #${res.id.slice(0, 8).toUpperCase()} (${paymentMethod.toUpperCase()})`,
+        method: paymentMethod,
         invoice_id: res.id,
       }, { offlineMode: false, userId: user.uid });
 
-      // Auto-deduct stock for new invoices
+      // Auto-deduct stock and remove sold serials
       for (const cartItem of cart) {
         if (!cartItem.item.id || cartItem.quantity <= 0) continue;
         const inventoryItem = itemsRef.current.find(i => i.id === cartItem.item.id);
-        if (inventoryItem && typeof inventoryItem.stock === 'number') {
-          const newStock = Math.max(0, inventoryItem.stock - cartItem.quantity);
+        if (inventoryItem) {
+          const currentStock = typeof inventoryItem.stock === 'number' ? inventoryItem.stock : 0;
+          const newStock = Math.max(0, currentStock - cartItem.quantity);
+          
+          // Remove sold serials from item's serials list
+          let remainingSerials = Array.isArray(inventoryItem.serials) ? [...inventoryItem.serials] : [];
+          if (cartItem.selectedSerials && cartItem.selectedSerials.length > 0) {
+            const soldSet = new Set(cartItem.selectedSerials.map(s => s.toLowerCase()));
+            remainingSerials = remainingSerials.filter(s => !soldSet.has(String(s).toLowerCase()));
+          }
+
           try {
-            await dbService.update('items', inventoryItem.id, { stock: newStock }, { offlineMode: false, userId: user.uid });
+            await dbService.update('items', inventoryItem.id, { 
+              stock: newStock,
+              serials: remainingSerials,
+              serialNumber: remainingSerials.join(', ')
+            }, { offlineMode: false, userId: user.uid });
           } catch (err) {
-            console.error("Failed to deduct stock for", inventoryItem.name, err);
+            console.error("Failed to deduct stock/serials for", inventoryItem.name, err);
           }
         }
       }
 
-      // Stop camera before navigating
       if (qrCodeRef.current && qrCodeRef.current.isScanning) {
         await qrCodeRef.current.stop();
         qrCodeRef.current.clear();
       }
       
-      // Navigate to the invoice view, perhaps with a query param to trigger a direct print/WhatsApp prompt if needed, 
-      // but standard Invoice View is already good.
       navigate(`/invoices/${newInvoiceId}?pos=true`);
       
     } catch (error) {
@@ -507,22 +589,28 @@ export default function QuickPOSPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 text-slate-800 md:pb-0 pb-safe font-sans select-none">
-      {/* Top Professional Header */}
-      <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm shrink-0">
+    <div className="flex flex-col h-screen bg-slate-50 text-slate-800 font-sans select-none overflow-hidden">
+      
+      {/* ── Top POS Header ── */}
+      <header className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between sticky top-0 z-30 shadow-xs shrink-0">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate('/')}
-            className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:text-slate-950 hover:bg-slate-200 active:scale-95 transition-all"
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:text-slate-950 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
             aria-label="Back"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
-          <div>
-            <h1 className="text-base font-bold text-slate-850 tracking-tight flex items-center gap-2">
-              Quick Bill
-              <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full border border-emerald-100">POS</span>
-            </h1>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm shadow-xs">
+              IC
+            </div>
+            <div>
+              <h1 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
+                QuickPOS Billing
+                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">Live</span>
+              </h1>
+            </div>
           </div>
         </div>
 
@@ -530,455 +618,778 @@ export default function QuickPOSPage() {
           {cart.length > 0 && (
             <button
               onClick={() => setCart([])}
-              className="text-xs font-semibold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 px-2.5 py-1.5 rounded-xl border border-rose-500/20 transition-all active:scale-95"
+              className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all active:scale-95 cursor-pointer flex items-center gap-1"
             >
-              Clear Cart
+              <RotateCcw size={13} />
+              <span className="hidden sm:inline">Reset Cart</span>
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={toggleSound}
+            className={cn(
+              "h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer",
+              soundEnabled
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+            )}
+            title={soundEnabled ? "Mute scan beep" : "Enable scan beep"}
+          >
+            {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+            <span className="hidden sm:inline text-[11px]">{soundEnabled ? 'Beep On' : 'Muted'}</span>
+          </button>
+
           <button 
             type="button"
             onClick={() => setShowHelpGuide(!showHelpGuide)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border",
+              "h-8 px-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 border flex items-center gap-1 cursor-pointer",
               showHelpGuide 
-                ? "bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm" 
-                : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-800"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
             )}
-            title="Setup & Connection Guide"
           >
             <HelpCircle size={15} />
-            <span>Help Guide</span>
+            <span className="hidden sm:inline">Guide</span>
           </button>
+
           <button 
             onClick={() => setIsScanning(!isScanning)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 border",
+              "h-8 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 border flex items-center gap-1.5 cursor-pointer",
               isScanning 
-                ? "bg-emerald-600 text-white border-emerald-700 shadow-sm hover:bg-emerald-700" 
-                : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-800"
+                ? "bg-emerald-600 text-white border-emerald-700 shadow-xs" 
+                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
             )}
           >
             <Camera size={15} />
-            <span>{isScanning ? 'Scanner On' : 'Open Camera'}</span>
+            <span>{isScanning ? 'Cam On' : 'Open Cam'}</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Unified Search & Barcode Input */}
-      <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 shrink-0 z-20">
-        <div className="relative flex items-center">
-          <Barcode className="absolute left-3.5 text-slate-400 pointer-events-none" size={18} />
-          <input
-            id="pos-search-input"
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && searchInput.trim()) {
-                handleScan(searchInput.trim());
-                setSearchInput('');
-              }
-            }}
-            placeholder={
-              isScanning && scannerSource === 'usb-gun'
-                ? "Awaiting gun scan... Pull trigger now"
-                : isScanning && scannerSource === 'mobile-usb'
-                ? "Awaiting phone scan..."
-                : "Scan barcode or type item name..."
-            }
-            className="w-full bg-white text-slate-800 placeholder-slate-400 text-xs font-medium pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-sm"
-            autoFocus={isScanning && scannerSource === 'usb-gun'}
-          />
-          {searchInput ? (
-            <button
-              type="button"
-              onClick={() => setSearchInput('')}
-              className="absolute right-3 text-slate-400 hover:text-slate-600"
-            >
-              <X size={14} />
-            </button>
-          ) : (
-            <div className="absolute right-3 hidden sm:flex items-center gap-1 text-[10px] text-slate-500 font-semibold bg-slate-200 px-1.5 py-0.5 rounded">
-              <Keyboard size={12} /> {isScanning && scannerSource === 'usb-gun' ? 'Focus Active' : 'USB Gun'}
+      {/* ── Main Dual Panel Layout ── */}
+      <div className="flex-1 lg:grid lg:grid-cols-12 overflow-hidden">
+        
+        {/* ── Left Side: Products Catalog & Search (7 Cols) ── */}
+        <section className="lg:col-span-7 xl:col-span-7 flex flex-col h-full overflow-hidden border-r border-slate-200 bg-slate-50/50">
+          
+          {/* Top Barcode Search Input & Scanner Source Tabs */}
+          <div className="bg-white p-3 border-b border-slate-200 space-y-2 shrink-0">
+            <div className="relative flex items-center">
+              <Barcode className="absolute left-3.5 text-emerald-600 pointer-events-none" size={18} />
+              <input
+                id="pos-search-input"
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchInput.trim()) {
+                    handleScan(searchInput.trim());
+                    setSearchInput('');
+                  }
+                }}
+                placeholder={
+                  scannerSource === 'usb-gun'
+                    ? "Pull barcode gun trigger or type product/serial..."
+                    : "Search product name, barcode, or serial number..."
+                }
+                className="w-full bg-slate-50 text-slate-900 placeholder-slate-400 text-xs font-semibold pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-xs"
+                autoFocus
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => setSearchInput('')}
+                  className="absolute right-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Scanner Source Selector Tabs */}
-        {isScanning && (
-          <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200 mt-2 mb-1">
-            <button
-              type="button"
-              onClick={() => setScannerSource('pc-camera')}
-              className={cn(
-                "flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all",
-                scannerSource === 'pc-camera'
-                  ? "bg-white text-emerald-600 border border-slate-200 shadow-sm font-extrabold"
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              <Camera size={13} />
-              <span>PC Camera</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setScannerSource('usb-gun')}
-              className={cn(
-                "flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all",
-                scannerSource === 'usb-gun'
-                  ? "bg-white text-emerald-600 border border-slate-200 shadow-sm font-extrabold"
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              <Barcode size={13} />
-              <span>USB Gun</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setScannerSource('mobile-usb')}
-              className={cn(
-                "flex flex-col sm:flex-row items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all",
-                scannerSource === 'mobile-usb'
-                  ? "bg-white text-emerald-600 border border-slate-200 shadow-sm font-extrabold"
-                  : "text-slate-500 hover:text-slate-800"
-              )}
-            >
-              <Phone size={13} />
-              <span>Mobile Cam</span>
-            </button>
+            {/* Scanner Mode Switch Tabs */}
+            {isScanning && (
+              <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setScannerSource('usb-gun')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                    scannerSource === 'usb-gun'
+                      ? "bg-white text-emerald-700 shadow-xs border border-slate-200"
+                      : "text-slate-500 hover:text-slate-900"
+                  )}
+                >
+                  <Barcode size={13} />
+                  <span>USB Gun</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScannerSource('pc-camera')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                    scannerSource === 'pc-camera'
+                      ? "bg-white text-emerald-700 shadow-xs border border-slate-200"
+                      : "text-slate-500 hover:text-slate-900"
+                  )}
+                >
+                  <Camera size={13} />
+                  <span>PC Cam</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScannerSource('mobile-usb')}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                    scannerSource === 'mobile-usb'
+                      ? "bg-white text-emerald-700 shadow-xs border border-slate-200"
+                      : "text-slate-500 hover:text-slate-900"
+                  )}
+                >
+                  <Phone size={13} />
+                  <span>Mobile</span>
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Collapsible Help Guide Viewport */}
-      <AnimatePresence initial={false}>
-        {showHelpGuide && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            className="w-full bg-white border-b border-slate-200 text-slate-800 overflow-hidden"
-          >
-            <div className="p-4 max-h-[45vh] overflow-y-auto">
-              <ScannerHelpGuide />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Clean Collapsible Camera Scanner Viewport */}
-      <AnimatePresence initial={false}>
-        {isScanning && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: scannerSource === 'mobile-usb' ? '46vh' : '36vh', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            onClick={(e) => {
-              if (scannerSource !== 'pc-camera' || !cameraActive || cameraError) return;
-              const rect = e.currentTarget.getBoundingClientRect();
-              const x = e.clientX - rect.left;
-              const y = e.clientY - rect.top;
-              setTapFocusPos({ x, y });
-              setTimeout(() => setTapFocusPos(null), 800);
-              const el = document.getElementById("pos-qr-reader");
-              triggerCameraRefocus(el);
-            }}
-            className="w-full bg-slate-100 relative overflow-hidden shrink-0 select-none border-b border-slate-200"
-          >
-            {scannerSource === 'pc-camera' ? (
-              <div className="relative w-full h-full">
+          {/* Collapsible Camera Scanner Viewport */}
+          <AnimatePresence initial={false}>
+            {isScanning && scannerSource === 'pc-camera' && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: '180px', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="w-full bg-black relative overflow-hidden shrink-0 border-b border-slate-200"
+              >
                 <div id="pos-qr-reader" className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full" />
                 
-                {/* Tap focus ring indicator */}
-                {tapFocusPos && (
-                  <div 
-                    style={{ left: tapFocusPos.x - 20, top: tapFocusPos.y - 20 }}
-                    className="absolute w-10 h-10 rounded-full border-2 border-emerald-500 bg-emerald-500/20 z-30 pointer-events-none animate-ping"
-                  />
-                )}
-
-                {/* Ultra-Minimal Camera Overlay Controls */}
                 {cameraActive && !cameraError && (
-                  <div className="absolute top-3 right-3 z-30 flex items-center gap-2 pointer-events-auto">
-                    {/* Sound Beep Toggle */}
+                  <div className="absolute top-2 right-2 z-30 flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSound();
+                      onClick={async () => {
+                        const el = document.getElementById("pos-qr-reader");
+                        const ok = await setCameraTorch(el, !torchOn);
+                        if (ok) setTorchOn(!torchOn);
                       }}
                       className={cn(
-                        "h-9 px-2.5 rounded-xl border flex items-center justify-center gap-1.5 transition-all active:scale-95 backdrop-blur-md shadow-lg text-xs font-bold",
-                        soundEnabled
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                          : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-750"
+                        "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all",
+                        torchOn ? "bg-amber-400 text-amber-950" : "bg-black/60 text-white"
                       )}
-                      title={soundEnabled ? "Mute scan sound" : "Enable scan sound"}
                     >
-                      {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-                      <span className="hidden xs:inline text-[10px]">{soundEnabled ? 'Beep On' : 'Muted'}</span>
-                    </button>
-
-                    {/* Torch Toggle */}
-                    <button
-                      type="button"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const el = document.getElementById("pos-qr-reader");
-                        const nextState = !torchOn;
-                        const ok = await setCameraTorch(el, nextState);
-                        if (ok) setTorchOn(nextState);
-                      }}
-                      className={cn(
-                        "w-9 h-9 rounded-xl flex items-center justify-center border transition-all active:scale-95 backdrop-blur-md shadow-lg",
-                        torchOn
-                          ? "bg-amber-100 text-amber-700 border-amber-300"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                      )}
-                      title="Toggle Flash"
-                    >
-                      <Zap size={16} className={torchOn ? "fill-current text-amber-500" : "text-slate-500"} />
-                    </button>
-
-                    {/* Zoom Toggle (Cycle 1x -> 1.5x -> 2x) */}
-                    <button
-                      type="button"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const nextZoom = currentZoom === 1.0 ? 1.5 : currentZoom === 1.5 ? 2.0 : 1.0;
-                        setCurrentZoom(nextZoom);
-                        const el = document.getElementById("pos-qr-reader");
-                        await setCameraZoom(el, nextZoom);
-                      }}
-                      className="h-9 px-2.5 rounded-xl bg-white text-emerald-600 border border-slate-200 backdrop-blur-md font-extrabold text-xs flex items-center justify-center transition-all active:scale-95 shadow-lg"
-                      title="Toggle Zoom"
-                    >
-                      {currentZoom}x
+                      <Zap size={14} />
                     </button>
                   </div>
                 )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                {/* Minimal Target Viewfinder Frame */}
-                <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center">
-                   <div className="relative w-[240px] h-[120px] border-2 border-emerald-500/60 rounded-2xl overflow-hidden bg-black/5 shadow-[0_0_0_9999px_rgba(248,250,252,0.85)]">
-                      {/* Laser line */}
-                      <div className="scanner-laser-line bg-emerald-500" />
-                      <div className="scanner-laser-glow" />
-
-                      {/* Corner Accent Hooks */}
-                      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-emerald-400 rounded-tl-md" />
-                      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-400 rounded-tr-md" />
-                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-emerald-400 rounded-bl-md" />
-                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-emerald-400 rounded-br-md" />
-                   </div>
-                </div>
-
-                {/* Error or Loading State */}
-                {cameraError && (
-                  <div className="absolute inset-0 bg-slate-50 flex items-center justify-center z-20 p-4">
-                    <div className="text-center max-w-xs">
-                      <p className="text-slate-800 text-xs font-semibold mb-3">{cameraError}</p>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          setCameraError(null);
-                          const res = await requestExplicitCameraPermission();
-                          if (res.success) setCameraActive(true);
-                          else setCameraError(res.error || "Permission denied.");
-                        }}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 inline-flex items-center gap-1.5"
-                      >
-                        <Camera size={14} /> Allow Camera Access
-                      </button>
-                    </div>
-                  </div>
+          {/* Category Filter Pills */}
+          <div className="px-3 py-2 bg-white border-b border-slate-200 overflow-x-auto scrollbar-hide flex items-center gap-1.5 shrink-0">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border",
+                  selectedCategory === cat
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                    : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
                 )}
-                
-                {!cameraActive && !cameraError && (
-                  <div className="absolute inset-0 flex items-center justify-center z-20 bg-slate-50">
-                    <Loader2 size={22} className="text-emerald-600 animate-spin" />
-                  </div>
-                )}
-              </div>
-            ) : scannerSource === 'usb-gun' ? (
-              <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center select-none bg-white">
-                <div className="absolute inset-0 bg-radial-gradient from-emerald-500/5 to-transparent pointer-events-none" />
-                
-                <div className="w-[180px] h-[80px] border border-slate-200 rounded-2xl bg-slate-50 flex items-center justify-center relative overflow-hidden mb-4 shadow-sm">
-                  <Barcode className="text-slate-400" size={54} />
-                  <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" />
-                </div>
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
 
-                <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 mb-1.5">USB Scanner Gun Ready</h3>
-                <p className="text-[11px] text-slate-500 font-bold max-w-[270px] leading-relaxed">
-                  Ensure cursor is focused inside the barcode field above and pull the scanner gun trigger to capture barcode automatically.
-                </p>
+          {/* Product Cards Grid */}
+          <div className="flex-1 p-3 overflow-y-auto">
+            {filteredProducts.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
+                <ShoppingBag size={36} className="mb-2 opacity-50" />
+                <p className="text-sm font-bold text-slate-600">No items found</p>
+                <p className="text-xs text-slate-400 mt-0.5">Try searching with another keyword or category</p>
               </div>
             ) : (
-              <div className="relative w-full h-full flex flex-col items-center justify-center p-5 text-center select-none bg-white overflow-y-auto">
-                <div className="absolute inset-0 bg-radial-gradient from-emerald-500/5 to-transparent pointer-events-none" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5">
+                {filteredProducts.map((prod) => {
+                  const stockNum = typeof prod.stock === 'number' ? prod.stock : 0;
+                  const isOutOfStock = appMode !== 'freelancer' && stockNum <= 0;
+                  const inCartItem = cart.find(c => c.id === prod.id);
+                  const hasSerials = (Array.isArray(prod.serials) && prod.serials.length > 0) || Boolean(prod.serialNumber);
 
-                {mobileScannerConnected ? (
-                  <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center mb-3 shadow-sm animate-pulse">
-                      <CheckCircle2 size={32} className="fill-current" />
+                  return (
+                    <button
+                      key={prod.id}
+                      type="button"
+                      disabled={isOutOfStock}
+                      onClick={() => addItemToCart(prod)}
+                      className={cn(
+                        "text-left p-3 rounded-2xl border transition-all flex flex-col justify-between relative group cursor-pointer",
+                        isOutOfStock 
+                          ? "bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed" 
+                          : inCartItem
+                            ? "bg-emerald-50/70 border-emerald-400 shadow-xs ring-2 ring-emerald-500/20"
+                            : "bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm"
+                      )}
+                    >
+                      {/* In Cart Indicator badge */}
+                      {inCartItem && (
+                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-600 text-white font-black text-[10px] flex items-center justify-center shadow-xs">
+                          {inCartItem.quantity}
+                        </div>
+                      )}
+
+                      <div>
+                        {prod.category && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5 truncate">
+                            {prod.category}
+                          </span>
+                        )}
+                        <h3 className="font-bold text-xs text-slate-900 line-clamp-2 leading-snug">
+                          {prod.name}
+                        </h3>
+
+                        {hasSerials && (
+                          <div className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                            <Barcode size={10} />
+                            <span>S/N Tracked</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-extrabold text-slate-900">
+                            ₹{Number(prod.price || 0).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        {appMode !== 'freelancer' && (
+                          <span className={cn(
+                            "text-[9px] font-extrabold px-1.5 py-0.5 rounded",
+                            isOutOfStock
+                              ? "bg-rose-50 text-rose-600"
+                              : stockNum <= 5
+                                ? "bg-amber-50 text-amber-700"
+                                : "bg-slate-100 text-slate-600"
+                          )}>
+                            {isOutOfStock ? 'Out of Stock' : `${stockNum} in stock`}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ── Right Side: Live Billing Counter & Checkout (5 Cols) ── */}
+        <section className="hidden lg:flex lg:col-span-5 xl:col-span-5 flex-col h-full bg-white shadow-lg overflow-hidden">
+          
+          {/* Cart Header */}
+          <div className="p-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div>
+              <h2 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <ShoppingBag size={14} className="text-emerald-600" />
+                <span>Current Order</span>
+              </h2>
+              <p className="text-[10px] text-slate-400 font-medium">{totals.totalItems} item(s) in basket</p>
+            </div>
+            
+            {/* Quick Customer Selection */}
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Customer Name"
+                className="w-32 text-xs font-semibold px-2.5 py-1 bg-white rounded-lg border border-slate-200 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* Cart Items List */}
+          <div className="flex-1 p-3 overflow-y-auto space-y-2">
+            {cart.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
+                <Barcode size={32} className="opacity-40 mb-2" />
+                <p className="text-xs font-bold text-slate-600">Cart is empty</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Scan barcodes or tap products on the left to add</p>
+              </div>
+            ) : (
+              cart.map((cartItem) => {
+                const itemTotal = Number(cartItem.item.price || 0) * cartItem.quantity;
+                const hasSerials = (Array.isArray(cartItem.item.serials) && cartItem.item.serials.length > 0) || Boolean(cartItem.item.serialNumber);
+                const assignedCount = cartItem.selectedSerials?.length || 0;
+
+                return (
+                  <div 
+                    key={cartItem.id}
+                    className="p-2.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 hover:border-slate-300 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-xs text-slate-900 truncate">{cartItem.item.name}</h4>
+                        <p className="text-[11px] text-slate-500 font-medium">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-extrabold text-xs text-slate-900">
+                          ₹{itemTotal.toLocaleString('en-IN')}
+                        </span>
+                      </div>
                     </div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-emerald-600 mb-1.5 flex items-center gap-1.5">
-                      <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping mr-1" />
-                      Phone Scanner Connected!
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-bold max-w-[270px] leading-normal mb-2">
-                      Aapka phone successfully connect ho chuka hai! Point your phone camera at any barcode to automatically scan and enter items.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center w-full">
-                    {/* Beautiful QR Code representation */}
-                    <div className="bg-white p-2 rounded-2xl shadow-md mb-3 border border-slate-200">
-                      <QRCodeSVG value={`${window.location.origin}/mobile-scan?sessionId=${getScannerSessionId()}`} size={110} />
-                    </div>
 
-                    <h3 className="text-xs font-black uppercase tracking-widest text-amber-600 mb-1 flex items-center gap-1.5">
-                      <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                      Scan QR Code to Connect
-                    </h3>
-                    <p className="text-[10px] text-slate-500 font-bold max-w-[290px] leading-snug mb-3">
-                      Apne phone ka camera open karke is QR code ko scan karein. Camera open hote hi scanning shuru ho jayegi!
-                    </p>
+                    {/* Serial Numbers Pill Button */}
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        onClick={() => openSerialModal(cartItem)}
+                        className={cn(
+                          "text-[10px] font-bold px-2 py-1 rounded-lg border transition-all flex items-center gap-1 cursor-pointer",
+                          assignedCount === cartItem.quantity && assignedCount > 0
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                            : assignedCount > 0
+                              ? "bg-amber-50 text-amber-800 border-amber-300"
+                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                        )}
+                      >
+                        <Barcode size={12} />
+                        <span>S/N ({assignedCount}/{cartItem.quantity})</span>
+                        {assignedCount === cartItem.quantity && assignedCount > 0 && <CheckCircle2 size={11} className="text-emerald-600" />}
+                      </button>
 
-                    <div className="w-full max-w-sm">
-                      <div className="flex bg-slate-50 border border-slate-200 rounded-xl p-1 items-center justify-between">
-                        <code className="text-[9px] text-emerald-600 font-mono pl-2 text-left overflow-x-auto whitespace-nowrap scrollbar-none w-full mr-2">
-                          {`${window.location.origin}/mobile-scan?sessionId=${getScannerSessionId()}`}
-                        </code>
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl p-0.5 shadow-2xs">
                         <button
                           type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(`${window.location.origin}/mobile-scan?sessionId=${getScannerSessionId()}`);
-                          }}
-                          className="bg-slate-200 hover:bg-slate-300 text-[8px] uppercase tracking-wider font-extrabold px-2 py-1.5 rounded-lg text-slate-700 shrink-0"
+                          onClick={() => updateQuantity(cartItem.id, -1)}
+                          className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all cursor-pointer"
                         >
-                          Copy
+                          <Minus size={12} />
+                        </button>
+                        <span className="w-6 text-center text-xs font-black text-slate-900">
+                          {cartItem.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(cartItem.id, 1)}
+                          className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all cursor-pointer"
+                        >
+                          <Plus size={12} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeItem(cartItem.id)}
+                          className="w-6 h-6 rounded-lg text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all ml-1 cursor-pointer"
+                        >
+                          <Trash2 size={12} />
                         </button>
                       </div>
                     </div>
                   </div>
-                )}
+                );
+              })
+            )}
+          </div>
+
+          {/* Checkout & Summary Panel */}
+          <div className="p-3.5 border-t border-slate-200 bg-slate-50 space-y-3 shrink-0">
+            
+            {/* Payment Method Selector */}
+            <div>
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1 block">
+                Payment Mode
+              </label>
+              <div className="grid grid-cols-4 gap-1">
+                {[
+                  { id: 'cash', label: 'Cash', icon: Banknote },
+                  { id: 'upi', label: 'UPI QR', icon: QrCode },
+                  { id: 'card', label: 'Card', icon: CreditCard },
+                  { id: 'credit', label: 'Credit', icon: User },
+                ].map((mode) => {
+                  const Icon = mode.icon;
+                  return (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(mode.id as any)}
+                      className={cn(
+                        "py-1.5 rounded-xl text-[10px] font-bold border transition-all flex flex-col items-center gap-0.5 cursor-pointer",
+                        paymentMethod === mode.id
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-black"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                      )}
+                    >
+                      <Icon size={13} />
+                      <span>{mode.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick Cash Shortcuts (if cash selected) */}
+            {paymentMethod === 'cash' && (
+              <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide py-0.5">
+                {[100, 200, 500, 2000].map(cashVal => (
+                  <button
+                    key={cashVal}
+                    type="button"
+                    onClick={() => {
+                      if (totals.finalTotal > 0) {
+                        alert(`Cash Tendered: ₹${cashVal}\nChange to return: ₹${Math.max(0, cashVal - totals.finalTotal).toFixed(2)}`);
+                      }
+                    }}
+                    className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-[10px] font-bold whitespace-nowrap cursor-pointer transition-all shadow-2xs"
+                  >
+                    ₹{cashVal}
+                  </button>
+                ))}
               </div>
             )}
-          </motion.div>
+
+            {/* Summary Lines */}
+            <div className="space-y-1 text-xs pt-1 border-t border-slate-200/80">
+              <div className="flex justify-between text-slate-500 font-medium">
+                <span>Subtotal</span>
+                <span>₹{totals.rawSubtotal.toFixed(2)}</span>
+              </div>
+              {totals.totalGst > 0 && (
+                <div className="flex justify-between text-slate-500 font-medium">
+                  <span>GST Tax</span>
+                  <span>+₹{totals.totalGst.toFixed(2)}</span>
+                </div>
+              )}
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-600 font-medium">
+                  <span>Discount</span>
+                  <span>-₹{discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center text-slate-900 pt-1 border-t border-slate-200">
+                <span className="font-extrabold text-sm">Net Payable:</span>
+                <span className="font-black text-base text-emerald-700">
+                  ₹{totals.finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            {/* Action CTA Button */}
+            <button
+              type="button"
+              disabled={cart.length === 0 || isCreating}
+              onClick={handleCreateBill}
+              className={cn(
+                "w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer",
+                cart.length === 0
+                  ? "bg-slate-200 text-slate-400 cursor-not-allowed border-none shadow-none"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-emerald-600/20"
+              )}
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Processing Bill...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles size={16} />
+                  <span>Complete Bill &amp; Print (Enter)</span>
+                </>
+              )}
+            </button>
+          </div>
+        </section>
+
+      </div>
+
+      {/* ── Mobile Sticky Bottom Floating Bar (< lg) ── */}
+      <div className="lg:hidden p-3 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 shadow-lg z-30">
+        <div>
+          <span className="text-[10px] font-bold text-slate-500 block uppercase">Total Payable</span>
+          <span className="text-base font-black text-emerald-700">
+            ₹{totals.finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+        
+        <button
+          type="button"
+          disabled={cart.length === 0}
+          onClick={() => setShowMobileCart(true)}
+          className={cn(
+            "px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md",
+            cart.length === 0
+              ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+              : "bg-emerald-600 text-white shadow-emerald-600/20 active:scale-95"
+          )}
+        >
+          <ShoppingBag size={15} />
+          <span>Cart ({totals.totalItems})</span>
+          <ChevronRight size={15} />
+        </button>
+      </div>
+
+      {/* ── Mobile Cart Bottom Sheet Modal ── */}
+      <AnimatePresence>
+        {showMobileCart && (
+          <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-xs">
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="w-full max-h-[85vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden"
+            >
+              {/* Sheet Header */}
+              <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                  <ShoppingBag size={16} className="text-emerald-600" />
+                  <span>Cart Items ({totals.totalItems})</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileCart(false)}
+                  className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Sheet Cart List */}
+              <div className="p-4 overflow-y-auto space-y-2.5 flex-1">
+                {cart.map((cartItem) => (
+                  <div key={cartItem.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-bold text-xs text-slate-900">{cartItem.item.name}</h4>
+                        <span className="text-[11px] text-slate-500">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</span>
+                      </div>
+                      <span className="font-black text-xs text-slate-900">
+                        ₹{(Number(cartItem.item.price || 0) * cartItem.quantity).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+                      <button
+                        type="button"
+                        onClick={() => openSerialModal(cartItem)}
+                        className="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 flex items-center gap-1"
+                      >
+                        <Barcode size={12} />
+                        <span>S/N ({cartItem.selectedSerials?.length || 0}/{cartItem.quantity})</span>
+                      </button>
+
+                      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl p-1">
+                        <button onClick={() => updateQuantity(cartItem.id, -1)} className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center"><Minus size={12} /></button>
+                        <span className="text-xs font-bold w-5 text-center">{cartItem.quantity}</span>
+                        <button onClick={() => updateQuantity(cartItem.id, 1)} className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center"><Plus size={12} /></button>
+                        <button onClick={() => removeItem(cartItem.id)} className="w-6 h-6 text-rose-500 ml-1"><Trash2 size={12} /></button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Sheet Checkout Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-600">Net Payable</span>
+                  <span className="text-lg font-black text-emerald-700">₹{totals.finalTotal.toFixed(2)}</span>
+                </div>
+                
+                <button
+                  type="button"
+                  disabled={cart.length === 0 || isCreating}
+                  onClick={handleCreateBill}
+                  className="w-full py-3 rounded-2xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                >
+                  {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  <span>Generate Bill &amp; Print</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
-      {/* Cart Items Area */}
-      <div className="flex-1 overflow-y-auto p-4 bg-slate-50 custom-scrollbar">
-        {cart.length === 0 ? (
-          <div className="h-full min-h-[220px] flex flex-col items-center justify-center text-center p-6">
-            <div className="w-16 h-16 rounded-2xl bg-slate-200/60 flex items-center justify-center text-slate-400 mb-3">
-              <ShoppingBag size={28} />
-            </div>
-            <p className="text-slate-800 font-bold text-sm">Cart is empty</p>
-            <p className="text-slate-500 text-xs mt-1 max-w-[220px]">
-              Scan items with camera or USB scanner gun to add to bill.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2.5 pb-24">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-black text-slate-500 uppercase tracking-wider">
-                Scanned Items ({totals.totalItems})
-              </span>
-              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-lg border border-green-200/60">
-                Auto-added
-              </span>
-            </div>
-            
-            <AnimatePresence>
-              {cart.map((c) => (
-                <motion.div 
-                  key={c.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-3"
+      {/* ── Serial Number / IMEI Selection Modal ── */}
+      <AnimatePresence>
+        {activeSerialModalItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl p-5 w-full max-w-md shadow-2xl border border-slate-200 space-y-4"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+                    <Barcode size={16} className="text-emerald-600" />
+                    <span>Select Serial Numbers</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {activeSerialModalItem.item.name} (Qty: {activeSerialModalItem.quantity})
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveSerialModalItem(null)}
+                  className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
                 >
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-slate-900 text-sm truncate">{c.item.name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs font-black text-slate-900">₹{c.item.price}</span>
-                      {c.item.barcode && (
-                        <span className="text-[10px] text-slate-400 font-mono bg-slate-100 px-1.5 py-0.5 rounded">
-                          {c.item.barcode}
-                        </span>
-                      )}
-                    </div>
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Quick Scan Input */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Scan or Type Serial Number</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={serialScanInput}
+                    onChange={(e) => setSerialScanInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && serialScanInput.trim()) {
+                        const code = serialScanInput.trim();
+                        if (!tempSerials.includes(code)) {
+                          setTempSerials([...tempSerials, code]);
+                          setSerialScanInput('');
+                        }
+                      }
+                    }}
+                    placeholder="Scan barcode on box..."
+                    className="flex-1 text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const code = serialScanInput.trim();
+                      if (code && !tempSerials.includes(code)) {
+                        setTempSerials([...tempSerials, code]);
+                        setSerialScanInput('');
+                      }
+                    }}
+                    className="px-3 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs cursor-pointer"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Available Stock Serials List */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
+                  <span>Available in Stock ({Array.isArray(activeSerialModalItem.item.serials) ? activeSerialModalItem.item.serials.length : 0})</span>
+                  <span className={tempSerials.length === activeSerialModalItem.quantity ? "text-emerald-600 font-extrabold" : "text-amber-600"}>
+                    Selected: {tempSerials.length}/{activeSerialModalItem.quantity}
+                  </span>
+                </div>
+
+                <div className="max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+                  {Array.isArray(activeSerialModalItem.item.serials) && activeSerialModalItem.item.serials.length > 0 ? (
+                    activeSerialModalItem.item.serials.map((s: string) => {
+                      const isSelected = tempSerials.includes(s);
+                      return (
+                        <label 
+                          key={s} 
+                          className={cn(
+                            "flex items-center justify-between p-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all",
+                            isSelected 
+                              ? "bg-emerald-50 text-emerald-800 border-emerald-300 font-bold" 
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                          )}
+                        >
+                          <span className="font-mono">{s}</span>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              if (isSelected) {
+                                setTempSerials(tempSerials.filter(item => item !== s));
+                              } else {
+                                if (tempSerials.length < activeSerialModalItem.quantity) {
+                                  setTempSerials([...tempSerials, s]);
+                                } else {
+                                  alert(`Maximum ${activeSerialModalItem.quantity} serial numbers can be selected for this item.`);
+                                }
+                              }
+                            }}
+                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                          />
+                        </label>
+                      );
+                    })
+                  ) : (
+                    <p className="text-[11px] text-slate-400 text-center py-3">No pre-loaded serials in stock. You can type/scan new serials above.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Selected Serials Chips */}
+              {tempSerials.length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase">Assigned S/N for this Bill</span>
+                  <div className="flex flex-wrap gap-1">
+                    {tempSerials.map((s, idx) => (
+                      <span key={s} className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1 border border-emerald-200">
+                        <span>{s}</span>
+                        <button type="button" onClick={() => setTempSerials(tempSerials.filter((_, i) => i !== idx))} className="hover:text-rose-600"><X size={10} /></button>
+                      </span>
+                    ))}
                   </div>
-                  
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="flex items-center bg-slate-100 border border-slate-200 rounded-xl overflow-hidden">
-                      <button 
-                        type="button"
-                        onClick={() => updateQuantity(c.id, -1)}
-                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors active:bg-slate-300"
-                      >
-                        <Minus size={13} strokeWidth={2.5} />
-                      </button>
-                      <span className="w-7 text-center text-xs font-black text-slate-900">{c.quantity}</span>
-                      <button 
-                        type="button"
-                        onClick={() => updateQuantity(c.id, 1)}
-                        className="w-7 h-7 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors active:bg-slate-300"
-                      >
-                        <Plus size={13} strokeWidth={2.5} />
-                      </button>
-                    </div>
-                    
-                    <button 
-                      type="button"
-                      onClick={() => removeItem(c.id)}
-                      className="w-7 h-7 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                </div>
+              )}
+
+              {/* Modal Save Buttons */}
+              <div className="pt-2 border-t border-slate-100 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveSerialModalItem(null)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveSerialModal}
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs"
+                >
+                  Save Serials ({tempSerials.length})
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
-      </div>
+      </AnimatePresence>
 
-      {/* Modern High-Impact Checkout Bar */}
-      <div className="bg-white border-t border-slate-200 p-3.5 shrink-0 shadow-lg">
-        <div className="flex items-center justify-between mb-3 px-1">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Total Payable</span>
-            <span className="text-xl font-black text-slate-900">₹{totals.totalAmount.toFixed(2)}</span>
+      {/* Help Guide Modal */}
+      <AnimatePresence>
+        {showHelpGuide && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl p-5 w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-slate-200"
+            >
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                <h3 className="font-extrabold text-sm text-slate-900">POS Scanner &amp; Setup Guide</h3>
+                <button onClick={() => setShowHelpGuide(false)} className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center"><X size={14} /></button>
+              </div>
+              <ScannerHelpGuide />
+            </motion.div>
           </div>
-          <div className="text-right">
-            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">
-              {totals.totalItems} {totals.totalItems === 1 ? 'Item' : 'Items'}
-            </span>
-          </div>
-        </div>
+        )}
+      </AnimatePresence>
 
-        <button 
-          onClick={handleCreateBill}
-          disabled={cart.length === 0 || isCreating}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3.5 rounded-2xl font-bold text-sm tracking-wide transition-all shadow-md flex items-center justify-center gap-2 active:scale-[0.98]"
-        >
-          {isCreating ? (
-            <Loader2 size={18} className="animate-spin" />
-          ) : (
-            <>
-              <span>Create Bill</span>
-              <ArrowRight size={18} />
-            </>
-          )}
-        </button>
-      </div>
     </div>
   );
 }

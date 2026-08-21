@@ -1239,7 +1239,9 @@ export default function InvoiceViewPage() {
     if (!item) return null;
     const detailsList: string[] = [];
     
-    const serial = item.serial_number || item.serialNumber;
+    const serial = Array.isArray(item.serials) && item.serials.length > 0 
+      ? item.serials.join(', ') 
+      : (item.serial_number || item.serialNumber || '');
     
     const candidates = [
       item.notes,
