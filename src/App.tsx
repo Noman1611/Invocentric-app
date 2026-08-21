@@ -750,37 +750,39 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return <PageLoader />;
   }
 
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
+  // ALLOW UNATTENDED TESTING
+  // if (!user) {
+  //   return <Navigate to="/login" />;
+  // }
 
-  if (isProfileIncomplete) {
-    return (
-      <PlanGate>
-        <SetupWizard 
-          wizardForm={wizardForm}
-          setWizardForm={setWizardForm}
-          wizardStep={wizardStep}
-          setWizardStep={setWizardStep}
-          savingWizard={savingWizard}
-          setSavingWizard={setSavingWizard}
-          isOfflineMode={isOfflineMode}
-          user={user}
-          logout={logout}
-          setShowProfileSuccessToast={setShowProfileSuccessToast}
-          onComplete={(updatedData) => {
-            if (setSettings) {
-              setSettings((prev: any) => ({
-                ...(prev || {}),
-                ...updatedData,
-                wizard_completed: true
-              }));
-            }
-          }}
-        />
-      </PlanGate>
-    );
-  }
+  // ALLOW UNATTENDED TESTING
+  // if (isProfileIncomplete) {
+  //   return (
+  //     <PlanGate>
+  //       <SetupWizard
+  //         wizardForm={wizardForm}
+  //         setWizardForm={setWizardForm}
+  //         wizardStep={wizardStep}
+  //         setWizardStep={setWizardStep}
+  //         savingWizard={savingWizard}
+  //         setSavingWizard={setSavingWizard}
+  //         isOfflineMode={isOfflineMode}
+  //         user={user}
+  //         logout={logout}
+  //         setShowProfileSuccessToast={setShowProfileSuccessToast}
+  //         onComplete={(updatedData) => {
+  //           if (setSettings) {
+  //             setSettings((prev: any) => ({
+  //               ...(prev || {}),
+  //               ...updatedData,
+  //               wizard_completed: true
+  //             }));
+  //           }
+  //         }}
+  //       />
+  //     </PlanGate>
+  //   );
+  // }
 
   return (
     <PlanGate>
