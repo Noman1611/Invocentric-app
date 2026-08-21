@@ -177,6 +177,7 @@ export default function InvoiceViewPage() {
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   const [paperSize, setPaperSize] = useState<'a4' | 'a5'>('a4');
   const [printPageMode, setPrintPageMode] = useState<'full' | 'content'>('content');
+  const [thermalRollSize, setThermalRollSize] = useState<'80mm' | '58mm'>('80mm');
   const [template, setTemplate] = useState<string>('tally_prime_gst');
   const [customTemplate, setCustomTemplate] = useState<any>(null);
   const { templates: userCustomTemplates } = useTemplates();
@@ -2056,7 +2057,42 @@ export default function InvoiceViewPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              {template !== 'thermal' && (
+              {template === 'thermal' ? (
+                <div className="flex items-center bg-orange-50 p-0.5 rounded-xl border border-orange-200 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setThermalRollSize('80mm');
+                      setShareFile(null);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1",
+                      thermalRollSize === '80mm'
+                        ? "bg-orange-600 text-white shadow-xs font-extrabold"
+                        : "text-slate-600 hover:text-slate-900"
+                    )}
+                    title="3-inch Standard POS (80mm)"
+                  >
+                    <span>3" (80mm)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setThermalRollSize('58mm');
+                      setShareFile(null);
+                    }}
+                    className={cn(
+                      "px-2.5 py-1 text-xs font-bold rounded-lg transition-all flex items-center gap-1",
+                      thermalRollSize === '58mm'
+                        ? "bg-orange-600 text-white shadow-xs font-extrabold"
+                        : "text-slate-600 hover:text-slate-900"
+                    )}
+                    title="2-inch Compact POS (58mm)"
+                  >
+                    <span>2" (58mm)</span>
+                  </button>
+                </div>
+              ) : (
                 <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 shadow-xs">
                   <button
                     type="button"
@@ -2086,7 +2122,7 @@ export default function InvoiceViewPage() {
                         ? "bg-green-600 text-white shadow-xs font-extrabold"
                         : "text-slate-500 hover:text-slate-900"
                     )}
-                    title="A5 Half Sheet (148 x 210 mm)"
+                    title="A5 Half Sheet Landscape (210 x 148 mm)"
                   >
                     <span>A5</span>
                     <span className="text-[9px] bg-green-700/50 px-1 py-0.2 rounded text-white">Half</span>
@@ -2129,7 +2165,7 @@ export default function InvoiceViewPage() {
               template === 'thermal' ? "bg-white p-0 border border-gray-300 border-dashed" : "bg-white"
             )}
             style={{ 
-              width: template === 'thermal' ? '80mm' : '210mm',
+              width: template === 'thermal' ? thermalRollSize : '210mm',
               minHeight: template === 'thermal' ? 'auto' : paperSize === 'a5' ? '148mm' : '297mm',
               boxSizing: 'border-box',
               transform: scale !== 1 ? `scale(${scale})` : 'none',
@@ -3533,21 +3569,43 @@ export default function InvoiceViewPage() {
                   </DraggableBox>
                 </div>
               ) : activeBaseTemplate === 'thermal' ? (
-                /* ── POS THERMAL 80mm TEMPLATE ── */
-                <div className="thermal-invoice-container w-full bg-white text-black font-mono text-[11px] leading-tight p-2" style={{ width: '80mm', maxWidth: '80mm', margin: '0 auto', fontFamily: "'JetBrains Mono', Courier, monospace" }}>
+                /* ── POS THERMAL (3-inch 80mm / 2-inch 58mm) TEMPLATE ── */
+                <div 
+                  className={cn(
+                    "thermal-invoice-container bg-white text-black font-mono leading-tight p-2 mx-auto",
+                    thermalRollSize === '58mm' ? "text-[9.5px] max-w-[58mm]" : "text-[11px] max-w-[80mm]"
+                  )} 
+                  style={{ 
+                    width: thermalRollSize, 
+                    maxWidth: thermalRollSize, 
+                    margin: '0 auto', 
+                    fontFamily: "'JetBrains Mono', Courier, monospace" 
+                  }}
+                >
                   {/* Header */}
-                  <div className="text-center border-b border-black pb-1 mb-1">
+                  <div className="text-center border-b border-black pb-1.5 mb-1.5 flex flex-col items-center justify-center">
                     {sellerInfo?.logo_url && (
-                      <img src={sellerInfo.logo_url} alt="Logo" className="h-8 mx-auto mb-1 object-contain" />
+                      <div className="flex justify-center items-center my-1 w-full">
+                        <img 
+                          src={sellerInfo.logo_url} 
+                          alt="Logo" 
+                          className={cn(
+                            "object-contain mx-auto",
+                            thermalRollSize === '58mm' ? "h-7 max-h-7" : "h-10 max-h-10"
+                          )} 
+                        />
+                      </div>
                     )}
-                    <div className="font-bold text-[13px] uppercase">{sellerInfo?.business_name || 'Business Name'}</div>
-                    {sellerInfo?.address && <div className="text-[9px]">{sellerInfo.address}</div>}
-                    {sellerInfo?.phone && <div className="text-[9px]">Ph: {sellerInfo.phone}</div>}
-                    {sellerInfo?.gstin && <div className="text-[9px] font-bold">GSTIN: {sellerInfo.gstin}</div>}
+                    <div className={cn("font-black uppercase tracking-wide", thermalRollSize === '58mm' ? "text-[11px]" : "text-[13px]")}>
+                      {sellerInfo?.business_name || 'Business Name'}
+                    </div>
+                    {sellerInfo?.address && <div className={cn(thermalRollSize === '58mm' ? "text-[8px]" : "text-[9px]")}>{sellerInfo.address}</div>}
+                    {sellerInfo?.phone && <div className={cn(thermalRollSize === '58mm' ? "text-[8px]" : "text-[9px]")}>Ph: {sellerInfo.phone}</div>}
+                    {sellerInfo?.gstin && <div className={cn("font-bold", thermalRollSize === '58mm' ? "text-[8px]" : "text-[9px]")}>GSTIN: {sellerInfo.gstin}</div>}
                   </div>
 
                   {/* Invoice Info */}
-                  <div className="border-b border-dashed border-black pb-1 mb-1 text-[10px]">
+                  <div className="border-b border-dashed border-black pb-1 mb-1 text-[9px] sm:text-[10px]">
                     <div className="flex justify-between"><span className="font-bold">Invoice No:</span><span>{invoice?.invoice_number || '-'}</span></div>
                     <div className="flex justify-between"><span className="font-bold">Date:</span><span>{formatDateSafe(invoice?.date, 'dd-MMM-yyyy')}</span></div>
                     <div className="flex justify-between"><span className="font-bold">Customer:</span><span className="text-right flex-1 ml-1 truncate">{customer?.name || invoice?.customer_name || 'CASH SALE'}</span></div>
@@ -3556,24 +3614,24 @@ export default function InvoiceViewPage() {
 
                   {/* Items */}
                   <div className="border-b border-dashed border-black pb-1 mb-1">
-                    <div className="flex font-bold text-[10px] border-b border-black pb-0.5 mb-0.5">
+                    <div className="flex font-bold text-[9px] sm:text-[10px] border-b border-black pb-0.5 mb-0.5">
                       <span className="flex-1">Item</span>
-                      <span className="w-8 text-center">Qty</span>
-                      <span className="w-14 text-right">Rate</span>
-                      <span className="w-16 text-right">Amt</span>
+                      <span className={thermalRollSize === '58mm' ? "w-6 text-center" : "w-8 text-center"}>Qty</span>
+                      <span className={thermalRollSize === '58mm' ? "w-11 text-right" : "w-14 text-right"}>Rate</span>
+                      <span className={thermalRollSize === '58mm' ? "w-12 text-right" : "w-16 text-right"}>Amt</span>
                     </div>
                     {invoice?.items?.map((item: any, idx: number) => {
                       const qty = Number(item.quantity || 0);
                       const price = Number(item.price || 0);
                       const amt = qty * price;
                       return (
-                        <div key={idx} className="text-[10px] py-0.5 border-b border-dotted border-gray-400">
+                        <div key={idx} className="text-[9px] sm:text-[10px] py-0.5 border-b border-dotted border-gray-400">
                           <div className="font-semibold truncate">{getItemName(item)}</div>
-                          <div className="flex">
-                            <span className="flex-1 text-[9px] text-gray-600">{item.hsn_code || item.hsn ? `HSN: ${item.hsn_code || item.hsn}` : ''}</span>
-                            <span className="w-8 text-center">{qty}</span>
-                            <span className="w-14 text-right">₹{price.toFixed(2)}</span>
-                            <span className="w-16 text-right font-bold">₹{amt.toFixed(2)}</span>
+                          <div className="flex items-center">
+                            <span className="flex-1 text-[8px] text-gray-600 truncate">{item.hsn_code || item.hsn ? `HSN:${item.hsn_code || item.hsn}` : ''}</span>
+                            <span className={thermalRollSize === '58mm' ? "w-6 text-center" : "w-8 text-center"}>{qty}</span>
+                            <span className={thermalRollSize === '58mm' ? "w-11 text-right" : "w-14 text-right"}>₹{price.toFixed(0)}</span>
+                            <span className={thermalRollSize === '58mm' ? "w-12 text-right font-bold" : "w-16 text-right font-bold"}>₹{amt.toFixed(0)}</span>
                           </div>
                         </div>
                       );
@@ -3581,20 +3639,20 @@ export default function InvoiceViewPage() {
                   </div>
 
                   {/* Totals */}
-                  <div className="border-b border-dashed border-black pb-1 mb-1 text-[10px] space-y-0.5">
+                  <div className="border-b border-dashed border-black pb-1 mb-1 text-[9.5px] sm:text-[10px] space-y-0.5">
                     <div className="flex justify-between"><span>Subtotal:</span><span>₹{Number(rawSubtotal || 0).toFixed(2)}</span></div>
                     {totalDiscount > 0 && <div className="flex justify-between"><span>Discount:</span><span>-₹{totalDiscount.toFixed(2)}</span></div>}
                     {totalGst > 0 && <div className="flex justify-between"><span>Tax (GST):</span><span>₹{totalGst.toFixed(2)}</span></div>}
-                    <div className="flex justify-between font-black text-[12px] border-t border-black pt-0.5">
+                    <div className={cn("flex justify-between font-black border-t border-black pt-0.5", thermalRollSize === '58mm' ? "text-[11px]" : "text-[12px]")}>
                       <span>TOTAL:</span>
                       <span>₹{Number(invoice?.amount || 0).toFixed(2)}</span>
                     </div>
-                    <div className="text-[9px] italic text-center">{safeToWords(Number(invoice?.amount || 0), invoice?.currency)}</div>
+                    <div className="text-[8px] italic text-center mt-0.5">{safeToWords(Number(invoice?.amount || 0), invoice?.currency)}</div>
                   </div>
 
                   {/* Payment Mode */}
                   {invoice?.payment_mode && (
-                    <div className="text-[10px] text-center border-b border-dashed border-black pb-1 mb-1">
+                    <div className="text-[9px] sm:text-[10px] text-center border-b border-dashed border-black pb-1 mb-1">
                       <span className="font-bold">Payment: </span>{invoice.payment_mode}
                     </div>
                   )}
@@ -3602,20 +3660,23 @@ export default function InvoiceViewPage() {
                   {/* UPI QR */}
                   {sellerInfo?.upi_id && (
                     <div className="flex flex-col items-center border-b border-dashed border-black pb-1 mb-1">
-                      <QRCodeSVG value={`upi://pay?pa=${sellerInfo.upi_id}&pn=${encodeURIComponent(sellerInfo?.business_name || 'Business')}&am=${invoice?.amount || 0}&cu=INR`} size={60} />
-                      <div className="text-[9px] font-bold mt-0.5">Pay using UPI: {sellerInfo.upi_id}</div>
+                      <QRCodeSVG 
+                        value={`upi://pay?pa=${sellerInfo.upi_id}&pn=${encodeURIComponent(sellerInfo?.business_name || 'Business')}&am=${invoice?.amount || 0}&cu=INR`} 
+                        size={thermalRollSize === '58mm' ? 48 : 65} 
+                      />
+                      <div className="text-[8px] font-bold mt-0.5 text-center truncate max-w-full">UPI: {sellerInfo.upi_id}</div>
                     </div>
                   )}
 
                   {/* Footer */}
-                  <div className="text-center text-[9px] space-y-0.5">
+                  <div className="text-center text-[8px] sm:text-[9px] space-y-0.5">
                     {termsText ? (
-                      <div className="text-[8px] text-gray-600 border-b border-dashed border-black pb-1 mb-0.5">{termsText}</div>
+                      <div className="text-[7.5px] text-gray-600 border-b border-dashed border-black pb-1 mb-0.5">{termsText}</div>
                     ) : (
-                      <div className="text-[8px] text-gray-600">Goods once sold will not be taken back.</div>
+                      <div className="text-[7.5px] text-gray-600">Goods once sold will not be taken back.</div>
                     )}
                     <div className="font-bold">*** Thank You! Visit Again ***</div>
-                    <div className="text-[8px] text-gray-500">E. &amp; O.E. | Computer Generated</div>
+                    <div className="text-[7px] text-gray-500">E. &amp; O.E. | Computer Generated</div>
                   </div>
                 </div>
               ) : null}
@@ -4370,11 +4431,56 @@ export default function InvoiceViewPage() {
                        )}
                      >
                        <span>A5 Half Sheet</span>
-                       <span className="text-[9px] opacity-80">148 × 210 mm</span>
+                       <span className="text-[9px] opacity-80">Landscape 210 × 148 mm</span>
                      </button>
                    </div>
                  </div>
                )}
+
+               {template === 'thermal' && (
+                  <div className="bg-orange-50 p-2.5 rounded-2xl border border-orange-200 mb-3">
+                    <p className="text-[11px] font-bold text-orange-800 mb-1.5 flex items-center justify-between">
+                      <span>🖨️ Thermal Roll Width:</span>
+                      <span className="text-[10px] text-orange-700 font-extrabold uppercase">
+                        {thermalRollSize === '58mm' ? '2-inch (58mm)' : '3-inch (80mm)'}
+                      </span>
+                    </p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setThermalRollSize('80mm');
+                          setShareFile(null);
+                        }}
+                        className={cn(
+                          "py-1.5 px-2 rounded-xl text-xs font-bold transition-all border text-center flex flex-col items-center",
+                          thermalRollSize === '80mm'
+                            ? "bg-orange-600 text-white border-orange-600 shadow-xs"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                        )}
+                      >
+                        <span>3-Inch (80mm)</span>
+                        <span className="text-[9px] opacity-80">Standard POS Roll</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setThermalRollSize('58mm');
+                          setShareFile(null);
+                        }}
+                        className={cn(
+                          "py-1.5 px-2 rounded-xl text-xs font-bold transition-all border text-center flex flex-col items-center",
+                          thermalRollSize === '58mm'
+                            ? "bg-orange-600 text-white border-orange-600 shadow-xs"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                        )}
+                      >
+                        <span>2-Inch (58mm)</span>
+                        <span className="text-[9px] opacity-80">Compact POS Roll</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                {template !== 'thermal' && (
                  <div className="bg-blue-50 p-2.5 rounded-2xl border border-blue-200 mb-3">
@@ -4863,8 +4969,8 @@ export default function InvoiceViewPage() {
 
         @media print {
           @page {
-            size: ${template === 'thermal' ? '80mm auto' : paperSize === 'a5' ? 'A5 landscape' : 'A4 portrait'} !important;
-            margin: ${template === 'thermal' ? '0' : paperSize === 'a5' ? '3mm' : '6mm'} !important;
+            size: ${template === 'thermal' ? `${thermalRollSize} auto` : paperSize === 'a5' ? 'A5 landscape' : 'A4 portrait'} !important;
+            margin: ${template === 'thermal' ? '0' : paperSize === 'a5' ? '2mm' : '5mm'} !important;
           }
 
           html, body {
@@ -4931,7 +5037,7 @@ export default function InvoiceViewPage() {
             width: 100% !important;
             max-width: 100% !important;
             ${template === 'thermal'
-              ? 'width: 80mm !important; max-width: 80mm !important; margin: 0 auto !important; height: auto !important; min-height: 0 !important;'
+              ? `width: ${thermalRollSize} !important; max-width: ${thermalRollSize} !important; margin: 0 auto !important; height: auto !important; min-height: 0 !important;`
               : printPageMode === 'full'
                 ? `min-height: ${paperSize === 'a5' ? '142mm' : '285mm'} !important; height: ${paperSize === 'a5' ? '142mm' : '285mm'} !important;`
                 : 'height: auto !important; min-height: 0 !important; page-break-after: avoid !important; break-after: avoid !important;'
@@ -4964,6 +5070,33 @@ export default function InvoiceViewPage() {
               ? 'flex: 1 1 auto !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; min-height: 100% !important;'
               : 'height: auto !important; min-height: 0 !important;'
             }
+          }
+
+          /* A5 Compact Sheet Layout Rules */
+          .paper-size-a5 {
+            padding: 2.5mm !important;
+            font-size: 8pt !important;
+            line-height: 1.15 !important;
+          }
+          .paper-size-a5 table th,
+          .paper-size-a5 table td {
+            padding: 1.5px 3px !important;
+            font-size: 7.5pt !important;
+            line-height: 1.1 !important;
+          }
+          .paper-size-a5 .p-2,
+          .paper-size-a5 .p-3,
+          .paper-size-a5 .p-4 {
+            padding: 2.5px !important;
+          }
+          .paper-size-a5 .space-y-0\\.5 > * + * {
+            margin-top: 1px !important;
+          }
+          .paper-size-a5 .h-14 {
+            height: 30px !important;
+          }
+          .paper-size-a5 img {
+            max-height: 28px !important;
           }
 
           .thermal-invoice-container,
