@@ -176,6 +176,7 @@ export default function InvoiceViewPage() {
   const [shareFile, setShareFile] = useState<File | null>(null);
   const [isGeneratingShare, setIsGeneratingShare] = useState(false);
   const [paperSize, setPaperSize] = useState<'a4' | 'a5'>('a4');
+  const [printPageMode, setPrintPageMode] = useState<'full' | 'content'>('content');
   const [template, setTemplate] = useState<string>('tally_prime_gst');
   const [customTemplate, setCustomTemplate] = useState<any>(null);
   const { templates: userCustomTemplates } = useTemplates();
@@ -4370,6 +4371,45 @@ export default function InvoiceViewPage() {
                  </div>
                )}
 
+               {template !== 'thermal' && (
+                 <div className="bg-blue-50 p-2.5 rounded-2xl border border-blue-200 mb-3">
+                   <p className="text-[11px] font-bold text-blue-800 mb-1.5 flex items-center justify-between">
+                     <span>🖨️ Print / PDF Mode:</span>
+                     <span className="text-[10px] text-blue-700 font-extrabold uppercase">
+                       {printPageMode === 'full' ? 'Full Page' : 'Content Fit'}
+                     </span>
+                   </p>
+                   <div className="grid grid-cols-2 gap-1.5">
+                     <button
+                       type="button"
+                       onClick={() => { setPrintPageMode('content'); setShareFile(null); }}
+                       className={cn(
+                         "py-1.5 px-2 rounded-xl text-xs font-bold transition-all border text-center flex flex-col items-center",
+                         printPageMode === 'content'
+                           ? "bg-blue-600 text-white border-blue-600"
+                           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                       )}
+                     >
+                       <span>Content Fit</span>
+                       <span className="text-[9px] opacity-80">Jitna content, utna page</span>
+                     </button>
+                     <button
+                       type="button"
+                       onClick={() => { setPrintPageMode('full'); setShareFile(null); }}
+                       className={cn(
+                         "py-1.5 px-2 rounded-xl text-xs font-bold transition-all border text-center flex flex-col items-center",
+                         printPageMode === 'full'
+                           ? "bg-blue-600 text-white border-blue-600"
+                           : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                       )}
+                     >
+                       <span>Full Page</span>
+                       <span className="text-[9px] opacity-80">Pura A4 fill karo</span>
+                     </button>
+                   </div>
+                 </div>
+               )}
+
                {defaultBuiltInTemplates.map((t) => (
                  <button
                    key={t.id}
@@ -5156,15 +5196,15 @@ export default function InvoiceViewPage() {
             .print-exact-size {
               width: 100% !important;
               max-width: 100% !important;
-              height: auto !important;
-              min-height: 0 !important;
+              ${printPageMode === 'full'
+                ? `min-height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important; height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important;`
+                : `height: auto !important; min-height: 0 !important; page-break-after: avoid !important; break-after: avoid !important;`
+              }
               margin: 0 !important;
               padding: 0 !important;
               box-shadow: none !important;
               border: none !important;
               transform: none !important;
-              page-break-after: avoid !important;
-              break-after: avoid !important;
             }
 
             .invoice-print-container {
@@ -5172,23 +5212,23 @@ export default function InvoiceViewPage() {
               margin: 0 !important;
               width: 100% !important;
               max-width: 100% !important;
-              height: auto !important;
-              min-height: 0 !important;
-              display: block !important;
               box-sizing: border-box !important;
               box-shadow: none !important;
-              page-break-after: avoid !important;
-              break-after: avoid !important;
-              overflow: hidden !important;
+              ${printPageMode === 'full'
+                ? `min-height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important; height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important;`
+                : `height: auto !important; min-height: 0 !important; display: block !important; page-break-after: avoid !important; break-after: avoid !important; overflow: hidden !important;`
+              }
             }
 
             .invoice-print-container > div {
-              height: auto !important;
-              min-height: 0 !important;
+              ${printPageMode === 'full'
+                ? `flex: 1 1 auto !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; min-height: 100% !important;`
+                : `height: auto !important; min-height: 0 !important;`
+              }
             }
 
             .invoice-print-container table tbody tr.empty-spacer-row {
-              display: none !important;
+              ${printPageMode === 'full' ? `height: 100% !important;` : `display: none !important;`}
             }
 
             .invoice-print-container table th, 
