@@ -498,7 +498,7 @@ export default function CustomersPage() {
                       <input 
                         type="tel" 
                         className="input-field h-11" 
-                        placeholder="+91 XXXXX XXXXX"
+                        placeholder="+91 98765 43210"
                         value={formData.phone}
                         onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                       />

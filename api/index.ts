@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import helmet from "helmet";
@@ -260,7 +261,7 @@ app.post("/api/auth/send-email-otp", authEmailLimiter, async (req, res) => {
     return res.status(400).json({ error: "Please enter a valid email address." });
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = crypto.randomInt(100000, 1000000).toString();
   emailOtpStore.set(email.trim().toLowerCase(), {
     otp,
     expires: Date.now() + 10 * 60 * 1000 // 10 mins expiry

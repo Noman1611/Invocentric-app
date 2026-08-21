@@ -1164,6 +1164,31 @@ export default function InvoiceViewPage() {
     return acc + ((i.quantity * itemPrice) * (taxPercent / 100));
   }, 0) || 0;
 
+  const isIgst = Boolean(customer?.state && sellerInfo?.state && customer.state.toLowerCase() !== sellerInfo.state.toLowerCase());
+  const calcGst = { igst: isIgst ? totalGst : 0, cgst: isIgst ? 0 : totalGst / 2, sgst: isIgst ? 0 : totalGst / 2, totalTax: totalGst };
+  const hsnSummary = cleanItems.reduce((acc: any, i: any) => {
+    const code = i?.hsn || '0000';
+    const qty = Number(i?.quantity) || 0;
+    const prc = Number(i?.price) || 0;
+    const dsc = Number(i?.discount) || 0;
+    const gstPct = Number(i?.gstPercent) || 0;
+    const taxable = qty * prc * (1 - dsc / 100);
+    const tax = taxable * gstPct / 100;
+    if (!acc[code]) {
+      acc[code] = { taxable: 0, tax: 0, gstRate: gstPct, igst: 0, cgst: 0, sgst: 0 };
+    }
+    acc[code].taxable += taxable;
+    acc[code].tax += tax;
+    if (isIgst) {
+      acc[code].igst += tax;
+    } else {
+      acc[code].cgst += tax / 2;
+      acc[code].sgst += tax / 2;
+    }
+    return acc;
+  }, {});
+  const totalTaxable = Object.values(hsnSummary).reduce((acc: number, cur: any) => acc + (cur?.taxable || 0), 0) as number;
+
   const computedGrandTotal = rawSubtotal - totalDiscount + totalSalesReturn + totalGst;
   const advanceAmount = Number(rawInvoice?.advance_amount || rawInvoice?.advanceAmount || 0);
   const balanceDue = Math.max(0, computedGrandTotal - advanceAmount);
@@ -2224,7 +2249,7 @@ export default function InvoiceViewPage() {
                         className="font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-1 text-[12px]" 
                         style={{ background: primaryBgLight || '#eaf2fb', borderColor: primaryColor || '#2f6fb0' }}
                       >
-                        {getSectLabel('billed_to', 'Details of Buyer | Billed to :')}
+                        {getSectionLabel('billed_to', 'Details of Buyer | Billed to :')}
                       </div>
                       <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Name</div><div className="flex-1 font-semibold uppercase">{customer?.name || invoice?.customer_name || '-'}</div></div>
                       <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Address</div><div className="flex-1 whitespace-pre-line">{customer?.address || '-'}</div></div>
@@ -2240,7 +2265,7 @@ export default function InvoiceViewPage() {
                         className="font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-1 text-[12px]" 
                         style={{ background: primaryBgLight || '#eaf2fb', borderColor: primaryColor || '#2f6fb0' }}
                       >
-                        {getSectLabel('shipped_to', 'Details of Consignee | Shipped to :')}
+                        {getSectionLabel('shipped_to', 'Details of Consignee | Shipped to :')}
                       </div>
                       <div className="flex mb-0.5"><div className="w-16 shrink-0 font-bold">Name</div><div className="flex-1 font-semibold uppercase">{customer?.consignee_name || customer?.name || '-'}</div></div>
                       <div className="flex mb-0.5"><div className="w-16 shrink-0 font-bold">Address</div><div className="flex-1 whitespace-pre-line">{customer?.consignee_address || customer?.address || '-'}</div></div>
@@ -2267,13 +2292,13 @@ export default function InvoiceViewPage() {
                       <thead>
                         <tr className="font-bold text-center" style={{ background: primaryBgLight || '#eaf2fb' }}>
                           <th className="border p-1.5 w-[35px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>Sr. No.</th>
-                          <th className="border p-1.5 text-left" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColLabel('desc', 'Name of Product / Service')}</th>
+                          <th className="border p-1.5 text-left" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColumnLabel('desc', 'Name of Product / Service')}</th>
                           {isHsnVisible && (
-                            <th className="border p-1.5 w-[75px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColLabel('hsn', 'HSN / SAC')}</th>
+                            <th className="border p-1.5 w-[75px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColumnLabel('hsn', 'HSN / SAC')}</th>
                           )}
-                          <th className="border p-1.5 w-[75px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColLabel('qty', 'Qty')}</th>
-                          <th className="border p-1.5 w-[85px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColLabel('rate', 'Rate')}</th>
-                          <th className="border p-1.5 w-[110px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColLabel('taxableValue', 'Taxable Value')}</th>
+                          <th className="border p-1.5 w-[75px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColumnLabel('qty', 'Qty')}</th>
+                          <th className="border p-1.5 w-[85px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColumnLabel('rate', 'Rate')}</th>
+                          <th className="border p-1.5 w-[110px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>{getColumnLabel('taxableValue', 'Taxable Value')}</th>
                         </tr>
                       </thead>
                       <tbody>
