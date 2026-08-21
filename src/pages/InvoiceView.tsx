@@ -2129,8 +2129,8 @@ export default function InvoiceViewPage() {
               template === 'thermal' ? "bg-white p-0 border border-gray-300 border-dashed" : "bg-white"
             )}
             style={{ 
-              width: template === 'thermal' ? '80mm' : paperSize === 'a5' ? '148mm' : '210mm',
-              minHeight: template === 'thermal' ? 'auto' : paperSize === 'a5' ? '210mm' : '297mm',
+              width: template === 'thermal' ? '80mm' : '210mm',
+              minHeight: template === 'thermal' ? 'auto' : paperSize === 'a5' ? '148mm' : '297mm',
               boxSizing: 'border-box',
               transform: scale !== 1 ? `scale(${scale})` : 'none',
               transformOrigin: 'top center',
@@ -2146,8 +2146,8 @@ export default function InvoiceViewPage() {
                 template === 'thermal' 
                   ? "bg-white h-auto p-2" 
                   : paperSize === 'a5' 
-                    ? "bg-[#ffffff] p-[4mm] sm:p-[5mm] min-h-[210mm]" 
-                    : "bg-[#ffffff] p-[8mm] sm:p-[10mm] min-h-[297mm]",
+                    ? "bg-[#ffffff] p-[3mm] sm:p-[4mm] min-h-[148mm]" 
+                    : "bg-[#ffffff] p-[6mm] sm:p-[8mm] min-h-[297mm]",
                 template !== 'thermal' && (
                   (invoice?.items?.length || 0) > 8 
                     ? "print-ultra-compact" 
@@ -2323,23 +2323,25 @@ export default function InvoiceViewPage() {
                             </tr>
                           );
                         })}
-                        {/* Spacer row to expand container cleanly */}
-                        <tr className="h-full min-h-[40px] align-top">
-                          <td className="border-l border-r p-1.5" style={{ borderColor: primaryColor || '#2f6fb0' }}></td>
-                          <td className="border-l border-r p-1.5" style={{ borderColor: primaryColor || '#2f6fb0' }}></td>
-                          {isHsnVisible && <td className="border-l border-r p-1.5" style={{ borderColor: primaryColor || '#2f6fb0' }}></td>}
-                          <td className="border-l border-r p-1.5" style={{ borderColor: primaryColor || '#2f6fb0' }}></td>
-                          <td className="border-l border-r p-1.5" style={{ borderColor: primaryColor || '#2f6fb0' }}></td>
-                          <td className="border-l border-r p-1.5" style={{ borderColor: primaryColor || '#2f6fb0' }}></td>
-                        </tr>
+                        {/* Dynamic empty spacer rows to ensure continuous vertical lines */}
+                        {Array.from({ length: Math.max(1, (printPageMode === 'full' ? 8 : 3) - (invoice?.items?.length || 0)) }).map((_, emptyIdx) => (
+                          <tr key={`spacer-${emptyIdx}`} className="h-6 align-top">
+                            <td className="border-l border-r p-1 text-center" style={{ borderColor: primaryColor || '#2f6fb0' }}>&nbsp;</td>
+                            <td className="border-l border-r p-1" style={{ borderColor: primaryColor || '#2f6fb0' }}>&nbsp;</td>
+                            {isHsnVisible && <td className="border-l border-r p-1 text-center" style={{ borderColor: primaryColor || '#2f6fb0' }}>&nbsp;</td>}
+                            <td className="border-l border-r p-1 text-center" style={{ borderColor: primaryColor || '#2f6fb0' }}>&nbsp;</td>
+                            <td className="border-l border-r p-1 text-right" style={{ borderColor: primaryColor || '#2f6fb0' }}>&nbsp;</td>
+                            <td className="border-l border-r p-1 text-right" style={{ borderColor: primaryColor || '#2f6fb0' }}>&nbsp;</td>
+                          </tr>
+                        ))}
                         {/* GST tax row inside items table */}
                         {(calcGst?.cgst > 0 || calcGst?.sgst > 0 || calcGst?.igst > 0) && (
-                          <tr className="border-t font-bold" style={{ borderColor: primaryColor || '#2f6fb0' }}>
-                            <td colSpan={2 + (isHsnVisible ? 1 : 0)}></td>
-                            <td colSpan={2} className="p-1.5 text-right border-l border-r" style={{ borderColor: primaryColor || '#2f6fb0' }}>
+                          <tr className="font-bold border-t" style={{ borderColor: primaryColor || '#2f6fb0' }}>
+                            <td colSpan={2 + (isHsnVisible ? 1 : 0)} className="border-l border-r border-t p-1.5" style={{ borderColor: primaryColor || '#2f6fb0' }}></td>
+                            <td colSpan={2} className="p-1.5 text-right border-l border-r border-t" style={{ borderColor: primaryColor || '#2f6fb0' }}>
                               {calcGst.igst > 0 ? 'IGST' : 'CGST + SGST'}
                             </td>
-                            <td className="p-1.5 text-right border-l border-r" style={{ borderColor: primaryColor || '#2f6fb0' }}>
+                            <td className="p-1.5 text-right border-l border-r border-t" style={{ borderColor: primaryColor || '#2f6fb0' }}>
                               {calcGst.igst > 0 ? (
                                 <div>{formatCurrency(calcGst.igst, invoice?.currency)}</div>
                               ) : (
@@ -2351,13 +2353,16 @@ export default function InvoiceViewPage() {
                             </td>
                           </tr>
                         )}
-                        <tr className="border-t font-bold" style={{ borderColor: primaryColor || '#2f6fb0' }}>
-                          <td colSpan={2 + (isHsnVisible ? 1 : 0)}></td>
-                          <td className="p-1.5 text-right border-l border-r" style={{ borderColor: primaryColor || '#2f6fb0' }}>Total</td>
-                          <td className="p-1.5 text-center border-l border-r font-black" style={{ borderColor: primaryColor || '#2f6fb0' }}>
+                        {/* Total Row with exact column alignment: Total under Description, Qty under Qty, blank under Rate, Amount under Taxable Value */}
+                        <tr className="font-bold border-t" style={{ borderColor: primaryColor || '#2f6fb0' }}>
+                          <td colSpan={2 + (isHsnVisible ? 1 : 0)} className="p-1.5 text-right border-l border-r border-t font-black" style={{ borderColor: primaryColor || '#2f6fb0' }}>
+                            Total
+                          </td>
+                          <td className="p-1.5 text-center border-l border-r border-t font-black" style={{ borderColor: primaryColor || '#2f6fb0' }}>
                             {invoice?.items?.reduce((acc: number, item: any) => acc + Number(item.quantity || 0), 0)}
                           </td>
-                          <td className="p-1.5 text-right border-l border-r text-sm font-black" style={{ borderColor: primaryColor || '#2f6fb0' }}>
+                          <td className="p-1.5 border-l border-r border-t" style={{ borderColor: primaryColor || '#2f6fb0' }}></td>
+                          <td className="p-1.5 text-right border-l border-r border-t text-sm font-black" style={{ borderColor: primaryColor || '#2f6fb0' }}>
                             ₹ {formatCurrency(invoice?.amount, invoice?.currency)}
                           </td>
                         </tr>
@@ -4857,270 +4862,136 @@ export default function InvoiceViewPage() {
         }
 
         @media print {
-          /* Hide all UI elements inside body by default */
+          @page {
+            size: ${template === 'thermal' ? '80mm auto' : paperSize === 'a5' ? 'A5 landscape' : 'A4 portrait'} !important;
+            margin: ${template === 'thermal' ? '0' : paperSize === 'a5' ? '3mm' : '6mm'} !important;
+          }
+
+          html, body {
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* Hide all UI elements by default */
           body * {
             visibility: hidden !important;
           }
 
-          /* Completely remove non-printable components from print layout to reclaim space */
-          .print\:hidden,
+          /* Completely remove screen navigation & UI from DOM layout */
+          .print\\:hidden,
           [class*="print:hidden"],
           aside,
           nav,
           header,
           footer,
           button,
+          .no-print,
           .sidebar-container,
           .mobile-nav-container,
-          div[class*="sticky top-0"],
-          div[class*="pb-28"] {
+          #header-notification-bell,
+          #mobile-brand-logo {
             display: none !important;
           }
 
-          /* Reset all layout wrapper ancestors to flow naturally with zero padding/margin and auto height */
-          html, 
-          body, 
-          #root, 
-          #root > div, 
-          div[class*="h-[100dvh]"], 
-          main, 
-          .max-w-5xl,
-          .invoice-main-flex-container {
-            height: auto !important;
-            min-height: 0 !important;
-            max-height: none !important;
-            overflow: visible !important;
+          /* Ancestors reset */
+          #root,
+          #root > div,
+          main,
+          .invoice-main-flex-container,
+          .invoice-parent-wrapper {
+            position: static !important;
             display: block !important;
             padding: 0 !important;
             margin: 0 !important;
-            max-width: none !important;
-            box-shadow: none !important;
-            border: none !important;
-            background: transparent !important;
-          }
-
-          /* Reset scale transform on print to prevent tiny scaling or clipping */
-          .print-exact-size {
-            transform: none !important;
-            -webkit-transform: none !important;
-            width: 100% !important;
-            max-width: 100% !important;
             height: auto !important;
             min-height: 0 !important;
-            max-height: none !important;
+            max-width: 100% !important;
             overflow: visible !important;
-            display: block !important;
-            padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+
+          /* Print container positioned at the top of Page 1 */
+          .print-exact-size,
+          .print-exact-size * {
+            visibility: visible !important;
+          }
+
+          .print-exact-size {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            ${template === 'thermal'
+              ? 'width: 80mm !important; max-width: 80mm !important; margin: 0 auto !important; height: auto !important; min-height: 0 !important;'
+              : printPageMode === 'full'
+                ? `min-height: ${paperSize === 'a5' ? '142mm' : '285mm'} !important; height: ${paperSize === 'a5' ? '142mm' : '285mm'} !important;`
+                : 'height: auto !important; min-height: 0 !important; page-break-after: avoid !important; break-after: avoid !important;'
+            }
             margin: 0 auto !important;
+            padding: 0 !important;
             box-shadow: none !important;
             border: none !important;
+            transform: none !important;
             background: #ffffff !important;
           }
 
-          /* Make the parent and printable container visible */
-          .print-exact-size,
-          .invoice-print-container, 
-          .invoice-print-container * {
-            visibility: visible !important;
-          }
-          
           .invoice-print-container {
-            position: relative !important;
-            left: 0 !important;
-            top: 0 !important;
             width: 100% !important;
-            height: auto !important;
-            min-height: 0 !important;
+            max-width: 100% !important;
             margin: 0 !important;
-            box-shadow: none !important;
-            border: none !important;
-            display: block !important;
-            overflow: visible !important;
-            background-color: #ffffff !important;
-            
-            /* Enable exact color prints without forcing grayscale or breaking colors/logos */
-            -webkit-print-color-adjust: economy !important;
-            print-color-adjust: economy !important;
-          }
-
-          /* Strict Monochrome Black & White Style Override (No custom colors, no 3rd colors, black text/borders) */
-          .invoice-print-container,
-          .invoice-print-container * {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            background-image: none !important;
-            text-shadow: none !important;
-            box-shadow: none !important;
-            filter: grayscale(100%) !important;
-          }
-
-          /* Bold Crisp Black Outlines and Borders for all container blocks */
-          .invoice-print-container *,
-          .invoice-print-container [class*="border"] {
-            border-color: #000000 !important;
-          }
-
-          .invoice-print-container hr {
-            border-top: 1px solid #000000 !important;
-            border-color: #000000 !important;
-            background-color: #000000 !important;
-            height: 1.5px !important;
-          }
-
-          /* Clean parent wrapper layout during printing to prevent second-page overflow */
-          .invoice-parent-wrapper {
             padding: 0 !important;
-            margin: 0 !important;
-            height: auto !important;
-            min-height: 0 !important;
-            max-height: none !important;
-            overflow: visible !important;
-            display: block !important;
+            box-sizing: border-box !important;
+            box-shadow: none !important;
+            background: #ffffff !important;
+            overflow: hidden !important;
+            ${printPageMode === 'full' && template !== 'thermal'
+              ? `min-height: ${paperSize === 'a5' ? '142mm' : '285mm'} !important; height: ${paperSize === 'a5' ? '142mm' : '285mm'} !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important;`
+              : 'height: auto !important; min-height: 0 !important; display: block !important; page-break-after: avoid !important; break-after: avoid !important;'
+            }
+          }
+
+          .invoice-print-container > div {
+            ${printPageMode === 'full' && template !== 'thermal'
+              ? 'flex: 1 1 auto !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; min-height: 100% !important;'
+              : 'height: auto !important; min-height: 0 !important;'
+            }
+          }
+
+          .thermal-invoice-container,
+          .thermal-invoice-container * {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+
+          table {
+            page-break-inside: auto !important;
             width: 100% !important;
           }
 
-          /* Tighter padding and compact fonts inside table to fit maximum entries perfectly */
-          .invoice-print-container table {
-            width: 100% !important;
-            table-layout: auto !important;
-            page-break-inside: auto;
-            border: 1px solid #000000 !important;
-            border-collapse: collapse !important;
-          }
-
-          .invoice-print-container table th, 
-          .invoice-print-container table td {
-            border: 1px solid #000000 !important;
-            padding-top: 4px !important;
-            padding-bottom: 4px !important;
-            padding-left: 6px !important;
-            padding-right: 6px !important;
-            font-size: 10px !important;
-            line-height: 1.2 !important;
-            word-break: break-word !important;
-            overflow-wrap: break-word !important;
-            background-color: #ffffff !important;
-            color: #000000 !important;
-          }
-
-          /* Spacing Compressors for Auto-adjusting A4 Layout (Fit-to-page) */
-          /* 6-8 Items: Very Compact spacing to fit on 1 A4 page */
-          .print-very-compact {
-            font-size: 8.5pt !important;
-          }
-          .print-very-compact table th, 
-          .print-very-compact table td {
-            padding-top: 2.5px !important;
-            padding-bottom: 2.5px !important;
-            padding-left: 4px !important;
-            padding-right: 4px !important;
-            font-size: 8.5px !important;
-            line-height: 1.1 !important;
-          }
-          .print-very-compact .p-4, 
-          .print-very-compact .p-3, 
-          .print-very-compact .p-2\.5 {
-            padding: 4px !important;
-          }
-          .print-very-compact .mb-8, 
-          .print-very-compact .mb-6, 
-          .print-very-compact .mb-4 {
-            margin-bottom: 4px !important;
-          }
-          .print-very-compact .pb-6, 
-          .print-very-compact .pb-4 {
-            padding-bottom: 3px !important;
-          }
-          .print-very-compact .h-36 {
-            height: 60px !important;
-          }
-          .print-very-compact .h-20 {
-            height: 30px !important;
-          }
-          .print-very-compact img {
-            max-height: 38px !important;
-          }
-
-          /* 9+ Items: Ultra Compact spacing to guarantee fitting on 1 A4 page */
-          .print-ultra-compact {
-            font-size: 7.5pt !important;
-          }
-          .print-ultra-compact table th, 
-          .print-ultra-compact table td {
-            padding-top: 1.5px !important;
-            padding-bottom: 1.5px !important;
-            padding-left: 2px !important;
-            padding-right: 2px !important;
-            font-size: 7.5px !important;
-            line-height: 1.0 !important;
-          }
-          .print-ultra-compact .p-4, 
-          .print-ultra-compact .p-3, 
-          .print-ultra-compact .p-2\.5 {
-            padding: 2px !important;
-          }
-          .print-ultra-compact .mb-8, 
-          .print-ultra-compact .mb-6, 
-          .print-ultra-compact .mb-4,
-          .print-ultra-compact .mt-6,
-          .print-ultra-compact .mt-4 {
-            margin-bottom: 2px !important;
-            margin-top: 2px !important;
-          }
-          .print-ultra-compact .pb-6, 
-          .print-ultra-compact .pb-4 {
-            padding-bottom: 2px !important;
-          }
-          .print-ultra-compact .h-36 {
-            height: 40px !important;
-          }
-          .print-ultra-compact .h-20 {
-            height: 15px !important;
-          }
-          .print-ultra-compact img {
-            max-height: 25px !important;
-          }
-          .print-ultra-compact .gap-6, 
-          .print-ultra-compact .gap-4,
-          .print-ultra-compact .gap-3 {
-            gap: 3px !important;
-          }
-
-          /* Traditional Layout specific black border rules */
-          .traditional-invoice-container, 
-          .traditional-invoice-container * {
-            border-color: #000000 !important;
-          }
-
-          .traditional-invoice-container table th, 
-          .traditional-invoice-container table td {
-            border-color: #000000 !important;
-            border-width: 1.5px !important;
-          }
-
-          .ink-paper-invoice {
-            min-height: 0 !important;
-            height: auto !important;
-          }
-          
-          /* Prevent page-breaks only on individual rows and specific signature/bank details modules */
           tr {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
           }
 
-          thead {
-            display: table-header-group !important;
-          }
-
-          tfoot {
-            display: table-footer-group !important;
-          }
-
-          .qrcode-container,
-          .bank-details-container,
           .signature-container,
-          .signature-block,
+          .bank-details-container,
+          .qrcode-container,
+          .terms-container,
+          #tally_footer_block,
+          #tally_hsn_summary,
+          #tally_amount_words,
+          #tally_buyer_consignee,
+          #tally_seller_branding,
+          #tally_banner,
           .print-avoid-break {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
@@ -5128,194 +4999,8 @@ export default function InvoiceViewPage() {
           }
         }
       `}</style>
-      {template === 'thermal' && (
-        <style>{`
-          @media print {
-            @page {
-              margin: 0 !important;
-              size: 80mm auto !important;
-            }
-            body {
-              background: #ffffff !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-            .invoice-print-container {
-              width: 80mm !important;
-              max-width: 80mm !important;
-              padding: 0 !important;
-              margin: 0 auto !important;
-              position: relative !important;
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            .print-exact-size {
-              width: 80mm !important;
-              max-width: 80mm !important;
-              margin: 0 auto !important;
-              min-height: 0 !important;
-              height: auto !important;
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            /* Completely avoid break inside thermal invoice */
-            .thermal-invoice-container,
-            .thermal-invoice-container * {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-          }
-        `}</style>
-      )}
 
-      {template !== 'thermal' && (
-        <style>{`
-          @media print {
-            @page {
-              size: ${paperSize === 'a5' ? 'A5 portrait' : 'A4 portrait'} !important;
-              margin: ${paperSize === 'a5' ? '5mm' : '10mm'} !important;
-            }
-
-            html, body {
-              width: 100% !important;
-              height: auto !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              background: #ffffff !important;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-
-            .invoice-parent-wrapper {
-              display: block !important;
-              width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-
-            .print-exact-size {
-              width: 100% !important;
-              max-width: 100% !important;
-              ${printPageMode === 'full'
-                ? `min-height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important; height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important;`
-                : `height: auto !important; min-height: 0 !important; page-break-after: avoid !important; break-after: avoid !important;`
-              }
-              margin: 0 !important;
-              padding: 0 !important;
-              box-shadow: none !important;
-              border: none !important;
-              transform: none !important;
-            }
-
-            .invoice-print-container {
-              padding: 0 !important;
-              margin: 0 !important;
-              width: 100% !important;
-              max-width: 100% !important;
-              box-sizing: border-box !important;
-              box-shadow: none !important;
-              ${printPageMode === 'full'
-                ? `min-height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important; height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important;`
-                : `height: auto !important; min-height: 0 !important; display: block !important; page-break-after: avoid !important; break-after: avoid !important; overflow: hidden !important;`
-              }
-            }
-
-            .invoice-print-container > div {
-              ${printPageMode === 'full'
-                ? `flex: 1 1 auto !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; min-height: 100% !important;`
-                : `height: auto !important; min-height: 0 !important;`
-              }
-            }
-
-            .invoice-print-container table tbody tr.empty-spacer-row {
-              ${printPageMode === 'full' ? `height: 100% !important;` : `display: none !important;`}
-            }
-
-            .invoice-print-container table th, 
-            .invoice-print-container table td {
-              padding-top: ${paperSize === 'a5' ? '2px' : '3px'} !important;
-              padding-bottom: ${paperSize === 'a5' ? '2px' : '3px'} !important;
-              padding-left: ${paperSize === 'a5' ? '3px' : '4px'} !important;
-              padding-right: ${paperSize === 'a5' ? '3px' : '4px'} !important;
-              font-size: ${paperSize === 'a5' ? '8pt' : '9.5px'} !important;
-              line-height: 1.15 !important;
-            }
-
-            .invoice-print-container .p-3, 
-            .invoice-print-container .p-4,
-            .invoice-print-container .p-2\.5 {
-              padding: ${paperSize === 'a5' ? '3.5px' : '5px'} !important;
-            }
-
-            .invoice-print-container .mb-8, 
-            .invoice-print-container .mb-6 {
-              margin-bottom: ${paperSize === 'a5' ? '4px' : '6px'} !important;
-            }
-
-            .invoice-print-container .pb-6, 
-            .invoice-print-container .pb-4 {
-              padding-bottom: ${paperSize === 'a5' ? '3px' : '4px'} !important;
-            }
-
-            .invoice-print-container .gap-6, 
-            .invoice-print-container .gap-4 {
-              gap: ${paperSize === 'a5' ? '4px' : '6px'} !important;
-            }
-
-            .invoice-print-container .h-36 {
-              height: ${paperSize === 'a5' ? '48px' : '72px'} !important;
-            }
-
-            .invoice-print-container .h-20 {
-              height: ${paperSize === 'a5' ? '28px' : '40px'} !important;
-            }
-
-            .invoice-print-container img {
-              max-height: ${paperSize === 'a5' ? '32px' : '48px'} !important;
-            }
-
-            table {
-              page-break-inside: auto !important;
-              width: 100% !important;
-            }
-
-            tr {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-
-            thead {
-              display: table-header-group !important;
-            }
-
-            tbody {
-              display: table-row-group !important;
-            }
-
-            .signature-container,
-            .bank-details-container,
-            .qrcode-container,
-            .terms-container,
-            #tally_footer_block,
-            #tally_hsn_summary,
-            #tally_amount_words,
-            #tally_buyer_consignee,
-            #tally_seller_branding,
-            #tally_banner,
-            .print-avoid-break {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-              break-inside: avoid-page !important;
-            }
-
-            .empty-padding-row {
-              display: none !important;
-            }
-          }
-        `}</style>
-      )}
-
-      {/* Hidden File Input for Company Logo Upload */}
+            {/* Hidden File Input for Company Logo Upload */}
       <input
         ref={logoInputRef}
         type="file"
