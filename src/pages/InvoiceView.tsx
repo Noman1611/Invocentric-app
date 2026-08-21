@@ -2307,7 +2307,7 @@ export default function InvoiceViewPage() {
                           const priceNum = Number(item.price || 0);
                           const taxVal = qtyNum * priceNum;
                           return (
-                            <tr key={idx} className="border-b border-[#dce6f0] align-top">
+                            <tr key={idx} className="align-top">
                               <td className="border-l border-r p-1.5 text-center" style={{ borderColor: primaryColor || '#2f6fb0' }}>{idx + 1}</td>
                               <td className="border-l border-r p-1.5" style={{ borderColor: primaryColor || '#2f6fb0' }}>
                                 <div className="font-bold">{getItemName(item)}</div>
@@ -3525,6 +3525,92 @@ export default function InvoiceViewPage() {
                       </div>
                     </div>
                   </DraggableBox>
+                </div>
+              ) : activeBaseTemplate === 'thermal' ? (
+                /* ── POS THERMAL 80mm TEMPLATE ── */
+                <div className="thermal-invoice-container w-full bg-white text-black font-mono text-[11px] leading-tight p-2" style={{ width: '80mm', maxWidth: '80mm', margin: '0 auto', fontFamily: "'JetBrains Mono', Courier, monospace" }}>
+                  {/* Header */}
+                  <div className="text-center border-b border-black pb-1 mb-1">
+                    {sellerInfo?.logo_url && (
+                      <img src={sellerInfo.logo_url} alt="Logo" className="h-8 mx-auto mb-1 object-contain" />
+                    )}
+                    <div className="font-bold text-[13px] uppercase">{sellerInfo?.business_name || 'Business Name'}</div>
+                    {sellerInfo?.address && <div className="text-[9px]">{sellerInfo.address}</div>}
+                    {sellerInfo?.phone && <div className="text-[9px]">Ph: {sellerInfo.phone}</div>}
+                    {sellerInfo?.gstin && <div className="text-[9px] font-bold">GSTIN: {sellerInfo.gstin}</div>}
+                  </div>
+
+                  {/* Invoice Info */}
+                  <div className="border-b border-dashed border-black pb-1 mb-1 text-[10px]">
+                    <div className="flex justify-between"><span className="font-bold">Invoice No:</span><span>{invoice?.invoice_number || '-'}</span></div>
+                    <div className="flex justify-between"><span className="font-bold">Date:</span><span>{formatDateSafe(invoice?.date, 'dd-MMM-yyyy')}</span></div>
+                    <div className="flex justify-between"><span className="font-bold">Customer:</span><span className="text-right flex-1 ml-1 truncate">{customer?.name || invoice?.customer_name || 'CASH SALE'}</span></div>
+                    {customer?.phone && <div className="flex justify-between"><span className="font-bold">Phone:</span><span>{customer.phone}</span></div>}
+                  </div>
+
+                  {/* Items */}
+                  <div className="border-b border-dashed border-black pb-1 mb-1">
+                    <div className="flex font-bold text-[10px] border-b border-black pb-0.5 mb-0.5">
+                      <span className="flex-1">Item</span>
+                      <span className="w-8 text-center">Qty</span>
+                      <span className="w-14 text-right">Rate</span>
+                      <span className="w-16 text-right">Amt</span>
+                    </div>
+                    {invoice?.items?.map((item: any, idx: number) => {
+                      const qty = Number(item.quantity || 0);
+                      const price = Number(item.price || 0);
+                      const amt = qty * price;
+                      return (
+                        <div key={idx} className="text-[10px] py-0.5 border-b border-dotted border-gray-400">
+                          <div className="font-semibold truncate">{getItemName(item)}</div>
+                          <div className="flex">
+                            <span className="flex-1 text-[9px] text-gray-600">{item.hsn_code || item.hsn ? `HSN: ${item.hsn_code || item.hsn}` : ''}</span>
+                            <span className="w-8 text-center">{qty}</span>
+                            <span className="w-14 text-right">₹{price.toFixed(2)}</span>
+                            <span className="w-16 text-right font-bold">₹{amt.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Totals */}
+                  <div className="border-b border-dashed border-black pb-1 mb-1 text-[10px] space-y-0.5">
+                    <div className="flex justify-between"><span>Subtotal:</span><span>₹{Number(rawSubtotal || 0).toFixed(2)}</span></div>
+                    {totalDiscount > 0 && <div className="flex justify-between"><span>Discount:</span><span>-₹{totalDiscount.toFixed(2)}</span></div>}
+                    {totalGst > 0 && <div className="flex justify-between"><span>Tax (GST):</span><span>₹{totalGst.toFixed(2)}</span></div>}
+                    <div className="flex justify-between font-black text-[12px] border-t border-black pt-0.5">
+                      <span>TOTAL:</span>
+                      <span>₹{Number(invoice?.amount || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="text-[9px] italic text-center">{safeToWords(Number(invoice?.amount || 0), invoice?.currency)}</div>
+                  </div>
+
+                  {/* Payment Mode */}
+                  {invoice?.payment_mode && (
+                    <div className="text-[10px] text-center border-b border-dashed border-black pb-1 mb-1">
+                      <span className="font-bold">Payment: </span>{invoice.payment_mode}
+                    </div>
+                  )}
+
+                  {/* UPI QR */}
+                  {sellerInfo?.upi_id && (
+                    <div className="flex flex-col items-center border-b border-dashed border-black pb-1 mb-1">
+                      <QRCodeSVG value={`upi://pay?pa=${sellerInfo.upi_id}&pn=${encodeURIComponent(sellerInfo?.business_name || 'Business')}&am=${invoice?.amount || 0}&cu=INR`} size={60} />
+                      <div className="text-[9px] font-bold mt-0.5">Pay using UPI: {sellerInfo.upi_id}</div>
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  <div className="text-center text-[9px] space-y-0.5">
+                    {termsText ? (
+                      <div className="text-[8px] text-gray-600 border-b border-dashed border-black pb-1 mb-0.5">{termsText}</div>
+                    ) : (
+                      <div className="text-[8px] text-gray-600">Goods once sold will not be taken back.</div>
+                    )}
+                    <div className="font-bold">*** Thank You! Visit Again ***</div>
+                    <div className="text-[8px] text-gray-500">E. &amp; O.E. | Computer Generated</div>
+                  </div>
                 </div>
               ) : null}
               {!isPro && (
@@ -5070,13 +5156,15 @@ export default function InvoiceViewPage() {
             .print-exact-size {
               width: 100% !important;
               max-width: 100% !important;
-              min-height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important;
               height: auto !important;
+              min-height: 0 !important;
               margin: 0 !important;
               padding: 0 !important;
               box-shadow: none !important;
               border: none !important;
               transform: none !important;
+              page-break-after: avoid !important;
+              break-after: avoid !important;
             }
 
             .invoice-print-container {
@@ -5084,24 +5172,23 @@ export default function InvoiceViewPage() {
               margin: 0 !important;
               width: 100% !important;
               max-width: 100% !important;
-              min-height: ${paperSize === 'a5' ? '195mm' : '277mm'} !important;
-              display: flex !important;
-              flex-direction: column !important;
-              justify-content: space-between !important;
+              height: auto !important;
+              min-height: 0 !important;
+              display: block !important;
               box-sizing: border-box !important;
               box-shadow: none !important;
+              page-break-after: avoid !important;
+              break-after: avoid !important;
+              overflow: hidden !important;
             }
 
             .invoice-print-container > div {
-              flex: 1 1 auto !important;
-              display: flex !important;
-              flex-direction: column !important;
-              justify-content: space-between !important;
-              min-height: 100% !important;
+              height: auto !important;
+              min-height: 0 !important;
             }
 
             .invoice-print-container table tbody tr.empty-spacer-row {
-              height: 100% !important;
+              display: none !important;
             }
 
             .invoice-print-container table th, 
