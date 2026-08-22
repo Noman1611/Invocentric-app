@@ -2171,7 +2171,7 @@ export default function InvoiceViewPage() {
             )}
             style={{ 
               width: template === 'thermal' ? thermalRollSize : '210mm',
-              minHeight: template === 'thermal' ? 'auto' : paperSize === 'a5' ? '148mm' : '297mm',
+              minHeight: template === 'thermal' ? 'auto' : paperSize === 'a5' ? 'auto' : '297mm',
               boxSizing: 'border-box',
               transform: scale !== 1 ? `scale(${scale})` : 'none',
               transformOrigin: 'top center',
