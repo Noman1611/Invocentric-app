@@ -2280,48 +2280,38 @@ export default function InvoiceViewPage() {
                     <div className="uppercase text-[12px]">{copySubtitleText || 'ORIGINAL FOR RECIPIENT'}</div>
                   </div>
 
-                  {/* Meta Grid (3 columns: Buyer | Consignee | Invoice Meta) */}
+                  {/* Meta Grid (2 columns: Buyer | Invoice Meta) */}
                   <div className="grid grid-cols-12 border text-[12px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>
                     {/* Column 1: Details of Buyer | Billed to */}
-                    <div className="col-span-5 p-2 border-r" style={{ borderColor: primaryColor || '#2f6fb0' }}>
+                    <div className="col-span-7 p-2 border-r" style={{ borderColor: primaryColor || '#2f6fb0' }}>
                       <div 
                         className="font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-1 text-[12px]" 
                         style={{ background: primaryBgLight || '#eaf2fb', borderColor: primaryColor || '#2f6fb0' }}
                       >
                         {getSectionLabel('billed_to', 'Details of Buyer | Billed to :')}
                       </div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Name</div><div className="flex-1 font-semibold uppercase">{customer?.name || invoice?.customer_name || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Address</div><div className="flex-1 whitespace-pre-line">{customer?.address || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Phone</div><div className="flex-1">{customer?.phone || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">GSTIN</div><div className="flex-1 font-bold uppercase">{customer?.gst_number || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">PAN</div><div className="flex-1 font-bold uppercase">{customer?.pan || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Place of Supply</div><div className="flex-1 font-semibold">{customer?.place_of_supply || customer?.state || '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-28 shrink-0 font-bold">Name</div><div className="flex-1 font-semibold uppercase">{customer?.name || invoice?.customer_name || '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-28 shrink-0 font-bold">Address</div><div className="flex-1 whitespace-pre-line">{customer?.address || '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-28 shrink-0 font-bold">Phone</div><div className="flex-1">{customer?.phone || '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-28 shrink-0 font-bold">GSTIN</div><div className="flex-1 font-bold uppercase">{customer?.gst_number || '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-28 shrink-0 font-bold">PAN</div><div className="flex-1 font-bold uppercase">{customer?.pan || '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-28 shrink-0 font-bold">Place of Supply</div><div className="flex-1 font-semibold">{customer?.place_of_supply || customer?.state || '-'}</div></div>
                     </div>
 
-                    {/* Column 2: Details of Consignee | Shipped to */}
-                    <div className="col-span-4 p-2 border-r" style={{ borderColor: primaryColor || '#2f6fb0' }}>
+                    {/* Column 2: Invoice Meta */}
+                    <div className="col-span-5 p-2 space-y-0.5">
                       <div 
                         className="font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-1 text-[12px]" 
                         style={{ background: primaryBgLight || '#eaf2fb', borderColor: primaryColor || '#2f6fb0' }}
                       >
-                        {getSectionLabel('shipped_to', 'Details of Consignee | Shipped to :')}
+                        Invoice Details
                       </div>
-                      <div className="flex mb-0.5"><div className="w-16 shrink-0 font-bold">Name</div><div className="flex-1 font-semibold uppercase">{customer?.consignee_name || customer?.name || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-16 shrink-0 font-bold">Address</div><div className="flex-1 whitespace-pre-line">{customer?.consignee_address || customer?.address || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-16 shrink-0 font-bold">Country</div><div className="flex-1">{customer?.country || 'India'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-16 shrink-0 font-bold">Phone</div><div className="flex-1">{customer?.consignee_phone || customer?.phone || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-16 shrink-0 font-bold">GSTIN</div><div className="flex-1 font-bold uppercase">{customer?.consignee_gstin || customer?.gst_number || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-16 shrink-0 font-bold">State</div><div className="flex-1 font-semibold">{customer?.state || '-'}</div></div>
-                    </div>
-
-                    {/* Column 3: Invoice Meta */}
-                    <div className="col-span-3 p-2 space-y-0.5">
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Invoice No.</div><div className="flex-1 font-bold">{invoice?.invoice_number || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Invoice Date</div><div className="flex-1">{formatDateSafe(invoice?.date, 'dd-MMM-yyyy')}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Due Date</div><div className="flex-1">{formatDateSafe(invoice?.due_date || invoice?.date, 'dd-MMM-yyyy')}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">P.O. No.</div><div className="flex-1">{invoice?.po_number || '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">P.O. Date</div><div className="flex-1">{invoice?.po_date ? formatDateSafe(invoice.po_date, 'dd-MMM-yyyy') : '-'}</div></div>
-                      <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">E-Way No.</div><div className="flex-1">{invoice?.e_way_bill || '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-24 shrink-0 font-bold">Invoice No.</div><div className="flex-1 font-bold">{invoice?.invoice_number || '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-24 shrink-0 font-bold">Invoice Date</div><div className="flex-1">{formatDateSafe(invoice?.date, 'dd-MMM-yyyy')}</div></div>
+                      <div className="flex mb-0.5"><div className="w-24 shrink-0 font-bold">Due Date</div><div className="flex-1">{formatDateSafe(invoice?.due_date || invoice?.date, 'dd-MMM-yyyy')}</div></div>
+                      <div className="flex mb-0.5"><div className="w-24 shrink-0 font-bold">P.O. No.</div><div className="flex-1">{invoice?.po_number || '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-24 shrink-0 font-bold">P.O. Date</div><div className="flex-1">{invoice?.po_date ? formatDateSafe(invoice.po_date, 'dd-MMM-yyyy') : '-'}</div></div>
+                      <div className="flex mb-0.5"><div className="w-24 shrink-0 font-bold">E-Way No.</div><div className="flex-1">{invoice?.e_way_bill || '-'}</div></div>
                     </div>
                   </div>
 
