@@ -2258,7 +2258,7 @@ export default function InvoiceViewPage() {
                           src={sellerInfo.logo_url} 
                           alt="Logo" 
                           className="h-14 max-w-[140px] object-contain rounded-xl"
-                          style={{ maxHeight: `${logoSize || 60}px` }}
+                          style={{ maxHeight: `${tallyConfig?.logoHeight || 60}px` }}
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
