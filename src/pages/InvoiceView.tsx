@@ -1290,27 +1290,29 @@ export default function InvoiceViewPage() {
         if (!containerRef.current || !invoiceRef.current) return;
         const containerWidth = containerRef.current.offsetWidth;
         
-        // Exact target dimensions based on paper format:
-        // Thermal: 80mm (~340px)
-        // A5: 148mm × 210mm (~595px)
-        // A4: 210mm × 297mm (~840px)
+        // Native paper sheet pixel widths at 96 DPI:
+        // A4 Portrait: 210mm = 794px, 297mm = 1123px
+        // A5 Landscape: 210mm = 794px, 148mm = 559px
+        // Thermal 80mm: 302px (roll format, auto height)
+        // Thermal 58mm: 220px (roll format, auto height)
         const targetWidth = template === 'thermal' 
-          ? 340 
-          : paperSize === 'a5' 
-            ? 595 
-            : 840;
+          ? (thermalRollSize === '58mm' ? 220 : 302) 
+          : 794;
         
-        const availableWidth = Math.max(containerWidth - 24, 260);
+        const availableWidth = Math.max(containerWidth - 16, 260);
         
+        // When template is thermal, don't over-stretch it on big desktop monitors
         let baseScale = 1;
-        if (availableWidth < targetWidth) {
-          baseScale = availableWidth / targetWidth;
+        if (template === 'thermal') {
+          baseScale = Math.min(1, availableWidth / targetWidth);
         } else {
-          baseScale = Math.min(1.2, availableWidth / targetWidth);
+          // For A4 and A5 sheets, scale to fill available width precisely without extra side gaps
+          baseScale = availableWidth / targetWidth;
         }
 
-        const finalScale = baseScale * zoomLevel;
-        setScale(finalScale);
+        // Apply user zoom (1.15 is the default full-fit baseline)
+        const finalScale = zoomLevel === 1.15 ? baseScale : (baseScale * (zoomLevel / 1.15));
+        setScale(Math.max(0.35, Math.min(2.5, finalScale)));
 
         // Update dynamic CSS custom property for layout height flow
         const currentHeight = invoiceRef.current.offsetHeight || invoiceRef.current.scrollHeight;
@@ -2012,7 +2014,7 @@ export default function InvoiceViewPage() {
         {/* The Invoice Document & Controls */}
         <div className="flex-1 pb-20 w-full flex flex-col items-center min-w-0">
           {/* Preview Zoom & Size Controls Bar */}
-          <div className="w-full max-w-[920px] mb-3 flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-slate-100/90 backdrop-blur-sm rounded-2xl border border-slate-200 text-slate-700 shadow-xs print:hidden">
+          <div className="w-full max-w-[960px] mb-3 flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-slate-100/90 backdrop-blur-sm rounded-2xl border border-slate-200 text-slate-700 shadow-xs print:hidden">
             <div className="flex items-center gap-2">
               <span className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
                 <ZoomIn size={15} className="text-green-600" /> Preview Size
@@ -2161,7 +2163,7 @@ export default function InvoiceViewPage() {
             </div>
           </div>
 
-          <div className="w-full overflow-x-auto scrollbar-hide flex justify-center items-start invoice-parent-wrapper" ref={containerRef}>
+          <div className="w-full max-w-[960px] overflow-x-auto scrollbar-hide flex justify-center items-start invoice-parent-wrapper" ref={containerRef}>
           <div 
             className={cn(
               "shadow-2xl text-black relative origin-top print-exact-size shrink-0 box-border",
