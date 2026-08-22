@@ -1019,6 +1019,7 @@ export default function InvoiceViewPage() {
   };
 
   const defaultBuiltInTemplates = [
+    { id: 'invocentric_modern_clean', name: 'InvoCentic Modern Clean (SaaS / Minimalist)' },
     { id: 'invocentric_classic_gst', name: 'InvoCentic Classic GST Invoice' },
     { id: 'tally_prime_gst', name: 'InvoCentic Tally Prime Standard GST Invoice' },
     { id: 'tally_simple_bill', name: 'InvoCentic Tally Simple Retail Invoice ERP 9' },
@@ -2232,7 +2233,189 @@ export default function InvoiceViewPage() {
                   <img src={customLetterhead} className="w-full h-full object-fill" alt="Custom Letterhead" />
                 </div>
               )}
-                     {activeBaseTemplate === 'invocentric_classic_gst' || (activeBaseTemplate !== 'tally_prime_gst' && activeBaseTemplate !== 'tally_simple_bill' && activeBaseTemplate !== 'tally_bill_of_supply' && activeBaseTemplate !== 'tally_export_invoice' && activeBaseTemplate !== 'thermal') ? (
+                     {activeBaseTemplate === 'invocentric_modern_clean' ? (
+                <div className="relative z-10 w-full flex flex-col flex-1 flex-grow justify-between min-h-full h-full bg-white p-8 sm:p-10 text-[12px] leading-relaxed text-slate-800 font-sans">
+                  {/* Letterhead Mode Spacer if any */}
+                  {useLetterheadMode && (
+                    <div style={{ height: `${letterheadSpacerHeight}px` }} className="w-full shrink-0" />
+                  )}
+
+                  <div className="space-y-6">
+                    {/* Document Header */}
+                    <div className="flex items-start justify-between border-b border-slate-100 pb-5">
+                      <div>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">
+                          {invoice?.bill_type === 'QUOTATION' ? 'QUOTATION' : 'INVOICE'}
+                        </h1>
+                        <p className="text-xs font-bold text-slate-400 mt-1 font-mono">
+                          Invoice Number <span className="text-slate-900 font-black">#{invoice?.invoice_number || 'INV-001'}</span>
+                        </p>
+                      </div>
+
+                      {/* Logo / Badge */}
+                      {sellerInfo?.logo_url && isSectionVisible('logo') ? (
+                        <img 
+                          src={sellerInfo.logo_url} 
+                          alt="Logo" 
+                          className="h-14 max-w-[140px] object-contain rounded-xl"
+                          style={{ maxHeight: `${logoSize || 60}px` }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
+                          {sellerInfo?.business_name ? sellerInfo.business_name.slice(0, 2).toUpperCase() : 'IC'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2-Column Parties Grid (Billed By & Billed To) */}
+                    <div className="grid grid-cols-2 gap-8 text-[12px]">
+                      {/* Billed By (Seller) */}
+                      <div>
+                        <span className="font-bold text-slate-400 uppercase text-[10px] block tracking-wider mb-1.5">
+                          Billed by:
+                        </span>
+                        <p className="font-black text-slate-900 text-sm">{sellerInfo?.business_name || 'My Business'}</p>
+                        <p className="text-slate-600 font-medium">{sellerInfo?.email || user?.email || '-'}</p>
+                        <p className="text-slate-600 font-medium whitespace-pre-line leading-relaxed">{sellerInfo?.address || '-'}</p>
+                        {sellerInfo?.phone && <p className="text-slate-600 font-medium">Ph: {sellerInfo.phone}</p>}
+                        {sellerInfo?.gstin && isSectionVisible('seller_gstin') && (
+                          <p className="text-slate-700 font-bold mt-1">GSTIN: <span className="uppercase">{sellerInfo.gstin}</span></p>
+                        )}
+                      </div>
+
+                      {/* Billed To (Buyer) */}
+                      <div>
+                        <span className="font-bold text-slate-400 uppercase text-[10px] block tracking-wider mb-1.5">
+                          Billed to:
+                        </span>
+                        <p className="font-black text-slate-900 text-sm uppercase">{customer?.name || invoice?.customer_name || 'Cash Sale'}</p>
+                        <p className="text-slate-600 font-medium">{customer?.email || '-'}</p>
+                        <p className="text-slate-600 font-medium whitespace-pre-line leading-relaxed">{customer?.address || '-'}</p>
+                        {customer?.phone && <p className="text-slate-600 font-medium">Ph: {customer.phone}</p>}
+                        {customer?.gst_number && isSectionVisible('customer_gstin') && (
+                          <p className="text-slate-700 font-bold mt-1">GSTIN: <span className="uppercase">{customer.gst_number}</span></p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Dates Section */}
+                    <div className="grid grid-cols-2 gap-8 py-3 border-y border-slate-100 bg-slate-50/60 -mx-8 px-8 sm:-mx-10 sm:px-10 text-[12px]">
+                      <div>
+                        <span className="font-bold text-slate-400 uppercase text-[10px] block mb-0.5">Date Issue:</span>
+                        <span className="font-extrabold text-slate-800">{formatDateSafe(invoice?.date, 'MMMM d, yyyy')}</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-slate-400 uppercase text-[10px] block mb-0.5">Due Date:</span>
+                        <span className="font-extrabold text-slate-800">{formatDateSafe(invoice?.due_date || invoice?.date, 'MMMM d, yyyy')}</span>
+                      </div>
+                    </div>
+
+                    {/* Items / Services Table */}
+                    <div className="space-y-2 pt-2">
+                      <span className="font-black text-slate-400 uppercase text-[10px] block tracking-wider">
+                        Invoice Items / Service:
+                      </span>
+                      <table className="w-full text-left text-[12px] border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-200 text-slate-400 text-[11px] font-bold">
+                            <th className="py-2.5 font-bold">Item Name</th>
+                            <th className="py-2.5 text-center font-bold w-16">QTY</th>
+                            <th className="py-2.5 text-right font-bold w-24">Rate</th>
+                            <th className="py-2.5 text-right font-bold w-28">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {invoice?.items?.map((item: any, idx: number) => {
+                            const qtyNum = Number(item.quantity || 0);
+                            const priceNum = Number(item.price || 0);
+                            const taxVal = qtyNum * priceNum;
+                            const serialsText = Array.isArray(item.serials) && item.serials.length > 0 
+                              ? item.serials.join(', ') 
+                              : (item.serial_number || item.serialNumber || '');
+
+                            return (
+                              <tr key={idx} className="align-top">
+                                <td className="py-3 pr-4">
+                                  <p className="font-black text-slate-900 text-[13px] leading-snug">{getItemName(item)}</p>
+                                  {serialsText && (
+                                    <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md inline-block mt-1 border border-emerald-200">
+                                      <span className="text-slate-500 font-normal">S/N:</span> {serialsText}
+                                    </p>
+                                  )}
+                                  {renderItemDetails(item, "text-slate-500")}
+                                </td>
+                                <td className="py-3 px-2 text-center font-bold text-slate-700">{qtyNum}</td>
+                                <td className="py-3 px-2 text-right font-bold text-slate-700">₹{priceNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                <td className="py-3 pl-2 text-right font-black text-slate-900 text-[13px]">₹{taxVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Summary & Totals */}
+                    <div className="space-y-2 pt-3 border-t border-slate-100 text-[12px]">
+                      <div className="flex justify-between text-slate-500">
+                        <span>Subtotal</span>
+                        <span className="font-bold text-slate-800">₹{totalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      {Number(invoice?.discount || 0) > 0 && (
+                        <div className="flex justify-between text-emerald-600 font-bold">
+                          <span>Discount</span>
+                          <span>-₹{Number(invoice.discount).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {totalGst > 0 && (
+                        <div className="flex justify-between text-slate-500 font-bold">
+                          <span>GST Tax</span>
+                          <span>+₹{totalGst.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center text-slate-900 pt-2 border-t border-slate-200">
+                        <span className="font-black text-sm uppercase tracking-wider">Grand Total</span>
+                        <span className="font-black text-xl text-slate-900">
+                          ₹{(Number(invoice?.amount) || computedGrandTotal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Notes / Terms */}
+                    {invoice?.notes && (
+                      <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600 leading-relaxed">
+                        <span className="font-bold text-slate-700 block mb-0.5">Note:</span>
+                        <p className="whitespace-pre-line">{invoice.notes}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer: Payment Method & Signature */}
+                  <div className="pt-6 border-t border-slate-100 flex items-end justify-between mt-auto">
+                    <div>
+                      <span className="font-bold text-slate-400 uppercase text-[9px] block mb-0.5">Payment Method</span>
+                      <p className="font-black text-slate-800 text-xs">{invoice?.payment_mode || 'EFT / Bank Transfer / UPI'}</p>
+                      {sellerInfo?.bank_name && isSectionVisible('bank_details') && (
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                          {sellerInfo.bank_name} - {sellerInfo.account_number || ''}
+                          {sellerInfo.ifsc && ` (IFSC: ${sellerInfo.ifsc})`}
+                        </p>
+                      )}
+                      {sellerInfo?.upi_id && isSectionVisible('upi_qr') && (
+                        <p className="text-[11px] text-slate-500 font-medium">UPI: {sellerInfo.upi_id}</p>
+                      )}
+                    </div>
+
+                    {isSectionVisible('signature') && (
+                      <div className="text-right">
+                        <div className="w-28 h-8 border-b border-slate-300 flex items-end justify-center pb-0.5 text-xs italic font-serif text-slate-700">
+                          {sellerInfo?.signatory_name || sellerInfo?.business_name || 'InvoCentic'}
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase block mt-1">Authorized Signatory</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : activeBaseTemplate === 'invocentric_classic_gst' || (activeBaseTemplate !== 'tally_prime_gst' && activeBaseTemplate !== 'tally_simple_bill' && activeBaseTemplate !== 'tally_bill_of_supply' && activeBaseTemplate !== 'tally_export_invoice' && activeBaseTemplate !== 'thermal') ? (
                 <div 
                   className="relative z-10 w-full flex flex-col flex-1 flex-grow justify-between min-h-full h-full bg-white p-5 text-[12px] leading-snug border" 
                   style={{ 
