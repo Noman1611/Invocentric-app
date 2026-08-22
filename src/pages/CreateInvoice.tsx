@@ -2167,24 +2167,56 @@ export default function CreateInvoicePage() {
       </form>
     </div>
 
-    {/* Right Pane: Realistic Live Invoice Preview Card */}
+    {/* Right Pane: Real Authentic InvoCentic GST Invoice Live Preview */}
     {showLivePreview && (() => {
       const selectedCust = customers.find(c => c.id === formData.customer_id);
       const currSymbol = CURRENCIES.find(c => c.code === formData.currency)?.symbol || '₹';
-      const rawSub = formData.items.reduce((acc, curr) => acc + ((Number(curr.price) || 0) * (Number(curr.quantity) || 0)), 0);
-      const discVal = Number(formData.discount) || 0;
-      const totalCalculated = calculateTotal() || 0;
-      const dueDateDisplay = formData.due_date ? format(parseDateSafe(formData.due_date), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
-      const issueDateDisplay = formData.date ? format(parseDateSafe(formData.date), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
+      const totalTaxable = formData.items.reduce((acc, curr) => acc + ((Number(curr.price) || 0) * (Number(curr.quantity) || 0)), 0);
+      const totalQuantity = formData.items.reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
+      
+      const hsnSummary = formData.items.reduce((acc: any, it: any) => {
+        const code = it.hsn || '0000';
+        const qty = Number(it.quantity) || 0;
+        const prc = Number(it.price) || 0;
+        const gstPct = Number(it.gstPercent) || 0;
+        const taxable = qty * prc;
+        const tax = taxable * (gstPct / 100);
+        if (!acc[code]) {
+          acc[code] = { code, taxable: 0, tax: 0, gstRate: gstPct, cgst: 0, sgst: 0 };
+        }
+        acc[code].taxable += taxable;
+        acc[code].tax += tax;
+        acc[code].cgst += tax / 2;
+        acc[code].sgst += tax / 2;
+        return acc;
+      }, {});
+
+      const totalGst = Object.values(hsnSummary).reduce((acc: number, cur: any) => acc + (cur.tax || 0), 0) as number;
+      const totalCalculated = Math.max(0, totalTaxable + totalGst - (Number(formData.discount) || 0));
+      
+      let amountWordsStr = "ZERO RUPEES ONLY";
+      try {
+        const valFloor = Math.floor(totalCalculated);
+        if (isFinite(valFloor) && !isNaN(valFloor) && valFloor >= 0) {
+          amountWordsStr = `${toWords(valFloor)} RUPEES ONLY`.toUpperCase();
+        }
+      } catch (e) {}
+
+      const upiUrl = sellerSettings?.upi_id 
+        ? `upi://pay?pa=${sellerSettings.upi_id}&pn=${encodeURIComponent(sellerSettings.business_name || 'Merchant')}&am=${totalCalculated.toFixed(2)}&cu=INR`
+        : '';
+
+      const dueDateDisplay = formData.due_date ? format(parseDateSafe(formData.due_date), 'dd-MMM-yyyy') : format(new Date(), 'dd-MMM-yyyy');
+      const issueDateDisplay = formData.date ? format(parseDateSafe(formData.date), 'dd-MMM-yyyy') : format(new Date(), 'dd-MMM-yyyy');
 
       return (
         <aside className="hidden xl:flex xl:col-span-5 flex-col sticky top-6 space-y-3 select-none">
           {/* Action Toolbar */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-xs flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h2 className="font-extrabold text-sm text-slate-900 dark:text-white">Preview</h2>
+              <h2 className="font-extrabold text-sm text-slate-900 dark:text-white">Live Invoice Preview</h2>
               <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                Real-Time
+                Real Template
               </span>
             </div>
             
@@ -2209,137 +2241,215 @@ export default function CreateInvoicePage() {
             </div>
           </div>
 
-          {/* Rendered Invoice Paper Document */}
-          <div className="bg-white text-slate-800 rounded-3xl shadow-xl border border-slate-200/90 p-6 space-y-5 text-xs font-sans relative overflow-hidden transition-all">
+          {/* Real Authentic InvoCentic GST Invoice Document */}
+          <div className="bg-white text-slate-900 rounded-2xl shadow-xl border border-slate-300 p-5 text-[11px] font-sans relative overflow-hidden transition-all space-y-0">
             
-            {/* Document Header */}
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase">INVOICE</h3>
-                <p className="text-xs font-bold text-slate-400 mt-0.5 font-mono">
-                  Invoice Number <span className="text-slate-800 font-bold">#{formData.invoice_number || 'INV-DRAFT'}</span>
-                </p>
+            {/* Header with Logo & Business info */}
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex gap-2.5 items-start">
+                {sellerSettings?.logo_url ? (
+                  <img className="w-12 h-12 object-contain" src={sellerSettings.logo_url} alt="Logo" />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">
+                    {sellerSettings?.business_name ? sellerSettings.business_name.slice(0, 2).toUpperCase() : 'IC'}
+                  </div>
+                )}
+                <div>
+                  <h1 className="text-base font-black uppercase text-[#1c4a75]">
+                    {sellerSettings?.business_name || 'Your Company Name'}
+                  </h1>
+                  <p className="text-[10px] text-gray-700 whitespace-pre-line leading-tight">
+                    {sellerSettings?.address || 'Company Address...'}
+                  </p>
+                </div>
               </div>
-
-              {/* Logo / Badge */}
-              <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-base shadow-sm">
-                {sellerSettings?.business_name ? sellerSettings.business_name.slice(0, 2).toUpperCase() : 'IC'}
-              </div>
-            </div>
-
-            {/* Billed By & Billed To 2-Column Grid */}
-            <div className="grid grid-cols-2 gap-4 text-[11px] pt-1">
-              <div>
-                <span className="font-bold text-slate-400 uppercase text-[9px] block tracking-wider mb-1">Billed by:</span>
-                <p className="font-extrabold text-slate-900 text-xs">{sellerSettings?.business_name || 'My Business'}</p>
-                <p className="text-slate-500 font-medium">{sellerSettings?.email || user?.email || 'billing@invocentric.in'}</p>
-                <p className="text-slate-500 font-medium whitespace-pre-line">{sellerSettings?.address || 'India'}</p>
-                {sellerSettings?.phone && <p className="text-slate-500 font-medium">Ph: {sellerSettings.phone}</p>}
-              </div>
-
-              <div>
-                <span className="font-bold text-slate-400 uppercase text-[9px] block tracking-wider mb-1">Billed to:</span>
-                <p className="font-extrabold text-slate-900 text-xs uppercase">{selectedCust?.name || 'Cash Sale'}</p>
-                <p className="text-slate-500 font-medium">{selectedCust?.email || 'N/A'}</p>
-                <p className="text-slate-500 font-medium whitespace-pre-line">{selectedCust?.address || 'N/A'}</p>
-                {selectedCust?.phone && <p className="text-slate-500 font-medium">Ph: {selectedCust.phone}</p>}
+              <div className="text-right text-[10px] space-y-0.5">
+                <div><b>Name</b> : {selectedCust?.name || formData.customer_name || 'Cash Sale'}</div>
+                <div><b>Phone</b> : {selectedCust?.phone || sellerSettings?.phone || '-'}</div>
               </div>
             </div>
 
-            {/* Date Issue & Due Date */}
-            <div className="grid grid-cols-2 gap-4 text-[11px] py-2 border-y border-slate-100 bg-slate-50/50 -mx-6 px-6">
-              <div>
-                <span className="font-bold text-slate-400 uppercase text-[9px] block">Date Issue:</span>
-                <span className="font-bold text-slate-800">{issueDateDisplay}</span>
+            {/* GSTIN / Title Bar */}
+            <div className="flex justify-between items-center border border-b-0 px-2 py-1 font-bold text-[11px] border-[#2f6fb0]">
+              <div>GSTIN : <span className="uppercase">{sellerSettings?.gstin || 'N/A'}</span></div>
+              <div className="text-[12px] font-black uppercase text-[#1c4a75]">
+                TAX INVOICE
               </div>
-              <div>
-                <span className="font-bold text-slate-400 uppercase text-[9px] block">Due Date:</span>
-                <span className="font-bold text-slate-800">{dueDateDisplay}</span>
+              <div className="uppercase text-[10px]">{formData.copy_subtitle || 'ORIGINAL FOR RECIPIENT'}</div>
+            </div>
+
+            {/* 2-Column Meta Grid */}
+            <div className="grid grid-cols-12 border text-[10px] border-[#2f6fb0]">
+              {/* Column 1: Details of Buyer */}
+              <div className="col-span-7 p-2 border-r border-[#2f6fb0]">
+                <div className="font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-0.5 text-[10px] bg-[#eaf2fb] border-[#2f6fb0]">
+                  Details of Buyer | Billed to :
+                </div>
+                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Name</div><div className="flex-1 font-semibold uppercase">{selectedCust?.name || formData.customer_name || 'Cash Sale'}</div></div>
+                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Address</div><div className="flex-1 whitespace-pre-line">{selectedCust?.address || '-'}</div></div>
+                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Phone</div><div className="flex-1">{selectedCust?.phone || '-'}</div></div>
+                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">GSTIN</div><div className="flex-1 font-bold uppercase">{selectedCust?.gst_number || '-'}</div></div>
+                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">PAN</div><div className="flex-1 font-bold uppercase">{selectedCust?.pan || '-'}</div></div>
+                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Place of Supply</div><div className="flex-1 font-semibold">{selectedCust?.place_of_supply || selectedCust?.state || '-'}</div></div>
+              </div>
+
+              {/* Column 2: Invoice Details */}
+              <div className="col-span-5 p-2 space-y-0.5">
+                <div className="font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-0.5 text-[10px] bg-[#eaf2fb] border-[#2f6fb0]">
+                  Invoice Details
+                </div>
+                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">Invoice No.</div><div className="flex-1 font-bold">{formData.invoice_number || 'INV-001'}</div></div>
+                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">Invoice Date</div><div className="flex-1">{issueDateDisplay}</div></div>
+                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">Due Date</div><div className="flex-1">{dueDateDisplay}</div></div>
+                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">P.O. No.</div><div className="flex-1">{formData.po_number || '-'}</div></div>
+                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">P.O. Date</div><div className="flex-1">{formData.po_date || '-'}</div></div>
               </div>
             </div>
 
             {/* Items Table */}
-            <div className="space-y-1.5">
-              <span className="font-bold text-slate-400 uppercase text-[9px] block tracking-wider">Invoice Items/Service:</span>
-              <table className="w-full text-left text-[11px] border-collapse">
+            <div className="border border-t-0 text-[10px] border-[#2f6fb0]">
+              <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 text-[10px] font-bold">
-                    <th className="py-1.5 font-bold">Item Name</th>
-                    <th className="py-1.5 text-center font-bold">QTY</th>
-                    <th className="py-1.5 text-right font-bold">Rate</th>
-                    <th className="py-1.5 text-right font-bold">Amount</th>
+                  <tr className="font-bold text-center bg-[#eaf2fb]">
+                    <th className="border p-1 w-[28px] border-[#2f6fb0]">Sr.</th>
+                    <th className="border p-1 text-left border-[#2f6fb0]">Name of Product / Service</th>
+                    <th className="border p-1 w-[55px] border-[#2f6fb0]">HSN</th>
+                    <th className="border p-1 w-[45px] border-[#2f6fb0]">Qty</th>
+                    <th className="border p-1 w-[60px] border-[#2f6fb0]">Rate</th>
+                    <th className="border p-1 w-[70px] border-[#2f6fb0]">Taxable</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {formData.items.map((it, idx) => {
                     const rowQty = Number(it.quantity) || 0;
                     const rowPrice = Number(it.price) || 0;
-                    const rowAmt = rowQty * rowPrice;
+                    const rowTaxable = rowQty * rowPrice;
                     return (
                       <tr key={idx} className="align-top">
-                        <td className="py-2 pr-2">
-                          <p className="font-bold text-slate-900 leading-tight">{it.description || 'Unnamed Item'}</p>
+                        <td className="border-l border-r p-1 text-center border-[#2f6fb0]">{idx + 1}</td>
+                        <td className="border-l border-r p-1 border-[#2f6fb0]">
+                          <div className="font-bold">{it.description || 'Unnamed Item'}</div>
                           {it.serialNumber && (
-                            <p className="text-[9.5px] font-semibold text-emerald-700 mt-0.5">
-                              <span className="text-slate-500 font-normal">S/N:</span> {it.serialNumber}
-                            </p>
+                            <div className="text-[9px] font-mono font-bold text-emerald-700">
+                              SR/No: {it.serialNumber}
+                            </div>
                           )}
                         </td>
-                        <td className="py-2 px-1 text-center font-semibold text-slate-700">{rowQty}</td>
-                        <td className="py-2 px-1 text-right font-semibold text-slate-700">{currSymbol}{rowPrice.toLocaleString('en-IN')}</td>
-                        <td className="py-2 pl-1 text-right font-black text-slate-900">{currSymbol}{rowAmt.toLocaleString('en-IN')}</td>
+                        <td className="border-l border-r p-1 text-center border-[#2f6fb0]">{it.hsn || '-'}</td>
+                        <td className="border-l border-r p-1 text-center font-semibold border-[#2f6fb0]">{rowQty}</td>
+                        <td className="border-l border-r p-1 text-right border-[#2f6fb0]">₹{rowPrice.toFixed(2)}</td>
+                        <td className="border-l border-r p-1 text-right font-bold border-[#2f6fb0]">₹{rowTaxable.toFixed(2)}</td>
                       </tr>
                     );
                   })}
+                  {/* Spacer Rows */}
+                  {Array.from({ length: Math.max(1, 3 - formData.items.length) }).map((_, emptyIdx) => (
+                    <tr key={`spacer-${emptyIdx}`} className="h-4 align-top">
+                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
+                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
+                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
+                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
+                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
+                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
+                    </tr>
+                  ))}
+                  {/* Total Row */}
+                  <tr className="font-bold border-t border-[#2f6fb0]">
+                    <td colSpan={3} className="p-1 text-right border-l border-r border-t border-[#2f6fb0] font-black">
+                      Total
+                    </td>
+                    <td className="p-1 text-center border-l border-r border-t border-[#2f6fb0] font-black">
+                      {totalQuantity}
+                    </td>
+                    <td className="p-1 border-l border-r border-t border-[#2f6fb0]"></td>
+                    <td className="p-1 text-right border-l border-r border-t font-black border-[#2f6fb0]">
+                      ₹ {totalTaxable.toFixed(2)}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
 
-            {/* Totals Summary */}
-            <div className="space-y-1.5 pt-2 border-t border-slate-100 text-[11px]">
-              <div className="flex justify-between text-slate-500">
-                <span>Subtotal</span>
-                <span className="font-semibold text-slate-800">{currSymbol}{rawSub.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-              </div>
-              {discVal > 0 && (
-                <div className="flex justify-between text-emerald-600 font-semibold">
-                  <span>Discount</span>
-                  <span>-{currSymbol}{discVal.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center text-slate-900 pt-1.5 border-t border-slate-200">
-                <span className="font-black text-xs uppercase tracking-wider">Grand Total</span>
-                <span className="font-black text-sm text-emerald-700">
-                  {currSymbol}{totalCalculated.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
+            {/* Amount in Words */}
+            <div className="p-1.5 border border-t-0 text-[9.5px] border-[#2f6fb0] bg-slate-50/50">
+              <span className="text-gray-500">Total in words:</span>
+              <div className="font-bold text-gray-800">{amountWordsStr}</div>
             </div>
 
-            {/* Notes / Terms */}
-            {formData.notes && (
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[10px] text-slate-600 leading-relaxed">
-                <span className="font-bold text-slate-700 block mb-0.5">Note:</span>
-                <p className="whitespace-pre-line">{formData.notes}</p>
+            {/* HSN Summary Table */}
+            {Object.keys(hsnSummary).length > 0 && (
+              <div className="border border-t-0 text-[9px] border-[#2f6fb0]">
+                <table className="w-full border-collapse text-center">
+                  <thead>
+                    <tr className="bg-[#eaf2fb] font-bold">
+                      <th className="border p-0.5 border-[#2f6fb0]">HSN / SAC</th>
+                      <th className="border p-0.5 border-[#2f6fb0]">Taxable Value</th>
+                      <th className="border p-0.5 border-[#2f6fb0]" colSpan={2}>CGST</th>
+                      <th className="border p-0.5 border-[#2f6fb0]" colSpan={2}>SGST</th>
+                      <th className="border p-0.5 border-[#2f6fb0]">Total Tax</th>
+                    </tr>
+                    <tr className="bg-[#f4f8fe] text-[8px]">
+                      <th className="border p-0.5 border-[#2f6fb0]"></th>
+                      <th className="border p-0.5 border-[#2f6fb0]"></th>
+                      <th className="border p-0.5 border-[#2f6fb0]">%</th>
+                      <th className="border p-0.5 border-[#2f6fb0]">Amount</th>
+                      <th className="border p-0.5 border-[#2f6fb0]">%</th>
+                      <th className="border p-0.5 border-[#2f6fb0]">Amount</th>
+                      <th className="border p-0.5 border-[#2f6fb0]"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.values(hsnSummary).map((h: any) => (
+                      <tr key={h.code}>
+                        <td className="border p-0.5 border-[#2f6fb0] font-semibold">{h.code}</td>
+                        <td className="border p-0.5 border-[#2f6fb0]">₹{h.taxable.toFixed(2)}</td>
+                        <td className="border p-0.5 border-[#2f6fb0]">{(h.gstRate / 2)}%</td>
+                        <td className="border p-0.5 border-[#2f6fb0]">₹{h.cgst.toFixed(2)}</td>
+                        <td className="border p-0.5 border-[#2f6fb0]">{(h.gstRate / 2)}%</td>
+                        <td className="border p-0.5 border-[#2f6fb0]">₹{h.sgst.toFixed(2)}</td>
+                        <td className="border p-0.5 border-[#2f6fb0] font-bold">₹{h.tax.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
 
-            {/* Payment Method & Signature */}
-            <div className="pt-3 border-t border-slate-100 flex items-end justify-between">
-              <div>
-                <span className="font-bold text-slate-400 uppercase text-[9px] block">Payment Method</span>
-                <p className="font-bold text-slate-800 text-[11px]">EFT / Bank Transfer / UPI</p>
-                {sellerSettings?.bank_name && (
-                  <p className="text-[10px] text-slate-500">{sellerSettings.bank_name} - {sellerSettings.account_number || ''}</p>
+            {/* Bank Details & QR & Signature */}
+            <div className="grid grid-cols-12 border border-t-0 text-[9px] border-[#2f6fb0] p-1.5 gap-2 items-center">
+              <div className="col-span-5 space-y-0.5">
+                <div className="font-bold text-[#1c4a75] uppercase">Bank Details:</div>
+                <div><b>Bank:</b> {sellerSettings?.bank_name || '-'}</div>
+                <div><b>A/c No:</b> {sellerSettings?.account_number || '-'}</div>
+                <div><b>IFSC:</b> {sellerSettings?.ifsc || '-'}</div>
+                <div><b>UPI ID:</b> {sellerSettings?.upi_id || '-'}</div>
+              </div>
+
+              <div className="col-span-3 flex flex-col items-center justify-center">
+                {upiUrl ? (
+                  <div className="p-1 bg-white border border-gray-300 rounded shadow-xs">
+                    <QRCodeSVG value={upiUrl} size={48} />
+                    <span className="text-[7px] block text-center font-bold mt-0.5">Scan to Pay</span>
+                  </div>
+                ) : (
+                  <span className="text-[8px] text-gray-400">No UPI</span>
                 )}
               </div>
 
-              <div className="text-right">
-                <div className="w-24 h-7 border-b border-slate-400/80 flex items-end justify-center pb-0.5 text-[10px] italic font-serif text-slate-600">
-                  {sellerSettings?.signatory_name || 'InvoCentic'}
-                </div>
-                <span className="text-[9px] font-bold text-slate-400 uppercase block mt-0.5">Authorized Signatory</span>
+              <div className="col-span-4 text-right">
+                <div className="text-[8px] text-gray-500 mb-2">For {sellerSettings?.business_name || 'InvoCentic'}</div>
+                <div className="h-6 border-b border-gray-400"></div>
+                <div className="font-bold text-[8px] mt-0.5">Authorized Signatory</div>
               </div>
             </div>
+
+            {/* Terms and Conditions */}
+            {formData.notes && (
+              <div className="p-1.5 border border-t-0 text-[8.5px] border-[#2f6fb0] bg-slate-50/50">
+                <span className="font-bold text-gray-700">Terms and Conditions:</span>
+                <p className="whitespace-pre-line text-gray-600 mt-0.5">{formData.notes}</p>
+              </div>
+            )}
 
           </div>
         </aside>
