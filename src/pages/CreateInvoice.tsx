@@ -1321,8 +1321,7 @@ export default function CreateInvoicePage() {
               >
                 <option value="invocentric_classic_gst">InvoCentic Classic GST Invoice (A4 Standard)</option>
                 <option value="tally_prime_gst">InvoCentic Tally Prime Standard GST Invoice</option>
-                <option value="tally_simple_bill">InvoCentic Tally Simple Retail Invoice ERP 9</option>
-                <option value="tally_bill_of_supply">InvoCentic Tally Bill of Supply Composition</option>
+                                <option value="tally_bill_of_supply">InvoCentic Tally Bill of Supply Composition</option>
                 <option value="tally_export_invoice">InvoCentic Tally Export GST Invoice</option>
                 <option value="invocentric_modern_clean">InvoCentic Modern Clean (SaaS / Minimalist)</option>
                 <option value="a5_half_sheet">InvoCentic A5 Half-Sheet Landscape (148 x 210 mm)</option>

@@ -788,8 +788,7 @@ export default function SettingsPage() {
               >
                 <option value="invocentric_classic_gst">InvoCentic Classic GST Invoice [Default]</option>
                 <option value="tally_prime_gst">InvoCentic Tally Prime Standard GST Invoice</option>
-                <option value="tally_simple_bill">InvoCentic Tally Simple Retail Invoice ERP 9</option>
-                <option value="tally_bill_of_supply">InvoCentic Tally Bill of Supply Composition</option>
+                                <option value="tally_bill_of_supply">InvoCentic Tally Bill of Supply Composition</option>
                 <option value="tally_export_invoice">InvoCentic Tally Export GST Invoice</option>
                 <option value="thermal">InvoCentic POS Thermal (Compact 3-inch/80mm Roll)</option>
               </select>

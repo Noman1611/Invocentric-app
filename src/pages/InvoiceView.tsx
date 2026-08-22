@@ -902,7 +902,7 @@ export default function InvoiceViewPage() {
 
   useEffect(() => {
     async function loadCustomTemplate() {
-      const isBuiltin = ['invocentric_classic_gst', 'tally_prime_gst', 'tally_simple_bill', 'tally_bill_of_supply', 'tally_export_invoice', 'thermal'].includes(template);
+      const isBuiltin = ['invocentric_classic_gst', 'tally_prime_gst', 'tally_bill_of_supply', 'tally_export_invoice', 'thermal'].includes(template);
       if (isBuiltin) {
         setCustomTemplate(null);
         return;
@@ -946,7 +946,7 @@ export default function InvoiceViewPage() {
     if (rawInvoice || sellerInfo) {
       const initialTmpl = rawInvoice?.invoice_template || sellerInfo?.invoice_template || 'invocentric_classic_gst';
       setTemplate(initialTmpl);
-      if (initialTmpl === 'tally_simple_bill' || initialTmpl === 'tally_bill_of_supply') {
+      if (initialTmpl === 'tally_bill_of_supply') {
         setPaperSize('a5');
       }
       initialTemplateSetRef.current = true;
@@ -954,7 +954,7 @@ export default function InvoiceViewPage() {
   }, [rawInvoice, sellerInfo]);
 
   const handleTemplateChange = async (newTemplate: string) => {
-    const isBuiltin = ['invocentric_classic_gst', 'tally_prime_gst', 'tally_simple_bill', 'tally_bill_of_supply', 'tally_export_invoice', 'thermal'].includes(newTemplate);
+    const isBuiltin = ['invocentric_classic_gst', 'tally_prime_gst', 'tally_bill_of_supply', 'tally_export_invoice', 'thermal'].includes(newTemplate);
     
     if (!isBuiltin) {
       const matchedHook = userCustomTemplates?.find((t: any) => t.id === newTemplate || t.template_id === newTemplate);
@@ -985,7 +985,7 @@ export default function InvoiceViewPage() {
     }
 
     setTemplate(newTemplate);
-    if (newTemplate === 'tally_simple_bill' || newTemplate === 'tally_bill_of_supply') {
+    if (newTemplate === 'tally_bill_of_supply') {
       setPaperSize('a5');
     } else if (newTemplate === 'tally_prime_gst' || newTemplate === 'tally_export_invoice' || newTemplate === 'invocentric_classic_gst') {
       setPaperSize('a4');
@@ -2417,7 +2417,7 @@ export default function InvoiceViewPage() {
                     )}
                   </div>
                 </div>
-              ) : activeBaseTemplate === 'invocentric_classic_gst' || (activeBaseTemplate !== 'tally_prime_gst' && activeBaseTemplate !== 'tally_simple_bill' && activeBaseTemplate !== 'tally_bill_of_supply' && activeBaseTemplate !== 'tally_export_invoice' && activeBaseTemplate !== 'thermal') ? (
+              ) : activeBaseTemplate === 'invocentric_classic_gst' || (activeBaseTemplate !== 'tally_prime_gst'  && activeBaseTemplate !== 'tally_bill_of_supply' && activeBaseTemplate !== 'tally_export_invoice' && activeBaseTemplate !== 'thermal') ? (
                 <div 
                   className="relative z-10 w-full flex flex-col flex-1 flex-grow justify-between min-h-full h-full bg-white p-5 text-[12px] leading-snug border" 
                   style={{ 
@@ -3181,229 +3181,6 @@ export default function InvoiceViewPage() {
                           </div>
                         </div>
                       )}
-                    </div>
-                  </DraggableBox>
-                </div>
-              ) : activeBaseTemplate === 'tally_simple_bill' ? (
-                <div className={cn(
-                  "relative z-10 w-full flex flex-col flex-1 flex-grow justify-between min-h-full h-full font-mono text-black border-2 border-black bg-white leading-tight",
-                  paperSize === 'a5' ? "p-2.5 text-[9.5px]" : "p-4 text-[11px]"
-                )}>
-                  {isSectionVisible('seller_address') && (
-                    <DraggableBox id="tally_seller_branding" label="Seller Branding">
-                      <div className={cn(
-                        "text-center border-b-2 border-black space-y-0.5 w-full",
-                        paperSize === 'a5' ? "pb-1.5 mb-1.5" : "pb-2 mb-2"
-                      )}>
-                        {tallyConfig.showLogo !== false && (sellerInfo?.logo_url || sellerInfo?.company_logo || sellerInfo?.logo) ? (
-  <div className="relative group/logo inline-flex items-center mb-1">
-    <img
-      src={sellerInfo?.logo_url || sellerInfo?.company_logo || sellerInfo?.logo}
-      alt="Logo"
-      style={{ height: `${tallyConfig.logoHeight || 54}px`, maxHeight: "120px" }}
-      className="w-auto object-contain shrink-0"
-    />
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); logoInputRef.current?.click(); }}
-      className="no-print absolute -top-1.5 -right-1.5 bg-blue-600 text-white rounded-full p-1 opacity-0 group-hover/logo:opacity-100 transition-opacity shadow-sm hover:bg-blue-700 cursor-pointer"
-      title="Change Company Logo"
-    >
-      <Edit3 size={10} />
-    </button>
-  </div>
-) : null}
-                        <h1 className={cn(
-                          "font-black uppercase tracking-wider",
-                          paperSize === 'a5' ? "text-base" : "text-lg"
-                        )}>{sellerInfo?.business_name || ''}</h1>
-                        {sellerInfo?.address && (
-                          <p className={cn(
-                            "whitespace-pre-line",
-                            paperSize === 'a5' ? "text-[9px]" : "text-[10px]"
-                          )}>{sellerInfo.address}</p>
-                        )}
-                        <p className={cn(
-                          "font-bold",
-                          paperSize === 'a5' ? "text-[9px]" : "text-[10px]"
-                        )}>Ph: {sellerInfo?.phone} | Email: {sellerInfo?.email}</p>
-                        {sellerInfo?.gstin && <p className={cn(
-                          "font-bold",
-                          paperSize === 'a5' ? "text-[9px]" : "text-[10px]"
-                        )}>GSTIN: {sellerInfo.gstin}</p>}
-                        <div className="pt-0.5">
-                          <span className={cn(
-                            "border border-black font-bold tracking-widest uppercase inline-block",
-                            paperSize === 'a5' ? "px-2.5 py-0.5 text-[10px]" : "px-4 py-0.5 text-xs"
-                          )}>{invoiceTitleText}</span>
-                        </div>
-                      </div>
-                    </DraggableBox>
-                  )}
-
-                  {isSectionVisible('customer_gstin') && (
-                    <DraggableBox id="tally_buyer_consignee" label="Buyer & Consignee">
-                      <div className={cn(
-                        "grid grid-cols-12 border border-black divide-x divide-black w-full",
-                        paperSize === 'a5' ? "mb-1.5 text-[9px]" : "mb-2 text-[10px]"
-                      )}>
-                        <div className={cn(
-                          "col-span-7 space-y-0.5",
-                          paperSize === 'a5' ? "p-1.5" : "p-3"
-                        )}>
-                          <p className="font-bold underline text-[8px] sm:text-[9px]">PARTY DETAILS:</p>
-                          <p className={cn(
-                            "font-black uppercase truncate",
-                            paperSize === 'a5' ? "text-[11px]" : "text-xs"
-                          )}>{customer?.name || invoice?.customer_name || ''}</p>
-                          <p className="whitespace-pre-line text-[9px] sm:text-[10px] line-clamp-2">{customer?.address || ''}</p>
-                          {customer?.gst_number && (
-                            <p><span className="font-semibold">GSTIN/UIN:</span> {customer.gst_number}</p>
-                          )}
-                          <p><span className="font-semibold">State:</span> {customer?.place_of_supply || customer?.state || ''}</p>
-                        </div>
-                        <div className={cn(
-                          "col-span-5 space-y-0.5",
-                          paperSize === 'a5' ? "p-1.5" : "p-3"
-                        )}>
-                          <p><span className="font-bold">Invoice No:</span> {invoice?.invoice_number || invoice?.id?.slice(0, 8)?.toUpperCase() || ''}</p>
-                          <p><span className="font-bold">Date:</span> {formatDateSafe(invoice?.date, 'dd/MM/yyyy')}</p>
-                          <p><span className="font-bold">Place of Supply:</span> {customer?.place_of_supply || ''}</p>
-                          <p><span className="font-bold">Payment Mode:</span> {invoice?.payment_terms || ''}</p>
-                        </div>
-                      </div>
-                    </DraggableBox>
-                  )}
-
-                  <DraggableBox id="tally_items_table" label="Items & Products Table" className="flex-1 flex flex-col justify-between">
-                    <div 
-                      className="border border-black text-left flex-1 flex flex-col justify-between"
-                      style={{ minHeight: paperSize === 'a5' ? '150px' : '380px' }}
-                    >
-                      <table className={cn(
-                        "w-full text-left border-collapse flex-1 h-full",
-                        paperSize === 'a5' ? "text-[9px]" : "text-[10px]"
-                      )}>
-                        <thead>
-                          <tr className="border-b border-black bg-gray-100 font-bold text-center">
-                            <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-6 sm:w-8" : "py-2 px-1.5 w-8")}>Sl.</th>
-                            <th className={cn("border-r border-black text-left", paperSize === 'a5' ? "py-1 px-1.5" : "py-2 px-1.5")}>Particulars</th>
-                            {isHsnVisible && <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-12" : "py-2 px-1.5 w-16")}>HSN</th>}
-                            <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-10" : "py-2 px-1.5 w-12")}>Qty</th>
-                            <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-14" : "py-2 px-1.5 w-16")}>Rate</th>
-                            <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-10" : "py-2 px-1.5 w-12")}>Disc %</th>
-                            <th className={cn("text-right", paperSize === 'a5' ? "py-1 px-1.5 w-16" : "py-2 px-1.5 w-20")}>Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {invoice?.items?.map((item: any, idx: number) => (
-                            <tr key={idx} className="align-top">
-                              <td className={cn("border-r border-black text-center", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{idx + 1}</td>
-                              <td className={cn("border-r border-black font-semibold", paperSize === 'a5' ? "py-1 px-1.5" : "py-1.5 px-1.5")}>
-                                <div className="break-words">{getItemName(item)}</div>
-                                {renderItemDetails(item, "text-gray-600")}
-                              </td>
-                              {isHsnVisible && <td className={cn("border-r border-black text-center", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{item.hsn_code || item.hsn || '---'}</td>}
-                              <td className={cn("border-r border-black text-center font-bold", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{item.quantity}</td>
-                              <td className={cn("border-r border-black text-right", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{formatCurrency(item.price, invoice?.currency)}</td>
-                              <td className={cn("border-r border-black text-center", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{item.discount || 0}%</td>
-                              <td className={cn("text-right font-bold", paperSize === 'a5' ? "py-1 px-1.5" : "py-1.5 px-1.5")}>{formatCurrency(item.quantity * item.price * (1 - (item.discount || 0)/100), invoice?.currency)}</td>
-                            </tr>
-                          ))}
-                          {Array.from({ length: Math.max(1, (paperSize === 'a5' ? 3 : 7) - (invoice?.items?.length || 0)) }).map((_, emptyIdx) => (
-                            <tr key={`simple-spacer-${emptyIdx}`} className={cn("align-top", paperSize === 'a5' ? "h-6" : "h-11")}>
-                              <td className="border-r border-black">&nbsp;</td>
-                              <td className="border-r border-black">&nbsp;</td>
-                              {isHsnVisible && <td className="border-r border-black">&nbsp;</td>}
-                              <td className="border-r border-black">&nbsp;</td>
-                              <td className="border-r border-black">&nbsp;</td>
-                              <td className="border-r border-black">&nbsp;</td>
-                              <td>&nbsp;</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </DraggableBox>
-
-                  <DraggableBox id="tally_footer_block" label="Terms, Bank & Signatures" className="mt-auto shrink-0">
-                    <div className="w-full">
-                      <div className={cn(
-                        "flex justify-between items-start border border-black w-full",
-                        paperSize === 'a5' ? "p-1.5 mb-1.5" : "p-3 mb-2"
-                      )}>
-                        <div className={cn(
-                          "w-1/2 space-y-1",
-                          paperSize === 'a5' ? "text-[8px]" : "text-[9px]"
-                        )}>
-                          {isSectionVisible('terms') && (
-                            <>
-                              <p className="font-bold underline">Terms & Conditions:</p>
-                              <p className="whitespace-pre-line leading-tight">{termsText}</p>
-                            </>
-                          )}
-                          {isSectionVisible('declaration') && (
-                            <div className="mt-0.5">
-                              <p className="font-bold underline">Declaration:</p>
-                              <p className="whitespace-pre-line text-[#4b5563] leading-tight">{declarationText}</p>
-                            </div>
-                          )}
-                          {isSectionVisible('bank_details') && sellerInfo?.bank_name && (
-                            <div className="mt-1 flex items-start justify-between gap-1.5 border-t border-dashed border-gray-300 pt-1">
-                              <div className="space-y-0.5">
-                                <p className="font-bold underline">Bank Details:</p>
-                                <p>{sellerInfo.bank_name} | A/C: {sellerInfo.account_number} | IFSC: {sellerInfo.ifsc_code}</p>
-                                {sellerInfo?.upi_id && <p>UPI ID: {sellerInfo.upi_id}</p>}
-                              </div>
-                              {upiUrl && (
-                                <div className="flex flex-col items-center shrink-0 p-1 bg-white border border-black rounded text-center">
-                                  <span className="text-[6px] font-bold text-black uppercase mb-0.5">UPI Scan</span>
-                                  <QRCodeSVG value={upiUrl} size={paperSize === 'a5' ? 36 : 45} level="H" />
-                                  <span className="text-[6px] font-semibold text-black mt-0.5 max-w-[70px] truncate">{sellerInfo?.upi_id || sellerInfo?.upiId}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className={cn(
-                          "w-1/2 pl-3 border-l border-black text-right font-bold space-y-0.5",
-                          paperSize === 'a5' ? "text-[9px]" : "text-[10px]"
-                        )}>
-                          <div className="flex justify-between"><span>Sub Total:</span><span>{formatCurrency(rawSubtotal, invoice?.currency)}</span></div>
-                          {totalDiscount > 0 && <div className="flex justify-between text-red-600"><span>Discount:</span><span>-{formatCurrency(totalDiscount, invoice?.currency)}</span></div>}
-                          {hasGST && <div className="flex justify-between"><span>GST Tax:</span><span>+{formatCurrency(totalGst, invoice?.currency)}</span></div>}
-                          <div className={cn(
-                            "flex justify-between border-t border-b border-black py-0.5 font-black",
-                            paperSize === 'a5' ? "text-xs" : "text-sm"
-                          )}>
-                            <span>GRAND TOTAL:</span>
-                            <span>{formatCurrency(invoice?.amount, invoice?.currency)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className={cn(
-                        "flex justify-between items-end w-full",
-                        paperSize === 'a5' ? "pt-1 text-[9px]" : "pt-2 text-[10px]"
-                      )}>
-                        <div>
-                          <span className="font-semibold">Customer Signature</span>
-                        </div>
-                        {isSectionVisible('signature') && (
-                          <div className="text-center flex flex-col items-center justify-center">
-                            <p className="font-bold">For {sellerInfo?.business_name || ''}</p>
-                            <div className={cn("flex items-center justify-center", paperSize === 'a5' ? "h-6 mt-0.5" : "h-8 mt-1")}>
-                              {sellerInfo?.signature_url ? (
-                                <img src={sellerInfo.signature_url} alt="Signature" className={cn("object-contain", paperSize === 'a5' ? "h-6 max-w-[80px]" : "h-8 max-w-[100px]")} />
-                              ) : (
-                                <div className={paperSize === 'a5' ? "h-6" : "h-8"}></div>
-                              )}
-                            </div>
-                            <p className="font-bold uppercase text-[8px] sm:text-[9px] border-t border-black px-3 inline-block pt-0.5 mx-auto">{signatoryTitleText}</p>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   </DraggableBox>
                 </div>
