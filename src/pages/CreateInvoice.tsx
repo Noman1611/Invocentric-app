@@ -1350,12 +1350,14 @@ export default function CreateInvoicePage() {
                 value={formData.invoice_template || 'invocentric_classic_gst'}
                 onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
               >
-                <option value="invocentric_classic_gst">InvoCentic Classic GST Invoice [Default]</option>
+                <option value="invocentric_classic_gst">InvoCentic Classic GST Invoice (A4 Standard)</option>
                 <option value="tally_prime_gst">InvoCentic Tally Prime Standard GST Invoice</option>
                 <option value="tally_simple_bill">InvoCentic Tally Simple Retail Invoice ERP 9</option>
                 <option value="tally_bill_of_supply">InvoCentic Tally Bill of Supply Composition</option>
                 <option value="tally_export_invoice">InvoCentic Tally Export GST Invoice</option>
-                <option value="thermal">InvoCentic POS Thermal (Compact 3-inch/80mm Roll)</option>
+                <option value="invocentric_modern_clean">InvoCentic Modern Clean (SaaS / Minimalist)</option>
+                <option value="a5_half_sheet">InvoCentic A5 Half-Sheet Landscape (148 x 210 mm)</option>
+                <option value="thermal">InvoCentic POS Thermal (3-inch / 80mm Roll)</option>
               </select>
               <p className="text-[11px] text-slate-500 italic">
                 Applies instant layout formatting to preview &amp; printouts.
@@ -2167,13 +2169,26 @@ export default function CreateInvoicePage() {
       </form>
     </div>
 
-    {/* Right Pane: Real Authentic InvoCentic GST Invoice Live Preview */}
+    {/* Right Pane: Dynamic Multi-Format Real Template Live Preview */}
     {showLivePreview && (() => {
       const selectedCust = customers.find(c => c.id === formData.customer_id);
       const currSymbol = CURRENCIES.find(c => c.code === formData.currency)?.symbol || '₹';
+      const activeTemplate = formData.invoice_template || 'invocentric_classic_gst';
+      const isThermal = activeTemplate === 'thermal';
+      const isA5 = activeTemplate === 'a5_half_sheet';
+      const isModern = activeTemplate === 'invocentric_modern_clean';
+      const isTally = activeTemplate.startsWith('tally_');
+      
       const totalTaxable = formData.items.reduce((acc, curr) => acc + ((Number(curr.price) || 0) * (Number(curr.quantity) || 0)), 0);
       const totalQuantity = formData.items.reduce((acc, curr) => acc + (Number(curr.quantity) || 0), 0);
       
+      const isBoxVisible = (key: string) => formData.hide_sections?.[key] !== true;
+      const isHsnColVisible = formData.columnVisibility?.hsn !== false;
+      const isSizeColVisible = Boolean(formData.columnVisibility?.size);
+      const isMrpColVisible = Boolean(formData.columnVisibility?.mrp);
+      const isDiscColVisible = Boolean(formData.columnVisibility?.discount);
+      const isGstColVisible = Boolean(formData.columnVisibility?.gstPercent);
+
       const hsnSummary = formData.items.reduce((acc: any, it: any) => {
         const code = it.hsn || '0000';
         const qty = Number(it.quantity) || 0;
@@ -2208,6 +2223,8 @@ export default function CreateInvoicePage() {
 
       const dueDateDisplay = formData.due_date ? format(parseDateSafe(formData.due_date), 'dd-MMM-yyyy') : format(new Date(), 'dd-MMM-yyyy');
       const issueDateDisplay = formData.date ? format(parseDateSafe(formData.date), 'dd-MMM-yyyy') : format(new Date(), 'dd-MMM-yyyy');
+      const titleText = formData.invoice_title || 'TAX INVOICE';
+      const copyText = formData.copy_subtitle || 'ORIGINAL FOR RECIPIENT';
 
       return (
         <aside className="hidden xl:flex xl:col-span-5 flex-col sticky top-6 space-y-3 select-none">
@@ -2216,7 +2233,7 @@ export default function CreateInvoicePage() {
             <div className="flex items-center gap-2">
               <h2 className="font-extrabold text-sm text-slate-900 dark:text-white">Live Invoice Preview</h2>
               <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                Real Template
+                {isThermal ? 'POS Thermal 80mm' : isA5 ? 'A5 Half Sheet' : isModern ? 'Modern SaaS' : isTally ? 'Tally Prime' : 'A4 Classic GST'}
               </span>
             </div>
             
@@ -2241,217 +2258,503 @@ export default function CreateInvoicePage() {
             </div>
           </div>
 
-          {/* Real Authentic InvoCentic GST Invoice Document */}
-          <div className="bg-white text-slate-900 rounded-2xl shadow-xl border border-slate-300 p-5 text-[11px] font-sans relative overflow-hidden transition-all space-y-0">
-            
-            {/* Header with Logo & Business info */}
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex gap-2.5 items-start">
+          {/* ══════════════════════════════════════════════════════════════
+              FORMAT 1: POS THERMAL (3-INCH / 80MM CONTINUOUS ROLL)
+             ══════════════════════════════════════════════════════════════ */}
+          {isThermal ? (
+            <div className="bg-white text-slate-900 rounded-2xl shadow-xl border border-dashed border-slate-300 p-4 text-[10px] font-mono mx-auto w-full max-w-[340px] space-y-2.5">
+              {/* Centered Shop Header */}
+              <div className="text-center space-y-1 pb-2 border-b border-dashed border-slate-300">
+                {sellerSettings?.logo_url && isBoxVisible('logo') && (
+                  <img className="h-10 mx-auto object-contain" src={sellerSettings.logo_url} alt="Logo" />
+                )}
+                <h3 className="font-black text-sm uppercase text-slate-900 tracking-tight">
+                  {sellerSettings?.business_name || 'My Store'}
+                </h3>
+                {isBoxVisible('seller_address') && sellerSettings?.address && (
+                  <p className="text-[9px] text-slate-600 whitespace-pre-line leading-tight">
+                    {sellerSettings.address}
+                  </p>
+                )}
+                {sellerSettings?.phone && (
+                  <p className="text-[9px] text-slate-600">Ph: {sellerSettings.phone}</p>
+                )}
+                {sellerSettings?.gstin && isBoxVisible('seller_gstin') && (
+                  <p className="text-[9px] font-bold text-slate-800">GSTIN: {sellerSettings.gstin}</p>
+                )}
+              </div>
+
+              {/* Receipt Meta */}
+              <div className="text-[9px] space-y-0.5 border-b border-dashed border-slate-300 pb-2">
+                <div className="flex justify-between">
+                  <span>Bill No: <b className="text-slate-900">#{formData.invoice_number || 'POS-001'}</b></span>
+                  <span>{issueDateDisplay}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Customer: <b className="text-slate-900">{selectedCust?.name || formData.customer_name || 'Cash Sale'}</b></span>
+                  {selectedCust?.phone && <span>{selectedCust.phone}</span>}
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div className="space-y-1 py-1 border-b border-dashed border-slate-300 text-[10px]">
+                <div className="flex justify-between font-bold text-slate-500 pb-1 border-b border-slate-200 text-[9px]">
+                  <span>ITEM</span>
+                  <span className="w-12 text-center">QTY</span>
+                  <span className="w-16 text-right">TOTAL</span>
+                </div>
+                {formData.items.map((it, idx) => {
+                  const qtyNum = Number(it.quantity) || 0;
+                  const priceNum = Number(it.price) || 0;
+                  const rowTot = qtyNum * priceNum;
+                  return (
+                    <div key={idx} className="py-1">
+                      <div className="flex justify-between items-start">
+                        <span className="font-bold text-slate-900 flex-1 pr-1 truncate">{it.description || 'Item'}</span>
+                        <span className="w-12 text-center text-slate-600">{qtyNum} x {priceNum}</span>
+                        <span className="w-16 text-right font-black text-slate-900">₹{rowTot.toFixed(2)}</span>
+                      </div>
+                      {it.serialNumber && (
+                        <div className="text-[8.5px] text-emerald-700 font-bold">
+                          S/N: {it.serialNumber}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Totals Section */}
+              <div className="space-y-1 pt-1 text-[10px]">
+                <div className="flex justify-between text-slate-600">
+                  <span>Subtotal:</span>
+                  <span>₹{totalTaxable.toFixed(2)}</span>
+                </div>
+                {Number(formData.discount) > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-bold">
+                    <span>Discount:</span>
+                    <span>-₹{Number(formData.discount).toFixed(2)}</span>
+                  </div>
+                )}
+                {totalGst > 0 && (
+                  <div className="flex justify-between text-slate-600">
+                    <span>GST Tax:</span>
+                    <span>+₹{totalGst.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-slate-900 pt-1.5 border-t-2 border-slate-900 font-black text-xs">
+                  <span>GRAND TOTAL:</span>
+                  <span className="text-sm">₹{totalCalculated.toFixed(2)}</span>
+                </div>
+                {isBoxVisible('amount_in_words') && (
+                  <p className="text-[8px] text-slate-500 italic mt-0.5">{amountWordsStr}</p>
+                )}
+              </div>
+
+              {/* UPI QR Code */}
+              {isBoxVisible('upi_qr') && upiUrl && (
+                <div className="pt-2 text-center flex flex-col items-center justify-center border-t border-dashed border-slate-300">
+                  <QRCodeSVG value={upiUrl} size={64} />
+                  <span className="text-[8px] font-bold text-slate-600 mt-1">Scan &amp; Pay UPI</span>
+                </div>
+              )}
+
+              {/* Receipt Footer */}
+              <div className="text-center pt-2 border-t border-dashed border-slate-300 text-[9px] text-slate-500 space-y-0.5">
+                <p className="font-bold">*** THANK YOU FOR SHOPPING! ***</p>
+                <p>Goods once sold cannot be returned.</p>
+              </div>
+            </div>
+          ) : isModern ? (
+            /* ══════════════════════════════════════════════════════════════
+               FORMAT 2: MODERN MINIMALIST SAAS / GLOBAL
+               ══════════════════════════════════════════════════════════════ */
+            <div className="bg-white text-slate-800 rounded-3xl shadow-xl border border-slate-200/90 p-6 space-y-5 text-xs font-sans relative overflow-hidden transition-all">
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase">{titleText}</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-0.5 font-mono">
+                    Invoice Number <span className="text-slate-800 font-bold">#{formData.invoice_number || 'INV-001'}</span>
+                  </p>
+                </div>
                 {sellerSettings?.logo_url ? (
-                  <img className="w-12 h-12 object-contain" src={sellerSettings.logo_url} alt="Logo" />
+                  <img src={sellerSettings.logo_url} alt="Logo" className="h-11 max-w-[120px] object-contain rounded-xl" />
                 ) : (
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-base shadow-sm">
                     {sellerSettings?.business_name ? sellerSettings.business_name.slice(0, 2).toUpperCase() : 'IC'}
                   </div>
                 )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-[11px] pt-1">
                 <div>
-                  <h1 className="text-base font-black uppercase text-[#1c4a75]">
-                    {sellerSettings?.business_name || 'Your Company Name'}
-                  </h1>
-                  <p className="text-[10px] text-gray-700 whitespace-pre-line leading-tight">
-                    {sellerSettings?.address || 'Company Address...'}
-                  </p>
+                  <span className="font-bold text-slate-400 uppercase text-[9px] block tracking-wider mb-1">Billed by:</span>
+                  <p className="font-extrabold text-slate-900 text-xs">{sellerSettings?.business_name || 'My Business'}</p>
+                  <p className="text-slate-500 font-medium">{sellerSettings?.email || user?.email || '-'}</p>
+                  {isBoxVisible('seller_address') && (
+                    <p className="text-slate-500 font-medium whitespace-pre-line">{sellerSettings?.address || '-'}</p>
+                  )}
+                  {sellerSettings?.phone && <p className="text-slate-500 font-medium">Ph: {sellerSettings.phone}</p>}
+                </div>
+                <div>
+                  <span className="font-bold text-slate-400 uppercase text-[9px] block tracking-wider mb-1">Billed to:</span>
+                  <p className="font-extrabold text-slate-900 text-xs uppercase">{selectedCust?.name || formData.customer_name || 'Cash Sale'}</p>
+                  <p className="text-slate-500 font-medium">{selectedCust?.email || '-'}</p>
+                  <p className="text-slate-500 font-medium whitespace-pre-line">{selectedCust?.address || '-'}</p>
+                  {selectedCust?.phone && <p className="text-slate-500 font-medium">Ph: {selectedCust.phone}</p>}
                 </div>
               </div>
-              <div className="text-right text-[10px] space-y-0.5">
-                <div><b>Name</b> : {selectedCust?.name || formData.customer_name || 'Cash Sale'}</div>
-                <div><b>Phone</b> : {selectedCust?.phone || sellerSettings?.phone || '-'}</div>
-              </div>
-            </div>
 
-            {/* GSTIN / Title Bar */}
-            <div className="flex justify-between items-center border border-b-0 px-2 py-1 font-bold text-[11px] border-[#2f6fb0]">
-              <div>GSTIN : <span className="uppercase">{sellerSettings?.gstin || 'N/A'}</span></div>
-              <div className="text-[12px] font-black uppercase text-[#1c4a75]">
-                TAX INVOICE
-              </div>
-              <div className="uppercase text-[10px]">{formData.copy_subtitle || 'ORIGINAL FOR RECIPIENT'}</div>
-            </div>
-
-            {/* 2-Column Meta Grid */}
-            <div className="grid grid-cols-12 border text-[10px] border-[#2f6fb0]">
-              {/* Column 1: Details of Buyer */}
-              <div className="col-span-7 p-2 border-r border-[#2f6fb0]">
-                <div className="font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-0.5 text-[10px] bg-[#eaf2fb] border-[#2f6fb0]">
-                  Details of Buyer | Billed to :
+              <div className="grid grid-cols-2 gap-4 text-[11px] py-2 border-y border-slate-100 bg-slate-50/50 -mx-6 px-6">
+                <div>
+                  <span className="font-bold text-slate-400 uppercase text-[9px] block">Date Issue:</span>
+                  <span className="font-bold text-slate-800">{issueDateDisplay}</span>
                 </div>
-                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Name</div><div className="flex-1 font-semibold uppercase">{selectedCust?.name || formData.customer_name || 'Cash Sale'}</div></div>
-                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Address</div><div className="flex-1 whitespace-pre-line">{selectedCust?.address || '-'}</div></div>
-                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Phone</div><div className="flex-1">{selectedCust?.phone || '-'}</div></div>
-                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">GSTIN</div><div className="flex-1 font-bold uppercase">{selectedCust?.gst_number || '-'}</div></div>
-                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">PAN</div><div className="flex-1 font-bold uppercase">{selectedCust?.pan || '-'}</div></div>
-                <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Place of Supply</div><div className="flex-1 font-semibold">{selectedCust?.place_of_supply || selectedCust?.state || '-'}</div></div>
-              </div>
-
-              {/* Column 2: Invoice Details */}
-              <div className="col-span-5 p-2 space-y-0.5">
-                <div className="font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-0.5 text-[10px] bg-[#eaf2fb] border-[#2f6fb0]">
-                  Invoice Details
+                <div>
+                  <span className="font-bold text-slate-400 uppercase text-[9px] block">Due Date:</span>
+                  <span className="font-bold text-slate-800">{dueDateDisplay}</span>
                 </div>
-                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">Invoice No.</div><div className="flex-1 font-bold">{formData.invoice_number || 'INV-001'}</div></div>
-                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">Invoice Date</div><div className="flex-1">{issueDateDisplay}</div></div>
-                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">Due Date</div><div className="flex-1">{dueDateDisplay}</div></div>
-                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">P.O. No.</div><div className="flex-1">{formData.po_number || '-'}</div></div>
-                <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">P.O. Date</div><div className="flex-1">{formData.po_date || '-'}</div></div>
               </div>
-            </div>
 
-            {/* Items Table */}
-            <div className="border border-t-0 text-[10px] border-[#2f6fb0]">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="font-bold text-center bg-[#eaf2fb]">
-                    <th className="border p-1 w-[28px] border-[#2f6fb0]">Sr.</th>
-                    <th className="border p-1 text-left border-[#2f6fb0]">Name of Product / Service</th>
-                    <th className="border p-1 w-[55px] border-[#2f6fb0]">HSN</th>
-                    <th className="border p-1 w-[45px] border-[#2f6fb0]">Qty</th>
-                    <th className="border p-1 w-[60px] border-[#2f6fb0]">Rate</th>
-                    <th className="border p-1 w-[70px] border-[#2f6fb0]">Taxable</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {formData.items.map((it, idx) => {
-                    const rowQty = Number(it.quantity) || 0;
-                    const rowPrice = Number(it.price) || 0;
-                    const rowTaxable = rowQty * rowPrice;
-                    return (
-                      <tr key={idx} className="align-top">
-                        <td className="border-l border-r p-1 text-center border-[#2f6fb0]">{idx + 1}</td>
-                        <td className="border-l border-r p-1 border-[#2f6fb0]">
-                          <div className="font-bold">{it.description || 'Unnamed Item'}</div>
-                          {it.serialNumber && (
-                            <div className="text-[9px] font-mono font-bold text-emerald-700">
-                              SR/No: {it.serialNumber}
-                            </div>
-                          )}
-                        </td>
-                        <td className="border-l border-r p-1 text-center border-[#2f6fb0]">{it.hsn || '-'}</td>
-                        <td className="border-l border-r p-1 text-center font-semibold border-[#2f6fb0]">{rowQty}</td>
-                        <td className="border-l border-r p-1 text-right border-[#2f6fb0]">₹{rowPrice.toFixed(2)}</td>
-                        <td className="border-l border-r p-1 text-right font-bold border-[#2f6fb0]">₹{rowTaxable.toFixed(2)}</td>
-                      </tr>
-                    );
-                  })}
-                  {/* Spacer Rows */}
-                  {Array.from({ length: Math.max(1, 3 - formData.items.length) }).map((_, emptyIdx) => (
-                    <tr key={`spacer-${emptyIdx}`} className="h-4 align-top">
-                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
-                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
-                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
-                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
-                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
-                      <td className="border-l border-r p-0.5 border-[#2f6fb0]">&nbsp;</td>
-                    </tr>
-                  ))}
-                  {/* Total Row */}
-                  <tr className="font-bold border-t border-[#2f6fb0]">
-                    <td colSpan={3} className="p-1 text-right border-l border-r border-t border-[#2f6fb0] font-black">
-                      Total
-                    </td>
-                    <td className="p-1 text-center border-l border-r border-t border-[#2f6fb0] font-black">
-                      {totalQuantity}
-                    </td>
-                    <td className="p-1 border-l border-r border-t border-[#2f6fb0]"></td>
-                    <td className="p-1 text-right border-l border-r border-t font-black border-[#2f6fb0]">
-                      ₹ {totalTaxable.toFixed(2)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            {/* Amount in Words */}
-            <div className="p-1.5 border border-t-0 text-[9.5px] border-[#2f6fb0] bg-slate-50/50">
-              <span className="text-gray-500">Total in words:</span>
-              <div className="font-bold text-gray-800">{amountWordsStr}</div>
-            </div>
-
-            {/* HSN Summary Table */}
-            {Object.keys(hsnSummary).length > 0 && (
-              <div className="border border-t-0 text-[9px] border-[#2f6fb0]">
-                <table className="w-full border-collapse text-center">
+              <div className="space-y-1.5">
+                <span className="font-bold text-slate-400 uppercase text-[9px] block tracking-wider">Invoice Items / Service:</span>
+                <table className="w-full text-left text-[11px] border-collapse">
                   <thead>
-                    <tr className="bg-[#eaf2fb] font-bold">
-                      <th className="border p-0.5 border-[#2f6fb0]">HSN / SAC</th>
-                      <th className="border p-0.5 border-[#2f6fb0]">Taxable Value</th>
-                      <th className="border p-0.5 border-[#2f6fb0]" colSpan={2}>CGST</th>
-                      <th className="border p-0.5 border-[#2f6fb0]" colSpan={2}>SGST</th>
-                      <th className="border p-0.5 border-[#2f6fb0]">Total Tax</th>
-                    </tr>
-                    <tr className="bg-[#f4f8fe] text-[8px]">
-                      <th className="border p-0.5 border-[#2f6fb0]"></th>
-                      <th className="border p-0.5 border-[#2f6fb0]"></th>
-                      <th className="border p-0.5 border-[#2f6fb0]">%</th>
-                      <th className="border p-0.5 border-[#2f6fb0]">Amount</th>
-                      <th className="border p-0.5 border-[#2f6fb0]">%</th>
-                      <th className="border p-0.5 border-[#2f6fb0]">Amount</th>
-                      <th className="border p-0.5 border-[#2f6fb0]"></th>
+                    <tr className="border-b border-slate-200 text-slate-400 text-[10px] font-bold">
+                      <th className="py-1.5 font-bold">Item Name</th>
+                      <th className="py-1.5 text-center font-bold">QTY</th>
+                      <th className="py-1.5 text-right font-bold">Rate</th>
+                      <th className="py-1.5 text-right font-bold">Amount</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {Object.values(hsnSummary).map((h: any) => (
-                      <tr key={h.code}>
-                        <td className="border p-0.5 border-[#2f6fb0] font-semibold">{h.code}</td>
-                        <td className="border p-0.5 border-[#2f6fb0]">₹{h.taxable.toFixed(2)}</td>
-                        <td className="border p-0.5 border-[#2f6fb0]">{(h.gstRate / 2)}%</td>
-                        <td className="border p-0.5 border-[#2f6fb0]">₹{h.cgst.toFixed(2)}</td>
-                        <td className="border p-0.5 border-[#2f6fb0]">{(h.gstRate / 2)}%</td>
-                        <td className="border p-0.5 border-[#2f6fb0]">₹{h.sgst.toFixed(2)}</td>
-                        <td className="border p-0.5 border-[#2f6fb0] font-bold">₹{h.tax.toFixed(2)}</td>
-                      </tr>
-                    ))}
+                  <tbody className="divide-y divide-slate-100">
+                    {formData.items.map((it, idx) => {
+                      const rowQty = Number(it.quantity) || 0;
+                      const rowPrice = Number(it.price) || 0;
+                      const rowAmt = rowQty * rowPrice;
+                      return (
+                        <tr key={idx} className="align-top">
+                          <td className="py-2 pr-2">
+                            <p className="font-bold text-slate-900 leading-tight">{it.description || 'Unnamed Item'}</p>
+                            {it.serialNumber && (
+                              <p className="text-[9.5px] font-semibold text-emerald-700 mt-0.5">
+                                <span className="text-slate-500 font-normal">S/N:</span> {it.serialNumber}
+                              </p>
+                            )}
+                          </td>
+                          <td className="py-2 px-1 text-center font-semibold text-slate-700">{rowQty}</td>
+                          <td className="py-2 px-1 text-right font-semibold text-slate-700">{currSymbol}{rowPrice.toLocaleString('en-IN')}</td>
+                          <td className="py-2 pl-1 text-right font-black text-slate-900">{currSymbol}{rowAmt.toLocaleString('en-IN')}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-            )}
 
-            {/* Bank Details & QR & Signature */}
-            <div className="grid grid-cols-12 border border-t-0 text-[9px] border-[#2f6fb0] p-1.5 gap-2 items-center">
-              <div className="col-span-5 space-y-0.5">
-                <div className="font-bold text-[#1c4a75] uppercase">Bank Details:</div>
-                <div><b>Bank:</b> {sellerSettings?.bank_name || '-'}</div>
-                <div><b>A/c No:</b> {sellerSettings?.account_number || '-'}</div>
-                <div><b>IFSC:</b> {sellerSettings?.ifsc || '-'}</div>
-                <div><b>UPI ID:</b> {sellerSettings?.upi_id || '-'}</div>
+              <div className="space-y-1.5 pt-2 border-t border-slate-100 text-[11px]">
+                <div className="flex justify-between text-slate-500">
+                  <span>Subtotal</span>
+                  <span className="font-semibold text-slate-800">{currSymbol}{totalTaxable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                </div>
+                {Number(formData.discount) > 0 && (
+                  <div className="flex justify-between text-emerald-600 font-semibold">
+                    <span>Discount</span>
+                    <span>-{currSymbol}{Number(formData.discount).toFixed(2)}</span>
+                  </div>
+                )}
+                {totalGst > 0 && (
+                  <div className="flex justify-between text-slate-500 font-semibold">
+                    <span>GST Tax</span>
+                    <span>+{currSymbol}{totalGst.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-slate-900 pt-1.5 border-t border-slate-200">
+                  <span className="font-black text-xs uppercase tracking-wider">Grand Total</span>
+                  <span className="font-black text-sm text-emerald-700">
+                    {currSymbol}{totalCalculated.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
               </div>
 
-              <div className="col-span-3 flex flex-col items-center justify-center">
-                {upiUrl ? (
-                  <div className="p-1 bg-white border border-gray-300 rounded shadow-xs">
-                    <QRCodeSVG value={upiUrl} size={48} />
-                    <span className="text-[7px] block text-center font-bold mt-0.5">Scan to Pay</span>
+              {isBoxVisible('terms') && formData.notes && (
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[10px] text-slate-600 leading-relaxed">
+                  <span className="font-bold text-slate-700 block mb-0.5">Note:</span>
+                  <p className="whitespace-pre-line">{formData.notes}</p>
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-slate-100 flex items-end justify-between">
+                <div>
+                  <span className="font-bold text-slate-400 uppercase text-[9px] block">Payment Method</span>
+                  <p className="font-bold text-slate-800 text-[11px]">EFT / Bank Transfer / UPI</p>
+                  {isBoxVisible('bank_details') && sellerSettings?.bank_name && (
+                    <p className="text-[10px] text-slate-500">{sellerSettings.bank_name} - {sellerSettings.account_number || ''}</p>
+                  )}
+                </div>
+                {isBoxVisible('signature') && (
+                  <div className="text-right">
+                    <div className="w-24 h-7 border-b border-slate-400/80 flex items-end justify-center pb-0.5 text-[10px] italic font-serif text-slate-600">
+                      {sellerSettings?.signatory_name || 'InvoCentic'}
+                    </div>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase block mt-0.5">Authorized Signatory</span>
                   </div>
-                ) : (
-                  <span className="text-[8px] text-gray-400">No UPI</span>
                 )}
               </div>
-
-              <div className="col-span-4 text-right">
-                <div className="text-[8px] text-gray-500 mb-2">For {sellerSettings?.business_name || 'InvoCentic'}</div>
-                <div className="h-6 border-b border-gray-400"></div>
-                <div className="font-bold text-[8px] mt-0.5">Authorized Signatory</div>
-              </div>
             </div>
-
-            {/* Terms and Conditions */}
-            {formData.notes && (
-              <div className="p-1.5 border border-t-0 text-[8.5px] border-[#2f6fb0] bg-slate-50/50">
-                <span className="font-bold text-gray-700">Terms and Conditions:</span>
-                <p className="whitespace-pre-line text-gray-600 mt-0.5">{formData.notes}</p>
+          ) : (
+            /* ══════════════════════════════════════════════════════════════
+               FORMAT 3: REAL INVOCENTIC GST & TALLY PRIME TEMPLATE (A4 / A5)
+               ══════════════════════════════════════════════════════════════ */
+            <div className={cn(
+              "bg-white text-slate-900 rounded-2xl shadow-xl border p-4 text-[11px] font-sans relative overflow-hidden transition-all space-y-0",
+              isA5 ? "text-[9.5px] p-3 max-w-[480px] mx-auto border-emerald-600" : isTally ? "border-black" : "border-[#2f6fb0]"
+            )}>
+              {/* Header with Logo & Business info */}
+              <div className="flex justify-between items-start mb-2.5">
+                <div className="flex gap-2 items-start">
+                  {sellerSettings?.logo_url && isBoxVisible('logo') ? (
+                    <img className="w-12 h-12 object-contain" src={sellerSettings.logo_url} alt="Logo" />
+                  ) : (
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm",
+                      isTally ? "bg-slate-900" : "bg-emerald-600"
+                    )}>
+                      {sellerSettings?.business_name ? sellerSettings.business_name.slice(0, 2).toUpperCase() : 'IC'}
+                    </div>
+                  )}
+                  <div>
+                    <h1 className={cn("text-base font-black uppercase", isTally ? "text-slate-900" : "text-[#1c4a75]")}>
+                      {sellerSettings?.business_name || 'Your Company Name'}
+                    </h1>
+                    {isBoxVisible('seller_address') && (
+                      <p className="text-[10px] text-gray-700 whitespace-pre-line leading-tight">
+                        {sellerSettings?.address || 'Company Address...'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right text-[10px] space-y-0.5">
+                  <div><b>Name</b> : {selectedCust?.name || formData.customer_name || 'Cash Sale'}</div>
+                  <div><b>Phone</b> : {selectedCust?.phone || sellerSettings?.phone || '-'}</div>
+                </div>
               </div>
-            )}
 
-          </div>
+              {/* GSTIN / Title Bar */}
+              <div className={cn(
+                "flex justify-between items-center border border-b-0 px-2 py-1 font-bold text-[11px]",
+                isTally ? "border-black bg-gray-50" : "border-[#2f6fb0]"
+              )}>
+                <div>GSTIN : <span className="uppercase">{sellerSettings?.gstin || 'N/A'}</span></div>
+                <div className={cn("text-[12px] font-black uppercase", isTally ? "text-blue-900" : "text-[#1c4a75]")}>
+                  {titleText}
+                </div>
+                <div className="uppercase text-[10px] text-gray-600">{copyText}</div>
+              </div>
+
+              {/* 2-Column Meta Grid */}
+              <div className={cn("grid grid-cols-12 border text-[10px]", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                {/* Column 1: Details of Buyer */}
+                <div className={cn("col-span-7 p-2 border-r", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                  <div className={cn(
+                    "font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-0.5 text-[10px]",
+                    isTally ? "bg-gray-100 border-black" : "bg-[#eaf2fb] border-[#2f6fb0]"
+                  )}>
+                    Details of Buyer | Billed to :
+                  </div>
+                  <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Name</div><div className="flex-1 font-semibold uppercase">{selectedCust?.name || formData.customer_name || 'Cash Sale'}</div></div>
+                  <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Address</div><div className="flex-1 whitespace-pre-line">{selectedCust?.address || '-'}</div></div>
+                  <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Phone</div><div className="flex-1">{selectedCust?.phone || '-'}</div></div>
+                  {isBoxVisible('customer_gstin') && (
+                    <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">GSTIN</div><div className="flex-1 font-bold uppercase">{selectedCust?.gst_number || '-'}</div></div>
+                  )}
+                  <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">PAN</div><div className="flex-1 font-bold uppercase">{selectedCust?.pan || '-'}</div></div>
+                  <div className="flex mb-0.5"><div className="w-20 shrink-0 font-bold">Place of Supply</div><div className="flex-1 font-semibold">{selectedCust?.place_of_supply || selectedCust?.state || '-'}</div></div>
+                </div>
+
+                {/* Column 2: Invoice Details */}
+                <div className="col-span-5 p-2 space-y-0.5">
+                  <div className={cn(
+                    "font-bold text-center border-b -mx-2 -mt-2 mb-1.5 p-0.5 text-[10px]",
+                    isTally ? "bg-gray-100 border-black" : "bg-[#eaf2fb] border-[#2f6fb0]"
+                  )}>
+                    Invoice Details
+                  </div>
+                  <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">Invoice No.</div><div className="flex-1 font-bold">{formData.invoice_number || 'INV-001'}</div></div>
+                  <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">Invoice Date</div><div className="flex-1">{issueDateDisplay}</div></div>
+                  <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">Due Date</div><div className="flex-1">{dueDateDisplay}</div></div>
+                  <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">P.O. No.</div><div className="flex-1">{formData.po_number || '-'}</div></div>
+                  <div className="flex mb-0.5"><div className="w-18 shrink-0 font-bold">P.O. Date</div><div className="flex-1">{formData.po_date || '-'}</div></div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className={cn("border border-t-0 text-[10px]", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className={cn("font-bold text-center", isTally ? "bg-gray-100" : "bg-[#eaf2fb]")}>
+                      <th className={cn("border p-1 w-[26px]", isTally ? "border-black" : "border-[#2f6fb0]")}>Sr.</th>
+                      <th className={cn("border p-1 text-left", isTally ? "border-black" : "border-[#2f6fb0]")}>Name of Product / Service</th>
+                      {isHsnColVisible && <th className={cn("border p-1 w-[55px]", isTally ? "border-black" : "border-[#2f6fb0]")}>HSN</th>}
+                      {isSizeColVisible && <th className={cn("border p-1 w-[45px]", isTally ? "border-black" : "border-[#2f6fb0]")}>Size</th>}
+                      <th className={cn("border p-1 w-[45px]", isTally ? "border-black" : "border-[#2f6fb0]")}>Qty</th>
+                      <th className={cn("border p-1 w-[60px]", isTally ? "border-black" : "border-[#2f6fb0]")}>Rate</th>
+                      {isGstColVisible && <th className={cn("border p-1 w-[45px]", isTally ? "border-black" : "border-[#2f6fb0]")}>GST%</th>}
+                      <th className={cn("border p-1 w-[70px]", isTally ? "border-black" : "border-[#2f6fb0]")}>Taxable</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formData.items.map((it, idx) => {
+                      const rowQty = Number(it.quantity) || 0;
+                      const rowPrice = Number(it.price) || 0;
+                      const rowTaxable = rowQty * rowPrice;
+                      return (
+                        <tr key={idx} className="align-top">
+                          <td className={cn("border-l border-r p-1 text-center", isTally ? "border-black" : "border-[#2f6fb0]")}>{idx + 1}</td>
+                          <td className={cn("border-l border-r p-1", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                            <div className="font-bold">{it.description || 'Unnamed Item'}</div>
+                            {it.serialNumber && (
+                              <div className="text-[8.5px] font-mono font-bold text-emerald-700">
+                                SR/No: {it.serialNumber}
+                              </div>
+                            )}
+                          </td>
+                          {isHsnColVisible && <td className={cn("border-l border-r p-1 text-center", isTally ? "border-black" : "border-[#2f6fb0]")}>{it.hsn || '-'}</td>}
+                          {isSizeColVisible && <td className={cn("border-l border-r p-1 text-center", isTally ? "border-black" : "border-[#2f6fb0]")}>{it.size || '-'}</td>}
+                          <td className={cn("border-l border-r p-1 text-center font-semibold", isTally ? "border-black" : "border-[#2f6fb0]")}>{rowQty}</td>
+                          <td className={cn("border-l border-r p-1 text-right", isTally ? "border-black" : "border-[#2f6fb0]")}>₹{rowPrice.toFixed(2)}</td>
+                          {isGstColVisible && <td className={cn("border-l border-r p-1 text-center", isTally ? "border-black" : "border-[#2f6fb0]")}>{it.gstPercent || 0}%</td>}
+                          <td className={cn("border-l border-r p-1 text-right font-bold", isTally ? "border-black" : "border-[#2f6fb0]")}>₹{rowTaxable.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                    {/* Dynamic Spacers */}
+                    {Array.from({ length: Math.max(1, (isA5 ? 2 : 4) - formData.items.length) }).map((_, emptyIdx) => (
+                      <tr key={`spacer-${emptyIdx}`} className="h-4 align-top">
+                        <td className={cn("border-l border-r p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>&nbsp;</td>
+                        <td className={cn("border-l border-r p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>&nbsp;</td>
+                        {isHsnColVisible && <td className={cn("border-l border-r p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>&nbsp;</td>}
+                        {isSizeColVisible && <td className={cn("border-l border-r p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>&nbsp;</td>}
+                        <td className={cn("border-l border-r p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>&nbsp;</td>
+                        <td className={cn("border-l border-r p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>&nbsp;</td>
+                        {isGstColVisible && <td className={cn("border-l border-r p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>&nbsp;</td>}
+                        <td className={cn("border-l border-r p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>&nbsp;</td>
+                      </tr>
+                    ))}
+                    {/* Total Row */}
+                    <tr className={cn("font-bold border-t", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                      <td colSpan={2 + (isHsnColVisible ? 1 : 0) + (isSizeColVisible ? 1 : 0)} className={cn("p-1 text-right border-l border-r border-t font-black", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                        Total
+                      </td>
+                      <td className={cn("p-1 text-center border-l border-r border-t font-black", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                        {totalQuantity}
+                      </td>
+                      <td className={cn("p-1 border-l border-r border-t", isTally ? "border-black" : "border-[#2f6fb0]")}></td>
+                      {isGstColVisible && <td className={cn("p-1 border-l border-r border-t", isTally ? "border-black" : "border-[#2f6fb0]")}></td>}
+                      <td className={cn("p-1 text-right border-l border-r border-t font-black", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                        ₹ {totalTaxable.toFixed(2)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Amount in Words */}
+              {isBoxVisible('amount_in_words') && (
+                <div className={cn("p-1.5 border border-t-0 text-[9.5px] bg-slate-50/50", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                  <span className="text-gray-500">Total in words:</span>
+                  <div className="font-bold text-gray-800">{amountWordsStr}</div>
+                </div>
+              )}
+
+              {/* HSN Summary Table */}
+              {isBoxVisible('hsn_summary') && Object.keys(hsnSummary).length > 0 && (
+                <div className={cn("border border-t-0 text-[9px]", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                  <table className="w-full border-collapse text-center">
+                    <thead>
+                      <tr className={cn("font-bold", isTally ? "bg-gray-100" : "bg-[#eaf2fb]")}>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>HSN / SAC</th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>Taxable Value</th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")} colSpan={2}>CGST</th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")} colSpan={2}>SGST</th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>Total Tax</th>
+                      </tr>
+                      <tr className={cn("text-[8px]", isTally ? "bg-gray-50" : "bg-[#f4f8fe]")}>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}></th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}></th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>%</th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>Amount</th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>%</th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>Amount</th>
+                        <th className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.values(hsnSummary).map((h: any) => (
+                        <tr key={h.code}>
+                          <td className={cn("border p-0.5 font-semibold", isTally ? "border-black" : "border-[#2f6fb0]")}>{h.code}</td>
+                          <td className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>₹{h.taxable.toFixed(2)}</td>
+                          <td className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>{(h.gstRate / 2)}%</td>
+                          <td className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>₹{h.cgst.toFixed(2)}</td>
+                          <td className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>{(h.gstRate / 2)}%</td>
+                          <td className={cn("border p-0.5", isTally ? "border-black" : "border-[#2f6fb0]")}>₹{h.sgst.toFixed(2)}</td>
+                          <td className={cn("border p-0.5 font-bold", isTally ? "border-black" : "border-[#2f6fb0]")}>₹{h.tax.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Bank Details & QR & Signature */}
+              <div className={cn("grid grid-cols-12 border border-t-0 text-[9px] p-1.5 gap-2 items-center", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                <div className="col-span-5 space-y-0.5">
+                  {isBoxVisible('bank_details') && (
+                    <>
+                      <div className={cn("font-bold uppercase", isTally ? "text-slate-900" : "text-[#1c4a75]")}>Bank Details:</div>
+                      <div><b>Bank:</b> {sellerSettings?.bank_name || '-'}</div>
+                      <div><b>A/c No:</b> {sellerSettings?.account_number || '-'}</div>
+                      <div><b>IFSC:</b> {sellerSettings?.ifsc || '-'}</div>
+                    </>
+                  )}
+                  {sellerSettings?.upi_id && <div><b>UPI ID:</b> {sellerSettings.upi_id}</div>}
+                </div>
+
+                <div className="col-span-3 flex flex-col items-center justify-center">
+                  {isBoxVisible('upi_qr') && upiUrl ? (
+                    <div className="p-1 bg-white border border-gray-300 rounded shadow-xs">
+                      <QRCodeSVG value={upiUrl} size={48} />
+                      <span className="text-[7px] block text-center font-bold mt-0.5">Scan to Pay</span>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="col-span-4 text-right">
+                  {isBoxVisible('declaration') && (
+                    <p className="text-[7.5px] text-gray-500 leading-tight mb-1">
+                      We declare that this invoice shows the actual price of the goods described.
+                    </p>
+                  )}
+                  {isBoxVisible('signature') && (
+                    <>
+                      <div className="text-[8px] text-gray-500 mb-1">For {sellerSettings?.business_name || 'InvoCentic'}</div>
+                      <div className="h-6 border-b border-gray-400"></div>
+                      <div className="font-bold text-[8px] mt-0.5">Authorized Signatory</div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Terms and Conditions */}
+              {isBoxVisible('terms') && formData.notes && (
+                <div className={cn("p-1.5 border border-t-0 text-[8.5px] bg-slate-50/50", isTally ? "border-black" : "border-[#2f6fb0]")}>
+                  <span className="font-bold text-gray-700">Terms and Conditions:</span>
+                  <p className="whitespace-pre-line text-gray-600 mt-0.5">{formData.notes}</p>
+                </div>
+              )}
+
+            </div>
+          )}
         </aside>
       );
     })()}
