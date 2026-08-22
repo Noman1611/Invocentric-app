@@ -2187,8 +2187,8 @@ export default function InvoiceViewPage() {
                 template === 'thermal' 
                   ? "bg-white h-auto p-2" 
                   : paperSize === 'a5' 
-                    ? "bg-[#ffffff] p-[3mm] sm:p-[4mm] min-h-[148mm]" 
-                    : "bg-[#ffffff] p-[6mm] sm:p-[8mm] min-h-[297mm]",
+                    ? "bg-[#ffffff] p-[3.5mm] min-h-[148mm]" 
+                    : "bg-[#ffffff] p-[6mm] min-h-[297mm]",
                 template !== 'thermal' && (
                   (invoice?.items?.length || 0) > 8 
                     ? "print-ultra-compact" 
@@ -2500,9 +2500,15 @@ export default function InvoiceViewPage() {
                     </div>
                   </div>
 
-                  {/* Items Table */}
-                  <div className="border border-t-0 text-[12px] flex-1 flex flex-col justify-between" style={{ borderColor: primaryColor || '#2f6fb0' }}>
-                    <table className="w-full border-collapse">
+                  {/* Items Table with 4-inch vertical space & continuous grid lines */}
+                  <div 
+                    className="border border-t-0 text-[12px] flex-1 flex flex-col justify-between" 
+                    style={{ 
+                      minHeight: paperSize === 'a5' ? '150px' : '380px',
+                      borderColor: primaryColor || '#2f6fb0' 
+                    }}
+                  >
+                    <table className="w-full border-collapse flex-1 h-full">
                       <thead>
                         <tr className="font-bold text-center" style={{ background: primaryBgLight || '#eaf2fb' }}>
                           <th className="border p-1.5 w-[35px]" style={{ borderColor: primaryColor || '#2f6fb0' }}>Sr. No.</th>
@@ -2536,9 +2542,9 @@ export default function InvoiceViewPage() {
                             </tr>
                           );
                         })}
-                        {/* Dynamic empty spacer rows to ensure continuous vertical lines */}
-                        {Array.from({ length: Math.max(1, (printPageMode === 'full' ? 8 : 3) - (invoice?.items?.length || 0)) }).map((_, emptyIdx) => (
-                          <tr key={`spacer-${emptyIdx}`} className="h-6 align-top">
+                        {/* Dynamic empty spacer rows to ensure continuous 4-inch vertical lines */}
+                        {Array.from({ length: Math.max(1, (paperSize === 'a5' ? 3 : 7) - (invoice?.items?.length || 0)) }).map((_, emptyIdx) => (
+                          <tr key={`spacer-${emptyIdx}`} className={cn("align-top", paperSize === 'a5' ? "h-6" : "h-11")}>
                             <td className="border-l border-r p-1 text-center" style={{ borderColor: primaryColor || '#2f6fb0' }}>&nbsp;</td>
                             <td className="border-l border-r p-1" style={{ borderColor: primaryColor || '#2f6fb0' }}>&nbsp;</td>
                             {isHsnVisible && <td className="border-l border-r p-1 text-center" style={{ borderColor: primaryColor || '#2f6fb0' }}>&nbsp;</td>}
@@ -3270,38 +3276,54 @@ export default function InvoiceViewPage() {
                   )}
 
                   <DraggableBox id="tally_items_table" label="Items & Products Table" className="flex-1 flex flex-col justify-between">
-                    <table className={cn(
-                      "w-full border border-black text-left border-collapse",
-                      paperSize === 'a5' ? "text-[9px] mb-1.5" : "text-[10px] mb-2"
-                    )}>
-                      <thead>
-                        <tr className="border-b border-black bg-gray-100 font-bold text-center">
-                          <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-6 sm:w-8" : "py-2 px-1.5 w-8")}>Sl.</th>
-                          <th className={cn("border-r border-black text-left", paperSize === 'a5' ? "py-1 px-1.5" : "py-2 px-1.5")}>Particulars</th>
-                          {isHsnVisible && <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-12" : "py-2 px-1.5 w-16")}>HSN</th>}
-                          <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-10" : "py-2 px-1.5 w-12")}>Qty</th>
-                          <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-14" : "py-2 px-1.5 w-16")}>Rate</th>
-                          <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-10" : "py-2 px-1.5 w-12")}>Disc %</th>
-                          <th className={cn("text-right", paperSize === 'a5' ? "py-1 px-1.5 w-16" : "py-2 px-1.5 w-20")}>Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invoice?.items?.map((item: any, idx: number) => (
-                          <tr key={idx} className="align-top">
-                            <td className={cn("border-r border-black text-center", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{idx + 1}</td>
-                            <td className={cn("border-r border-black font-semibold", paperSize === 'a5' ? "py-1 px-1.5" : "py-1.5 px-1.5")}>
-                              <div className="break-words">{getItemName(item)}</div>
-                              {renderItemDetails(item, "text-gray-600")}
-                            </td>
-                            {isHsnVisible && <td className={cn("border-r border-black text-center", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{item.hsn_code || item.hsn || '---'}</td>}
-                            <td className={cn("border-r border-black text-center font-bold", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{item.quantity}</td>
-                            <td className={cn("border-r border-black text-right", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{formatCurrency(item.price, invoice?.currency)}</td>
-                            <td className={cn("border-r border-black text-center", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{item.discount || 0}%</td>
-                            <td className={cn("text-right font-bold", paperSize === 'a5' ? "py-1 px-1.5" : "py-1.5 px-1.5")}>{formatCurrency(item.quantity * item.price * (1 - (item.discount || 0)/100), invoice?.currency)}</td>
+                    <div 
+                      className="border border-black text-left flex-1 flex flex-col justify-between"
+                      style={{ minHeight: paperSize === 'a5' ? '150px' : '380px' }}
+                    >
+                      <table className={cn(
+                        "w-full text-left border-collapse flex-1 h-full",
+                        paperSize === 'a5' ? "text-[9px]" : "text-[10px]"
+                      )}>
+                        <thead>
+                          <tr className="border-b border-black bg-gray-100 font-bold text-center">
+                            <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-6 sm:w-8" : "py-2 px-1.5 w-8")}>Sl.</th>
+                            <th className={cn("border-r border-black text-left", paperSize === 'a5' ? "py-1 px-1.5" : "py-2 px-1.5")}>Particulars</th>
+                            {isHsnVisible && <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-12" : "py-2 px-1.5 w-16")}>HSN</th>}
+                            <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-10" : "py-2 px-1.5 w-12")}>Qty</th>
+                            <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-14" : "py-2 px-1.5 w-16")}>Rate</th>
+                            <th className={cn("border-r border-black", paperSize === 'a5' ? "py-1 px-1 w-10" : "py-2 px-1.5 w-12")}>Disc %</th>
+                            <th className={cn("text-right", paperSize === 'a5' ? "py-1 px-1.5 w-16" : "py-2 px-1.5 w-20")}>Amount</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {invoice?.items?.map((item: any, idx: number) => (
+                            <tr key={idx} className="align-top">
+                              <td className={cn("border-r border-black text-center", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{idx + 1}</td>
+                              <td className={cn("border-r border-black font-semibold", paperSize === 'a5' ? "py-1 px-1.5" : "py-1.5 px-1.5")}>
+                                <div className="break-words">{getItemName(item)}</div>
+                                {renderItemDetails(item, "text-gray-600")}
+                              </td>
+                              {isHsnVisible && <td className={cn("border-r border-black text-center", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{item.hsn_code || item.hsn || '---'}</td>}
+                              <td className={cn("border-r border-black text-center font-bold", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{item.quantity}</td>
+                              <td className={cn("border-r border-black text-right", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{formatCurrency(item.price, invoice?.currency)}</td>
+                              <td className={cn("border-r border-black text-center", paperSize === 'a5' ? "py-1 px-1" : "py-1.5 px-1.5")}>{item.discount || 0}%</td>
+                              <td className={cn("text-right font-bold", paperSize === 'a5' ? "py-1 px-1.5" : "py-1.5 px-1.5")}>{formatCurrency(item.quantity * item.price * (1 - (item.discount || 0)/100), invoice?.currency)}</td>
+                            </tr>
+                          ))}
+                          {Array.from({ length: Math.max(1, (paperSize === 'a5' ? 3 : 7) - (invoice?.items?.length || 0)) }).map((_, emptyIdx) => (
+                            <tr key={`simple-spacer-${emptyIdx}`} className={cn("align-top", paperSize === 'a5' ? "h-6" : "h-11")}>
+                              <td className="border-r border-black">&nbsp;</td>
+                              <td className="border-r border-black">&nbsp;</td>
+                              {isHsnVisible && <td className="border-r border-black">&nbsp;</td>}
+                              <td className="border-r border-black">&nbsp;</td>
+                              <td className="border-r border-black">&nbsp;</td>
+                              <td className="border-r border-black">&nbsp;</td>
+                              <td>&nbsp;</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </DraggableBox>
 
                   <DraggableBox id="tally_footer_block" label="Terms, Bank & Signatures" className="mt-auto shrink-0">
@@ -3438,7 +3460,7 @@ export default function InvoiceViewPage() {
                   <DraggableBox id="tally_items_table" label="Items & Products Table" className="flex-1 flex flex-col justify-between">
                     <div className={cn(
                       "border-b border-black flex flex-col justify-between w-full flex-1",
-                      paperSize === 'a5' ? "min-h-[140px]" : "min-h-[220px]"
+                      paperSize === 'a5' ? "min-h-[150px]" : "min-h-[380px]"
                     )}>
                       <table className="w-full text-left border-collapse">
                         <thead>
@@ -5147,7 +5169,7 @@ export default function InvoiceViewPage() {
         @media print {
           @page {
             size: ${template === 'thermal' ? `${thermalRollSize} auto` : paperSize === 'a5' ? 'A5 landscape' : 'A4 portrait'} !important;
-            margin: ${template === 'thermal' ? '0' : paperSize === 'a5' ? '2mm' : '5mm'} !important;
+            margin: ${template === 'thermal' ? '0' : '4mm'} !important;
           }
 
           html, body {
