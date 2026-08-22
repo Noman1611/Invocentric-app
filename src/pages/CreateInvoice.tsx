@@ -79,6 +79,7 @@ export default function CreateInvoicePage() {
     address: '',
   });
   const [quickCustomFields, setQuickCustomFields] = useState<Array<{ id: string; label: string; value: string }>>([]);
+  const [showLivePreview, setShowLivePreview] = useState<boolean>(() => typeof window !== 'undefined' ? window.innerWidth >= 1280 : true);
 
   const PRESET_CUSTOM_LABELS = [
     "PAN Number",
@@ -1177,34 +1178,64 @@ export default function CreateInvoicePage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className={cn(
+      "mx-auto transition-all duration-300 space-y-6",
+      showLivePreview ? "max-w-[1600px] px-2 sm:px-4" : "max-w-5xl px-2 sm:px-4"
+    )}>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-neutral-100 rounded-full transition-colors">
+          <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors cursor-pointer">
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-3xl font-bold">{id ? 'Edit' : 'New'} Invoice</h1>
-            <p className="text-neutral-500">{id ? 'Modify your existing invoice.' : 'Create manually or upload a photo of a bill.'}</p>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{id ? 'Edit' : 'Create'} Invoice</h1>
+            <p className="text-xs font-semibold text-slate-400">{id ? 'Modify your existing invoice.' : 'Create a new invoice and deliver it instantly.'}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Live Preview Switch Toggle */}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 px-3 py-1.5 rounded-2xl shadow-2xs">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 select-none">Show Preview</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showLivePreview}
+              onClick={() => setShowLivePreview(!showLivePreview)}
+              className={cn(
+                "w-10 h-5.5 rounded-full transition-colors relative p-0.5 cursor-pointer focus:outline-none",
+                showLivePreview ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"
+              )}
+            >
+              <div className={cn(
+                "w-4.5 h-4.5 rounded-full bg-white transition-transform shadow-xs",
+                showLivePreview ? "translate-x-4.5" : "translate-x-0"
+              )} />
+            </button>
+          </div>
+
           <label className={cn(
-            "btn-secondary flex items-center gap-2 cursor-pointer transition-all",
-            aiLoading ? "opacity-50 pointer-events-none" : "hover:border-neutral-900"
+            "btn-secondary flex items-center gap-2 cursor-pointer transition-all px-3 py-2 rounded-2xl text-xs font-bold",
+            aiLoading ? "opacity-50 pointer-events-none" : "hover:border-emerald-500 hover:text-emerald-700"
           )}>
-            {aiLoading ? <Loader2 size={18} className="animate-spin" /> : <Camera size={18} />}
+            {aiLoading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
             <span className="flex items-center gap-1">
               {aiLoading ? 'AI Reading...' : 'AI Scan Bill'}
-              {!aiLoading && <Sparkles size={14} className="text-amber-500" />}
+              {!aiLoading && <Sparkles size={13} className="text-amber-500" />}
             </span>
             <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
           </label>
         </div>
       </header>
 
-      <form className="space-y-6 sm:space-y-8" onSubmit={(e) => e.preventDefault()}>
+      {/* Main Dual-Column Content */}
+      <div className={cn(
+        "transition-all duration-300",
+        showLivePreview ? "grid grid-cols-1 xl:grid-cols-12 gap-6 items-start" : "block"
+      )}>
+        {/* Left Pane: Invoice Editor Form */}
+        <div className={cn(showLivePreview ? "xl:col-span-7 space-y-6" : "space-y-6")}>
+          <form className="space-y-6 sm:space-y-8" onSubmit={(e) => e.preventDefault()}>
         <div className="glass-card p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
           <div className="space-y-4">
             <div>
@@ -2134,8 +2165,189 @@ export default function CreateInvoicePage() {
           </div>
         </div>
       </form>
+    </div>
 
-       <AnimatePresence>
+    {/* Right Pane: Realistic Live Invoice Preview Card */}
+    {showLivePreview && (() => {
+      const selectedCust = customers.find(c => c.id === formData.customer_id);
+      const currSymbol = CURRENCIES.find(c => c.code === formData.currency)?.symbol || '₹';
+      const rawSub = formData.items.reduce((acc, curr) => acc + ((Number(curr.price) || 0) * (Number(curr.quantity) || 0)), 0);
+      const discVal = Number(formData.discount) || 0;
+      const totalCalculated = calculateTotal() || 0;
+      const dueDateDisplay = formData.due_date ? format(parseDateSafe(formData.due_date), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
+      const issueDateDisplay = formData.date ? format(parseDateSafe(formData.date), 'MMMM d, yyyy') : format(new Date(), 'MMMM d, yyyy');
+
+      return (
+        <aside className="hidden xl:flex xl:col-span-5 flex-col sticky top-6 space-y-3 select-none">
+          {/* Action Toolbar */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-sm text-slate-900 dark:text-white">Preview</h2>
+              <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                Real-Time
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={(e) => handleSubmit(e, 'draft')}
+                className="px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl transition-all cursor-pointer"
+              >
+                Save as Draft
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={(e) => handleSubmit(e, 'sent')}
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Send size={13} />
+                <span>Send Invoice</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Rendered Invoice Paper Document */}
+          <div className="bg-white text-slate-800 rounded-3xl shadow-xl border border-slate-200/90 p-6 space-y-5 text-xs font-sans relative overflow-hidden transition-all">
+            
+            {/* Document Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase">INVOICE</h3>
+                <p className="text-xs font-bold text-slate-400 mt-0.5 font-mono">
+                  Invoice Number <span className="text-slate-800 font-bold">#{formData.invoice_number || 'INV-DRAFT'}</span>
+                </p>
+              </div>
+
+              {/* Logo / Badge */}
+              <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-base shadow-sm">
+                {sellerSettings?.business_name ? sellerSettings.business_name.slice(0, 2).toUpperCase() : 'IC'}
+              </div>
+            </div>
+
+            {/* Billed By & Billed To 2-Column Grid */}
+            <div className="grid grid-cols-2 gap-4 text-[11px] pt-1">
+              <div>
+                <span className="font-bold text-slate-400 uppercase text-[9px] block tracking-wider mb-1">Billed by:</span>
+                <p className="font-extrabold text-slate-900 text-xs">{sellerSettings?.business_name || 'My Business'}</p>
+                <p className="text-slate-500 font-medium">{sellerSettings?.email || user?.email || 'billing@invocentric.in'}</p>
+                <p className="text-slate-500 font-medium whitespace-pre-line">{sellerSettings?.address || 'India'}</p>
+                {sellerSettings?.phone && <p className="text-slate-500 font-medium">Ph: {sellerSettings.phone}</p>}
+              </div>
+
+              <div>
+                <span className="font-bold text-slate-400 uppercase text-[9px] block tracking-wider mb-1">Billed to:</span>
+                <p className="font-extrabold text-slate-900 text-xs uppercase">{selectedCust?.name || 'Cash Sale'}</p>
+                <p className="text-slate-500 font-medium">{selectedCust?.email || 'N/A'}</p>
+                <p className="text-slate-500 font-medium whitespace-pre-line">{selectedCust?.address || 'N/A'}</p>
+                {selectedCust?.phone && <p className="text-slate-500 font-medium">Ph: {selectedCust.phone}</p>}
+              </div>
+            </div>
+
+            {/* Date Issue & Due Date */}
+            <div className="grid grid-cols-2 gap-4 text-[11px] py-2 border-y border-slate-100 bg-slate-50/50 -mx-6 px-6">
+              <div>
+                <span className="font-bold text-slate-400 uppercase text-[9px] block">Date Issue:</span>
+                <span className="font-bold text-slate-800">{issueDateDisplay}</span>
+              </div>
+              <div>
+                <span className="font-bold text-slate-400 uppercase text-[9px] block">Due Date:</span>
+                <span className="font-bold text-slate-800">{dueDateDisplay}</span>
+              </div>
+            </div>
+
+            {/* Items Table */}
+            <div className="space-y-1.5">
+              <span className="font-bold text-slate-400 uppercase text-[9px] block tracking-wider">Invoice Items/Service:</span>
+              <table className="w-full text-left text-[11px] border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-400 text-[10px] font-bold">
+                    <th className="py-1.5 font-bold">Item Name</th>
+                    <th className="py-1.5 text-center font-bold">QTY</th>
+                    <th className="py-1.5 text-right font-bold">Rate</th>
+                    <th className="py-1.5 text-right font-bold">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {formData.items.map((it, idx) => {
+                    const rowQty = Number(it.quantity) || 0;
+                    const rowPrice = Number(it.price) || 0;
+                    const rowAmt = rowQty * rowPrice;
+                    return (
+                      <tr key={idx} className="align-top">
+                        <td className="py-2 pr-2">
+                          <p className="font-bold text-slate-900 leading-tight">{it.description || 'Unnamed Item'}</p>
+                          {it.serialNumber && (
+                            <p className="text-[9.5px] font-semibold text-emerald-700 mt-0.5">
+                              <span className="text-slate-500 font-normal">S/N:</span> {it.serialNumber}
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-2 px-1 text-center font-semibold text-slate-700">{rowQty}</td>
+                        <td className="py-2 px-1 text-right font-semibold text-slate-700">{currSymbol}{rowPrice.toLocaleString('en-IN')}</td>
+                        <td className="py-2 pl-1 text-right font-black text-slate-900">{currSymbol}{rowAmt.toLocaleString('en-IN')}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totals Summary */}
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 text-[11px]">
+              <div className="flex justify-between text-slate-500">
+                <span>Subtotal</span>
+                <span className="font-semibold text-slate-800">{currSymbol}{rawSub.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+              </div>
+              {discVal > 0 && (
+                <div className="flex justify-between text-emerald-600 font-semibold">
+                  <span>Discount</span>
+                  <span>-{currSymbol}{discVal.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center text-slate-900 pt-1.5 border-t border-slate-200">
+                <span className="font-black text-xs uppercase tracking-wider">Grand Total</span>
+                <span className="font-black text-sm text-emerald-700">
+                  {currSymbol}{totalCalculated.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            {/* Notes / Terms */}
+            {formData.notes && (
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[10px] text-slate-600 leading-relaxed">
+                <span className="font-bold text-slate-700 block mb-0.5">Note:</span>
+                <p className="whitespace-pre-line">{formData.notes}</p>
+              </div>
+            )}
+
+            {/* Payment Method & Signature */}
+            <div className="pt-3 border-t border-slate-100 flex items-end justify-between">
+              <div>
+                <span className="font-bold text-slate-400 uppercase text-[9px] block">Payment Method</span>
+                <p className="font-bold text-slate-800 text-[11px]">EFT / Bank Transfer / UPI</p>
+                {sellerSettings?.bank_name && (
+                  <p className="text-[10px] text-slate-500">{sellerSettings.bank_name} - {sellerSettings.account_number || ''}</p>
+                )}
+              </div>
+
+              <div className="text-right">
+                <div className="w-24 h-7 border-b border-slate-400/80 flex items-end justify-center pb-0.5 text-[10px] italic font-serif text-slate-600">
+                  {sellerSettings?.signatory_name || 'InvoCentic'}
+                </div>
+                <span className="text-[9px] font-bold text-slate-400 uppercase block mt-0.5">Authorized Signatory</span>
+              </div>
+            </div>
+
+          </div>
+        </aside>
+      );
+    })()}
+  </div>
+
+      <AnimatePresence>
        <div className={cn("fixed inset-0 z-[60] flex items-center justify-center p-4 transition-all duration-300", showScanner ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none")}>
          <motion.div
            animate={{ opacity: showScanner ? 1 : 0 }}
