@@ -180,14 +180,31 @@ export default function InvoiceViewPage() {
   const upiId = sellerInfo?.upi_id || sellerInfo?.upiId;
   const upiUrl = upiId ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(sellerInfo?.business_name || '')}&am=${grandTotal}&cu=INR` : null;
 
-  // Chunk items: 10 per page for A4, 7 per page for A5 Horizontal
-  const itemsPerPage = isA5 ? 7 : 10;
+  // Smart Adaptive Chunking:
+  // For A4: Single page can fit up to 12 items. Multi-page fits 14 items on page 1, and 7 on subsequent pages with footer.
+  // For A5: Single page fits up to 5 items with footer. Multi-page fits 7 items on page 1, and 3-4 items on subsequent pages with footer.
   const itemPages: any[][] = [];
   if (itemRows.length === 0) {
     itemPages.push([]);
   } else {
-    for (let i = 0; i < itemRows.length; i += itemsPerPage) {
-      itemPages.push(itemRows.slice(i, i + itemsPerPage));
+    if (isA5) {
+      if (itemRows.length <= 5) {
+        itemPages.push(itemRows);
+      } else {
+        itemPages.push(itemRows.slice(0, 7));
+        for (let i = 7; i < itemRows.length; i += 4) {
+          itemPages.push(itemRows.slice(i, i + 4));
+        }
+      }
+    } else {
+      if (itemRows.length <= 12) {
+        itemPages.push(itemRows);
+      } else {
+        itemPages.push(itemRows.slice(0, 14));
+        for (let i = 14; i < itemRows.length; i += 7) {
+          itemPages.push(itemRows.slice(i, i + 7));
+        }
+      }
     }
   }
   const totalPages = itemPages.length;
@@ -229,7 +246,7 @@ export default function InvoiceViewPage() {
           pdf.addPage(pdfFormat, pdfOrientation);
         }
 
-        const pdfWidth = isPOS ? 76.2 : 210;
+        const pdfWidth = isPOS ? 76.2 : (isA5 ? 210 : 210);
         const pdfHeight = isPOS ? 180 : (isA5 ? 148 : 297);
 
         pdf.setFillColor(255, 255, 255);
@@ -315,99 +332,108 @@ export default function InvoiceViewPage() {
     invoiceNo: invNo, invoiceDate: fmtDate(invoice.date), dueDate: fmtDate(invoice.due_date),
     poNo: invoice.po_number || '', poDate: fmtDate(invoice.po_date), eWayNo: invoice.e_way_bill || '',
   };
-  const QRNode = upiUrl ? <QRCodeSVG value={upiUrl} size={isA5 ? 55 : 78} level="H" /> : <div style={{ width: isA5 ? 55 : 78, height: isA5 ? 55 : 78, border: '1px dashed #999' }} />;
+  const QRNode = upiUrl ? <QRCodeSVG value={upiUrl} size={isA5 ? 46 : 75} level="H" /> : <div style={{ width: isA5 ? 46 : 75, height: isA5 ? 46 : 75, border: '1px dashed #999' }} />;
   const termsText = (invoice.terms || sellerInfo?.default_terms || '').split('\n').filter(Boolean);
 
   // Dynamic column calculations
   const dynamicColCount = 1 + 1 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0) + 1 + (colVis.mrp ? 1 : 0) + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0) + 1;
   const leftColSpan = 1 + 1 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0);
 
+  // Helper to calculate starting index of page
+  const getStartIndex = (pageIdx: number) => {
+    let count = 0;
+    for (let i = 0; i < pageIdx; i++) {
+      count += itemPages[i].length;
+    }
+    return count;
+  };
+
   // Template 01 (and default) Page Renderer
   const renderTemplate01Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const blue='#2f6fb0', dark='#1c4a75', lb='#eaf2fb', b=`1px solid ${blue}`;
     return (
-      <div className="flex flex-col justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 10 : 12, color:'#1a1a1a' }}>
+      <div className="flex flex-col justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12, color:'#1a1a1a' }}>
         <div>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom: isA5 ? 4 : 8}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom: isA5 ? 2 : 6}}>
             <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
-              {co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 38 : 55, height: isA5 ? 38 : 55, objectFit:'contain'}}/>}
-              <div><p style={{fontSize: isA5 ? 15 : 20,fontWeight:'bold',color:dark,margin:'0 0 1px'}}>{co.name}</p>
-                <div style={{fontSize: isA5 ? 9.5 : 11.5, lineHeight:1.25}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>
+              {co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52, height: isA5 ? 32 : 52, objectFit:'contain'}}/>}
+              <div><p style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:dark,margin:'0 0 1px'}}>{co.name}</p>
+                <div style={{fontSize: isA5 ? 8.5 : 11, lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>
               </div>
             </div>
-            <div style={{textAlign:'right',fontSize: isA5 ? 9.5 : 11.5}}>
+            <div style={{textAlign:'right',fontSize: isA5 ? 8.5 : 11}}>
               <div><b>Name</b> : {bu.name}</div>
               <div><b>Phone</b> : {bu.phone}</div>
-              <div style={{fontSize: 9.5, color: '#666', marginTop: 1}}>Page {pageIdx + 1} of {totalPages}</div>
+              <div style={{fontSize: 8.5, color: '#666', marginTop: 1}}>Page {pageIdx + 1} of {totalPages}</div>
             </div>
           </div>
 
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',border:b,borderBottom:'none',padding:'3px 8px',fontWeight:'bold',fontSize: isA5 ? 10 : 12}}>
-            <div>GSTIN : {co.gstin}</div><div style={{fontSize: isA5 ? 12 : 14, color:dark}}>TAX INVOICE</div><div>ORIGINAL FOR RECIPIENT</div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',border:b,borderBottom:'none',padding:'2px 6px',fontWeight:'bold',fontSize: isA5 ? 9 : 11.5}}>
+            <div>GSTIN : {co.gstin}</div><div style={{fontSize: isA5 ? 10.5 : 13, color:dark}}>TAX INVOICE</div><div>ORIGINAL FOR RECIPIENT</div>
           </div>
 
           {/* Clean 2-column Buyer & Meta Grid */}
-          <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr',border:b,fontSize: isA5 ? 9.5 : 11}}>
-            <div style={{padding:'3px 8px',borderRight:b}}>
-              <div style={{fontWeight:'bold',textAlign:'center',background:lb,margin:'-3px -8px 3px',padding:1.5,borderBottom:b}}>Details of Buyer | Billed to :</div>
-              {[['Name',bu.name],['Address',bu.address],['Phone',bu.phone],['GSTIN',bu.gstin],['PAN',bu.pan],['Place of Supply',bu.placeOfSupply]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:1}}><div style={{width: isA5 ? 75 : 95,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{v}</div></div>))}
+          <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr',border:b,fontSize: isA5 ? 8.5 : 10.5}}>
+            <div style={{padding:'2px 6px',borderRight:b}}>
+              <div style={{fontWeight:'bold',textAlign:'center',background:lb,margin:'-2px -6px 2px',padding:1,borderBottom:b}}>Details of Buyer | Billed to :</div>
+              {[['Name',bu.name],['Address',bu.address],['Phone',bu.phone],['GSTIN',bu.gstin],['PAN',bu.pan],['Place of Supply',bu.placeOfSupply]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 70 : 90,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{v}</div></div>))}
             </div>
-            <div style={{padding:'3px 8px'}}>
-              <div style={{fontWeight:'bold',textAlign:'center',background:lb,margin:'-3px -8px 3px',padding:1.5,borderBottom:b}}>Invoice Details :</div>
-              {[['Invoice No.',im.invoiceNo],['Invoice Date',im.invoiceDate],['Due Date',im.dueDate],['P.O. No.',im.poNo],['P.O. Date',im.poDate],['E-Way No.',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:1}}><div style={{width: isA5 ? 70 : 85,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1}}>{v}</div></div>))}
+            <div style={{padding:'2px 6px'}}>
+              <div style={{fontWeight:'bold',textAlign:'center',background:lb,margin:'-2px -6px 2px',padding:1,borderBottom:b}}>Invoice Details :</div>
+              {[['Invoice No.',im.invoiceNo],['Invoice Date',im.invoiceDate],['Due Date',im.dueDate],['P.O. No.',im.poNo],['P.O. Date',im.poDate],['E-Way No.',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 65 : 80,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1}}>{v}</div></div>))}
             </div>
           </div>
 
           {/* Dynamic Items Table */}
-          <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 9.5 : 11}}>
+          <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>
-                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11, width: 35}}>Sr. No.</th>
-                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Name of Product / Service</th>
-                {colVis.size && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Size</th>}
-                {colVis.hsn && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>HSN / SAC</th>}
-                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Qty</th>
-                {colVis.mrp && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>MRP</th>}
-                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Rate</th>
-                {colVis.discount && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Disc%</th>}
-                {colVis.gstPercent && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>GST%</th>}
-                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Taxable Value</th>
+                <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5, width: 30}}>Sr. No.</th>
+                <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Name of Product / Service</th>
+                {colVis.size && <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Size</th>}
+                {colVis.hsn && <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5}}>HSN / SAC</th>}
+                <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Qty</th>
+                {colVis.mrp && <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5}}>MRP</th>}
+                <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Rate</th>
+                {colVis.discount && <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Disc%</th>}
+                {colVis.gstPercent && <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5}}>GST%</th>}
+                <th style={{background:lb,border:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Taxable Value</th>
               </tr>
             </thead>
             <tbody>
               {pageItems.map((it:any,idx:number)=>(
                 <tr key={idx}>
-                  <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{startIndex + idx + 1}</td>
-                  <td style={{padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>
-                    <span style={{fontWeight:'bold'}}>{it.name}</span>
+                  <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{startIndex + idx + 1}</td>
+                  <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>
+                    <div style={{fontWeight:'bold'}}>{it.name}</div>
                     {(it.subLines||[]).map((sl:string,si:number)=>(
-                      <span key={si} style={{display:'inline-block',marginRight:8,fontStyle:'italic',fontSize: isA5 ? 8.5 : 10,color:'#444',backgroundColor:'#f0f4f9',padding:'0.5px 4px',borderRadius:2,marginTop:1}}>
+                      <div key={si} style={{display:'block',fontStyle:'italic',fontSize: isA5 ? 7.5 : 9.5,color:'#444',backgroundColor:'#f0f4f9',padding:'0.5px 3px',borderRadius:2,marginTop:1,width:'fit-content'}}>
                         {sl}
-                      </span>
+                      </div>
                     ))}
                   </td>
-                  {colVis.size && <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.size || '---'}</td>}
-                  {colVis.hsn && <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.hsn}</td>}
-                  <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.qty}</td>
-                  {colVis.mrp && <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.mrp ? fc(it.mrp,cur) : '---'}</td>}
-                  <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{fc(it.price,cur)}</td>
-                  {colVis.discount && <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.disc ? `${it.disc}%` : '0%'}</td>}
-                  {colVis.gstPercent && <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.gstPct ? `${it.gstPct}%` : '0%'}</td>}
-                  <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{fc(it.taxable,cur)}</td>
+                  {colVis.size && <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.size || '---'}</td>}
+                  {colVis.hsn && <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.hsn}</td>}
+                  <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.qty}</td>
+                  {colVis.mrp && <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.mrp ? fc(it.mrp,cur) : '---'}</td>}
+                  <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{fc(it.price,cur)}</td>
+                  {colVis.discount && <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.disc ? `${it.disc}%` : '0%'}</td>}
+                  {colVis.gstPercent && <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.gstPct ? `${it.gstPct}%` : '0%'}</td>}
+                  <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{fc(it.taxable,cur)}</td>
                 </tr>
               ))}
               {isLastPage && (
                 <>
                   <tr>
-                    <td colSpan={leftColSpan} style={{padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b}}></td>
-                    <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b}}><b>{isIgst?'IGST':'CGST/SGST'}</b></td>
-                    <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b}}><b>{fc(totalTaxable,cur)}</b><br/><b>{fc(totalTax,cur)}</b></td>
+                    <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '3px 6px',borderLeft:b,borderRight:b}}></td>
+                    <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderLeft:b,borderRight:b}}><b>{isIgst?'IGST':'CGST/SGST'}</b></td>
+                    <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderLeft:b,borderRight:b}}><b>{fc(totalTaxable,cur)}</b><br/><b>{fc(totalTax,cur)}</b></td>
                   </tr>
                   <tr style={{fontWeight:'bold'}}>
-                    <td colSpan={leftColSpan} style={{padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}></td>
-                    <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}>{qtyTotal}</td>
-                    <td colSpan={dynamicColCount - leftColSpan - 2} style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}>Total</td>
-                    <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}>₹ {fc(grandTotal,cur)}</td>
+                    <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '3px 6px',borderLeft:b,borderRight:b,borderTop:b}}></td>
+                    <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '3px 6px',borderLeft:b,borderRight:b,borderTop:b}}>{qtyTotal}</td>
+                    <td colSpan={dynamicColCount - leftColSpan - 2} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderLeft:b,borderRight:b,borderTop:b}}>Total</td>
+                    <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderLeft:b,borderRight:b,borderTop:b}}>₹ {fc(grandTotal,cur)}</td>
                   </tr>
                 </>
               )}
@@ -418,34 +444,34 @@ export default function InvoiceViewPage() {
         {/* Structured Bottom Section */}
         {isLastPage ? (
           <div style={{ marginTop: 'auto' }}>
-            <div style={{border:b,borderTop:'none',padding:'3px 8px',fontSize: isA5 ? 9.5 : 11}}>Total in words<br/><b>{safeToWords(grandTotal,cur)}</b></div>
-            <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 9 : 11}}>
-              <thead><tr><th rowSpan={2} style={{border:b,padding:2,background:lb,textAlign:'center'}}>HSN / SAC</th><th rowSpan={2} style={{border:b,padding:2,background:lb,textAlign:'center'}}>Taxable Value</th><th colSpan={2} style={{border:b,padding:2,background:lb,textAlign:'center'}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:b,padding:2,background:lb,textAlign:'center'}}>Total</th></tr><tr><th style={{border:b,padding:1.5,background:lb}}>%</th><th style={{border:b,padding:1.5,background:lb}}>Amount</th></tr></thead>
-              <tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:b,padding:2}}>{hsn}</td><td style={{border:b,padding:2,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:b,padding:2,textAlign:'right'}}>{d.pct}</td><td style={{border:b,padding:2,textAlign:'right'}}>{fc(isIgst?d.igst:d.cgst+d.sgst,cur)}</td><td style={{border:b,padding:2,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:b,padding:2}}>Total</td><td style={{border:b,padding:2,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:b,padding:2}}></td><td style={{border:b,padding:2,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:b,padding:2,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody>
+            <div style={{border:b,borderTop:'none',padding:'2px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Total in words<br/><b>{safeToWords(grandTotal,cur)}</b></div>
+            <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8 : 10}}>
+              <thead><tr><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>HSN / SAC</th><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Taxable Value</th><th colSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Total</th></tr><tr><th style={{border:b,padding:1,background:lb}}>%</th><th style={{border:b,padding:1,background:lb}}>Amount</th></tr></thead>
+              <tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:b,padding:1.5}}>{hsn}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{d.pct}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(isIgst?d.igst:d.cgst+d.sgst,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:b,padding:1.5}}>Total</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:b,padding:1.5}}></td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody>
             </table>
-            <div style={{border:b,borderTop:'none',padding:'3px 8px',fontSize: isA5 ? 9.5 : 11}}>Total Tax in words: <b>{safeToWords(totalTax,cur)}</b></div>
-            <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',border:b,borderTop:'none',fontSize: isA5 ? 9.5 : 11}}>
+            <div style={{border:b,borderTop:'none',padding:'2px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Total Tax in words: <b>{safeToWords(totalTax,cur)}</b></div>
+            <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',border:b,borderTop:'none',fontSize: isA5 ? 8.5 : 10}}>
               <div style={{borderRight:b}}>
-                <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1.5,borderBottom:b}}>Bank Details</div>
+                <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b}}>Bank Details</div>
                 <div style={{display:'flex'}}>
-                  <div style={{padding:'3px 6px',flex:1}}>{[['Name',co.bank],['Branch',co.branch],['Acc. Number',co.acc],['IFSC',co.ifsc],['UPI ID',co.upi]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:1}}><div style={{width: isA5 ? 60 : 75,fontWeight:'bold',flexShrink:0}}>{l}</div><div>{v}</div></div>))}</div>
-                  <div style={{width: isA5 ? 75 : 100,padding:3,textAlign:'center',borderLeft:b}}>{QRNode}<div style={{fontSize:8.5,marginTop:1}}>Pay using UPI</div></div>
+                  <div style={{padding:'2px 5px',flex:1}}>{[['Name',co.bank],['Branch',co.branch],['Acc. Number',co.acc],['IFSC',co.ifsc],['UPI ID',co.upi]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 55 : 70,fontWeight:'bold',flexShrink:0}}>{l}</div><div>{v}</div></div>))}</div>
+                  <div style={{width: isA5 ? 65 : 90,padding:2,textAlign:'center',borderLeft:b}}>{QRNode}<div style={{fontSize:7.5,marginTop:0.5}}>Pay using UPI</div></div>
                 </div>
               </div>
-              <div style={{padding:'3px 6px',textAlign:'center',fontSize: isA5 ? 9 : 10.5}}>
-                <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1.5,borderBottom:b,margin:'-3px -6px 3px'}}>Certified that particulars are true and correct.</div>
-                <div style={{fontWeight:'bold',margin:'2px 0'}}>{co.forCo}</div>
-                <div style={{height: isA5 ? 30 : 45}}>{co.sign&&<img src={co.sign} alt="sig" style={{maxHeight: isA5 ? 30 : 45}}/>}</div>
+              <div style={{padding:'2px 5px',textAlign:'center',fontSize: isA5 ? 8 : 10}}>
+                <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b,margin:'-2px -5px 2px'}}>Certified that particulars are true and correct.</div>
+                <div style={{fontWeight:'bold',margin:'1px 0'}}>{co.forCo}</div>
+                <div style={{height: isA5 ? 24 : 38}}>{co.sign&&<img src={co.sign} alt="sig" style={{maxHeight: isA5 ? 24 : 38}}/>}</div>
                 <div style={{fontWeight:'bold',marginTop:1,borderTop:'1px solid #ccc',paddingTop:1}}>Authorised Signatory</div>
               </div>
             </div>
-            <div style={{border:b,borderTop:'none',fontSize: isA5 ? 9 : 10.5}}>
-              <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1.5,borderBottom:b}}>Terms and Conditions</div>
-              <div style={{padding:'2px 6px'}}>{termsText.slice(0, 2).map((t:string,i:number)=><div key={i}>{t}</div>)}</div>
+            <div style={{border:b,borderTop:'none',fontSize: isA5 ? 8 : 10}}>
+              <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b}}>Terms and Conditions</div>
+              <div style={{padding:'1.5px 5px'}}>{termsText.slice(0, 2).map((t:string,i:number)=><div key={i}>{t}</div>)}</div>
             </div>
           </div>
         ) : (
-          <div style={{textAlign:'right',fontSize:10,fontWeight:'bold',padding:4,color:dark,border:b,background:lb,marginTop:'auto'}}>
+          <div style={{textAlign:'right',fontSize:9.5,fontWeight:'bold',padding:3,color:dark,border:b,background:lb,marginTop:'auto'}}>
             Continued on Next Page →
           </div>
         )}
@@ -457,52 +483,52 @@ export default function InvoiceViewPage() {
   const renderTemplate03Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const blue='#1a73c7', lb='#e9f2fb';
     return (
-      <div className="flex flex-col justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 10 : 12 }}>
+      <div className="flex flex-col justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
         <div>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:4,marginBottom:4}}>
-            <div><div style={{fontSize: isA5 ? 15 : 19,fontWeight:'bold',color:blue}}>TAX INVOICE</div><div style={{fontSize: isA5 ? 13 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div><div style={{fontSize: isA5 ? 9.5 : 11.5,lineHeight:1.25}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
-            <div style={{textAlign:'right'}}><div style={{fontSize:9.5,fontWeight:'bold'}}>ORIGINAL FOR RECIPIENT</div>{co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 38 : 55,height: isA5 ? 38 : 55}}/>}<div style={{fontSize:9.5,color:'#666',marginTop:1}}>Page {pageIdx + 1} of {totalPages}</div></div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
+            <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue}}>TAX INVOICE</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div><div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
+            <div style={{textAlign:'right'}}><div style={{fontSize:8.5,fontWeight:'bold'}}>ORIGINAL FOR RECIPIENT</div>{co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52,height: isA5 ? 32 : 52}}/>}<div style={{fontSize:8.5,color:'#666',marginTop:1}}>Page {pageIdx + 1} of {totalPages}</div></div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1.2fr 1.2fr 1fr',gap:6,borderBottom:`2px solid ${blue}`,paddingBottom:4,marginBottom:4,fontSize: isA5 ? 9.5 : 11}}>
-            <div><b style={{display:'block',marginBottom:1}}>Customer Details:</b><div style={{fontWeight:'bold'}}>{bu.name}</div><div>{bu.address}</div><div><b>GSTIN:</b> {bu.gstin}</div><div><b>State:</b> {bu.state}</div></div>
-            <div><b style={{display:'block',marginBottom:1}}>Shipping address:</b><div style={{fontWeight:'bold'}}>{sh.name}</div><div>{sh.address}</div><div><b>State:</b> {sh.state}</div></div>
-            <div>{[['Invoice #:',im.invoiceNo],['Invoice Date:',im.invoiceDate],['P.O. No.:',im.poNo],['E-Way No.:',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:1}}><div style={{fontWeight:'bold',width: isA5 ? 60 : 75}}>{l}</div><b>{v}</b></div>))}</div>
+          <div style={{display:'grid',gridTemplateColumns:'1.2fr 1.2fr 1fr',gap:5,borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3,fontSize: isA5 ? 8.5 : 10.5}}>
+            <div><b style={{display:'block',marginBottom:0.5}}>Customer Details:</b><div style={{fontWeight:'bold'}}>{bu.name}</div><div>{bu.address}</div><div><b>GSTIN:</b> {bu.gstin}</div><div><b>State:</b> {bu.state}</div></div>
+            <div><b style={{display:'block',marginBottom:0.5}}>Shipping address:</b><div style={{fontWeight:'bold'}}>{sh.name}</div><div>{sh.address}</div><div><b>State:</b> {sh.state}</div></div>
+            <div>{[['Invoice #:',im.invoiceNo],['Invoice Date:',im.invoiceDate],['P.O. No.:',im.poNo],['E-Way No.:',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
           </div>
-          <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 9.5 : 11}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>
-                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left', width: 35}}>Sr.No.</th>
-                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Name of Product / Service</th>
-                {colVis.size && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Size</th>}
-                {colVis.hsn && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>HSN/SAC</th>}
-                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Qty</th>
-                {colVis.mrp && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>MRP</th>}
-                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Rate</th>
-                {colVis.discount && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Disc%</th>}
-                {colVis.gstPercent && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>GST%</th>}
-                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Taxable Value</th>
+                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left', width: 30}}>Sr.No.</th>
+                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Name of Product / Service</th>
+                {colVis.size && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Size</th>}
+                {colVis.hsn && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>HSN/SAC</th>}
+                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Qty</th>
+                {colVis.mrp && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>MRP</th>}
+                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Rate</th>
+                {colVis.discount && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Disc%</th>}
+                {colVis.gstPercent && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>GST%</th>}
+                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Taxable Value</th>
               </tr>
             </thead>
             <tbody>
               {pageItems.map((it:any,i:number)=>(
                 <tr key={i}>
-                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{startIndex + i + 1}</td>
-                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd'}}>
-                    <span style={{fontWeight:'bold'}}>{it.name}</span>
+                  <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd',textAlign:'center'}}>{startIndex + i + 1}</td>
+                  <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd'}}>
+                    <div style={{fontWeight:'bold'}}>{it.name}</div>
                     {(it.subLines||[]).map((sl:string,si:number)=>(
-                      <span key={si} style={{display:'inline-block',marginRight:8,fontStyle:'italic',fontSize:8.5,color:'#444',backgroundColor:'#eef4fa',padding:'0.5px 4px',borderRadius:2,marginTop:1}}>
+                      <div key={si} style={{display:'block',fontStyle:'italic',fontSize: isA5 ? 7.5 : 9.5,color:'#444',backgroundColor:'#eef4fa',padding:'0.5px 3px',borderRadius:2,marginTop:1,width:'fit-content'}}>
                         {sl}
-                      </span>
+                      </div>
                     ))}
                   </td>
-                  {colVis.size && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.size || '---'}</td>}
-                  {colVis.hsn && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.hsn}</td>}
-                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.qty}</td>
-                  {colVis.mrp && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{it.mrp ? fc(it.mrp,cur) : '---'}</td>}
-                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{fc(it.price,cur)}</td>
-                  {colVis.discount && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{it.disc ? `${it.disc}%` : '0%'}</td>}
-                  {colVis.gstPercent && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{it.gstPct ? `${it.gstPct}%` : '0%'}</td>}
-                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{fc(it.taxable,cur)}</td>
+                  {colVis.size && <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.size || '---'}</td>}
+                  {colVis.hsn && <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.hsn}</td>}
+                  <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.qty}</td>
+                  {colVis.mrp && <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd',textAlign:'right'}}>{it.mrp ? fc(it.mrp,cur) : '---'}</td>}
+                  <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd',textAlign:'right'}}>{fc(it.price,cur)}</td>
+                  {colVis.discount && <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd',textAlign:'right'}}>{it.disc ? `${it.disc}%` : '0%'}</td>}
+                  {colVis.gstPercent && <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd',textAlign:'right'}}>{it.gstPct ? `${it.gstPct}%` : '0%'}</td>}
+                  <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderBottom:'1px solid #ddd',textAlign:'right'}}>{fc(it.taxable,cur)}</td>
                 </tr>
               ))}
             </tbody>
@@ -511,15 +537,15 @@ export default function InvoiceViewPage() {
 
         {isLastPage ? (
           <div style={{ marginTop: 'auto' }}>
-            <div style={{display:'flex',justifyContent:'flex-end',gap:25,padding:'2px 0',fontWeight:'bold',fontSize: isA5 ? 9.5 : 11.5}}><span>Taxable Amount</span><b>{fc(totalTaxable,cur)}</b></div>
-            <div style={{display:'flex',justifyContent:'flex-end',gap:25,padding:'2px 0',fontWeight:'bold',fontSize: isA5 ? 10.5 : 12.5}}><span>Total Amount</span><b>₹ {fc(grandTotal,cur)}</b></div>
-            <div style={{fontSize: isA5 ? 9 : 11,margin:'2px 0'}}>Total Items / Qty : {itemRows.length} / {qtyTotal}<br/>Total amount (in words): <b>{safeToWords(grandTotal,cur)}.</b></div>
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 9 : 10.5,marginTop:2}}><thead><tr><th rowSpan={2} style={{border:'1px solid #ccc',padding:1.5,background:lb}}>HSN/SAC</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1.5,background:lb}}>Taxable Value</th><th colSpan={2} style={{border:'1px solid #ccc',padding:1.5,background:lb}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1.5,background:lb}}>Total</th></tr><tr><th style={{border:'1px solid #ccc',padding:1.5,background:lb}}>%</th><th style={{border:'1px solid #ccc',padding:1.5,background:lb}}>Amount</th></tr></thead><tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:'1px solid #ccc',padding:1.5}}>{hsn}</td><td style={{border:'1px solid #ccc',padding:1.5,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1.5,textAlign:'right'}}>{d.pct}</td><td style={{border:'1px solid #ccc',padding:1.5,textAlign:'right'}}>{fc(isIgst?d.igst:d.tax,cur)}</td><td style={{border:'1px solid #ccc',padding:1.5,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:'1px solid #ccc',padding:1.5}}>Total</td><td style={{border:'1px solid #ccc',padding:1.5,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1.5}}></td><td style={{border:'1px solid #ccc',padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:'1px solid #ccc',padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody></table>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1.4fr 1fr',gap:6,marginTop:4,fontSize: isA5 ? 9 : 10.5,alignItems:'start'}}><div><b>Pay using UPI:</b><br/>{QRNode}</div><div><b>Bank Details:</b>{[['Name:',co.bank],['Branch:',co.branch],['Acc. Number:',co.acc],['IFSC:',co.ifsc],['UPI ID:',co.upi]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:1}}><div style={{width:55,fontWeight:'bold'}}>{l}</div>{v}</div>))}</div><div style={{textAlign:'center'}}><b>{co.forCo}</b><br/>{co.sign?<img src={co.sign} alt="sig" style={{width:45,opacity:0.7}}/>:<div style={{height:30}}/>}<div>Authorised Signatory</div></div></div>
-            <div style={{marginTop:3,fontSize: isA5 ? 8.5 : 10}}><b>Terms &amp; Condition:</b> {termsText.slice(0, 2).join('. ')}</div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:20,padding:'1.5px 0',fontWeight:'bold',fontSize: isA5 ? 8.5 : 11}}><span>Taxable Amount</span><b>{fc(totalTaxable,cur)}</b></div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:20,padding:'1.5px 0',fontWeight:'bold',fontSize: isA5 ? 9.5 : 12}}><span>Total Amount</span><b>₹ {fc(grandTotal,cur)}</b></div>
+            <div style={{fontSize: isA5 ? 8 : 10.5,margin:'1.5px 0'}}>Total Items / Qty : {itemRows.length} / {qtyTotal}<br/>Total amount (in words): <b>{safeToWords(grandTotal,cur)}.</b></div>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 8 : 10,marginTop:1}}><thead><tr><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>HSN/SAC</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Taxable Value</th><th colSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Total</th></tr><tr><th style={{border:'1px solid #ccc',padding:1,background:lb}}>%</th><th style={{border:'1px solid #ccc',padding:1,background:lb}}>Amount</th></tr></thead><tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:'1px solid #ccc',padding:1}}>{hsn}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{d.pct}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(isIgst?d.igst:d.tax,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:'1px solid #ccc',padding:1}}>Total</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1}}></td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody></table>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1.4fr 1fr',gap:5,marginTop:3,fontSize: isA5 ? 8 : 10,alignItems:'start'}}><div><b>Pay using UPI:</b><br/>{QRNode}</div><div><b>Bank Details:</b>{[['Name:',co.bank],['Branch:',co.branch],['Acc. Number:',co.acc],['IFSC:',co.ifsc],['UPI ID:',co.upi]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width:48,fontWeight:'bold'}}>{l}</div>{v}</div>))}</div><div style={{textAlign:'center'}}><b>{co.forCo}</b><br/>{co.sign?<img src={co.sign} alt="sig" style={{width:38,opacity:0.7}}/>:<div style={{height:24}}/>}<div>Authorised Signatory</div></div></div>
+            <div style={{marginTop:2,fontSize: isA5 ? 7.5 : 9.5}}><b>Terms &amp; Condition:</b> {termsText.slice(0, 2).join('. ')}</div>
           </div>
         ) : (
-          <div style={{textAlign:'right',fontSize:10,fontWeight:'bold',padding:4,color:blue,borderTop:`1px solid ${blue}`,marginTop:'auto'}}>
+          <div style={{textAlign:'right',fontSize:9,fontWeight:'bold',padding:3,color:blue,borderTop:`1px solid ${blue}`,marginTop:'auto'}}>
             Continued on Next Page →
           </div>
         )}
@@ -553,8 +579,8 @@ export default function InvoiceViewPage() {
             {itemRows.map((it:any,i:number)=>(
               <tr key={i}>
                 <td style={{padding:'2px',verticalAlign:'top'}}>
-                  {it.name} x {it.qty}
-                  {(it.subLines||[]).map((sl:string,si:number)=><span key={si} style={{display:'block',fontSize:9,fontStyle:'italic'}}>{sl}</span>)}
+                  <div style={{fontWeight:'bold'}}>{it.name} x {it.qty}</div>
+                  {(it.subLines||[]).map((sl:string,si:number)=><div key={si} style={{display:'block',fontSize:8.5,fontStyle:'italic'}}>{sl}</div>)}
                   {colVis.hsn && <span style={{display:'block',fontSize:10}}>HSN : {it.hsn}</span>}
                   <span style={{display:'block',fontSize:10}}>Rate: {fc(it.price,cur)}</span>
                 </td>
@@ -574,7 +600,8 @@ export default function InvoiceViewPage() {
     );
   };
 
-  const renderPage = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
+  const renderPage = (pageItems: any[], pageIdx: number, isLastPage: boolean) => {
+    const startIndex = getStartIndex(pageIdx);
     switch (tpl) {
       case 'template_03':
         return renderTemplate03Page(pageItems, pageIdx, isLastPage, startIndex);
@@ -585,7 +612,7 @@ export default function InvoiceViewPage() {
 
   const sheetWidth = isPOS ? 'auto' : '210mm';
   const sheetMinHeight = isPOS ? 'auto' : (isA5 ? '148mm' : '297mm');
-  const sheetPadding = isPOS ? '0' : (isA5 ? '5mm 8mm' : '8mm');
+  const sheetPadding = isPOS ? '0' : (isA5 ? '4mm 6mm' : '8mm');
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center pb-16 print:bg-white print:p-0 print:m-0 print:pb-0">
@@ -642,17 +669,20 @@ export default function InvoiceViewPage() {
                 className="invoice-page-sheet shadow-md print:shadow-none"
                 style={{
                   width: sheetWidth,
+                  height: isA5 ? '148mm' : 'auto',
                   minHeight: sheetMinHeight,
+                  maxHeight: isA5 ? '148mm' : undefined,
                   padding: sheetPadding,
                   background: '#fff',
                   boxSizing: 'border-box',
                   margin: '0 auto 16px auto',
                   pageBreakAfter: idx < totalPages - 1 ? 'always' : 'auto',
                   breakAfter: idx < totalPages - 1 ? 'page' : 'auto',
-                  position: 'relative'
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}
               >
-                {renderPage(pItems, idx, idx === totalPages - 1, idx * itemsPerPage)}
+                {renderPage(pItems, idx, idx === totalPages - 1)}
               </div>
             ))
           )}
@@ -685,6 +715,7 @@ export default function InvoiceViewPage() {
             box-shadow: none !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            overflow: hidden !important;
           }
         }
       `}</style>
