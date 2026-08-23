@@ -783,14 +783,12 @@ export default function SettingsPage() {
               <p className="text-xs text-green-700/80 mb-3 font-medium">Select the layout design for your printed and downloaded invoices.</p>
               <select 
                 className="w-full bg-white border border-green-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow text-slate-800 font-semibold"
-                value={formData.invoice_template || 'invocentric_classic_gst'}
+                value={formData.invoice_template || 'standard_a4'}
                 onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
               >
-                <option value="invocentric_classic_gst">InvoCentic Classic GST Invoice [Default]</option>
-                <option value="tally_prime_gst">InvoCentic Tally Prime Standard GST Invoice</option>
-                                <option value="tally_bill_of_supply">InvoCentic Tally Bill of Supply Composition</option>
-                <option value="tally_export_invoice">InvoCentic Tally Export GST Invoice</option>
-                <option value="thermal">InvoCentic POS Thermal (Compact 3-inch/80mm Roll)</option>
+                <option value="standard_a4">Standard Invoice (A4 Format)</option>
+                <option value="pos_thermal">POS Invoice (3" × 2" Roll)</option>
+                <option value="voucher_a5">Voucher Invoice (A5 Vertical / Portrait)</option>
               </select>
             </div>
           </div>

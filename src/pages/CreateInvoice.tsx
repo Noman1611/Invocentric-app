@@ -1316,16 +1316,12 @@ export default function CreateInvoicePage() {
               </label>
               <select
                 className="input-field font-semibold text-sm"
-                value={formData.invoice_template || 'invocentric_classic_gst'}
+                value={formData.invoice_template || 'standard_a4'}
                 onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
               >
-                <option value="invocentric_classic_gst">InvoCentic Classic GST Invoice (A4 Standard)</option>
-                <option value="tally_prime_gst">InvoCentic Tally Prime Standard GST Invoice</option>
-                                <option value="tally_bill_of_supply">InvoCentic Tally Bill of Supply Composition</option>
-                <option value="tally_export_invoice">InvoCentic Tally Export GST Invoice</option>
-                <option value="invocentric_modern_clean">InvoCentic Modern Clean (SaaS / Minimalist)</option>
-                <option value="a5_half_sheet">InvoCentic A5 Half-Sheet Landscape (148 x 210 mm)</option>
-                <option value="thermal">InvoCentic POS Thermal (3-inch / 80mm Roll)</option>
+                <option value="standard_a4">Standard Invoice (A4 Format)</option>
+                <option value="pos_thermal">POS Invoice (3" × 2" Roll)</option>
+                <option value="voucher_a5">Voucher Invoice (A5 Vertical / Portrait)</option>
               </select>
               <p className="text-[11px] text-slate-500 italic">
                 Applies instant layout formatting to preview &amp; printouts.
