@@ -105,6 +105,15 @@ export default function InvoiceViewPage() {
   const items = invoice?.items || [];
   const cur = invoice?.currency || 'INR';
 
+  // Dynamic column visibility from invoice or fallback to true
+  const colVis = {
+    size: invoice?.columnVisibility?.size ?? true,
+    hsn: invoice?.columnVisibility?.hsn ?? true,
+    mrp: invoice?.columnVisibility?.mrp ?? true,
+    discount: invoice?.columnVisibility?.discount ?? true,
+    gstPercent: invoice?.columnVisibility?.gstPercent ?? true,
+  };
+
   const itemRows = items.map((i: any) => {
     const qty = Number(i.quantity) || 0;
     const price = Number(i.price || i.mrp) || 0;
@@ -113,7 +122,6 @@ export default function InvoiceViewPage() {
     const taxable = qty * price * (1 - disc / 100);
     const gstAmt = taxable * gstPct / 100;
 
-    // Collect serial numbers and batch details
     const subDetails: string[] = [];
     if (i.serial_number) subDetails.push(`Serial No: ${i.serial_number}`);
     if (i.serialNumber && i.serialNumber !== i.serial_number) subDetails.push(`Serial No: ${i.serialNumber}`);
@@ -144,6 +152,8 @@ export default function InvoiceViewPage() {
       taxable,
       gstAmt,
       total: taxable + gstAmt,
+      size: i.size || '',
+      mrp: Number(i.mrp || 0),
       hsn: i.hsn_code || i.hsn || '---',
       name: i.description || i.name || 'Item',
       subLines: Array.from(new Set(subDetails))
@@ -308,6 +318,10 @@ export default function InvoiceViewPage() {
   const QRNode = upiUrl ? <QRCodeSVG value={upiUrl} size={isA5 ? 55 : 78} level="H" /> : <div style={{ width: isA5 ? 55 : 78, height: isA5 ? 55 : 78, border: '1px dashed #999' }} />;
   const termsText = (invoice.terms || sellerInfo?.default_terms || '').split('\n').filter(Boolean);
 
+  // Dynamic column calculations
+  const dynamicColCount = 1 + 1 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0) + 1 + (colVis.mrp ? 1 : 0) + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0) + 1;
+  const leftColSpan = 1 + 1 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0);
+
   // Template 01 (and default) Page Renderer
   const renderTemplate01Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const blue='#2f6fb0', dark='#1c4a75', lb='#eaf2fb', b=`1px solid ${blue}`;
@@ -344,29 +358,57 @@ export default function InvoiceViewPage() {
             </div>
           </div>
 
-          {/* Items Table with Serial / Batch Number rendering */}
+          {/* Dynamic Items Table */}
           <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 9.5 : 11}}>
-            <thead><tr>{['Sr. No.','Name of Product / Service','HSN / SAC','Qty','Rate','Taxable Value'].map(h=><th key={h} style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>{h}</th>)}</tr></thead>
+            <thead>
+              <tr>
+                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11, width: 35}}>Sr. No.</th>
+                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Name of Product / Service</th>
+                {colVis.size && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Size</th>}
+                {colVis.hsn && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>HSN / SAC</th>}
+                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Qty</th>
+                {colVis.mrp && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>MRP</th>}
+                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Rate</th>
+                {colVis.discount && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Disc%</th>}
+                {colVis.gstPercent && <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>GST%</th>}
+                <th style={{background:lb,border:b,padding: isA5 ? '2.5px 4px' : '4px 6px',fontSize: isA5 ? 9.5 : 11}}>Taxable Value</th>
+              </tr>
+            </thead>
             <tbody>
-              {pageItems.map((it:any,idx:number)=>(<tr key={idx}>
-                <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{startIndex + idx + 1}</td>
-                <td style={{padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>
-                  <span style={{fontWeight:'bold'}}>{it.name}</span>
-                  {(it.subLines||[]).map((sl:string,si:number)=>(
-                    <span key={si} style={{display:'inline-block',marginRight:8,fontStyle:'italic',fontSize: isA5 ? 8.5 : 10,color:'#444',backgroundColor:'#f0f4f9',padding:'0.5px 4px',borderRadius:2,marginTop:1}}>
-                      {sl}
-                    </span>
-                  ))}
-                </td>
-                <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.hsn}</td>
-                <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.qty}</td>
-                <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{fc(it.price,cur)}</td>
-                <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{fc(it.taxable,cur)}</td>
-              </tr>))}
+              {pageItems.map((it:any,idx:number)=>(
+                <tr key={idx}>
+                  <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{startIndex + idx + 1}</td>
+                  <td style={{padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>
+                    <span style={{fontWeight:'bold'}}>{it.name}</span>
+                    {(it.subLines||[]).map((sl:string,si:number)=>(
+                      <span key={si} style={{display:'inline-block',marginRight:8,fontStyle:'italic',fontSize: isA5 ? 8.5 : 10,color:'#444',backgroundColor:'#f0f4f9',padding:'0.5px 4px',borderRadius:2,marginTop:1}}>
+                        {sl}
+                      </span>
+                    ))}
+                  </td>
+                  {colVis.size && <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.size || '---'}</td>}
+                  {colVis.hsn && <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.hsn}</td>}
+                  <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.qty}</td>
+                  {colVis.mrp && <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.mrp ? fc(it.mrp,cur) : '---'}</td>}
+                  <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{fc(it.price,cur)}</td>
+                  {colVis.discount && <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.disc ? `${it.disc}%` : '0%'}</td>}
+                  {colVis.gstPercent && <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{it.gstPct ? `${it.gstPct}%` : '0%'}</td>}
+                  <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '5px 6px',borderLeft:b,borderRight:b,borderBottom:'1px solid #dce6f0'}}>{fc(it.taxable,cur)}</td>
+                </tr>
+              ))}
               {isLastPage && (
                 <>
-                  <tr><td colSpan={4} style={{padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b}}></td><td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b}}><b>{isIgst?'IGST':'CGST/SGST'}</b></td><td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b}}><b>{fc(totalTaxable,cur)}</b><br/><b>{fc(totalTax,cur)}</b></td></tr>
-                  <tr style={{fontWeight:'bold'}}><td colSpan={3} style={{padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}></td><td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}>Total</td><td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}>{qtyTotal}</td><td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}>₹ {fc(grandTotal,cur)}</td></tr>
+                  <tr>
+                    <td colSpan={leftColSpan} style={{padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b}}></td>
+                    <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b}}><b>{isIgst?'IGST':'CGST/SGST'}</b></td>
+                    <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b}}><b>{fc(totalTaxable,cur)}</b><br/><b>{fc(totalTax,cur)}</b></td>
+                  </tr>
+                  <tr style={{fontWeight:'bold'}}>
+                    <td colSpan={leftColSpan} style={{padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}></td>
+                    <td style={{textAlign:'center',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}>{qtyTotal}</td>
+                    <td colSpan={dynamicColCount - leftColSpan - 2} style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}>Total</td>
+                    <td style={{textAlign:'right',padding: isA5 ? '2.5px 4px' : '4px 6px',borderLeft:b,borderRight:b,borderTop:b}}>₹ {fc(grandTotal,cur)}</td>
+                  </tr>
                 </>
               )}
             </tbody>
@@ -426,7 +468,45 @@ export default function InvoiceViewPage() {
             <div><b style={{display:'block',marginBottom:1}}>Shipping address:</b><div style={{fontWeight:'bold'}}>{sh.name}</div><div>{sh.address}</div><div><b>State:</b> {sh.state}</div></div>
             <div>{[['Invoice #:',im.invoiceNo],['Invoice Date:',im.invoiceDate],['P.O. No.:',im.poNo],['E-Way No.:',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:1}}><div style={{fontWeight:'bold',width: isA5 ? 60 : 75}}>{l}</div><b>{v}</b></div>))}</div>
           </div>
-          <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 9.5 : 11}}><thead><tr>{['Sr.No.','Name of Product / Service','HSN/SAC','Qty','Rate','Taxable Value'].map(h=><th key={h} style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>{h}</th>)}</tr></thead><tbody>{pageItems.map((it:any,i:number)=>(<tr key={i}><td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{startIndex + i + 1}</td><td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd'}}><span style={{fontWeight:'bold'}}>{it.name}</span>{(it.subLines||[]).map((sl:string,si:number)=><span key={si} style={{display:'inline-block',marginRight:8,fontStyle:'italic',fontSize:8.5,color:'#444',backgroundColor:'#eef4fa',padding:'0.5px 4px',borderRadius:2,marginTop:1}}>{sl}</span>)}</td><td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.hsn}</td><td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.qty}</td><td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{fc(it.price,cur)}</td><td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{fc(it.taxable,cur)}</td></tr>))}</tbody></table>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 9.5 : 11}}>
+            <thead>
+              <tr>
+                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left', width: 35}}>Sr.No.</th>
+                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Name of Product / Service</th>
+                {colVis.size && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Size</th>}
+                {colVis.hsn && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>HSN/SAC</th>}
+                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Qty</th>
+                {colVis.mrp && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>MRP</th>}
+                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Rate</th>
+                {colVis.discount && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Disc%</th>}
+                {colVis.gstPercent && <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>GST%</th>}
+                <th style={{background:blue,color:'#fff',padding: isA5 ? 2.5 : 5,textAlign:'left'}}>Taxable Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageItems.map((it:any,i:number)=>(
+                <tr key={i}>
+                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{startIndex + i + 1}</td>
+                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd'}}>
+                    <span style={{fontWeight:'bold'}}>{it.name}</span>
+                    {(it.subLines||[]).map((sl:string,si:number)=>(
+                      <span key={si} style={{display:'inline-block',marginRight:8,fontStyle:'italic',fontSize:8.5,color:'#444',backgroundColor:'#eef4fa',padding:'0.5px 4px',borderRadius:2,marginTop:1}}>
+                        {sl}
+                      </span>
+                    ))}
+                  </td>
+                  {colVis.size && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.size || '---'}</td>}
+                  {colVis.hsn && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.hsn}</td>}
+                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'center'}}>{it.qty}</td>
+                  {colVis.mrp && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{it.mrp ? fc(it.mrp,cur) : '---'}</td>}
+                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{fc(it.price,cur)}</td>
+                  {colVis.discount && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{it.disc ? `${it.disc}%` : '0%'}</td>}
+                  {colVis.gstPercent && <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{it.gstPct ? `${it.gstPct}%` : '0%'}</td>}
+                  <td style={{padding: isA5 ? 2.5 : 5,borderBottom:'1px solid #ddd',textAlign:'right'}}>{fc(it.taxable,cur)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {isLastPage ? (
@@ -461,7 +541,29 @@ export default function InvoiceViewPage() {
         <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{wide?'================BILLED TO================':'=====BILLED TO====='}</div>
         <div style={{textAlign:'left',fontSize:11}}>Name : {bu.name}<br/>GSTIN : {bu.gstin}<br/>PAN : {bu.pan}</div>
         <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{sep}</div>
-        <table style={{width:'100%',borderCollapse:'collapse',textAlign:'left',fontSize:11,margin:'4px 0'}}><thead><tr><th style={{borderBottom:'1px solid #000',padding:'2px'}}>Items x Qty<br/>HSN<br/>Rate</th><th style={{borderBottom:'1px solid #000',padding:'2px'}}>Taxable<br/>+ GST</th><th style={{borderBottom:'1px solid #000',padding:'2px',textAlign:'right'}}>Total</th></tr></thead><tbody>{itemRows.map((it:any,i:number)=>(<tr key={i}><td style={{padding:'2px',verticalAlign:'top'}}>{it.name} x {it.qty}{(it.subLines||[]).map((sl:string,si:number)=><span key={si} style={{display:'block',fontSize:9,fontStyle:'italic'}}>{sl}</span>)}<span style={{display:'block',fontSize:10}}>HSN : {it.hsn}</span><span style={{display:'block',fontSize:10}}>Rate: {fc(it.price,cur)}</span></td><td style={{padding:'2px',verticalAlign:'top',textAlign:'right'}}>{fc(it.taxable,cur)}<br/>+ {it.gstPct} %</td><td style={{padding:'2px',verticalAlign:'top',textAlign:'right'}}>{fc(it.total,cur)}</td></tr>))}</tbody></table>
+        <table style={{width:'100%',borderCollapse:'collapse',textAlign:'left',fontSize:11,margin:'4px 0'}}>
+          <thead>
+            <tr>
+              <th style={{borderBottom:'1px solid #000',padding:'2px'}}>Items x Qty<br/>HSN<br/>Rate</th>
+              <th style={{borderBottom:'1px solid #000',padding:'2px'}}>Taxable<br/>+ GST</th>
+              <th style={{borderBottom:'1px solid #000',padding:'2px',textAlign:'right'}}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itemRows.map((it:any,i:number)=>(
+              <tr key={i}>
+                <td style={{padding:'2px',verticalAlign:'top'}}>
+                  {it.name} x {it.qty}
+                  {(it.subLines||[]).map((sl:string,si:number)=><span key={si} style={{display:'block',fontSize:9,fontStyle:'italic'}}>{sl}</span>)}
+                  {colVis.hsn && <span style={{display:'block',fontSize:10}}>HSN : {it.hsn}</span>}
+                  <span style={{display:'block',fontSize:10}}>Rate: {fc(it.price,cur)}</span>
+                </td>
+                <td style={{padding:'2px',verticalAlign:'top',textAlign:'right'}}>{fc(it.taxable,cur)}<br/>+ {it.gstPct} %</td>
+                <td style={{padding:'2px',verticalAlign:'top',textAlign:'right'}}>{fc(it.total,cur)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{wide?'================SUMMARY================':'=====SUMMARY====='}</div>
         <div style={{textAlign:'left'}}>{[['Taxable Amount',fc(totalTaxable,cur)],['Add : IGST',fc(totalTax,cur)],['Total Tax',fc(totalTax,cur)],[' Total Amount After Tax',`₹${fc(grandTotal,cur)}`],['GST Payable on Reverse Charge','N.A.']].map(([l,v])=>(<div key={l} style={{display:'flex',justifyContent:'space-between',fontSize:11}}><span>{l}</span><span>{v}</span></div>))}</div>
         <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{sep}</div>
