@@ -783,12 +783,20 @@ export default function SettingsPage() {
               <p className="text-xs text-green-700/80 mb-3 font-medium">Select the layout design for your printed and downloaded invoices.</p>
               <select 
                 className="w-full bg-white border border-green-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow text-slate-800 font-semibold"
-                value={formData.invoice_template || 'standard_a4'}
+                value={formData.invoice_template || 'template_01'}
                 onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
               >
-                <option value="standard_a4">Standard Invoice (A4 Format)</option>
-                <option value="pos_thermal">POS Invoice (3" × 2" Roll)</option>
-                <option value="voucher_a5">Voucher Invoice (A5 Vertical / Portrait)</option>
+                <option value="template_01">Template 01 — Blue Bordered Classic (A4)</option>
+                <option value="template_02">Template 02 — Blue Bordered + IGST Columns (A4)</option>
+                <option value="template_03">Template 03 — Blue Line Top / Company Left (A4)</option>
+                <option value="template_04">Template 04 — Blue Line Top + IGST Columns (A4)</option>
+                <option value="template_07">Template 07 — Full Bordered CGST/SGST (A4)</option>
+                <option value="template_08">Template 08 — Company Right / Bill of Supply (A4)</option>
+                <option value="template_09">Template 09 — Compact Border + Summary (A4)</option>
+                <option value="template_10">Template 10 — Centered Header + Table Meta (A4)</option>
+                <option value="template_12">Template 12 — Black Frame / All Table (A4)</option>
+                <option value="template_14">Template 14 — POS Receipt Thermal (Wide 380px)</option>
+                <option value="template_15">Template 15 — POS Receipt Thermal (Narrow 340px)</option>
               </select>
             </div>
           </div>
