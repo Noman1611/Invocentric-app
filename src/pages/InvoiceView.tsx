@@ -6,7 +6,7 @@ import { getSecureStorage } from '../utils/cryptoUtils';
 import { formatCurrency, cn, normalizePhoneNumber } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { toWords } from 'number-to-words';
-import { ArrowLeft, Printer, Download, Share2, Loader2, Phone, Mail, MapPin } from 'lucide-react';
+import { ArrowLeft, Printer, Download, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
 import { WhatsAppShareModal } from '../components/WhatsAppShareModal';
@@ -249,7 +249,6 @@ export default function InvoiceViewPage() {
       pdf.save(`Invoice_${invoice?.invoice_number || invoice?.id?.slice(0, 8) || 'document'}.pdf`);
     } catch (err) {
       console.error("PDF Download Error:", err);
-      // Fallback to native print
       window.print();
     } finally {
       setDownloading(false);
@@ -318,7 +317,7 @@ export default function InvoiceViewPage() {
   const isPaid = invoice.status === 'paid';
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center pb-16">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center pb-16 print:bg-white print:p-0 print:m-0 print:pb-0">
       
       {/* ── TOP ACTION HEADER (Back, Invoice #, Share, PDF, Print) ── */}
       <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200 shadow-xs print:hidden">
@@ -388,43 +387,42 @@ export default function InvoiceViewPage() {
       </header>
 
       {/* ── MAIN INVOICE DOCUMENT ── */}
-      <main className="w-full max-w-4xl px-2 sm:px-4 mt-4 sm:mt-6 flex justify-center">
+      <main className="w-full max-w-4xl px-2 sm:px-4 mt-4 sm:mt-6 flex justify-center print:max-w-none print:w-full print:p-0 print:m-0 print:block">
         <div 
           ref={invoiceRef}
           id="invoice-document-canvas"
-          className="w-full bg-white text-slate-900 shadow-xl rounded-none sm:rounded-xl border border-slate-200 p-6 sm:p-8 box-border text-[12px] leading-snug flex flex-col justify-between"
+          className="w-full bg-white text-slate-900 shadow-xl rounded-none sm:rounded-xl border border-slate-200 p-6 sm:p-8 box-border text-[11.5px] leading-snug flex flex-col justify-between print:shadow-none print:border-none print:p-0 print:m-0 print:w-full print:max-w-none print:rounded-none"
           style={{
             maxWidth: '820px',
-            minHeight: '297mm',
             fontFamily: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
           }}
         >
           {/* Header: Seller Brand & Meta */}
           <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-5 border-b border-slate-200">
-              <div className="flex gap-3.5 items-start max-w-md">
+            <div className="flex justify-between items-start gap-4 pb-4 border-b border-slate-300">
+              <div className="flex gap-3.5 items-start max-w-[60%]">
                 {sellerInfo?.logo_url && (
                   <img 
                     src={sellerInfo.logo_url} 
                     alt="Logo" 
-                    className="w-16 h-16 object-contain rounded-lg border border-slate-100 shrink-0" 
+                    className="w-14 h-14 object-contain rounded-lg border border-slate-100 shrink-0" 
                   />
                 )}
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-black uppercase text-slate-900 tracking-tight leading-tight">
+                  <h2 className="text-lg sm:text-xl font-black uppercase text-slate-900 tracking-tight leading-tight">
                     {sellerInfo?.business_name || 'Business Name'}
                   </h2>
                   {sellerInfo?.address && (
-                    <p className="text-slate-600 text-[11px] whitespace-pre-line mt-1 leading-relaxed">
+                    <p className="text-slate-600 text-[10.5px] whitespace-pre-line mt-0.5 leading-relaxed">
                       {sellerInfo.address}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-600 mt-1 font-medium">
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10.5px] text-slate-600 mt-0.5 font-medium">
                     {sellerInfo?.phone && <span>Ph: {sellerInfo.phone}</span>}
                     {sellerInfo?.email && <span>Email: {sellerInfo.email}</span>}
                   </div>
                   {sellerInfo?.gstin && (
-                    <p className="text-[11px] font-bold text-slate-800 mt-0.5">
+                    <p className="text-[10.5px] font-bold text-slate-800 mt-0.5">
                       GSTIN: <span className="uppercase">{sellerInfo.gstin}</span>
                     </p>
                   )}
@@ -432,15 +430,15 @@ export default function InvoiceViewPage() {
               </div>
 
               {/* Document Title & Invoice Details */}
-              <div className="text-left sm:text-right shrink-0">
-                <span className="inline-block px-3 py-1 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-md mb-2">
+              <div className="text-right shrink-0">
+                <span className="inline-block px-3 py-1 bg-slate-900 text-white font-black text-[11px] uppercase tracking-widest rounded mb-1.5">
                   TAX INVOICE
                 </span>
-                <div className="space-y-0.5 text-[11px] text-slate-700">
+                <div className="space-y-0.5 text-[10.5px] text-slate-700">
                   <p><span className="text-slate-500 font-medium">Invoice No:</span> <span className="font-bold text-slate-900">#{invoiceNumberDisplay}</span></p>
-                  <p><span className="text-slate-500 font-medium">Invoice Date:</span> <span className="font-semibold text-slate-900">{formatDateSafe(invoice.date, 'dd MMM yyyy')}</span></p>
+                  <p><span className="text-slate-500 font-medium">Invoice Date:</span> <span className="font-semibold text-slate-900">{formatDateSafe(invoice.date, 'dd-MMM-yyyy')}</span></p>
                   {invoice.due_date && (
-                    <p><span className="text-slate-500 font-medium">Due Date:</span> <span className="font-semibold text-slate-900">{formatDateSafe(invoice.due_date, 'dd MMM yyyy')}</span></p>
+                    <p><span className="text-slate-500 font-medium">Due Date:</span> <span className="font-semibold text-slate-900">{formatDateSafe(invoice.due_date, 'dd-MMM-yyyy')}</span></p>
                   )}
                   {invoice.po_number && (
                     <p><span className="text-slate-500 font-medium">P.O. No:</span> <span className="font-semibold text-slate-900">{invoice.po_number}</span></p>
@@ -450,44 +448,44 @@ export default function InvoiceViewPage() {
             </div>
 
             {/* Buyer Details (Billed To) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-b border-slate-200">
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  Billed To (Customer Details)
+            <div className="grid grid-cols-2 gap-3 py-3 border-b border-slate-300">
+              <div className="bg-slate-50/80 p-2.5 rounded border border-slate-200">
+                <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+                  Billed To (Buyer / Customer)
                 </p>
-                <p className="text-sm font-black text-slate-900 uppercase">
+                <p className="text-xs font-black text-slate-900 uppercase">
                   {customer?.name || invoice.customer_name || 'Individual Customer'}
                 </p>
                 {customer?.address && (
-                  <p className="text-[11px] text-slate-600 whitespace-pre-line mt-0.5">
+                  <p className="text-[10.5px] text-slate-600 whitespace-pre-line mt-0.5">
                     {customer.address}
                   </p>
                 )}
-                <div className="flex flex-wrap gap-x-3 text-[11px] text-slate-600 mt-1 font-medium">
+                <div className="flex flex-wrap gap-x-3 text-[10.5px] text-slate-600 mt-0.5 font-medium">
                   {customer?.phone && <span>Ph: {customer.phone}</span>}
                   {customer?.email && <span>Email: {customer.email}</span>}
                 </div>
                 {customer?.gst_number && (
-                  <p className="text-[11px] font-bold text-slate-800 mt-0.5">
+                  <p className="text-[10.5px] font-bold text-slate-800 mt-0.5">
                     GSTIN: <span className="uppercase">{customer.gst_number}</span>
                   </p>
                 )}
               </div>
 
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
+              <div className="bg-slate-50/80 p-2.5 rounded border border-slate-200 flex flex-col justify-between">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-                    Place of Supply & Payment
+                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+                    Supply Details
                   </p>
-                  <p className="text-[11px] text-slate-700">
-                    <span className="text-slate-500 font-medium">State / Place of Supply:</span> <span className="font-bold text-slate-900">{customer?.place_of_supply || customer?.state || sellerInfo?.state || 'Local'}</span>
+                  <p className="text-[10.5px] text-slate-700">
+                    <span className="text-slate-500 font-medium">Place of Supply:</span> <span className="font-bold text-slate-900">{customer?.place_of_supply || customer?.state || sellerInfo?.state || 'Local'}</span>
                   </p>
-                  <p className="text-[11px] text-slate-700 mt-0.5">
+                  <p className="text-[10.5px] text-slate-700 mt-0.5">
                     <span className="text-slate-500 font-medium">Payment Status:</span> <span className={cn("font-bold uppercase", isPaid ? "text-emerald-700" : "text-amber-700")}>{invoice.status || 'Pending'}</span>
                   </p>
                 </div>
                 {invoice.payment_terms && (
-                  <p className="text-[10px] text-slate-500 mt-2 font-medium">
+                  <p className="text-[9.5px] text-slate-500 mt-1 font-medium">
                     Terms: {invoice.payment_terms}
                   </p>
                 )}
@@ -495,21 +493,21 @@ export default function InvoiceViewPage() {
             </div>
 
             {/* Items Table */}
-            <div className="mt-4 border border-slate-200 rounded-lg overflow-hidden">
+            <div className="mt-3 border border-slate-300 rounded overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 text-slate-800 font-black text-[11px] uppercase tracking-wider border-b border-slate-200">
-                    <th className="p-2.5 text-center w-10 border-r border-slate-200">#</th>
-                    <th className="p-2.5 border-r border-slate-200">Product / Service</th>
-                    <th className="p-2.5 text-center w-20 border-r border-slate-200">HSN/SAC</th>
-                    <th className="p-2.5 text-center w-16 border-r border-slate-200">Qty</th>
-                    <th className="p-2.5 text-right w-24 border-r border-slate-200">Rate</th>
-                    {totalDiscount > 0 && <th className="p-2.5 text-center w-16 border-r border-slate-200">Disc %</th>}
-                    {hasGST && <th className="p-2.5 text-center w-16 border-r border-slate-200">GST %</th>}
-                    <th className="p-2.5 text-right w-28">Amount</th>
+                  <tr className="bg-slate-100 text-slate-800 font-bold text-[10.5px] uppercase tracking-wider border-b border-slate-300">
+                    <th className="p-2 text-center w-8 border-r border-slate-300">#</th>
+                    <th className="p-2 border-r border-slate-300">Description of Goods / Services</th>
+                    <th className="p-2 text-center w-16 border-r border-slate-300">HSN</th>
+                    <th className="p-2 text-center w-14 border-r border-slate-300">Qty</th>
+                    <th className="p-2 text-right w-20 border-r border-slate-300">Rate</th>
+                    {totalDiscount > 0 && <th className="p-2 text-center w-14 border-r border-slate-300">Disc %</th>}
+                    {hasGST && <th className="p-2 text-center w-14 border-r border-slate-300">GST %</th>}
+                    <th className="p-2 text-right w-24">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 text-[11px]">
+                <tbody className="divide-y divide-slate-200 text-[10.5px]">
                   {items.map((item: any, idx: number) => {
                     const qty = Number(item.quantity) || 0;
                     const price = Number(item.price || item.mrp) || 0;
@@ -518,18 +516,18 @@ export default function InvoiceViewPage() {
                     const lineTotal = qty * price * (1 - disc / 100);
 
                     return (
-                      <tr key={idx} className="align-top hover:bg-slate-50/50">
-                        <td className="p-2.5 text-center text-slate-500 font-medium border-r border-slate-200">{idx + 1}</td>
-                        <td className="p-2.5 border-r border-slate-200 font-semibold text-slate-900">
+                      <tr key={idx} className="align-top">
+                        <td className="p-2 text-center text-slate-500 font-medium border-r border-slate-300">{idx + 1}</td>
+                        <td className="p-2 border-r border-slate-300 font-semibold text-slate-900">
                           <div>{item.description || item.name || 'Item'}</div>
-                          {item.notes && <div className="text-[10px] text-slate-500 font-normal mt-0.5">{item.notes}</div>}
+                          {item.notes && <div className="text-[9.5px] text-slate-500 font-normal mt-0.5">{item.notes}</div>}
                         </td>
-                        <td className="p-2.5 text-center text-slate-600 border-r border-slate-200">{item.hsn_code || item.hsn || '---'}</td>
-                        <td className="p-2.5 text-center font-bold text-slate-900 border-r border-slate-200">{qty} {item.unit || ''}</td>
-                        <td className="p-2.5 text-right text-slate-700 border-r border-slate-200">{formatCurrency(price, invoice.currency)}</td>
-                        {totalDiscount > 0 && <td className="p-2.5 text-center text-slate-600 border-r border-slate-200">{disc > 0 ? `${disc}%` : '-'}</td>}
-                        {hasGST && <td className="p-2.5 text-center text-slate-600 border-r border-slate-200">{gstPct > 0 ? `${gstPct}%` : '-'}</td>}
-                        <td className="p-2.5 text-right font-black text-slate-900">{formatCurrency(lineTotal, invoice.currency)}</td>
+                        <td className="p-2 text-center text-slate-600 border-r border-slate-300">{item.hsn_code || item.hsn || '---'}</td>
+                        <td className="p-2 text-center font-bold text-slate-900 border-r border-slate-300">{qty} {item.unit || ''}</td>
+                        <td className="p-2 text-right text-slate-700 border-r border-slate-300">{formatCurrency(price, invoice.currency)}</td>
+                        {totalDiscount > 0 && <td className="p-2 text-center text-slate-600 border-r border-slate-300">{disc > 0 ? `${disc}%` : '-'}</td>}
+                        {hasGST && <td className="p-2 text-center text-slate-600 border-r border-slate-300">{gstPct > 0 ? `${gstPct}%` : '-'}</td>}
+                        <td className="p-2 text-right font-black text-slate-900">{formatCurrency(lineTotal, invoice.currency)}</td>
                       </tr>
                     );
                   })}
@@ -538,31 +536,31 @@ export default function InvoiceViewPage() {
             </div>
 
             {/* Calculation Totals & Amount in Words */}
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mt-4">
-              <div className="sm:col-span-7 flex flex-col justify-between">
-                <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            <div className="grid grid-cols-12 gap-3 mt-3">
+              <div className="col-span-7 flex flex-col justify-between">
+                <div className="bg-slate-50/80 p-2.5 rounded border border-slate-200">
+                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-500">
                     Total in Words:
                   </p>
-                  <p className="text-xs font-black text-slate-900 uppercase mt-0.5">
+                  <p className="text-[11px] font-black text-slate-900 uppercase mt-0.5">
                     {safeToWords(grandTotal, invoice.currency)}
                   </p>
                 </div>
 
                 {/* GST Tax Breakdown Table */}
                 {hasGST && (
-                  <div className="mt-3 border border-slate-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-left border-collapse text-[10px]">
+                  <div className="mt-2 border border-slate-300 rounded overflow-hidden">
+                    <table className="w-full text-left border-collapse text-[9.5px]">
                       <thead>
-                        <tr className="bg-slate-100 font-bold text-slate-700 border-b border-slate-200">
-                          <th className="p-1.5 border-r border-slate-200">HSN/SAC</th>
-                          <th className="p-1.5 text-right border-r border-slate-200">Taxable Val</th>
+                        <tr className="bg-slate-100 font-bold text-slate-700 border-b border-slate-300">
+                          <th className="p-1.5 border-r border-slate-300">HSN</th>
+                          <th className="p-1.5 text-right border-r border-slate-300">Taxable</th>
                           {isIgst ? (
-                            <th className="p-1.5 text-right border-r border-slate-200">IGST</th>
+                            <th className="p-1.5 text-right border-r border-slate-300">IGST</th>
                           ) : (
                             <>
-                              <th className="p-1.5 text-right border-r border-slate-200">CGST</th>
-                              <th className="p-1.5 text-right border-r border-slate-200">SGST</th>
+                              <th className="p-1.5 text-right border-r border-slate-300">CGST</th>
+                              <th className="p-1.5 text-right border-r border-slate-300">SGST</th>
                             </>
                           )}
                           <th className="p-1.5 text-right">Total Tax</th>
@@ -571,17 +569,17 @@ export default function InvoiceViewPage() {
                       <tbody className="divide-y divide-slate-200">
                         {Object.entries(hsnSummary).map(([hsn, d]: [string, any]) => (
                           <tr key={hsn}>
-                            <td className="p-1.5 font-medium border-r border-slate-200">{hsn}</td>
-                            <td className="p-1.5 text-right border-r border-slate-200">{formatCurrency(d.taxable, invoice.currency)}</td>
+                            <td className="p-1 font-medium border-r border-slate-300">{hsn}</td>
+                            <td className="p-1 text-right border-r border-slate-300">{formatCurrency(d.taxable, invoice.currency)}</td>
                             {isIgst ? (
-                              <td className="p-1.5 text-right border-r border-slate-200">{formatCurrency(d.tax, invoice.currency)}</td>
+                              <td className="p-1 text-right border-r border-slate-300">{formatCurrency(d.tax, invoice.currency)}</td>
                             ) : (
                               <>
-                                <td className="p-1.5 text-right border-r border-slate-200">{formatCurrency(d.tax / 2, invoice.currency)}</td>
-                                <td className="p-1.5 text-right border-r border-slate-200">{formatCurrency(d.tax / 2, invoice.currency)}</td>
+                                <td className="p-1 text-right border-r border-slate-300">{formatCurrency(d.tax / 2, invoice.currency)}</td>
+                                <td className="p-1 text-right border-r border-slate-300">{formatCurrency(d.tax / 2, invoice.currency)}</td>
                               </>
                             )}
-                            <td className="p-1.5 text-right font-bold">{formatCurrency(d.tax, invoice.currency)}</td>
+                            <td className="p-1 text-right font-bold">{formatCurrency(d.tax, invoice.currency)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -591,7 +589,7 @@ export default function InvoiceViewPage() {
               </div>
 
               {/* Totals Summary Box */}
-              <div className="sm:col-span-5 bg-slate-50 p-3.5 rounded-lg border border-slate-200 space-y-1.5 text-xs">
+              <div className="col-span-5 bg-slate-50/80 p-3 rounded border border-slate-300 space-y-1 text-[11px]">
                 <div className="flex justify-between text-slate-600 font-medium">
                   <span>Sub Total:</span>
                   <span className="font-semibold text-slate-900">{formatCurrency(rawSubtotal, invoice.currency)}</span>
@@ -621,63 +619,61 @@ export default function InvoiceViewPage() {
                     </>
                   )
                 )}
-                <div className="pt-2 border-t-2 border-slate-900 flex justify-between items-baseline text-slate-900">
-                  <span className="font-black text-sm">Grand Total:</span>
-                  <span className="font-black text-base sm:text-lg">{formatCurrency(grandTotal, invoice.currency)}</span>
+                <div className="pt-1.5 border-t-2 border-slate-900 flex justify-between items-baseline text-slate-900">
+                  <span className="font-black text-xs">Grand Total:</span>
+                  <span className="font-black text-sm">{formatCurrency(grandTotal, invoice.currency)}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Footer: Bank Info, UPI QR, Terms & Signatory */}
-          <div className="mt-8 pt-4 border-t-2 border-slate-200">
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+          <div className="mt-4 pt-3 border-t-2 border-slate-300">
+            <div className="grid grid-cols-12 gap-3 items-end">
               
-              {/* Bank Details & QR */}
-              <div className="sm:col-span-7 space-y-2">
+              {/* Bank Details & Terms */}
+              <div className="col-span-7 space-y-1.5">
                 {sellerInfo?.bank_name && (
-                  <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[11px] space-y-0.5">
-                    <p className="font-bold text-slate-800 uppercase text-[10px]">Bank Details for Payment:</p>
-                    <p><span className="text-slate-500 font-medium">Bank:</span> <span className="font-semibold text-slate-900">{sellerInfo.bank_name}</span></p>
-                    <p><span className="text-slate-500 font-medium">A/C No:</span> <span className="font-bold text-slate-900">{sellerInfo.account_number}</span></p>
-                    <p><span className="text-slate-500 font-medium">IFSC:</span> <span className="font-semibold text-slate-900">{sellerInfo.ifsc_code}</span></p>
+                  <div className="bg-slate-50/80 p-2 rounded border border-slate-200 text-[10px] space-y-0.5">
+                    <p className="font-bold text-slate-800 uppercase text-[9.5px]">Bank Details for Payment:</p>
+                    <p><span className="text-slate-500 font-medium">Bank:</span> <span className="font-semibold text-slate-900">{sellerInfo.bank_name}</span> | <span className="text-slate-500 font-medium">A/C:</span> <span className="font-bold text-slate-900">{sellerInfo.account_number}</span> | <span className="text-slate-500 font-medium">IFSC:</span> <span className="font-semibold text-slate-900">{sellerInfo.ifsc_code}</span></p>
                   </div>
                 )}
                 
                 {/* Terms & Declaration */}
-                <div className="text-[10px] text-slate-500 space-y-1">
+                <div className="text-[9.5px] text-slate-500 space-y-0.5">
                   <p className="font-bold text-slate-700">Terms & Conditions:</p>
-                  <p className="whitespace-pre-line leading-relaxed">
+                  <p className="whitespace-pre-line leading-tight">
                     {invoice.terms || sellerInfo?.default_terms || 'Payment is due within the specified period. Goods once sold will not be returned.'}
                   </p>
-                  <p className="italic text-slate-400">
-                    Declaration: We declare that this invoice shows the actual price of the goods/services described and that all particulars are true and correct.
+                  <p className="italic text-slate-400 text-[9px]">
+                    Declaration: We declare that this invoice shows the actual price of the goods/services described.
                   </p>
                 </div>
               </div>
 
               {/* UPI QR & Authorized Signatory */}
-              <div className="sm:col-span-5 flex flex-col items-center sm:items-end justify-between gap-4">
+              <div className="col-span-5 flex flex-col items-end justify-between gap-2">
                 {upiUrl && (
-                  <div className="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-lg shadow-2xs">
-                    <QRCodeSVG value={upiUrl} size={54} level="H" />
-                    <div className="text-[9px] text-slate-600">
+                  <div className="flex items-center gap-2 bg-white p-1.5 border border-slate-200 rounded">
+                    <QRCodeSVG value={upiUrl} size={44} level="H" />
+                    <div className="text-[8.5px] text-slate-600">
                       <p className="font-bold text-slate-900 uppercase">Scan UPI to Pay</p>
-                      <p className="truncate max-w-[120px] font-mono">{upiId}</p>
+                      <p className="truncate max-w-[100px] font-mono">{upiId}</p>
                     </div>
                   </div>
                 )}
 
-                <div className="text-center sm:text-right pt-4">
-                  <p className="text-[11px] font-bold text-slate-800">
+                <div className="text-right pt-2">
+                  <p className="text-[10px] font-bold text-slate-800">
                     For {sellerInfo?.business_name || 'Authorized Company'}
                   </p>
-                  <div className="h-12 flex items-center justify-center sm:justify-end">
+                  <div className="h-10 flex items-center justify-end">
                     {sellerInfo?.signature_url && (
-                      <img src={sellerInfo.signature_url} alt="Signature" className="h-10 object-contain" />
+                      <img src={sellerInfo.signature_url} alt="Signature" className="h-8 object-contain" />
                     )}
                   </div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider border-t border-slate-300 pt-1">
+                  <p className="text-[9.5px] font-bold text-slate-500 uppercase tracking-wider border-t border-slate-300 pt-0.5">
                     Authorized Signatory
                   </p>
                 </div>
@@ -701,33 +697,66 @@ export default function InvoiceViewPage() {
         fileName={`Invoice_${invoice?.invoice_number || 'bill'}.pdf`}
       />
 
-      {/* Exact Print Stylesheet */}
+      {/* Robust Print Stylesheet ensuring 100% 1-Page Fit */}
       <style>{`
         @media print {
           @page {
-            size: A4 portrait !important;
-            margin: 6mm !important;
+            size: A4 portrait;
+            margin: 6mm;
           }
 
-          html, body {
-            width: 100% !important;
-            height: auto !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #ffffff !important;
+          *, *:before, *:after {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
 
+          html, body {
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            overflow: visible !important;
+          }
+
+          /* Hide all app navigation & non-printable elements */
           body * {
             visibility: hidden !important;
           }
 
-          header, nav, aside, footer, button, .print\\:hidden, [class*="print:hidden"] {
+          .print\\:hidden,
+          [class*="print:hidden"],
+          header,
+          nav,
+          aside,
+          footer,
+          button,
+          .sidebar-container,
+          .mobile-nav-container,
+          #header-notification-bell,
+          #mobile-brand-logo {
             display: none !important;
           }
 
-          #invoice-document-canvas, #invoice-document-canvas * {
+          /* Unhide and reset document canvas tree */
+          #root,
+          #root > div,
+          main {
+            position: static !important;
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+
+          #invoice-document-canvas,
+          #invoice-document-canvas * {
             visibility: visible !important;
           }
 
@@ -739,10 +768,24 @@ export default function InvoiceViewPage() {
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 auto !important;
-            padding: 4mm !important;
+            padding: 0 !important;
             box-shadow: none !important;
-            border: none !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 0 !important;
             background: #ffffff !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+
+          table {
+            page-break-inside: auto !important;
+          }
+
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>
