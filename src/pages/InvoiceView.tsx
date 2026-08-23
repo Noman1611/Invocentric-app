@@ -209,45 +209,42 @@ export default function InvoiceViewPage() {
     const custName = customer?.name || invoice?.customer_name || 'Customer';
     const shareText = `Dear ${custName}, here is your invoice #${invNum} of ${fc(grandTotal, cur)} from ${sellerInfo?.business_name || 'our store'}. Thank you for your business!`;
 
-    // 1. Auto download PDF
-    try {
-      await handleDownloadPdf();
-    } catch (_) {}
-
-    // 2. Auto copy rendered Invoice image to Clipboard (so user can simply paste in WhatsApp)
-    try {
-      const { toBlob } = await import('html-to-image');
-      const firstPage = invoiceRef.current?.querySelector('.invoice-page-sheet') as HTMLElement;
-      if (firstPage && typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
-        const blob = await toBlob(firstPage, { quality: 0.95, pixelRatio: 2, backgroundColor: '#fff', skipFonts: true });
-        if (blob) {
-          await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob })
-          ]);
-        }
-      }
-    } catch (clipErr) {
-      console.log('Clipboard image copy fallback:', clipErr);
-      try {
-        await navigator.clipboard.writeText(shareText);
-      } catch (_) {}
-    }
-
-    // 3. Web share or WhatsApp Links
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `Invoice #${invNum}`, text: shareText, url: window.location.href });
-        return;
-      } catch (_) {}
-    }
-
+    // 1. Prepare WhatsApp links & show modal immediately
     const cp = normalizePhoneNumber(customer?.phone || '');
     const enc = encodeURIComponent(shareText);
     setWhatsAppUrlState(`https://wa.me/${cp}?text=${enc}`);
     setWhatsAppWebUrlState(`https://web.whatsapp.com/send?phone=${cp}&text=${enc}`);
     setWhatsAppAppUrlState(`whatsapp://send?phone=${cp}&text=${enc}`);
     setShowWhatsAppModal(true);
-    setCopiedToClipboard(true);
+
+    // 2. Auto copy rendered Invoice image to Clipboard
+    try {
+      const { toBlob } = await import('html-to-image');
+      const firstPage = invoiceRef.current?.querySelector('.invoice-page-sheet') as HTMLElement;
+      if (firstPage && typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
+        const blob = await toBlob(firstPage, { quality: 1, pixelRatio: 2, backgroundColor: '#ffffff', skipFonts: true });
+        if (blob) {
+          await navigator.clipboard.write([
+            new ClipboardItem({ [blob.type]: blob })
+          ]);
+          setCopiedToClipboard(true);
+        }
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        setCopiedToClipboard(true);
+      }
+    } catch (clipErr) {
+      console.warn('Clipboard image write:', clipErr);
+      try {
+        await navigator.clipboard.writeText(shareText);
+        setCopiedToClipboard(true);
+      } catch (_) {}
+    }
+
+    // 3. Auto download PDF in background
+    try {
+      await handleDownloadPdf();
+    } catch (_) {}
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center gap-3"><Loader2 className="w-8 h-8 text-green-600 animate-spin" /><span className="text-sm font-semibold text-slate-600">Loading invoice…</span></div>;
