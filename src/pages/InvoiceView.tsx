@@ -114,6 +114,21 @@ export default function InvoiceViewPage() {
     gstPercent: invoice?.columnVisibility?.gstPercent ?? true,
   };
 
+  // Section visibility (Show if false or undefined, Hide if true)
+  const hideSec = invoice?.hide_sections || {};
+  const showSec = {
+    bank_details: !hideSec.bank_details,
+    upi_qr: !hideSec.upi_qr,
+    signature: !hideSec.signature,
+    seller_address: !hideSec.seller_address,
+    customer_gstin: !hideSec.customer_gstin,
+    terms: !hideSec.terms,
+    declaration: !hideSec.declaration,
+    amount_in_words: !hideSec.amount_in_words,
+    hsn_summary: !hideSec.hsn_summary,
+    footer: !hideSec.footer,
+  };
+
   const itemRows = items.map((i: any) => {
     const qty = Number(i.quantity) || 0;
     const price = Number(i.price || i.mrp) || 0;
@@ -181,8 +196,6 @@ export default function InvoiceViewPage() {
   const upiUrl = upiId ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(sellerInfo?.business_name || '')}&am=${grandTotal}&cu=INR` : null;
 
   // Smart Adaptive Chunking:
-  // For A4: Single page can fit up to 12 items. Multi-page fits 14 items on page 1, and 7 on subsequent pages with footer.
-  // For A5: Single page fits up to 5 items with footer. Multi-page fits 7 items on page 1, and 3-4 items on subsequent pages with footer.
   const itemPages: any[][] = [];
   if (itemRows.length === 0) {
     itemPages.push([]);
@@ -332,7 +345,7 @@ export default function InvoiceViewPage() {
     invoiceNo: invNo, invoiceDate: fmtDate(invoice.date), dueDate: fmtDate(invoice.due_date),
     poNo: invoice.po_number || '', poDate: fmtDate(invoice.po_date), eWayNo: invoice.e_way_bill || '',
   };
-  const QRNode = upiUrl ? <QRCodeSVG value={upiUrl} size={isA5 ? 46 : 75} level="H" /> : <div style={{ width: isA5 ? 46 : 75, height: isA5 ? 46 : 75, border: '1px dashed #999' }} />;
+  const QRNode = (showSec.upi_qr && upiUrl) ? <QRCodeSVG value={upiUrl} size={isA5 ? 46 : 75} level="H" /> : <div style={{ width: isA5 ? 46 : 75, height: isA5 ? 46 : 75, border: '1px dashed #999' }} />;
   const termsText = (invoice.terms || sellerInfo?.default_terms || '').split('\n').filter(Boolean);
 
   // Dynamic column calculations
@@ -358,7 +371,7 @@ export default function InvoiceViewPage() {
             <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
               {co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52, height: isA5 ? 32 : 52, objectFit:'contain'}}/>}
               <div><p style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:dark,margin:'0 0 1px'}}>{co.name}</p>
-                <div style={{fontSize: isA5 ? 8.5 : 11, lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>
+                {showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11, lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}
               </div>
             </div>
             <div style={{textAlign:'right',fontSize: isA5 ? 8.5 : 11}}>
@@ -376,7 +389,14 @@ export default function InvoiceViewPage() {
           <div style={{display:'grid',gridTemplateColumns:'1.5fr 1fr',border:b,fontSize: isA5 ? 8.5 : 10.5}}>
             <div style={{padding:'2px 6px',borderRight:b}}>
               <div style={{fontWeight:'bold',textAlign:'center',background:lb,margin:'-2px -6px 2px',padding:1,borderBottom:b}}>Details of Buyer | Billed to :</div>
-              {[['Name',bu.name],['Address',bu.address],['Phone',bu.phone],['GSTIN',bu.gstin],['PAN',bu.pan],['Place of Supply',bu.placeOfSupply]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 70 : 90,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{v}</div></div>))}
+              {[
+                ['Name',bu.name],
+                ['Address',bu.address],
+                ['Phone',bu.phone],
+                showSec.customer_gstin ? ['GSTIN',bu.gstin] : null,
+                ['PAN',bu.pan],
+                ['Place of Supply',bu.placeOfSupply]
+              ].filter(Boolean).map(([l,v]: any)=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 70 : 90,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{v}</div></div>))}
             </div>
             <div style={{padding:'2px 6px'}}>
               <div style={{fontWeight:'bold',textAlign:'center',background:lb,margin:'-2px -6px 2px',padding:1,borderBottom:b}}>Invoice Details :</div>
@@ -444,31 +464,67 @@ export default function InvoiceViewPage() {
         {/* Structured Bottom Section */}
         {isLastPage ? (
           <div style={{ marginTop: 'auto' }}>
-            <div style={{border:b,borderTop:'none',padding:'2px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Total in words<br/><b>{safeToWords(grandTotal,cur)}</b></div>
-            <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8 : 10}}>
-              <thead><tr><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>HSN / SAC</th><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Taxable Value</th><th colSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Total</th></tr><tr><th style={{border:b,padding:1,background:lb}}>%</th><th style={{border:b,padding:1,background:lb}}>Amount</th></tr></thead>
-              <tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:b,padding:1.5}}>{hsn}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{d.pct}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(isIgst?d.igst:d.cgst+d.sgst,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:b,padding:1.5}}>Total</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:b,padding:1.5}}></td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody>
-            </table>
-            <div style={{border:b,borderTop:'none',padding:'2px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Total Tax in words: <b>{safeToWords(totalTax,cur)}</b></div>
-            <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',border:b,borderTop:'none',fontSize: isA5 ? 8.5 : 10}}>
-              <div style={{borderRight:b}}>
-                <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b}}>Bank Details</div>
-                <div style={{display:'flex'}}>
-                  <div style={{padding:'2px 5px',flex:1}}>{[['Name',co.bank],['Branch',co.branch],['Acc. Number',co.acc],['IFSC',co.ifsc],['UPI ID',co.upi]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 55 : 70,fontWeight:'bold',flexShrink:0}}>{l}</div><div>{v}</div></div>))}</div>
-                  <div style={{width: isA5 ? 65 : 90,padding:2,textAlign:'center',borderLeft:b}}>{QRNode}<div style={{fontSize:7.5,marginTop:0.5}}>Pay using UPI</div></div>
-                </div>
+            {showSec.amount_in_words && (
+              <div style={{border:b,borderTop:'none',padding:'2px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Total in words<br/><b>{safeToWords(grandTotal,cur)}</b></div>
+            )}
+            
+            {showSec.hsn_summary && (
+              <>
+                <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8 : 10}}>
+                  <thead><tr><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>HSN / SAC</th><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Taxable Value</th><th colSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Total</th></tr><tr><th style={{border:b,padding:1,background:lb}}>%</th><th style={{border:b,padding:1,background:lb}}>Amount</th></tr></thead>
+                  <tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:b,padding:1.5}}>{hsn}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{d.pct}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(isIgst?d.igst:d.cgst+d.sgst,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:b,padding:1.5}}>Total</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:b,padding:1.5}}></td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody>
+                </table>
+                {showSec.amount_in_words && (
+                  <div style={{border:b,borderTop:'none',padding:'2px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Total Tax in words: <b>{safeToWords(totalTax,cur)}</b></div>
+                )}
+              </>
+            )}
+
+            {(showSec.bank_details || showSec.upi_qr || showSec.signature || showSec.declaration) && (
+              <div style={{display:'grid',gridTemplateColumns:(showSec.bank_details || showSec.upi_qr) ? ((showSec.signature || showSec.declaration) ? '2fr 1fr' : '1fr') : '1fr',border:b,borderTop:'none',fontSize: isA5 ? 8.5 : 10}}>
+                {(showSec.bank_details || showSec.upi_qr) && (
+                  <div style={{borderRight:(showSec.signature || showSec.declaration)?b:'none'}}>
+                    <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b}}>Bank Details</div>
+                    <div style={{display:'flex'}}>
+                      {showSec.bank_details && (
+                        <div style={{padding:'2px 5px',flex:1}}>{[['Name',co.bank],['Branch',co.branch],['Acc. Number',co.acc],['IFSC',co.ifsc],['UPI ID',co.upi]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 55 : 70,fontWeight:'bold',flexShrink:0}}>{l}</div><div>{v}</div></div>))}</div>
+                      )}
+                      {showSec.upi_qr && (
+                        <div style={{width: isA5 ? 65 : 90,padding:2,textAlign:'center',borderLeft:showSec.bank_details?b:'none'}}>{QRNode}<div style={{fontSize:7.5,marginTop:0.5}}>Pay using UPI</div></div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {(showSec.signature || showSec.declaration) && (
+                  <div style={{padding:'2px 5px',textAlign:'center',fontSize: isA5 ? 8 : 10}}>
+                    {showSec.declaration && (
+                      <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b,margin:'-2px -5px 2px'}}>Certified that particulars are true and correct.</div>
+                    )}
+                    {showSec.signature && (
+                      <>
+                        <div style={{fontWeight:'bold',margin:'1px 0'}}>{co.forCo}</div>
+                        <div style={{height: isA5 ? 24 : 38}}>{co.sign&&<img src={co.sign} alt="sig" style={{maxHeight: isA5 ? 24 : 38}}/>}</div>
+                        <div style={{fontWeight:'bold',marginTop:1,borderTop:'1px solid #ccc',paddingTop:1}}>Authorised Signatory</div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-              <div style={{padding:'2px 5px',textAlign:'center',fontSize: isA5 ? 8 : 10}}>
-                <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b,margin:'-2px -5px 2px'}}>Certified that particulars are true and correct.</div>
-                <div style={{fontWeight:'bold',margin:'1px 0'}}>{co.forCo}</div>
-                <div style={{height: isA5 ? 24 : 38}}>{co.sign&&<img src={co.sign} alt="sig" style={{maxHeight: isA5 ? 24 : 38}}/>}</div>
-                <div style={{fontWeight:'bold',marginTop:1,borderTop:'1px solid #ccc',paddingTop:1}}>Authorised Signatory</div>
+            )}
+
+            {showSec.terms && (
+              <div style={{border:b,borderTop:'none',fontSize: isA5 ? 8 : 10}}>
+                <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b}}>Terms and Conditions</div>
+                <div style={{padding:'1.5px 5px'}}>{termsText.slice(0, 2).map((t:string,i:number)=><div key={i}>{t}</div>)}</div>
               </div>
-            </div>
-            <div style={{border:b,borderTop:'none',fontSize: isA5 ? 8 : 10}}>
-              <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b}}>Terms and Conditions</div>
-              <div style={{padding:'1.5px 5px'}}>{termsText.slice(0, 2).map((t:string,i:number)=><div key={i}>{t}</div>)}</div>
-            </div>
+            )}
+
+            {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
+              <div style={{border:b,borderTop:'none',fontSize: isA5 ? 8 : 9.5,padding:'2px 5px',textAlign:'center',background:lb}}>
+                {invoice.notes || sellerInfo?.footer_notes}
+              </div>
+            )}
           </div>
         ) : (
           <div style={{textAlign:'right',fontSize:9.5,fontWeight:'bold',padding:3,color:dark,border:b,background:lb,marginTop:'auto'}}>
@@ -486,11 +542,11 @@ export default function InvoiceViewPage() {
       <div className="flex flex-col justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
         <div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
-            <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue}}>TAX INVOICE</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div><div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
+            <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue}}>TAX INVOICE</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
             <div style={{textAlign:'right'}}><div style={{fontSize:8.5,fontWeight:'bold'}}>ORIGINAL FOR RECIPIENT</div>{co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52,height: isA5 ? 32 : 52}}/>}<div style={{fontSize:8.5,color:'#666',marginTop:1}}>Page {pageIdx + 1} of {totalPages}</div></div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1.2fr 1.2fr 1fr',gap:5,borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3,fontSize: isA5 ? 8.5 : 10.5}}>
-            <div><b style={{display:'block',marginBottom:0.5}}>Customer Details:</b><div style={{fontWeight:'bold'}}>{bu.name}</div><div>{bu.address}</div><div><b>GSTIN:</b> {bu.gstin}</div><div><b>State:</b> {bu.state}</div></div>
+            <div><b style={{display:'block',marginBottom:0.5}}>Customer Details:</b><div style={{fontWeight:'bold'}}>{bu.name}</div><div>{bu.address}</div>{showSec.customer_gstin && <div><b>GSTIN:</b> {bu.gstin}</div>}<div><b>State:</b> {bu.state}</div></div>
             <div><b style={{display:'block',marginBottom:0.5}}>Shipping address:</b><div style={{fontWeight:'bold'}}>{sh.name}</div><div>{sh.address}</div><div><b>State:</b> {sh.state}</div></div>
             <div>{[['Invoice #:',im.invoiceNo],['Invoice Date:',im.invoiceDate],['P.O. No.:',im.poNo],['E-Way No.:',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
           </div>
@@ -539,10 +595,24 @@ export default function InvoiceViewPage() {
           <div style={{ marginTop: 'auto' }}>
             <div style={{display:'flex',justifyContent:'flex-end',gap:20,padding:'1.5px 0',fontWeight:'bold',fontSize: isA5 ? 8.5 : 11}}><span>Taxable Amount</span><b>{fc(totalTaxable,cur)}</b></div>
             <div style={{display:'flex',justifyContent:'flex-end',gap:20,padding:'1.5px 0',fontWeight:'bold',fontSize: isA5 ? 9.5 : 12}}><span>Total Amount</span><b>₹ {fc(grandTotal,cur)}</b></div>
-            <div style={{fontSize: isA5 ? 8 : 10.5,margin:'1.5px 0'}}>Total Items / Qty : {itemRows.length} / {qtyTotal}<br/>Total amount (in words): <b>{safeToWords(grandTotal,cur)}.</b></div>
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 8 : 10,marginTop:1}}><thead><tr><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>HSN/SAC</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Taxable Value</th><th colSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Total</th></tr><tr><th style={{border:'1px solid #ccc',padding:1,background:lb}}>%</th><th style={{border:'1px solid #ccc',padding:1,background:lb}}>Amount</th></tr></thead><tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:'1px solid #ccc',padding:1}}>{hsn}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{d.pct}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(isIgst?d.igst:d.tax,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:'1px solid #ccc',padding:1}}>Total</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1}}></td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody></table>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1.4fr 1fr',gap:5,marginTop:3,fontSize: isA5 ? 8 : 10,alignItems:'start'}}><div><b>Pay using UPI:</b><br/>{QRNode}</div><div><b>Bank Details:</b>{[['Name:',co.bank],['Branch:',co.branch],['Acc. Number:',co.acc],['IFSC:',co.ifsc],['UPI ID:',co.upi]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width:48,fontWeight:'bold'}}>{l}</div>{v}</div>))}</div><div style={{textAlign:'center'}}><b>{co.forCo}</b><br/>{co.sign?<img src={co.sign} alt="sig" style={{width:38,opacity:0.7}}/>:<div style={{height:24}}/>}<div>Authorised Signatory</div></div></div>
-            <div style={{marginTop:2,fontSize: isA5 ? 7.5 : 9.5}}><b>Terms &amp; Condition:</b> {termsText.slice(0, 2).join('. ')}</div>
+            {showSec.amount_in_words && (
+              <div style={{fontSize: isA5 ? 8 : 10.5,margin:'1.5px 0'}}>Total Items / Qty : {itemRows.length} / {qtyTotal}<br/>Total amount (in words): <b>{safeToWords(grandTotal,cur)}.</b></div>
+            )}
+            {showSec.hsn_summary && (
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 8 : 10,marginTop:1}}><thead><tr><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>HSN/SAC</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Taxable Value</th><th colSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Total</th></tr><tr><th style={{border:'1px solid #ccc',padding:1,background:lb}}>%</th><th style={{border:'1px solid #ccc',padding:1,background:lb}}>Amount</th></tr></thead><tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:'1px solid #ccc',padding:1}}>{hsn}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{d.pct}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(isIgst?d.igst:d.tax,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:'1px solid #ccc',padding:1}}>Total</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1}}></td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody></table>
+            )}
+            
+            {(showSec.upi_qr || showSec.bank_details || showSec.signature) && (
+              <div style={{display:'grid',gridTemplateColumns:showSec.upi_qr?'1fr 1.4fr 1fr':'1.4fr 1fr',gap:5,marginTop:3,fontSize: isA5 ? 8 : 10,alignItems:'start'}}>
+                {showSec.upi_qr && <div><b>Pay using UPI:</b><br/>{QRNode}</div>}
+                {showSec.bank_details && <div><b>Bank Details:</b>{[['Name:',co.bank],['Branch:',co.branch],['Acc. Number:',co.acc],['IFSC:',co.ifsc],['UPI ID:',co.upi]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width:48,fontWeight:'bold'}}>{l}</div>{v}</div>))}</div>}
+                {showSec.signature && <div style={{textAlign:'center'}}><b>{co.forCo}</b><br/>{co.sign?<img src={co.sign} alt="sig" style={{width:38,opacity:0.7}}/>:<div style={{height:24}}/>}<div>Authorised Signatory</div></div>}
+              </div>
+            )}
+            
+            {showSec.terms && (
+              <div style={{marginTop:2,fontSize: isA5 ? 7.5 : 9.5}}><b>Terms &amp; Condition:</b> {termsText.slice(0, 2).join('. ')}</div>
+            )}
           </div>
         ) : (
           <div style={{textAlign:'right',fontSize:9,fontWeight:'bold',padding:3,color:blue,borderTop:`1px solid ${blue}`,marginTop:'auto'}}>
@@ -561,11 +631,12 @@ export default function InvoiceViewPage() {
     return (
       <div className="invoice-page-sheet" style={{fontFamily:`'Courier New',monospace`,fontSize:12,maxWidth:maxW,width:'100%',margin:'0 auto',padding:12,textAlign:'center',background:'#fff'}}>
         <div style={{fontWeight:'bold'}}>{co.name}</div>
-        <div style={{fontSize:11}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/><div style={{fontSize:11}}>{co.phone}</div><div style={{fontSize:11}}>GSTIN : {co.gstin}</div>
+        {showSec.seller_address && <div style={{fontSize:11}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}
+        <div style={{fontSize:11}}>{co.phone}</div><div style={{fontSize:11}}>GSTIN : {co.gstin}</div>
         <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{div}</div>
         <div style={{display:'flex',justifyContent:'space-between',fontSize:11}}><span>INVOICE #: {im.invoiceNo}</span><span>DATE: {im.invoiceDate}</span></div>
         <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{wide?'================BILLED TO================':'=====BILLED TO====='}</div>
-        <div style={{textAlign:'left',fontSize:11}}>Name : {bu.name}<br/>GSTIN : {bu.gstin}<br/>PAN : {bu.pan}</div>
+        <div style={{textAlign:'left',fontSize:11}}>Name : {bu.name}<br/>{showSec.customer_gstin && <>GSTIN : {bu.gstin}<br/></>}PAN : {bu.pan}</div>
         <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{sep}</div>
         <table style={{width:'100%',borderCollapse:'collapse',textAlign:'left',fontSize:11,margin:'4px 0'}}>
           <thead>
@@ -595,7 +666,9 @@ export default function InvoiceViewPage() {
         <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{sep}</div>
         <div style={{display:'flex',justifyContent:'space-between',fontSize:11.5,fontWeight:'bold'}}><span>Grand Total :</span><span>{fc(grandTotal,cur)}</span></div>
         <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{sep}</div>
-        <div style={{marginTop:6}}>{QRNode}<div style={{fontSize:10}}>Pay using UPI</div></div>
+        {showSec.upi_qr && (
+          <div style={{marginTop:6}}>{QRNode}<div style={{fontSize:10}}>Pay using UPI</div></div>
+        )}
       </div>
     );
   };
