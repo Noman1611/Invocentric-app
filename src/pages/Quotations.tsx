@@ -174,15 +174,23 @@ export default function Quotations() {
                     <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
                         <button 
+                          onClick={() => navigate(`/invoices/create?from_quotation=${q.id}`)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-black rounded-xl text-[10px] uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
+                          title="Convert to Final Tax Invoice"
+                        >
+                          <span>Convert to Invoice</span>
+                          <ArrowRight size={13} />
+                        </button>
+                        <button 
                           onClick={() => navigate(`/invoices/${q.id}`)}
-                          className="p-2 text-neutral-500 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-all"
+                          className="p-2 text-neutral-500 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-all cursor-pointer"
                           title="View Quotation"
                         >
                           <ExternalLink size={16} />
                         </button>
                         <button 
                           onClick={() => handleDelete(q.id)}
-                          className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition-all"
+                          className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition-all cursor-pointer"
                           title="Delete Quotation"
                         >
                           <Trash2 size={16} />

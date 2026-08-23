@@ -326,9 +326,15 @@ export default function CustomersPage() {
                 <div className="flex items-center gap-1 opacity-100 transition-opacity">
                   <button 
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/customers/statement/${customer.id}?share=true`); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const num = (customer.phone || '').replace(/[^0-9]/g, '');
+                      const upi = user?.email || 'payments@upi';
+                      const msg = encodeURIComponent(`Dear ${customer.name}, gentle reminder regarding your outstanding balance with us. Please clear the pending dues. Thank you!`);
+                      window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+                    }}
                     className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
-                    title="WhatsApp Statement"
+                    title="1-Click WhatsApp Payment Reminder"
                   >
                     <Phone size={16} />
                   </button>

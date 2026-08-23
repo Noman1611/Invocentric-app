@@ -73,16 +73,17 @@ export default function PricingPage() {
     { name: "Invoices & Quotations: Unlimited (Manual)", active: true },
     { name: "Customers / Parties: Unlimited", active: true },
     { name: "Items & Inventory: Unlimited", active: true },
-    { name: "Payments Ledger & Daily Book", active: true },
-    { name: "Advanced Reports (Trends & Custom Range)", active: true },
-    { name: "No watermark on Invoices", active: true },
+    { name: "🏷️ Barcode Label Printing (A4 Sheets & Thermal Roll)", active: true },
+    { name: "👥 Party-Wise Last Selling Price (Auto-Memory)", active: true },
+    { name: "🔔 1-Click WhatsApp Payment Reminders with UPI", active: true },
+    { name: "💳 Advance Payment Auto-Adjustment in Invoice", active: true },
+    { name: "📦 Bulk Serial Numbers & Batch Import", active: true },
+    { name: "🔄 Quotation to Invoice 1-Click Conversion", active: true },
+    { name: "⚖️ Wholesale vs Retail Double Pricing Tier", active: true },
     { name: "AI Bill Scan OCR (Auto-fill Unlimited)", active: true },
     { name: "Quick POS Mode Integration", active: true },
     { name: "Advanced Export (Excel, PDF)", active: true },
-    { name: "UPI Dynamic QR Generator", active: true },
-    { name: "Freelancer Mode / Shop Mode Toggle", active: true },
     { name: "Multi-Device Instant Cloud Sync", active: true },
-    { name: "Overdue Auto Payment Reminders", active: true },
     { name: "24/7 Priority Chat & WhatsApp Support", active: true }
   ];
 

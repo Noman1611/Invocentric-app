@@ -46,6 +46,7 @@ interface Item {
 
 import { dbService } from '../services/dbService';
 import UpdateCatalogEntryModal, { CatalogItemData } from '../components/UpdateCatalogEntryModal';
+import { BarcodeLabelModal } from '../components/BarcodeLabelModal';
 
 export default function ItemsPage() {
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
@@ -55,6 +56,7 @@ export default function ItemsPage() {
   
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -982,7 +984,15 @@ export default function ItemsPage() {
             className="input-field pl-12 h-11"
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBarcodeModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
+            title="Print Barcode Labels (A4 Sheets / Thermal Roll)"
+          >
+            <Barcode size={15} />
+            <span>Print Barcodes</span>
+          </button>
           <button
             onClick={() => setShowLowStockOnly(!showLowStockOnly)}
             className={cn(
@@ -2066,6 +2076,12 @@ export default function ItemsPage() {
           </div>
         )}
       </AnimatePresence>
+
+      <BarcodeLabelModal
+        isOpen={showBarcodeModal}
+        onClose={() => setShowBarcodeModal(false)}
+        items={items as any}
+      />
     </div>
   );
 }

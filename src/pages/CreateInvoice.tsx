@@ -618,8 +618,37 @@ export default function CreateInvoicePage() {
         setFetching(false);
       }
     }
-    fetchInvoice();
-  }, [id, user, isOfflineMode]);
+
+    async function fetchFromQuotation() {
+      const fromQuotationId = searchParams.get('from_quotation');
+      if (!fromQuotationId || !user || id) return;
+      setFetching(true);
+      try {
+        const docRef = doc(db, "invoices", fromQuotationId);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          const qData = snap.data();
+          setFormData(prev => ({
+            ...prev,
+            customer_id: qData.customer_id || '',
+            currency: qData.currency || "INR",
+            bill_type: "INVOICE",
+            discount: qData.discount || 0,
+            advance_amount: qData.advance_amount || 0,
+            items: qData.items || prev.items,
+            notes: qData.notes || prev.notes
+          }));
+        }
+      } catch (err) {
+        console.error("Error loading quotation for conversion:", err);
+      } finally {
+        setFetching(false);
+      }
+    }
+
+    if (id) fetchInvoice();
+    else if (searchParams.get('from_quotation')) fetchFromQuotation();
+  }, [id, user, isOfflineMode, searchParams]);
 
   // Fetch default terms for new invoices
   useEffect(() => {
