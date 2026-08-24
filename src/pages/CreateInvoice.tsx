@@ -1577,8 +1577,8 @@ export default function CreateInvoicePage() {
           </div>
           <div className="space-y-4">
             {formData.items.map((item, index) => (
-              <div key={index} className="flex flex-col md:flex-row gap-4 items-start md:items-end bg-white p-4 rounded-xl border border-gray-50 shadow-sm">
-                <div className="flex-1 w-full space-y-2">
+              <div key={index} className="flex flex-col md:flex-row gap-4 items-start md:items-end bg-white p-4 rounded-xl border border-gray-50 shadow-sm relative">
+                <div className="flex-1 w-full min-w-[240px] space-y-2">
                   <label className="label block">{appMode === 'freelancer' ? 'Service / Deliverable' : 'Description / Item'}</label>
                   <div className="flex flex-col gap-2 relative">
                     <input 
@@ -1599,7 +1599,7 @@ export default function CreateInvoicePage() {
                       </div>
                     )}
                     {focusedItemIndex === index && (
-                      <div className="absolute left-0 right-0 z-50 mt-1 max-h-64 overflow-y-auto rounded-xl border border-gray-150 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-gray-50 dark:divide-slate-800">
+                      <div className="absolute left-0 top-full z-[150] mt-1 w-full min-w-[360px] sm:min-w-[420px] max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
                         {inventoryItems
                           .filter(invItem => {
                             const term = (item.description || '').toLowerCase();
