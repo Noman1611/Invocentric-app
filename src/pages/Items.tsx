@@ -145,7 +145,8 @@ export default function ItemsPage() {
         } else {
           await addDoc(collection(db, 'items'), {
             name: extractedItem.description,
-            description: `Auto-extracted via AI Bill Scan (${extractedBillData.supplierName || extractedBillData.customerName || 'Supplier'}) - Invoice: ${extractedBillData.invoiceNo || 'N/A'}`,
+            description: '',
+            internal_notes: `AI Scan Source: ${extractedBillData.supplierName || extractedBillData.customerName || 'Supplier'} (Bill: ${extractedBillData.invoiceNo || 'N/A'})`,
             price: itemPrice,
             unit: 'pcs',
             category: 'General',
