@@ -18,11 +18,11 @@ export function BulkSerialModal({ isOpen, onClose, onImport }: BulkSerialModalPr
   if (!isOpen) return null;
 
   const handleTextImport = () => {
-    const rawLines = inputText
+    const rawLines: string[] = inputText
       .split(/[\n,;]+/)
       .map(s => s.trim())
       .filter(Boolean);
-    const uniqueSerials = Array.from(new Set(rawLines));
+    const uniqueSerials: string[] = Array.from(new Set(rawLines));
     if (uniqueSerials.length > 0) {
       onImport(uniqueSerials);
       onClose();
