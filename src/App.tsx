@@ -1655,11 +1655,13 @@ function HomeRoute() {
 import InstallBanner from './components/InstallBanner';
 import OfflineSyncManager from './components/OfflineSyncManager';
 import UpgradeModal from './components/UpgradeModal';
+import { GlobalShortcutsManager } from './components/GlobalShortcutsManager';
 
 export default function App() {
   return (
       <AuthProvider>
         <BrowserRouter>
+          <GlobalShortcutsManager />
           <MigrationModal />
           <AutoBackup />
           <DataBackupRecoveryModal />
