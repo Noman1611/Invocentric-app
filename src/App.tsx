@@ -37,6 +37,7 @@ const BlogPage = lazy(() => import('./pages/BlogPage'));
 const StatementPage = lazy(() => import('./pages/Statement'));
 const PaymentsPage = lazy(() => import('./pages/Payments'));
 const QrGeneratorPage = lazy(() => import('./pages/QrGenerator'));
+const BarcodeGeneratorPage = lazy(() => import('./pages/BarcodeGenerator'));
 const QuickPOSPage = lazy(() => import('./pages/QuickPOS'));
 const MobileScanPage = lazy(() => import('./pages/MobileScan'));
 
@@ -1695,6 +1696,7 @@ export default function App() {
               <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
               <Route path="/pos" element={<PrivateRoute><QuickPOSPage /></PrivateRoute>} />
               <Route path="/qr-generator" element={<PrivateRoute><QrGeneratorPage /></PrivateRoute>} />
+              <Route path="/barcode-generator" element={<PrivateRoute><BarcodeGeneratorPage /></PrivateRoute>} />
               
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

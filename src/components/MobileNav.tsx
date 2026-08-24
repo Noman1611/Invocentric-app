@@ -53,6 +53,7 @@ export default function MobileNav() {
     { name: 'Expenses', path: '/expenses', icon: TrendingDown },
     { name: 'Daily Book', path: '/dailybook', icon: Book },
     { name: 'Reports', path: '/reports', icon: BarChart3 },
+    { name: 'Barcode Generator', path: '/barcode-generator', icon: QrCode },
     { name: 'QR Generator', path: '/qr-generator', icon: QrCode },
     { name: 'Plans & Pricing', path: '/pricing', icon: Sparkles },
     { name: 'Settings', path: '/settings', icon: Settings },

@@ -95,6 +95,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
       title: 'REPORTS',
       items: [
         { name: 'Reports', path: '/reports', icon: BarChart3 },
+        { name: 'Barcode Generator', path: '/barcode-generator', icon: Barcode },
         { name: 'QR Generator', path: '/qr-generator', icon: QrCode },
         { name: 'Plans & Pricing', path: '/pricing', icon: Sparkles },
         { name: 'Settings', path: '/settings', icon: Settings },
