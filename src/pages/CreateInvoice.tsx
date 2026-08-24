@@ -2,7 +2,7 @@ import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Plus, Trash2, Save, Send, Camera, Loader2, Sparkles, X, Barcode, ScanLine, Printer, Mic, Contact, CheckCircle2, AlertCircle, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Tag, Palette, EyeOff, Phone, HelpCircle } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCustomers, useItems, useInvoices, useSettings } from '../hooks/useData';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
@@ -50,6 +50,7 @@ import { dbService, findLinkedPayments } from '../services/dbService';
 export default function CreateInvoicePage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { customers } = useCustomers();
   const { items: inventoryItems } = useItems();
