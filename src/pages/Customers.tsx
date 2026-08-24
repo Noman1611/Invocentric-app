@@ -9,6 +9,7 @@ import { cn } from '../lib/utils';
 
 import { dbService } from '../services/dbService';
 import { parseContactFromText } from '../services/aiService';
+import { WhatsAppIcon } from '../components/WhatsAppIcon';
 
 export default function CustomersPage() {
   const navigate = useNavigate();
@@ -329,14 +330,13 @@ export default function CustomersPage() {
                     onClick={(e) => {
                       e.stopPropagation();
                       const num = (customer.phone || '').replace(/[^0-9]/g, '');
-                      const upi = user?.email || 'payments@upi';
                       const msg = encodeURIComponent(`Dear ${customer.name}, gentle reminder regarding your outstanding balance with us. Please clear the pending dues. Thank you!`);
                       window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
                     }}
-                    className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all"
+                    className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all flex items-center justify-center cursor-pointer"
                     title="1-Click WhatsApp Payment Reminder"
                   >
-                    <Phone size={16} />
+                    <WhatsAppIcon size={18} />
                   </button>
                   <button 
                     type="button"
