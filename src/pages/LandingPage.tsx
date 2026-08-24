@@ -1684,44 +1684,40 @@ export default function LandingPage() {
 
             {/* Fully Functional Quick Links Column */}
             <div className="space-y-6">
-              <h3 className="text-white text-lg font-bold mb-4">Quick Links</h3>
+              <h3 className="text-white text-lg font-bold mb-4">Billing Solutions</h3>
               <ul className="space-y-3">
-                <li><button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Home</button></li>
-                <li><button onClick={() => setIsAboutOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">About Us</button></li>
-                <li><button onClick={() => { document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Solutions</button></li>
-                <li><button onClick={() => setIsSupportOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Contact Us</button></li>
-                <li><button onClick={() => setIsTallyOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Tally XML Converter</button></li>
-                <li><button onClick={() => navigate('/blog')} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Blogs</button></li>
-                <li><button onClick={() => setIsWhyInvoCentricOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Why InvoCentric</button></li>
-                <li><button onClick={() => setIsCareersOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Careers</button></li>
+                <li><Link to="/invoice-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Invoice Software</Link></li>
+                <li><Link to="/free-invoice-maker" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Free Invoice Maker</Link></li>
+                <li><Link to="/gst-billing-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">GST Billing Software</Link></li>
+                <li><Link to="/gst-invoice-maker" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">GST Invoice Maker</Link></li>
+                <li><Link to="/pos-billing-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Retail POS Billing</Link></li>
+                <li><Link to="/quotation-maker" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Quotation Maker</Link></li>
               </ul>
             </div>
 
             {/* Fully Functional Tools Column */}
             <div className="space-y-6">
-              <h3 className="text-white text-lg font-bold mb-4">Tools & Policies</h3>
+              <h3 className="text-white text-lg font-bold mb-4">Tools & Inventory</h3>
               <ul className="space-y-3">
-                <li><button onClick={() => navigate('/login')} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Invoice Generator</button></li>
-                <li><button onClick={() => setIsGstinOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Find GSTIN</button></li>
-                <li><button onClick={() => setIsHsnOpen(true)} className="text-sm text-left text-green-300 hover:text-green-400 font-semibold transition-colors cursor-pointer">HSN/SAC Finder</button></li>
-                <li><button onClick={() => window.open("https://ns-fixed-qr.vercel.app/", "_blank", "noopener,noreferrer")} className="text-sm text-left hover:text-white transition-colors cursor-pointer text-green-400 font-semibold">QR Code Generator</button></li>
-                <li><button onClick={() => { document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">GST Calculator</button></li>
-                <li><Link to="/terms#privacy" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Privacy Policy</Link></li>
-                <li><Link to="/terms#terms" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Terms of Service</Link></li>
-                <li><Link to="/terms#cookies" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Cookie Policy</Link></li>
+                <li><Link to="/barcode-billing" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Barcode Billing & Labels</Link></li>
+                <li><Link to="/inventory-management" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Inventory & Live Stock</Link></li>
+                <li><Link to="/ledger-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Customer Khata Ledger</Link></li>
+                <li><button onClick={() => setIsGstinOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Find GSTIN Number</button></li>
+                <li><button onClick={() => setIsHsnOpen(true)} className="text-sm text-left text-green-300 hover:text-green-400 font-semibold transition-colors cursor-pointer">HSN / SAC Code Directory</button></li>
+                <li><Link to="/blog" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">GST Knowledge Base</Link></li>
               </ul>
             </div>
 
-            {/* popular SEO Tags */}
+            {/* Popular Solutions and Compliance */}
             <div className="space-y-6">
-               <h3 className="text-white text-lg font-bold mb-4">Popular Tags</h3>
-               <div className="flex flex-wrap gap-2">
-                 <span className="px-3 py-1.5 bg-gray-900 rounded border border-gray-800 text-[10px] font-bold uppercase tracking-wider hover:border-green-500 hover:text-green-400 transition-colors cursor-pointer">Free GST Billing</span>
-                 <span className="px-3 py-1.5 bg-gray-900 rounded border border-gray-800 text-[10px] font-bold uppercase tracking-wider hover:border-green-500 hover:text-green-400 transition-colors cursor-pointer">Invoice Maker</span>
-                 <span className="px-3 py-1.5 bg-gray-900 rounded border border-gray-800 text-[10px] font-bold uppercase tracking-wider hover:border-green-500 hover:text-green-400 transition-colors cursor-pointer">Retail POS</span>
-                 <span className="px-3 py-1.5 bg-gray-900 rounded border border-gray-800 text-[10px] font-bold uppercase tracking-wider hover:border-green-500 hover:text-green-400 transition-colors cursor-pointer">Thermal Printing</span>
-                 <span className="px-3 py-1.5 bg-gray-900 rounded border border-gray-800 text-[10px] font-bold uppercase tracking-wider hover:border-green-500 hover:text-green-400 transition-colors cursor-pointer">Estimate Generator</span>
-               </div>
+               <h3 className="text-white text-lg font-bold mb-4">About &amp; Policies</h3>
+               <ul className="space-y-3">
+                <li><button onClick={() => setIsAboutOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">About InvoCentic</button></li>
+                <li><button onClick={() => setIsWhyInvoCentricOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Why InvoCentic</button></li>
+                <li><button onClick={() => setIsSupportOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Customer Support</button></li>
+                <li><Link to="/terms#privacy" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Privacy Policy</Link></li>
+                <li><Link to="/terms#terms" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Terms of Service</Link></li>
+               </ul>
             </div>
 
           </div>

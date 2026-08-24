@@ -1,5 +1,5 @@
 # InvoCentric Robots Configuration - Production Ready
-# Optimized for Googlebot, Bingbot, Gemini, and ChatGPT crawlers
+# Optimized for Googlebot, Bingbot, Gemini, ChatGPT, and Applebot crawlers
 
 User-agent: *
 Allow: /
@@ -7,6 +7,19 @@ Allow: /terms
 Allow: /login
 Allow: /blog
 Allow: /blogs
+Allow: /blog/*
+Allow: /invoice-software
+Allow: /free-invoice-maker
+Allow: /gst-billing-software
+Allow: /gst-invoice-maker
+Allow: /billing-software
+Allow: /pos-billing-software
+Allow: /barcode-billing
+Allow: /inventory-management
+Allow: /ledger-software
+Allow: /quotation-maker
+
+# Protected / Private User App Areas (Noindex for crawler hygiene)
 Disallow: /api/
 Disallow: /dashboard/
 Disallow: /pos/
@@ -21,6 +34,7 @@ Disallow: /reports/
 Disallow: /settings/
 Disallow: /admin/
 Disallow: /qr-generator/
+Disallow: /barcode-generator/
 
 # Host and Sitemap references
 Host: https://invocentric.in

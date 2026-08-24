@@ -40,6 +40,7 @@ const QrGeneratorPage = lazy(() => import('./pages/QrGenerator'));
 const BarcodeGeneratorPage = lazy(() => import('./pages/BarcodeGenerator'));
 const QuickPOSPage = lazy(() => import('./pages/QuickPOS'));
 const MobileScanPage = lazy(() => import('./pages/MobileScan'));
+const SeoLandingPage = lazy(() => import('./pages/SeoLandingPage'));
 
 function PageLoader() {
   return (
@@ -1675,6 +1676,18 @@ export default function App() {
               <Route path="/blogs" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPage />} />
               <Route path="/mobile-scan" element={<MobileScanPage />} />
+              
+              {/* Public SEO Feature Landing Pages */}
+              <Route path="/invoice-software" element={<SeoLandingPage pageKey="invoice-software" />} />
+              <Route path="/free-invoice-maker" element={<SeoLandingPage pageKey="free-invoice-maker" />} />
+              <Route path="/gst-billing-software" element={<SeoLandingPage pageKey="gst-billing-software" />} />
+              <Route path="/gst-invoice-maker" element={<SeoLandingPage pageKey="gst-invoice-maker" />} />
+              <Route path="/billing-software" element={<SeoLandingPage pageKey="billing-software" />} />
+              <Route path="/pos-billing-software" element={<SeoLandingPage pageKey="pos-billing-software" />} />
+              <Route path="/barcode-billing" element={<SeoLandingPage pageKey="barcode-billing" />} />
+              <Route path="/inventory-management" element={<SeoLandingPage pageKey="inventory-management" />} />
+              <Route path="/ledger-software" element={<SeoLandingPage pageKey="ledger-software" />} />
+              <Route path="/quotation-maker" element={<SeoLandingPage pageKey="quotation-maker" />} />
               
               {/* Private Routes */}
               <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
