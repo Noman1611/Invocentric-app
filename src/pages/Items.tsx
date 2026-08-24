@@ -17,7 +17,7 @@ import { useItems } from '../hooks/useData';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Package, Edit2, Trash2, X, LayoutGrid, List as ListIcon, Tag, IndianRupee, Barcode, ScanLine, Camera, Loader2, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Phone, CheckCircle2, HelpCircle, BarChart3, ArrowRight, Database, TrendingDown, AlertCircle, FileText, ArrowUpDown, Truck, History, Calendar, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { configureCameraTrackFocusAndZoom, triggerCameraRefocus, setCameraTorch, setCameraZoom, requestExplicitCameraPermission, startHtml5ScannerRobust, playScanBeepSound } from '../utils/cameraUtils';
 import { initializeUsbScanner, registerScanListener, registerStatusListener, getScannerSessionId } from '../utils/usbScanner';
@@ -52,6 +52,7 @@ export default function ItemsPage() {
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { items, loading } = useItems();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const currentTab = searchParams.get('tab') || 'products';
   
   const [search, setSearch] = useState('');
@@ -986,12 +987,12 @@ export default function ItemsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowBarcodeModal(true)}
+            onClick={() => navigate('/barcode-generator')}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
-            title="Print Barcode Labels (A4 Sheets / Thermal Roll)"
+            title="Open Barcode Studio & Label Generator"
           >
             <Barcode size={15} />
-            <span>Print Barcodes</span>
+            <span>Barcode Studio</span>
           </button>
           <button
             onClick={() => setShowLowStockOnly(!showLowStockOnly)}

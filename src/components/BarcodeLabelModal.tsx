@@ -89,7 +89,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
                 onClick={handleOpenStudio}
                 className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <span>Full Barcode Studio</span>
+                <span>Barcode Studio</span>
                 <ExternalLink size={13} />
               </button>
               <button
