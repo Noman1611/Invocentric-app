@@ -48,6 +48,8 @@ import { dbService } from '../services/dbService';
 import UpdateCatalogEntryModal, { CatalogItemData } from '../components/UpdateCatalogEntryModal';
 import { BarcodeLabelModal } from '../components/BarcodeLabelModal';
 
+import { BulkSerialImportModal } from '../components/BulkSerialImportModal';
+
 export default function ItemsPage() {
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { items, loading } = useItems();
@@ -58,6 +60,8 @@ export default function ItemsPage() {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
+  const [showBulkSerialModal, setShowBulkSerialModal] = useState(false);
+  const [selectedSerialItem, setSelectedSerialItem] = useState<Item | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
@@ -735,11 +739,22 @@ export default function ItemsPage() {
 
       {currentTab === 'serials' && (
         <div className="card-base p-6 bg-white border border-slate-100 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-base font-bold text-slate-900">Serialized Units Registry</h3>
               <p className="text-xs text-slate-500">Track individual serial numbers, statuses, and purchase warranties.</p>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedSerialItem(items[0] || null);
+                setShowBulkSerialModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer"
+            >
+              <Plus size={15} />
+              <span>Bulk Import Serials (Excel / CSV)</span>
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -1373,6 +1388,7 @@ export default function ItemsPage() {
               name: itemData.name,
               description: itemData.description || '',
               price: parseFloat(String(itemData.price)) || 0,
+              wholesale_price: parseFloat(String(itemData.wholesalePrice || (itemData as any).wholesale_price)) || 0,
               costPrice: parseFloat(String(itemData.costPrice)) || 0,
               mrp: parseFloat(String(itemData.mrp)) || 0,
               discount: parseFloat(String(itemData.discount)) || 0,
@@ -1417,6 +1433,7 @@ export default function ItemsPage() {
           mrp: editingItem.mrp,
           costPrice: (editingItem as any).costPrice,
           price: editingItem.price,
+          wholesalePrice: (editingItem as any).wholesale_price || (editingItem as any).wholesalePrice,
           discount: editingItem.discount,
           gstPercent: editingItem.gstPercent,
           stock: editingItem.stock,
@@ -2083,6 +2100,28 @@ export default function ItemsPage() {
         onClose={() => setShowBarcodeModal(false)}
         items={items as any}
       />
+
+      {selectedSerialItem && (
+        <BulkSerialImportModal
+          isOpen={showBulkSerialModal}
+          onClose={() => setShowBulkSerialModal(false)}
+          itemName={selectedSerialItem.name}
+          existingSerials={(selectedSerialItem as any).serials || ((selectedSerialItem as any).serialNumber ? String((selectedSerialItem as any).serialNumber).split(',').map((s: string) => s.trim()).filter(Boolean) : [])}
+          onImport={async (newSerials) => {
+            if (!user) return;
+            try {
+              const updatedStock = Math.max(Number(selectedSerialItem.stock) || 0, newSerials.length);
+              await dbService.update('items', selectedSerialItem.id, {
+                serials: newSerials,
+                serialNumber: newSerials.join(', '),
+                stock: updatedStock
+              }, { offlineMode: isOfflineMode, userId: user.uid });
+            } catch (err) {
+              console.error("Error importing bulk serials:", err);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

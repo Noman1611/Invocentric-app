@@ -36,6 +36,7 @@ export interface CatalogItemData {
   mrp?: number | string;
   costPrice?: number | string;
   price?: number | string;
+  wholesalePrice?: number | string;
   discount?: number | string;
   gstPercent?: number | string;
   stock?: number | string;
@@ -91,6 +92,7 @@ export default function UpdateCatalogEntryModal({
     mrp: '',
     costPrice: '',
     price: '',
+    wholesalePrice: '',
     discount: '',
     gstPercent: '18',
     stock: '0',
@@ -128,6 +130,7 @@ export default function UpdateCatalogEntryModal({
           mrp: initialData.mrp ?? '',
           costPrice: initialData.costPrice ?? '',
           price: initialData.price ?? '',
+          wholesalePrice: initialData.wholesalePrice ?? '',
           discount: initialData.discount ?? '',
           gstPercent: initialData.gstPercent ?? '18',
           stock: initialData.stock ?? '0',
@@ -620,10 +623,10 @@ export default function UpdateCatalogEntryModal({
                   />
                 </div>
 
-                {/* Selling Price ₹ */}
+                {/* Selling Price ₹ (Retail) */}
                 <div className="space-y-1.5">
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#166534] dark:text-green-400">
-                    Selling Price (₹) <span className="text-rose-500">*</span>
+                    Retail Price (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -633,6 +636,21 @@ export default function UpdateCatalogEntryModal({
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     className="w-full px-3 py-2.5 text-sm font-bold rounded-xl border border-green-300 dark:border-green-700 bg-green-50/40 dark:bg-green-950/30 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
+                  />
+                </div>
+
+                {/* Wholesale Price ₹ (B2B) */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                    Wholesale Price (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    placeholder="0.00"
+                    value={formData.wholesalePrice}
+                    onChange={(e) => setFormData({ ...formData, wholesalePrice: e.target.value })}
+                    className="w-full px-3 py-2.5 text-sm font-bold rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/30 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all tabular-nums"
                   />
                 </div>
 

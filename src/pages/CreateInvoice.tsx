@@ -216,9 +216,12 @@ export default function CreateInvoicePage() {
     due_date: new Date().toISOString().split('T')[0],
     currency: 'INR',
     bill_type: 'INVOICE',
+    price_tier: 'retail' as 'retail' | 'wholesale',
     discount: 0,
+    shipping_charges: 0,
     sales_return: 0,
     advance_amount: 0,
+    bank_account_id: '',
     invoice_template: 'tally_prime_gst',
     invoice_title: 'TAX INVOICE',
     copy_subtitle: 'ORIGINAL FOR RECIPIENT',
@@ -881,9 +884,10 @@ export default function CreateInvoicePage() {
     }, 0) : 0;
 
     const globalDiscount = isDiscountEnabled ? (Number(formData.discount) || 0) : 0;
+    const shipping = Number(formData.shipping_charges) || 0;
     const salesReturn = Number(formData.sales_return) || 0;
 
-    const finalTotal = subtotal - globalDiscount + salesReturn + totalGst;
+    const finalTotal = subtotal - globalDiscount + salesReturn + totalGst + shipping;
     return isNaN(finalTotal) ? 0 : Number(finalTotal.toFixed(2));
   };
 
@@ -970,8 +974,11 @@ export default function CreateInvoicePage() {
         balance_due: Math.max(0, total - advance),
         currency: formData.currency,
         bill_type: formData.bill_type,
+        price_tier: formData.price_tier || 'retail',
         discount: cleanDiscount,
+        shipping_charges: Number(formData.shipping_charges) || 0,
         sales_return: formData.sales_return,
+        bank_account_id: formData.bank_account_id || '',
         invoice_template: formData.invoice_template || 'tally_prime_gst',
         invoice_title: formData.invoice_title || 'TAX INVOICE',
         copy_subtitle: formData.copy_subtitle || 'ORIGINAL FOR RECIPIENT',
@@ -1469,7 +1476,35 @@ export default function CreateInvoicePage() {
               </p>
             </div>
             
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Pricing Tier Toggle (Wholesale vs Retail) */}
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setFormData(p => ({ ...p, price_tier: 'retail' }))}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                    formData.price_tier !== 'wholesale'
+                      ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-xs"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                >
+                  Retail Price
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(p => ({ ...p, price_tier: 'wholesale' }))}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                    formData.price_tier === 'wholesale'
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  )}
+                >
+                  Wholesale Rate
+                </button>
+              </div>
+
               {[
                 { key: 'size', label: 'Size' },
                 { key: 'hsn', label: 'HSN' },
@@ -1585,9 +1620,13 @@ export default function CreateInvoicePage() {
                                     }
                                   }));
 
+                                  const selectedRate = (formData.price_tier === 'wholesale' && (invItem as any).wholesale_price)
+                                    ? Number((invItem as any).wholesale_price)
+                                    : (invItem.price || 0);
+
                                   updateItemBatch(index, {
                                     description: invItem.name,
-                                    price: invItem.price || 0,
+                                    price: selectedRate,
                                     hsn: invItem.hsn || '',
                                     size: invItem.size || '',
                                     gstPercent: invItem.gstPercent || 0,
@@ -1959,7 +1998,7 @@ export default function CreateInvoicePage() {
                       />
                     </div>
                   )}
-                  <div className="w-full md:w-28 text-right">
+                  <div className="w-full md:w-32 text-right relative">
                     <label className="label block">{appMode === 'freelancer' ? 'Hourly / Fee' : 'Net Rate'}</label>
                     <input 
                       type="number" 
@@ -1981,6 +2020,29 @@ export default function CreateInvoicePage() {
                       }}
                       onFocus={(e) => e.target.select()}
                     />
+                    {/* Party-Wise Last Selling Price auto-memory badge */}
+                    {(() => {
+                      if (!formData.customer_id || !item.description) return null;
+                      const prevInv = (existingInvoices || []).find((inv: any) => {
+                        if (inv.customer_id !== formData.customer_id) return false;
+                        if (inv.id === id) return false;
+                        return Array.isArray(inv.items) && inv.items.some((it: any) => (it.description || '').trim().toLowerCase() === (item.description || '').trim().toLowerCase());
+                      });
+                      if (!prevInv) return null;
+                      const prevItem = prevInv.items.find((it: any) => (it.description || '').trim().toLowerCase() === (item.description || '').trim().toLowerCase());
+                      const lastPrice = Number(prevItem?.price || 0);
+                      if (!lastPrice || lastPrice === item.price) return null;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => updateItem(index, 'price', lastPrice)}
+                          className="mt-1 text-[9px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 block text-right ml-auto transition-colors cursor-pointer"
+                          title="Click to apply last selling price to this customer"
+                        >
+                          Last: ₹{lastPrice} (Apply)
+                        </button>
+                      );
+                    })()}
                   </div>
                   <button 
                     type="button"
@@ -2100,6 +2162,24 @@ export default function CreateInvoicePage() {
                     const cleaned = val.replace(/^0+(?=\d)/, '');
                     e.target.value = cleaned;
                     setFormData(p => ({ ...p, sales_return: Number(cleaned) }));
+                  }}
+                  onFocus={(e) => e.target.select()}
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="text-[11px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1">
+                  <span>Delivery / Shipping (+)</span>
+                </label>
+                <input 
+                  type="number" 
+                  placeholder="0"
+                  className="w-32 px-3 py-1.5 border border-blue-300 dark:border-blue-700 rounded-lg text-sm bg-white dark:bg-zinc-800 text-blue-900 dark:text-blue-300 font-bold focus:ring-2 focus:ring-blue-500 shadow-xs"
+                  value={formData.shipping_charges || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const cleaned = val.replace(/^0+(?=\d)/, '');
+                    e.target.value = cleaned;
+                    setFormData(p => ({ ...p, shipping_charges: Number(cleaned) }));
                   }}
                   onFocus={(e) => e.target.select()}
                 />
