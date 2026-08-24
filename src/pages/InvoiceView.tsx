@@ -427,7 +427,7 @@ export default function InvoiceViewPage() {
                   <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>
                     <div style={{fontWeight:'bold'}}>{it.name}</div>
                     {(it.subLines||[]).map((sl:string,si:number)=>(
-                      <div key={si} style={{display:'block',fontStyle:'italic',fontSize: isA5 ? 7.5 : 9.5,color:'#444',backgroundColor:'#f0f4f9',padding:'0.5px 3px',borderRadius:2,marginTop:1,width:'fit-content'}}>
+                      <div key={si} style={{display:'block',fontSize: isA5 ? 7.5 : 9.5,color:'#333',marginTop:1,width:'fit-content'}}>
                         {sl}
                       </div>
                     ))}
@@ -464,11 +464,26 @@ export default function InvoiceViewPage() {
           <div style={{ marginTop: 'auto' }}>
             <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8.5 : 10.5}}>
               <tbody>
-                <tr>
-                  <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}></td>
-                  <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}><b>{isIgst?'IGST':'CGST/SGST'}</b></td>
-                  <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px'}}><b>{fc(totalTaxable,cur)}</b><br/><b>{fc(totalTax,cur)}</b></td>
-                </tr>
+                {isIgst ? (
+                  <tr>
+                    <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}></td>
+                    <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}><b>IGST Tax Total</b></td>
+                    <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px'}}><b>{fc(totalTax,cur)}</b></td>
+                  </tr>
+                ) : (
+                  <>
+                    <tr>
+                      <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}></td>
+                      <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}><b>CGST Tax ({hsnEntries[0]?.[1]?.pct ? hsnEntries[0][1].pct / 2 : 0}%)</b></td>
+                      <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px'}}><b>{fc(cgstTotal,cur)}</b></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}></td>
+                      <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}><b>SGST Tax ({hsnEntries[0]?.[1]?.pct ? hsnEntries[0][1].pct / 2 : 0}%)</b></td>
+                      <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px'}}><b>{fc(sgstTotal,cur)}</b></td>
+                    </tr>
+                  </>
+                )}
                 <tr style={{fontWeight:'bold',background:lb,borderTop:b}}>
                   <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}></td>
                   <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}>{qtyTotal}</td>
@@ -479,19 +494,52 @@ export default function InvoiceViewPage() {
             </table>
 
             {showSec.amount_in_words && (
-              <div style={{border:b,borderTop:'none',padding:'2px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Total in words<br/><b>{safeToWords(grandTotal,cur)}</b></div>
+              <div style={{border:b,borderTop:'none',padding:'3px 6px',fontSize: isA5 ? 8.5 : 10.5,display:'flex',alignItems:'center',gap:6}}>
+                <span style={{fontWeight:'bold'}}>Total in words:</span>
+                <span style={{fontWeight:'bold',textTransform:'uppercase'}}>{safeToWords(grandTotal,cur)}</span>
+              </div>
             )}
             
             {showSec.hsn_summary && (
-              <>
-                <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8 : 10}}>
-                  <thead><tr><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>HSN / SAC</th><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Taxable Value</th><th colSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Total</th></tr><tr><th style={{border:b,padding:1,background:lb}}>%</th><th style={{border:b,padding:1,background:lb}}>Amount</th></tr></thead>
-                  <tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:b,padding:1.5}}>{hsn}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{d.pct}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(isIgst?d.igst:d.cgst+d.sgst,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:b,padding:1.5}}>Total</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:b,padding:1.5}}></td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody>
-                </table>
-                {showSec.amount_in_words && (
-                  <div style={{border:b,borderTop:'none',padding:'2px 6px',fontSize: isA5 ? 8.5 : 10.5}}>Total Tax in words: <b>{safeToWords(totalTax,cur)}</b></div>
-                )}
-              </>
+              <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8 : 10}}>
+                <thead>
+                  <tr>
+                    <th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>HSN / SAC</th>
+                    <th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Taxable Value</th>
+                    <th colSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>CGST</th>
+                    <th colSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>SGST</th>
+                    <th rowSpan={2} style={{border:b,padding:1.5,background:lb,textAlign:'center'}}>Total Tax</th>
+                  </tr>
+                  <tr>
+                    <th style={{border:b,padding:1,background:lb}}>%</th>
+                    <th style={{border:b,padding:1,background:lb}}>Amount</th>
+                    <th style={{border:b,padding:1,background:lb}}>%</th>
+                    <th style={{border:b,padding:1,background:lb}}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hsnEntries.map(([hsn,d])=>(
+                    <tr key={hsn}>
+                      <td style={{border:b,padding:1.5}}>{hsn}</td>
+                      <td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.taxable,cur)}</td>
+                      <td style={{border:b,padding:1.5,textAlign:'right'}}>{isIgst ? '0%' : `${d.pct / 2}%`}</td>
+                      <td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(isIgst ? 0 : d.cgst, cur)}</td>
+                      <td style={{border:b,padding:1.5,textAlign:'right'}}>{isIgst ? '0%' : `${d.pct / 2}%`}</td>
+                      <td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(isIgst ? 0 : d.sgst, cur)}</td>
+                      <td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(d.tax,cur)}</td>
+                    </tr>
+                  ))}
+                  <tr style={{fontWeight:'bold',background:lb}}>
+                    <td style={{border:b,padding:1.5}}>Total</td>
+                    <td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTaxable,cur)}</td>
+                    <td style={{border:b,padding:1.5}}></td>
+                    <td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(isIgst ? 0 : cgstTotal, cur)}</td>
+                    <td style={{border:b,padding:1.5}}></td>
+                    <td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(isIgst ? 0 : sgstTotal, cur)}</td>
+                    <td style={{border:b,padding:1.5,textAlign:'right'}}>{fc(totalTax,cur)}</td>
+                  </tr>
+                </tbody>
+              </table>
             )}
 
             {(showSec.bank_details || showSec.upi_qr || showSec.signature || showSec.declaration) && (
@@ -586,7 +634,7 @@ export default function InvoiceViewPage() {
                   <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>
                     <div style={{fontWeight:'bold'}}>{it.name}</div>
                     {(it.subLines||[]).map((sl:string,si:number)=>(
-                      <div key={si} style={{display:'block',fontStyle:'italic',fontSize: isA5 ? 7.5 : 9.5,color:'#444',backgroundColor:'#eef4fa',padding:'0.5px 3px',borderRadius:2,marginTop:1,width:'fit-content'}}>
+                      <div key={si} style={{display:'block',fontSize: isA5 ? 7.5 : 9.5,color:'#333',marginTop:1,width:'fit-content'}}>
                         {sl}
                       </div>
                     ))}
@@ -622,10 +670,50 @@ export default function InvoiceViewPage() {
             <div style={{display:'flex',justifyContent:'flex-end',gap:20,padding:'1.5px 0',fontWeight:'bold',fontSize: isA5 ? 8.5 : 11}}><span>Taxable Amount</span><b>{fc(totalTaxable,cur)}</b></div>
             <div style={{display:'flex',justifyContent:'flex-end',gap:20,padding:'1.5px 0',fontWeight:'bold',fontSize: isA5 ? 9.5 : 12}}><span>Total Amount</span><b>₹ {fc(grandTotal,cur)}</b></div>
             {showSec.amount_in_words && (
-              <div style={{fontSize: isA5 ? 8 : 10.5,margin:'1.5px 0'}}>Total Items / Qty : {itemRows.length} / {qtyTotal}<br/>Total amount (in words): <b>{safeToWords(grandTotal,cur)}.</b></div>
+              <div style={{fontSize: isA5 ? 8 : 10.5,margin:'2px 0'}}>
+                <b>Total in words:</b> {safeToWords(grandTotal,cur)}.
+              </div>
             )}
             {showSec.hsn_summary && (
-              <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 8 : 10,marginTop:1}}><thead><tr><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>HSN/SAC</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Taxable Value</th><th colSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>{isIgst?'IGST':'Tax'}</th><th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Total</th></tr><tr><th style={{border:'1px solid #ccc',padding:1,background:lb}}>%</th><th style={{border:'1px solid #ccc',padding:1,background:lb}}>Amount</th></tr></thead><tbody>{hsnEntries.map(([hsn,d])=>(<tr key={hsn}><td style={{border:'1px solid #ccc',padding:1}}>{hsn}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.taxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{d.pct}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(isIgst?d.igst:d.tax,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.tax,cur)}</td></tr>))}<tr style={{fontWeight:'bold'}}><td style={{border:'1px solid #ccc',padding:1}}>Total</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTaxable,cur)}</td><td style={{border:'1px solid #ccc',padding:1}}></td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTax,cur)}</td><td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTax,cur)}</td></tr></tbody></table>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize: isA5 ? 8 : 10,marginTop:1}}>
+                <thead>
+                  <tr>
+                    <th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>HSN/SAC</th>
+                    <th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Taxable Value</th>
+                    <th colSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>CGST</th>
+                    <th colSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>SGST</th>
+                    <th rowSpan={2} style={{border:'1px solid #ccc',padding:1,background:lb}}>Total Tax</th>
+                  </tr>
+                  <tr>
+                    <th style={{border:'1px solid #ccc',padding:1,background:lb}}>%</th>
+                    <th style={{border:'1px solid #ccc',padding:1,background:lb}}>Amount</th>
+                    <th style={{border:'1px solid #ccc',padding:1,background:lb}}>%</th>
+                    <th style={{border:'1px solid #ccc',padding:1,background:lb}}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hsnEntries.map(([hsn,d])=>(
+                    <tr key={hsn}>
+                      <td style={{border:'1px solid #ccc',padding:1}}>{hsn}</td>
+                      <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.taxable,cur)}</td>
+                      <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{isIgst ? '0%' : `${d.pct / 2}%`}</td>
+                      <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(isIgst ? 0 : d.cgst, cur)}</td>
+                      <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{isIgst ? '0%' : `${d.pct / 2}%`}</td>
+                      <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(isIgst ? 0 : d.sgst, cur)}</td>
+                      <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(d.tax,cur)}</td>
+                    </tr>
+                  ))}
+                  <tr style={{fontWeight:'bold'}}>
+                    <td style={{border:'1px solid #ccc',padding:1}}>Total</td>
+                    <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTaxable,cur)}</td>
+                    <td style={{border:'1px solid #ccc',padding:1}}></td>
+                    <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(isIgst ? 0 : cgstTotal, cur)}</td>
+                    <td style={{border:'1px solid #ccc',padding:1}}></td>
+                    <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(isIgst ? 0 : sgstTotal, cur)}</td>
+                    <td style={{border:'1px solid #ccc',padding:1,textAlign:'right'}}>{fc(totalTax,cur)}</td>
+                  </tr>
+                </tbody>
+              </table>
             )}
             
             {(showSec.upi_qr || showSec.bank_details || showSec.signature) && (

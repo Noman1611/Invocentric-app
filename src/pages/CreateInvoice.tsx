@@ -212,6 +212,7 @@ export default function CreateInvoicePage() {
   const [formData, setFormData] = useState({
     customer_id: '',
     invoice_number: '',
+    invoice_date: new Date().toISOString().split('T')[0],
     due_date: new Date().toISOString().split('T')[0],
     currency: 'INR',
     bill_type: 'INVOICE',
@@ -981,6 +982,8 @@ export default function CreateInvoicePage() {
         columnVisibility: formData.columnVisibility,
         amount_words: amountWordsStr,
         status: (status === 'paid' && advance > 0 && advance < total) ? 'sent' : status,
+        date: formData.invoice_date ? new Date(formData.invoice_date).toISOString() : new Date().toISOString(),
+        invoice_date: formData.invoice_date ? new Date(formData.invoice_date).toISOString() : new Date().toISOString(),
         due_date: new Date(formData.due_date).toISOString(),
         items: cleanItems,
         notes: formData.terms_text || formData.notes || '',
@@ -1263,22 +1266,34 @@ export default function CreateInvoicePage() {
           </div>
           <div className="space-y-4">
             <div>
-              <label className="label block">Invoice Number</label>
+              <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">Invoice Number</label>
               <input
                 type="text"
-                className="input-field"
+                className="input-field font-semibold text-xs"
                 value={formData.invoice_number}
                 onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                placeholder="Auto-generated"
+                placeholder="INV-2026-0001 (Auto)"
               />
             </div>
           </div>
           <div className="space-y-4">
             <div>
-              <label className="label block">Due Date</label>
+              <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">Invoice Date</label>
               <input 
                 type="date" 
-                className="input-field" 
+                className="input-field font-semibold text-xs" 
+                value={formData.invoice_date || new Date().toISOString().split('T')[0]}
+                onChange={(e) => setFormData(prev => ({ ...prev, invoice_date: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">Due Date</label>
+              <input 
+                type="date" 
+                className="input-field font-semibold text-xs" 
                 value={formData.due_date}
                 onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
                 required
