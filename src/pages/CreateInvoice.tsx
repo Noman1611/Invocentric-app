@@ -684,12 +684,18 @@ export default function CreateInvoicePage() {
   // Auto-generate the next invoice number for new invoices (prefix + year + running sequence)
   useEffect(() => {
     if (id) return; // Don't touch invoice_number while editing an existing invoice
-    if (formData.invoice_number) return; // Already set (e.g. user typed one manually)
 
     const prefix = (sellerSettings?.invoice_prefix || 'INV').trim().toUpperCase() || 'INV';
     const year = new Date().getFullYear();
 
-    // Look at existing invoice numbers for this prefix+year to find the highest sequence used so far
+    // Collect all existing invoice numbers in a set (normalized uppercase)
+    const existingNumSet = new Set(
+      (existingInvoices || [])
+        .map((inv: any) => (inv.invoice_number || '').trim().toUpperCase())
+        .filter(Boolean)
+    );
+
+    // Look at existing invoice numbers to extract sequence numbers
     const pattern = new RegExp(`^${prefix}-${year}-(\\d+)$`, 'i');
     let maxSeq = 0;
     (existingInvoices || []).forEach((inv: any) => {
@@ -700,10 +706,23 @@ export default function CreateInvoicePage() {
       }
     });
 
-    const nextSeq = maxSeq > 0 ? maxSeq + 1 : (existingInvoices?.length || 0) + 1;
-    const nextNumber = `${prefix}-${year}-${String(nextSeq).padStart(4, '0')}`;
+    // Start with maxSeq + 1 or sequential check, and ensure the candidate number is NOT already in existingNumSet
+    let candidateSeq = maxSeq > 0 ? maxSeq + 1 : (existingInvoices?.length || 0) + 1;
+    let candidateNumber = `${prefix}-${year}-${String(candidateSeq).padStart(4, '0')}`;
 
-    setFormData(prev => (prev.invoice_number ? prev : { ...prev, invoice_number: nextNumber }));
+    // Loop until we find a completely unused sequence number
+    while (existingNumSet.has(candidateNumber.toUpperCase())) {
+      candidateSeq++;
+      candidateNumber = `${prefix}-${year}-${String(candidateSeq).padStart(4, '0')}`;
+    }
+
+    // If current invoice_number is empty or matches an old existing invoice, update it with fresh unique candidate
+    setFormData(prev => {
+      if (!prev.invoice_number || existingNumSet.has(prev.invoice_number.trim().toUpperCase())) {
+        return { ...prev, invoice_number: candidateNumber };
+      }
+      return prev;
+    });
   }, [id, sellerSettings, existingInvoices]);
 
   // Auto-detect currency based on locale (only for new invoices)
