@@ -93,7 +93,7 @@ export default function BarcodeGenerator() {
   const [sheetPresetKey, setSheetPresetKey] = useState<string>('a4_24');
   const [sheetConfig, setSheetConfig] = useState<LabelSheetConfig>(PRESET_SHEET_CONFIGS['a4_24']);
   const [showBusinessName, setShowBusinessName] = useState(true);
-  const [businessName, setBusinessName] = useState('InvoCentic Retail');
+  const [businessName, setBusinessName] = useState('InvoCentric Retail');
   const [showPriceTag, setShowPriceTag] = useState(true);
   const [showMrpTag, setShowMrpTag] = useState(true);
   const [showSkuTag, setShowSkuTag] = useState(true);
@@ -205,7 +205,7 @@ export default function BarcodeGenerator() {
     }
   };
 
-  // Save Barcode back to InvoCentic Product Catalog
+  // Save Barcode back to InvoCentric Product Catalog
   const handleSaveToProduct = async () => {
     if (!selectedProductId || !user) {
       alert('Please select an existing product from your catalog first.');

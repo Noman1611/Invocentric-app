@@ -140,7 +140,7 @@ export function GlobalShortcutsManager() {
     {
       key: 'Alt+H',
       displayKey: 'Alt + H',
-      description: 'Go to Home / Dashboard (Gateway of InvoCentic)',
+      description: 'Go to Home / Dashboard (Gateway of InvoCentric)',
       category: 'Navigation',
       action: () => { navigate('/dashboard'); showToast('Opened: Dashboard (Alt + H)'); }
     },

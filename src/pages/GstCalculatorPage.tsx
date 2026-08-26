@@ -68,7 +68,7 @@ export default function GstCalculatorPage() {
   }, [amount, gstRate, isInclusive]);
 
   const handleCopySummary = () => {
-    const text = `📊 GST Calculation Summary:\n• Base Price: ₹${result.baseAmount}\n• GST Rate: ${gstRate}% (${isInclusive ? 'Inclusive' : 'Exclusive'})\n• Total GST: ₹${result.totalTax} ${taxType === 'intra' ? `(CGST: ₹${result.cgst} + SGST: ₹${result.sgst})` : `(IGST: ₹${result.igst})`}\n• Final Total: ₹${result.finalAmount}\n\nGenerated with InvoCentic Free GST Calculator (https://invocentric.in/gst-calculator)`;
+    const text = `📊 GST Calculation Summary:\n• Base Price: ₹${result.baseAmount}\n• GST Rate: ${gstRate}% (${isInclusive ? 'Inclusive' : 'Exclusive'})\n• Total GST: ₹${result.totalTax} ${taxType === 'intra' ? `(CGST: ₹${result.cgst} + SGST: ₹${result.sgst})` : `(IGST: ₹${result.igst})`}\n• Final Total: ₹${result.finalAmount}\n\nGenerated with InvoCentric Free GST Calculator (https://invocentric.in/gst-calculator)`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -77,7 +77,7 @@ export default function GstCalculatorPage() {
   const structuredSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
-    'name': 'Free Online GST Calculator India - InvoCentic',
+    'name': 'Free Online GST Calculator India - InvoCentric',
     'url': 'https://invocentric.in/gst-calculator',
     'applicationCategory': 'BusinessApplication, FinancialApplication',
     'operatingSystem': 'All',
@@ -92,8 +92,8 @@ export default function GstCalculatorPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       <SEOHead
-        title="Free Online GST Calculator India (CGST, SGST, IGST) | InvoCentic"
-        description="Calculate GST online for 5%, 12%, 18%, 28% tax rates instantly. Accurate inclusive & exclusive GST calculation with CGST, SGST, and IGST breakdown. 100% free tool by InvoCentic."
+        title="Free Online GST Calculator India (CGST, SGST, IGST) | InvoCentric"
+        description="Calculate GST online for 5%, 12%, 18%, 28% tax rates instantly. Accurate inclusive & exclusive GST calculation with CGST, SGST, and IGST breakdown. 100% free tool by InvoCentric."
         canonicalUrl="https://invocentric.in/gst-calculator"
         keywords={[
           'gst calculator',
@@ -115,7 +115,7 @@ export default function GstCalculatorPage() {
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
             <Logo size={36} />
             <div>
-              <span className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">InvoCentic</span>
+              <span className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">InvoCentric</span>
               <span className="hidden sm:inline-block ml-2 text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">GST Tools</span>
             </div>
           </div>
@@ -466,7 +466,7 @@ export default function GstCalculatorPage() {
                 },
                 {
                   q: "Is this GST calculator free for business use?",
-                  a: "Yes, 100% free! You can also use InvoCentic to generate professional GST invoices, convert estimates into tax bills, track inventory, and send 1-click WhatsApp payment reminders with zero hidden charges."
+                  a: "Yes, 100% free! You can also use InvoCentric to generate professional GST invoices, convert estimates into tax bills, track inventory, and send 1-click WhatsApp payment reminders with zero hidden charges."
                 }
               ].map((faq, idx) => (
                 <div key={idx} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5">
@@ -487,7 +487,7 @@ export default function GstCalculatorPage() {
             Create Professional GST Invoices in 30 Seconds
           </h3>
           <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
-            Ready to streamline your billing? Generate GST-compliant invoices, track stock with barcodes, and share bills on WhatsApp with InvoCentic.
+            Ready to streamline your billing? Generate GST-compliant invoices, track stock with barcodes, and share bills on WhatsApp with InvoCentric.
           </p>
           <button
             onClick={() => navigate('/login')}
@@ -497,7 +497,7 @@ export default function GstCalculatorPage() {
             <ArrowRight size={16} />
           </button>
           <p className="text-[11px] text-slate-500">
-            © {new Date().getFullYear()} InvoCentic. Built for Indian Retailers, Wholesalers & Freelancers.
+            © {new Date().getFullYear()} InvoCentric. Built for Indian Retailers, Wholesalers & Freelancers.
           </p>
         </div>
       </footer>

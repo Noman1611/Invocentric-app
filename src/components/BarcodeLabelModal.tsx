@@ -29,7 +29,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
   const [showPrice, setShowPrice] = useState(true);
   const [showMrp, setShowMrp] = useState(true);
   const [showBusinessName, setShowBusinessName] = useState(true);
-  const [businessName, setBusinessName] = useState('InvoCentic Retail');
+  const [businessName, setBusinessName] = useState('InvoCentric Retail');
   const [barcodeType, setBarcodeType] = useState<BarcodeType>('CODE128');
 
   const activeItem = items.find(i => i.id === selectedItemId) || items[0];

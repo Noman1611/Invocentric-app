@@ -31,8 +31,8 @@ export interface SeoLandingPageData {
 export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
   'invoice-software': {
     slug: 'invoice-software',
-    metaTitle: 'Invoice Software India | Professional Online Invoice Maker | InvoCentic',
-    metaDescription: 'Free invoice software for small businesses in India. Create professional GST and non-GST invoices, custom templates, WhatsApp sharing, and instant PDF download with InvoCentic.',
+    metaTitle: 'Invoice Software India | Professional Online Invoice Maker | InvoCentric',
+    metaDescription: 'Free invoice software for small businesses in India. Create professional GST and non-GST invoices, custom templates, WhatsApp sharing, and instant PDF download with InvoCentric.',
     focusKeyword: 'invoice software',
     secondaryKeywords: ['invoice maker', 'invoice generator', 'online invoice software', 'invoice software India', 'free invoice software'],
     h1: 'Professional Invoice Software for Indian Small Businesses',
@@ -63,10 +63,10 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     ],
     detailedSections: [
       {
-        heading: 'Why InvoCentic is the Preferred Invoice Software in India',
+        heading: 'Why InvoCentric is the Preferred Invoice Software in India',
         content: [
-          'Small businesses, freelancers, wholesalers, and retail store owners need an invoicing platform that is quick, reliable, and compliant with Indian GST tax laws. InvoCentic simplifies the billing process from start to finish.',
-          'Unlike traditional accounting software that requires extensive training, InvoCentic lets you pick a client, add items, and produce a print-ready invoice in seconds with no forced watermark or trial expiry.'
+          'Small businesses, freelancers, wholesalers, and retail store owners need an invoicing platform that is quick, reliable, and compliant with Indian GST tax laws. InvoCentric simplifies the billing process from start to finish.',
+          'Unlike traditional accounting software that requires extensive training, InvoCentric lets you pick a client, add items, and produce a print-ready invoice in seconds with no forced watermark or trial expiry.'
         ],
         bulletPoints: [
           'Automatic HSN code lookup and GST rate auto-split (CGST/SGST/IGST)',
@@ -78,8 +78,8 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     ],
     faqs: [
       {
-        question: 'Is InvoCentic invoice software really free to use?',
-        answer: 'Yes. InvoCentic provides free invoice creation with unlimited invoices, client management, and PDF exports without any watermarks or trial limits.'
+        question: 'Is InvoCentric invoice software really free to use?',
+        answer: 'Yes. InvoCentric provides free invoice creation with unlimited invoices, client management, and PDF exports without any watermarks or trial limits.'
       },
       {
         question: 'Can I generate both GST and Non-GST bills?',
@@ -87,7 +87,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
       },
       {
         question: 'Can I print invoices on thermal receipt printers?',
-        answer: 'Yes, InvoCentic features dedicated POS thermal templates (2-inch 58mm and 3-inch 80mm) that format receipts cleanly for Bluetooth, USB, and thermal printers.'
+        answer: 'Yes, InvoCentric features dedicated POS thermal templates (2-inch 58mm and 3-inch 80mm) that format receipts cleanly for Bluetooth, USB, and thermal printers.'
       }
     ],
     breadcrumbs: [
@@ -105,8 +105,8 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'free-invoice-maker': {
     slug: 'free-invoice-maker',
-    metaTitle: 'Free Invoice Maker | Online PDF Invoice Generator | InvoCentic',
-    metaDescription: 'Create clean, professional invoices for free with InvoCentic. Online PDF invoice maker with no watermark, instant WhatsApp sharing, and custom business branding.',
+    metaTitle: 'Free Invoice Maker | Online PDF Invoice Generator | InvoCentric',
+    metaDescription: 'Create clean, professional invoices for free with InvoCentric. Online PDF invoice maker with no watermark, instant WhatsApp sharing, and custom business branding.',
     focusKeyword: 'free invoice maker',
     secondaryKeywords: ['free invoice generator', 'online invoice maker', 'free invoice software', 'PDF invoice maker', 'invoice template free'],
     h1: 'Free Online Invoice Maker with Zero Watermarks',
@@ -139,7 +139,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
       {
         heading: 'How to Make Free Invoices Online in 3 Easy Steps',
         content: [
-          'Creating a bill should never take more than a few moments. With InvoCentic free invoice maker, you enter your business details once, select your client, and export print-ready PDFs.',
+          'Creating a bill should never take more than a few moments. With InvoCentric free invoice maker, you enter your business details once, select your client, and export print-ready PDFs.',
           'Your customer receives a professional document with clear itemization, applicable tax breakdowns, payment terms, and direct UPI payment options.'
         ],
         bulletPoints: [
@@ -152,11 +152,11 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     faqs: [
       {
         question: 'Do I need to install any software to use this invoice maker?',
-        answer: 'No installation required. InvoCentic works directly in your web browser on mobile, tablet, and desktop PC. You can also install it as a lightweight PWA app.'
+        answer: 'No installation required. InvoCentric works directly in your web browser on mobile, tablet, and desktop PC. You can also install it as a lightweight PWA app.'
       },
       {
-        question: 'Will my downloaded PDF invoice have an InvoCentic watermark?',
-        answer: 'No. InvoCentic never adds watermarks to your customer invoices. Your invoices feature only your company logo and business details.'
+        question: 'Will my downloaded PDF invoice have an InvoCentric watermark?',
+        answer: 'No. InvoCentric never adds watermarks to your customer invoices. Your invoices feature only your company logo and business details.'
       }
     ],
     breadcrumbs: [
@@ -174,7 +174,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'gst-billing-software': {
     slug: 'gst-billing-software',
-    metaTitle: 'GST Billing Software India | Free GST Accounting App | InvoCentic',
+    metaTitle: 'GST Billing Software India | Free GST Accounting App | InvoCentric',
     metaDescription: 'Best free GST billing software in India. Generate GST tax invoices, calculate CGST, SGST & IGST, manage HSN codes, track inventory, and export GSTR reports easily.',
     focusKeyword: 'GST billing software',
     secondaryKeywords: ['GST billing software India', 'GST invoice software', 'GST billing app', 'GST accounting software', 'free GST bill maker'],
@@ -209,7 +209,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
         heading: 'Complete GST Invoicing & Accounting for Retailers and Traders',
         content: [
           'GST invoicing in India requires exact tax splits, correct HSN codes, customer GSTIN verification, and amount in words. Mistakes can cause input tax credit (ITC) rejection.',
-          'InvoCentic automates all GST calculations so you never have to compute percentages manually. Enter your price and GST rate, and InvoCentic handles subtotal, taxable value, CGST, SGST, IGST, and Grand Total accurately.'
+          'InvoCentric automates all GST calculations so you never have to compute percentages manually. Enter your price and GST rate, and InvoCentric handles subtotal, taxable value, CGST, SGST, IGST, and Grand Total accurately.'
         ],
         bulletPoints: [
           'Real-time GSTIN format validation with state code mapping',
@@ -221,12 +221,12 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     ],
     faqs: [
       {
-        question: 'How does InvoCentic decide between CGST/SGST vs IGST?',
-        answer: 'If the customer\'s state matches your business state, InvoCentic automatically applies CGST and SGST equally (50-50). If the customer is in a different state, it applies Integrated GST (IGST).'
+        question: 'How does InvoCentric decide between CGST/SGST vs IGST?',
+        answer: 'If the customer\'s state matches your business state, InvoCentric automatically applies CGST and SGST equally (50-50). If the customer is in a different state, it applies Integrated GST (IGST).'
       },
       {
         question: 'Can I export my billing data to Excel or Accounting software?',
-        answer: 'Yes, InvoCentic provides one-click Excel reports and standard XML ledger exports so your CA can import records directly.'
+        answer: 'Yes, InvoCentric provides one-click Excel reports and standard XML ledger exports so your CA can import records directly.'
       }
     ],
     breadcrumbs: [
@@ -244,8 +244,8 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'gst-invoice-maker': {
     slug: 'gst-invoice-maker',
-    metaTitle: 'GST Invoice Maker Online | Create GST Tax Invoices | InvoCentic',
-    metaDescription: 'Generate GST-compliant tax invoices online with InvoCentic. Automatic CGST, SGST, and IGST tax splits, HSN codes, customer GSTIN verification, and instant PDF download.',
+    metaTitle: 'GST Invoice Maker Online | Create GST Tax Invoices | InvoCentric',
+    metaDescription: 'Generate GST-compliant tax invoices online with InvoCentric. Automatic CGST, SGST, and IGST tax splits, HSN codes, customer GSTIN verification, and instant PDF download.',
     focusKeyword: 'GST invoice maker',
     secondaryKeywords: ['GST invoice generator', 'GST invoice software', 'GST tax invoice', 'GST bill maker', 'online GST invoice generator'],
     h1: 'Online GST Invoice Maker & Tax Bill Generator',
@@ -278,7 +278,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
       {
         heading: 'Essential Components of a Valid GST Tax Invoice in India',
         content: [
-          'Under the Goods and Services Tax framework in India, an invoice must contain specific mandatory fields to qualify for Input Tax Credit (ITC). InvoCentic ensures every required field is present and formatted correctly.'
+          'Under the Goods and Services Tax framework in India, an invoice must contain specific mandatory fields to qualify for Input Tax Credit (ITC). InvoCentric ensures every required field is present and formatted correctly.'
         ],
         bulletPoints: [
           'Consecutive serial invoice number (e.g. INV-2026-0001)',
@@ -311,7 +311,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'billing-software': {
     slug: 'billing-software',
-    metaTitle: 'Billing Software for Small Businesses India | InvoCentic',
+    metaTitle: 'Billing Software for Small Businesses India | InvoCentric',
     metaDescription: 'All-in-one business billing software for Indian retail shops, traders, and small businesses. Invoicing, inventory, POS, customer ledger, and barcode scanning in one free app.',
     focusKeyword: 'billing software',
     secondaryKeywords: ['billing software India', 'business billing software', 'small business billing software', 'online billing software', 'retail billing software'],
@@ -343,10 +343,10 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     ],
     detailedSections: [
       {
-        heading: 'Why Small Businesses in India Choose InvoCentic Billing Software',
+        heading: 'Why Small Businesses in India Choose InvoCentric Billing Software',
         content: [
           'From local Kirana stores and mobile repair shops to wholesale traders and service providers, businesses need a billing tool that is fast, works offline, and requires zero technical training.',
-          'InvoCentic eliminates bookkeeping chaos by bringing invoicing, barcode scanning, stock tracking, and payment collection into a single unified dashboard.'
+          'InvoCentric eliminates bookkeeping chaos by bringing invoicing, barcode scanning, stock tracking, and payment collection into a single unified dashboard.'
         ],
         bulletPoints: [
           'Fast search across thousands of products by name, category, or barcode',
@@ -358,15 +358,15 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     ],
     faqs: [
       {
-        question: 'Can I use InvoCentic on both mobile and PC?',
-        answer: 'Yes. InvoCentic runs seamlessly on Android, iPhone, Windows PC, Mac, and Linux laptops via any web browser.'
+        question: 'Can I use InvoCentric on both mobile and PC?',
+        answer: 'Yes. InvoCentric runs seamlessly on Android, iPhone, Windows PC, Mac, and Linux laptops via any web browser.'
       }
     ],
     breadcrumbs: [
       { name: 'Home', url: 'https://invocentric.in/' },
       { name: 'Billing Software', url: 'https://invocentric.in/billing-software' }
     ],
-    ctaText: 'Start Using InvoCentic Free',
+    ctaText: 'Start Using InvoCentric Free',
     ctaSubtext: 'Join thousands of businesses managing billing with ease.',
     relatedPages: [
       { title: 'POS Billing Software', slug: 'pos-billing-software', desc: 'Fast retail checkout & thermal bills' },
@@ -377,7 +377,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'pos-billing-software': {
     slug: 'pos-billing-software',
-    metaTitle: 'POS Billing Software India | Fast Retail POS App | InvoCentic',
+    metaTitle: 'POS Billing Software India | Fast Retail POS App | InvoCentric',
     metaDescription: 'Lightning fast POS billing software for retail shops, supermarkets, and Kirana stores in India. Barcode scanning, thermal receipt printing, and quick cash/UPI checkout.',
     focusKeyword: 'POS billing software',
     secondaryKeywords: ['POS billing system', 'POS billing app', 'retail POS software', 'shop billing software', 'thermal print bill software'],
@@ -411,7 +411,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
       {
         heading: 'Designed for High-Volume Retail Counters in India',
         content: [
-          'During busy evening rush hours, slow billing software leads to lost customers. InvoCentic Quick POS is engineered for minimum keystrokes and instant bill completion.',
+          'During busy evening rush hours, slow billing software leads to lost customers. InvoCentric Quick POS is engineered for minimum keystrokes and instant bill completion.',
           'Simply scan the barcode, enter quantity, and tap Print. The thermal receipt generates instantly while your inventory updates in the background.'
         ],
         bulletPoints: [
@@ -424,8 +424,8 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     ],
     faqs: [
       {
-        question: 'Which thermal printers are compatible with InvoCentic POS?',
-        answer: 'InvoCentic is compatible with all standard thermal printers including TVS, Xprinter, Epson, Posiflex, Everycom, NGX, and standard Bluetooth receipt printers.'
+        question: 'Which thermal printers are compatible with InvoCentric POS?',
+        answer: 'InvoCentric is compatible with all standard thermal printers including TVS, Xprinter, Epson, Posiflex, Everycom, NGX, and standard Bluetooth receipt printers.'
       }
     ],
     breadcrumbs: [
@@ -443,7 +443,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'barcode-billing': {
     slug: 'barcode-billing',
-    metaTitle: 'Barcode Billing Software & Scanner App | InvoCentic',
+    metaTitle: 'Barcode Billing Software & Scanner App | InvoCentric',
     metaDescription: 'Free barcode billing software with smartphone camera and USB barcode gun support. Generate custom barcode labels, print sticker sheets, and bill items in seconds.',
     focusKeyword: 'barcode billing software',
     secondaryKeywords: ['barcode billing system', 'barcode scanner billing', 'barcode inventory software', 'retail barcode billing', 'barcode generator'],
@@ -478,7 +478,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
         heading: 'How Barcode Billing Transforms Your Retail Business',
         content: [
           'Barcode billing eliminates manual pricing errors, speeds up checkout by 5x, and ensures that item sales deduct the exact variant from your inventory database.',
-          'With InvoCentic, you can generate custom barcodes for unbranded products, print sticker labels, and scan them at checkout effortlessly.'
+          'With InvoCentric, you can generate custom barcodes for unbranded products, print sticker labels, and scan them at checkout effortlessly.'
         ],
         bulletPoints: [
           'Assign unique barcodes or auto-generate EAN-13 codes with valid checksums',
@@ -491,7 +491,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     faqs: [
       {
         question: 'Can I print barcode stickers on regular A4 sticker paper?',
-        answer: 'Yes. InvoCentic includes exact millimeter layout presets for standard A4 24-in-1 (3x8) and 65-in-1 (5x13) pre-cut sticker sheets.'
+        answer: 'Yes. InvoCentric includes exact millimeter layout presets for standard A4 24-in-1 (3x8) and 65-in-1 (5x13) pre-cut sticker sheets.'
       }
     ],
     breadcrumbs: [
@@ -509,7 +509,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'inventory-management': {
     slug: 'inventory-management',
-    metaTitle: 'Inventory Management Software India | Free Stock Control | InvoCentic',
+    metaTitle: 'Inventory Management Software India | Free Stock Control | InvoCentric',
     metaDescription: 'Free inventory management software for small businesses in India. Track live stock, manage serial numbers, lot/batch expiry alerts, low stock warnings, and stock adjustments.',
     focusKeyword: 'inventory management software',
     secondaryKeywords: ['stock management software', 'inventory software', 'stock management app', 'inventory billing software', 'product inventory software'],
@@ -543,7 +543,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
       {
         heading: 'Complete Stock Visibility from Purchase to Sale',
         content: [
-          'Poor inventory management leads to stockouts, expired goods, and untracked losses. InvoCentic gives you full visibility over your stock quantities, purchase costs, and profit margins in real-time.',
+          'Poor inventory management leads to stockouts, expired goods, and untracked losses. InvoCentric gives you full visibility over your stock quantities, purchase costs, and profit margins in real-time.',
           'Import your entire product list in seconds using Excel / CSV spreadsheets, organize items by categories, and adjust stock counts with audit logs.'
         ],
         bulletPoints: [
@@ -557,7 +557,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     faqs: [
       {
         question: 'Can I import my existing product list from Excel?',
-        answer: 'Yes. InvoCentic allows you to import hundreds of items with names, prices, HSN codes, opening stock, and barcodes in one click using CSV or Excel.'
+        answer: 'Yes. InvoCentric allows you to import hundreds of items with names, prices, HSN codes, opening stock, and barcodes in one click using CSV or Excel.'
       }
     ],
     breadcrumbs: [
@@ -575,8 +575,8 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'ledger-software': {
     slug: 'ledger-software',
-    metaTitle: 'Customer & Supplier Ledger Software | Digital Khata Book | InvoCentic',
-    metaDescription: 'Manage customer credit (Udhaar), supplier balances, payment receipts, and daily cash transactions with InvoCentic digital ledger software.',
+    metaTitle: 'Customer & Supplier Ledger Software | Digital Khata Book | InvoCentric',
+    metaDescription: 'Manage customer credit (Udhaar), supplier balances, payment receipts, and daily cash transactions with InvoCentric digital ledger software.',
     focusKeyword: 'ledger software',
     secondaryKeywords: ['customer ledger', 'supplier ledger', 'digital khata book', 'bahi khata software', 'cash book ledger'],
     h1: 'Digital Customer & Supplier Ledger (Khata Book) Software',
@@ -610,7 +610,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
         heading: 'Collect Customer Outstanding Balances 3x Faster',
         content: [
           'Managing customer credit on manual notebooks often leads to forgotten balances, disputes, and delayed cash flows.',
-          'InvoCentic links every invoice and payment entry directly to the party profile, maintaining an unalterable audit trail that can be verified by both parties.'
+          'InvoCentric links every invoice and payment entry directly to the party profile, maintaining an unalterable audit trail that can be verified by both parties.'
         ],
         bulletPoints: [
           'Automatic invoice linking to customer balance when bills are saved as Unpaid or Partial',
@@ -641,8 +641,8 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'quotation-maker': {
     slug: 'quotation-maker',
-    metaTitle: 'Free Quotation Maker & Estimate Generator | InvoCentic',
-    metaDescription: 'Create professional business quotations, estimates, and proposals online. 1-click convert quotation to GST invoice with InvoCentic free quotation maker.',
+    metaTitle: 'Free Quotation Maker & Estimate Generator | InvoCentric',
+    metaDescription: 'Create professional business quotations, estimates, and proposals online. 1-click convert quotation to GST invoice with InvoCentric free quotation maker.',
     focusKeyword: 'quotation maker',
     secondaryKeywords: ['estimate generator', 'free quotation maker', 'online estimate maker', 'proposal generator', 'quote to invoice converter'],
     h1: 'Free Business Quotation & Estimate Maker Online',
@@ -676,7 +676,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
         heading: 'Speed Up Sales with Seamless Quote-to-Invoice Workflow',
         content: [
           'Writing quotations on paper or basic spreadsheets causes delays and requires duplicate data entry when the client accepts.',
-          'InvoCentic allows you to draft detailed estimates with discounts, tax rates, and notes. When accepted, a single tap converts the quotation into an active invoice without re-typing.'
+          'InvoCentric allows you to draft detailed estimates with discounts, tax rates, and notes. When accepted, a single tap converts the quotation into an active invoice without re-typing.'
         ],
         bulletPoints: [
           'Add item descriptions, size/dimensions, quantity, unit rates, and discount percentage',
