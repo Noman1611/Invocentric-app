@@ -351,7 +351,7 @@ export default function GstCalculatorPage() {
 
               <button
                 type="button"
-                onClick={() => navigate('/invoices/create')}
+                onClick={() => navigate(`/invoices/create?auto_price=${result.baseAmount}&auto_gst=${gstRate}&supply_type=${taxType}`)}
                 className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 transition-all cursor-pointer active:scale-98"
               >
                 <span>Make Tax Invoice for ₹{result.finalAmount}</span>
