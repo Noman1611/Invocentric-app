@@ -1230,7 +1230,7 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
     doc.setFontSize(9);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(71, 85, 105);
-    const contactText = "For any discrepancies, support inquiries, or billing issues, please contact our support team at working.for.home69@gmail.com or call +91 9824194869.";
+    const contactText = "For any discrepancies, support inquiries, or billing issues, please contact our support team at support@invocentric.in or call +91 9824194869.";
     doc.text(contactText, 15, contactY, { maxWidth: 180 });
 
     // Footer Disclaimer (Requirement 2 - small, centered footer disclaimer)
@@ -1335,7 +1335,7 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
           
           <p style="font-size: 11px; text-align: center; color: #94a3b8; margin: 0;">
             InvoCentric © 2026. All rights reserved.<br/>
-            If you have any questions, reply to this email or write to <a href="mailto:working.for.home69@gmail.com" style="color: #166534; text-decoration: none; font-weight: 600;">working.for.home69@gmail.com</a> or call <strong style="color: #166534;">+91 9824194869</strong>.
+            If you have any questions, reply to this email or write to <a href="mailto:support@invocentric.in" style="color: #166534; text-decoration: none; font-weight: 600;">support@invocentric.in</a> or call <strong style="color: #166534;">+91 9824194869</strong>.
           </p>
         </div>
       `,
@@ -2046,7 +2046,7 @@ function generateInactivityEmailTemplate(userName: string): string {
                           <path d="M3 5h18v14H3z" stroke="#22c55e" stroke-width="1.6"/>
                           <path d="M3 6l9 7 9-7" stroke="#22c55e" stroke-width="1.6"/>
                         </svg>
-                        <span style="font-size:12px; color:#ffffff; font-weight:bold;">working.for.home69@gmail.com</span>
+                        <span style="font-size:12px; color:#ffffff; font-weight:bold;">support@invocentric.in</span>
                       </td>
                     </tr>
                     <tr>
