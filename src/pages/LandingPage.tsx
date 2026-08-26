@@ -1699,6 +1699,7 @@ export default function LandingPage() {
             <div className="space-y-6">
               <h3 className="text-white text-lg font-bold mb-4">Tools & Inventory</h3>
               <ul className="space-y-3">
+                <li><Link to="/gst-calculator" className="text-sm text-left text-emerald-400 hover:text-emerald-300 transition-colors font-bold flex items-center gap-1.5"><span>Free GST Calculator</span> <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-black uppercase">Free Tool</span></Link></li>
                 <li><Link to="/barcode-billing" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Barcode Billing & Labels</Link></li>
                 <li><Link to="/inventory-management" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Inventory & Live Stock</Link></li>
                 <li><Link to="/ledger-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Customer Khata Ledger</Link></li>

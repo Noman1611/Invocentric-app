@@ -41,6 +41,7 @@ const BarcodeGeneratorPage = lazy(() => import('./pages/BarcodeGenerator'));
 const QuickPOSPage = lazy(() => import('./pages/QuickPOS'));
 const MobileScanPage = lazy(() => import('./pages/MobileScan'));
 const SeoLandingPage = lazy(() => import('./pages/SeoLandingPage'));
+const GstCalculatorPage = lazy(() => import('./pages/GstCalculatorPage'));
 
 function PageLoader() {
   return (
@@ -1690,6 +1691,9 @@ export default function App() {
               <Route path="/inventory-management" element={<SeoLandingPage pageKey="inventory-management" />} />
               <Route path="/ledger-software" element={<SeoLandingPage pageKey="ledger-software" />} />
               <Route path="/quotation-maker" element={<SeoLandingPage pageKey="quotation-maker" />} />
+              <Route path="/gst-calculator" element={<GstCalculatorPage />} />
+              <Route path="/calculator" element={<GstCalculatorPage />} />
+              <Route path="/gst-calc" element={<GstCalculatorPage />} />
               
               {/* Private Routes */}
               <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
