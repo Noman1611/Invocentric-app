@@ -8,7 +8,7 @@ import {
   Receipt, PieChart, Package, Printer, Store, 
   Smartphone, Activity, FileText, QrCode, TrendingUp,
   Mail, Phone, MapPin, ChevronRight, MessageCircle, HelpCircle,
-  Sparkles, Star, Award, History, User, Users, RefreshCw, Upload, Download, BookOpen, X, Globe
+  Sparkles, Star, Award, History, User, Users, RefreshCw, Upload, Download, BookOpen, X, Globe, Share2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { BLOG_POSTS } from './BlogPage';
@@ -937,17 +937,32 @@ export default function LandingPage() {
                       </div>
                     </div>
 
-                    <div className="pt-6 border-t border-gray-800 mt-6 flex items-end justify-between">
+                    <div className="pt-6 border-t border-gray-800 mt-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                       <div>
-                        <p className="text-xs text-gray-400 uppercase font-extrabold tracking-widest">Total Value</p>
+                        <p className="text-xs text-gray-400 uppercase font-extrabold tracking-widest">Total Value (incl. GST)</p>
                         <p className="text-3xl font-black text-green-400 mt-1">₹{calculatedGst.total.toFixed(2)}</p>
                       </div>
-                      <button 
-                        onClick={() => navigate('/login')}
-                        className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-all active:scale-95"
-                      >
-                        Create Invoice
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const text = encodeURIComponent(`📊 GST Calculation Summary:\n• Base Price: ₹${calculatedGst.base.toFixed(2)}\n• GST (${calcGstRate}%): ₹${calculatedGst.tax.toFixed(2)} (CGST: ₹${(calculatedGst.tax/2).toFixed(2)} + SGST: ₹${(calculatedGst.tax/2).toFixed(2)})\n• Total Value: ₹${calculatedGst.total.toFixed(2)}\n\nCalculated with InvoCentic Free GST Tool: https://invocentric.in/gst-calculator`);
+                            window.open(`https://wa.me/?text=${text}`, '_blank');
+                          }}
+                          className="px-3.5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                          title="Share breakdown on WhatsApp"
+                        >
+                          <Share2 size={14} />
+                          <span>Share Quote</span>
+                        </button>
+                        <button 
+                          onClick={() => navigate(`/invoices/create?auto_price=${calculatedGst.base.toFixed(2)}&auto_gst=${calcGstRate}`)}
+                          className="px-5 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-lg shadow-green-950/40"
+                        >
+                          <span>Create Bill</span>
+                          <ArrowRight size={14} />
+                        </button>
+                      </div>
                     </div>
                  </div>
                </div>

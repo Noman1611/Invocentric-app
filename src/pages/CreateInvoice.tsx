@@ -651,8 +651,42 @@ export default function CreateInvoicePage() {
       }
     }
 
-    if (id) fetchInvoice();
-    else if (searchParams.get('from_quotation')) fetchFromQuotation();
+    if (id) {
+      fetchInvoice();
+    } else if (searchParams.get('from_quotation')) {
+      fetchFromQuotation();
+    } else {
+      // Check if arriving from GST Calculator with pre-calculated amount
+      const autoPrice = searchParams.get('auto_price');
+      const autoGst = searchParams.get('auto_gst');
+      if (autoPrice) {
+        const p = parseFloat(autoPrice) || 0;
+        const g = parseFloat(autoGst || '18') || 0;
+        setFormData(prev => ({
+          ...prev,
+          columnVisibility: {
+            ...prev.columnVisibility,
+            gstPercent: true
+          },
+          items: [
+            {
+              description: 'General Goods / Service',
+              quantity: 1,
+              price: p,
+              gstPercent: g,
+              mrp: p,
+              discount: 0,
+              size: '',
+              hsn: '',
+              custom_box: '',
+              serialNumber: '',
+              brand: '',
+              category: ''
+            }
+          ]
+        }));
+      }
+    }
   }, [id, user, isOfflineMode, searchParams]);
 
   // Fetch default terms for new invoices
