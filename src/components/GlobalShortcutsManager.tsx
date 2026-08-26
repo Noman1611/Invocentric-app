@@ -43,13 +43,27 @@ export function GlobalShortcutsManager() {
   }, []);
 
   const shortcuts: ShortcutItem[] = [
-    // --- Vouchers & Billing (Tally Standard F4 - F9 & Alt Keys) ---
+    // --- Vouchers & Billing (Fast Accounting Standard F4 - F9 & Alt Keys) ---
     {
       key: 'F8',
-      displayKey: 'F8',
-      description: 'Create Sales Invoice / GST Bill (Sales Voucher)',
+      displayKey: 'F8 / Alt + N',
+      description: 'Create New Sales Invoice / GST Bill',
       category: 'Vouchers & Billing',
-      action: () => { navigate('/invoices/create'); showToast('Opened: Create Sales Invoice (F8)'); }
+      action: () => { navigate('/invoices/create'); showToast('Opened: Create Sales Invoice (F8 / Alt+N)'); }
+    },
+    {
+      key: 'Alt+N',
+      displayKey: 'Alt + N',
+      description: 'New Sales Invoice / Quick Bill Entry',
+      category: 'Vouchers & Billing',
+      action: () => { navigate('/invoices/create'); showToast('Opened: Create Sales Invoice (Alt + N)'); }
+    },
+    {
+      key: 'Alt+V',
+      displayKey: 'Alt + V',
+      description: 'Sales Voucher / Tax Invoice Creation',
+      category: 'Vouchers & Billing',
+      action: () => { navigate('/invoices/create'); showToast('Opened: Sales Voucher (Alt + V)'); }
     },
     {
       key: 'F9',
@@ -148,15 +162,40 @@ export function GlobalShortcutsManager() {
     // --- Actions & Helpers ---
     {
       key: 'Ctrl+A',
-      displayKey: 'Ctrl + A',
-      description: 'Save / Accept current voucher or form (Tally Accept)',
+      displayKey: 'Ctrl + A / Ctrl + S',
+      description: 'Save / Accept current Bill or Voucher',
       category: 'Actions',
       action: () => {
-        // Dispatch custom global event for active form submission
-        const saveBtn = document.querySelector('button[type="submit"], button#save-btn, button.btn-primary') as HTMLButtonElement | null;
+        const saveBtn = document.querySelector('button[type="submit"], button#save-and-print-btn, button.btn-primary') as HTMLButtonElement | null;
         if (saveBtn) {
           saveBtn.click();
-          showToast('Accepted / Saved (Ctrl + A)');
+          showToast('Saved / Accepted (Ctrl + A)');
+        }
+      }
+    },
+    {
+      key: 'Ctrl+S',
+      displayKey: 'Ctrl + S',
+      description: 'Quick Save Bill & Generate Invoice',
+      category: 'Actions',
+      action: () => {
+        const saveBtn = document.querySelector('button[type="submit"], button#save-and-print-btn, button.btn-primary') as HTMLButtonElement | null;
+        if (saveBtn) {
+          saveBtn.click();
+          showToast('Invoice Saved (Ctrl + S)');
+        }
+      }
+    },
+    {
+      key: 'Ctrl+Enter',
+      displayKey: 'Ctrl + Enter',
+      description: 'Save & Instant Print Invoice',
+      category: 'Actions',
+      action: () => {
+        const printBtn = document.querySelector('button#save-and-print-btn, button.btn-primary') as HTMLButtonElement | null;
+        if (printBtn) {
+          printBtn.click();
+          showToast('Save & Print Triggered (Ctrl + Enter)');
         }
       }
     },
@@ -173,7 +212,7 @@ export function GlobalShortcutsManager() {
     {
       key: 'F1',
       displayKey: 'F1 / ?',
-      description: 'Open Tally Shortcut Key Guide',
+      description: 'Open Keyboard Shortcuts Guide',
       category: 'Tools',
       action: () => {
         setIsOpen(prev => !prev);
@@ -223,10 +262,18 @@ export function GlobalShortcutsManager() {
         }
       }
 
-      // Check Ctrl+A (Accept/Save in Tally)
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A') && !isInput) {
+      // Check Ctrl+A or Ctrl+S (Accept/Save)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A' || e.key === 's' || e.key === 'S')) {
         e.preventDefault();
-        const matched = shortcuts.find(s => s.key === 'Ctrl+A');
+        const matched = shortcuts.find(s => s.key === 'Ctrl+A' || s.key === 'Ctrl+S');
+        if (matched) matched.action();
+        return;
+      }
+
+      // Check Ctrl+Enter (Save & Print)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        const matched = shortcuts.find(s => s.key === 'Ctrl+Enter');
         if (matched) matched.action();
         return;
       }
