@@ -1684,7 +1684,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-start gap-3">
                   <Mail className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-white">Email: working.for.home69@gmail.com</span>
+                  <span className="text-sm font-semibold text-white">Email: support@invocentric.in</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Globe className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
@@ -1808,7 +1808,7 @@ export default function LandingPage() {
                     </div>
                     <div className="text-left">
                       <p className="text-sm font-bold text-white">Email Support</p>
-                      <p className="text-[11px] text-white font-medium">working.for.home69@gmail.com</p>
+                      <p className="text-[11px] text-white font-medium">support@invocentric.in</p>
                     </div>
                   </div>
                 </div>

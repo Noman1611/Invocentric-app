@@ -730,7 +730,7 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-slate-900">Email Support</p>
-                    <p className="text-xs text-slate-500">working.for.home69@gmail.com</p>
+                    <p className="text-xs text-slate-500">support@invocentric.in</p>
                   </div>
                 </div>
 
