@@ -253,10 +253,10 @@ export function GlobalShortcutsManager() {
           type="button"
           onClick={() => setIsOpen(true)}
           className="flex items-center gap-2 px-3 py-2 bg-slate-900/90 hover:bg-slate-950 text-white backdrop-blur-md rounded-xl shadow-lg border border-slate-800 text-xs font-bold transition-all hover:scale-105 cursor-pointer group"
-          title="Tally Shortcut Keys (Press F1 or ?)"
+          title="Keyboard Shortcuts Guide (Press F1 or ?)"
         >
           <Keyboard size={14} className="text-emerald-400 group-hover:rotate-12 transition-transform" />
-          <span className="text-[11px] font-mono tracking-tight text-slate-200">Tally Keys (F1)</span>
+          <span className="text-[11px] font-mono tracking-tight text-slate-200">Fast Keys (F1)</span>
         </button>
       </div>
 
@@ -302,7 +302,7 @@ export function GlobalShortcutsManager() {
                   </div>
                   <div>
                     <h3 className="text-base font-black text-white flex items-center gap-2">
-                      <span>Tally Style Shortcut Keys</span>
+                      <span>Pro Accounting Shortcut Keys</span>
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] uppercase font-mono tracking-wider">Fast Workflow</span>
                     </h3>
                     <p className="text-xs text-slate-400 font-medium">Use function &amp; Alt keys for lightning fast keyboard-first billing</p>
@@ -399,7 +399,7 @@ export function GlobalShortcutsManager() {
                   <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono">?</kbd>
                   <span>opens this menu anytime anywhere</span>
                 </span>
-                <span className="font-bold text-slate-700">Tally Speed Workflow</span>
+                <span className="font-bold text-slate-700">Speed Billing Workflow</span>
               </div>
             </motion.div>
           </div>

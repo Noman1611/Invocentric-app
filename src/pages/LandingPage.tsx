@@ -997,7 +997,7 @@ export default function LandingPage() {
                 <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-colors">
                   <FileText size={18} />
                 </div>
-                <span className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">Tally Converter</span>
+                <span className="text-xs font-extrabold text-gray-700 uppercase tracking-wider">XML Converter</span>
               </button>
 
               <button 
@@ -1192,7 +1192,7 @@ export default function LandingPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
-                { name: "Rahul Patel", shop: "Mobile Hub (Gujarat)", review: "InvoCentric has completely simplified my mobile billing. The thermal receipt format matches Tally styles perfectly. Printing is instant!" },
+                { name: "Rahul Patel", shop: "Mobile Hub (Gujarat)", review: "InvoCentric has completely simplified my mobile billing. The thermal receipt format matches professional GST accounting styles. Printing is instant!" },
                 { name: "Suresh Gupta", shop: "Gupta Kirana & General Store", review: "The WhatsApp invoice function is great. Customers love getting a clean PDF receipt directly on their phones. Saves paper!" },
                 { name: "Anjali Mehta", shop: "Style Studio Boutiques", review: "Inventory alerts work beautifully. Now I can track low stock of dress materials and calculate correct GST and CGST without errors." }
               ].map((testimonial, i) => (
@@ -1958,8 +1958,8 @@ export default function LandingPage() {
               <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <FileText size={24} />
               </div>
-              <h3 className="text-2xl font-black text-gray-900 mb-1">Tally XML Converter</h3>
-              <p className="text-gray-700 text-xs mb-6">Upload your Excel, CSV or Text billing log spreadsheet, and instantly download a Tally ERP 9 fully-compliant XML ledger import template.</p>
+              <h3 className="text-2xl font-black text-gray-900 mb-1">Standard XML Ledger Converter</h3>
+              <p className="text-gray-700 text-xs mb-6">Upload your Excel, CSV or Text billing log spreadsheet, and instantly download a standard ERP & CA-compliant XML ledger import file.</p>
               
               <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 mb-6 hover:border-green-500 transition-colors relative cursor-pointer group">
                 <input 
@@ -1990,7 +1990,7 @@ export default function LandingPage() {
                       onClick={handleDownloadTallyXml}
                       className="mt-4 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors animate-fadeIn"
                     >
-                      <Download size={14} /> Download Tally ERP XML File
+                      <Download size={14} /> Download Standard XML File
                     </button>
                   )}
                 </div>

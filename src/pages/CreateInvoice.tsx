@@ -1402,7 +1402,7 @@ export default function CreateInvoicePage() {
                 Invoice Layout Template &amp; Box Customization
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Select GST/Tally template style &amp; choose which boxes to display on this invoice.
+                Select professional GST template style &amp; choose which boxes to display on this invoice.
               </p>
             </div>
             

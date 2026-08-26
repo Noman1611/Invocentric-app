@@ -36,13 +36,13 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     focusKeyword: 'invoice software',
     secondaryKeywords: ['invoice maker', 'invoice generator', 'online invoice software', 'invoice software India', 'free invoice software'],
     h1: 'Professional Invoice Software for Indian Small Businesses',
-    subtitle: 'Generate beautiful GST-compliant invoices in under 30 seconds. Choose from 11+ professional Tally & industry templates, share via WhatsApp, and manage payments effortlessly.',
+    subtitle: 'Generate beautiful GST-compliant invoices in under 30 seconds. Choose from 11+ professional standard & industry templates, share via WhatsApp, and manage payments effortlessly.',
     badge: '100% Free Cloud & Offline Invoice Software',
     heroHighlight: 'No credit card required • Zero watermarks • Unlimited invoices',
     features: [
       {
         title: '11+ Professional Invoice Templates',
-        description: 'Choose from classic Tally Prime, modern corporate, compact retail, and thermal POS receipt designs tailored for Indian trade.',
+        description: 'Choose from classic corporate, modern GST, compact retail, and thermal POS receipt designs tailored for Indian trade.',
         iconName: 'FileText'
       },
       {
@@ -194,8 +194,8 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
         iconName: 'Tag'
       },
       {
-        title: 'Tally Prime Compliant Layout',
-        description: 'Generate invoices matching official Tally Prime structures for seamless collaboration with your Chartered Accountant (CA).',
+        title: 'Standard Accounting Compliant Layout',
+        description: 'Generate invoices matching official GST structures for seamless collaboration with your Chartered Accountant (CA).',
         iconName: 'FileText'
       },
       {
@@ -225,8 +225,8 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
         answer: 'If the customer\'s state matches your business state, InvoCentic automatically applies CGST and SGST equally (50-50). If the customer is in a different state, it applies Integrated GST (IGST).'
       },
       {
-        question: 'Can I export my billing data to Tally or Excel?',
-        answer: 'Yes, InvoCentic provides one-click Excel reports and Tally-compatible XML ledger exports so your CA can import records directly.'
+        question: 'Can I export my billing data to Excel or Accounting software?',
+        answer: 'Yes, InvoCentic provides one-click Excel reports and standard XML ledger exports so your CA can import records directly.'
       }
     ],
     breadcrumbs: [
