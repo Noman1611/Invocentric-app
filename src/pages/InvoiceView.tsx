@@ -756,10 +756,15 @@ export default function InvoiceViewPage() {
 
   // ── POS Thermal Receipt (2-inch / 58mm = T15, 3-inch / 80mm = T14)
   const renderPOS = (is3Inch = true) => {
-    // Exact sizing matching image media_1787927358288.png
-    const maxW = is3Inch ? '320px' : '260px';
-    const baseFontSize = is3Inch ? '12.5px' : '11px';
-    const qrSize = is3Inch ? 120 : 95;
+    // 3-inch roll (80mm total width / ~72mm printable area)
+    // 2-inch roll (58mm total width / ~48mm printable area)
+    const containerWidth = is3Inch ? '72mm' : '48mm';
+    const baseFontSize = is3Inch ? '11.5px' : '9.5px';
+    const headerTitleSize = is3Inch ? '14px' : '11.5px';
+    const docTitleSize = is3Inch ? '12px' : '10px';
+    const subItalicSize = is3Inch ? '10px' : '8.5px';
+    const grandTotalSize = is3Inch ? '13px' : '11px';
+    const qrSize = is3Inch ? 115 : 85;
 
     const invoiceTitle = invoice?.invoice_title || 'TAX INVOICE';
     const subtotal = itemRows.reduce((a: number, i: any) => a + (i.qty * i.price), 0);
@@ -772,111 +777,112 @@ export default function InvoiceViewPage() {
         style={{
           fontFamily: `'Courier New', Consolas, 'Lucida Console', Monaco, monospace`,
           fontSize: baseFontSize,
-          maxWidth: maxW,
-          width: '100%',
+          width: containerWidth,
+          maxWidth: containerWidth,
+          minWidth: containerWidth,
           margin: '0 auto',
-          padding: '16px 14px',
+          padding: is3Inch ? '10px 6px' : '6px 3px',
           textAlign: 'center',
           background: '#ffffff',
           color: '#000000',
-          lineHeight: '1.45',
+          lineHeight: '1.4',
           boxSizing: 'border-box',
-          letterSpacing: '0px'
+          letterSpacing: '-0.2px'
         }}
       >
         {/* 1. Header: Business Information (Centered Bold) */}
-        <div style={{ fontWeight: 'bold', fontSize: '15px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>
+        <div style={{ fontWeight: 'bold', fontSize: headerTitleSize, textTransform: 'uppercase', letterSpacing: '0.2px', marginBottom: '3px' }}>
           {co.name || 'NOMAN SHAIKH'}
         </div>
         {co.address && (
-          <div style={{ fontSize: '12.5px', marginBottom: '2px' }}>
+          <div style={{ fontSize: baseFontSize, marginBottom: '1px' }}>
             {co.address}
           </div>
         )}
         {co.phone && (
-          <div style={{ fontSize: '12.5px' }}>
+          <div style={{ fontSize: baseFontSize }}>
             TEL: {co.phone}
           </div>
         )}
         {co.email && (
-          <div style={{ fontSize: '12.5px' }}>
+          <div style={{ fontSize: baseFontSize }}>
             EMAIL: {co.email}
           </div>
         )}
         {co.gstin && (
-          <div style={{ fontSize: '12.5px' }}>
+          <div style={{ fontSize: baseFontSize }}>
             GSTIN: {co.gstin}
           </div>
         )}
 
         {/* Dotted / Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000000', margin: '12px 0' }} />
+        <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
 
         {/* 2. Document Title */}
-        <div style={{ fontWeight: 'bold', fontSize: '13px', letterSpacing: '1px', textTransform: 'uppercase', margin: '4px 0' }}>
+        <div style={{ fontWeight: 'bold', fontSize: docTitleSize, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '3px 0' }}>
           * {invoiceTitle} *
         </div>
 
         {/* Meta Grid (Key on left, Value on right in monospace) */}
-        <div style={{ textAlign: 'left', marginTop: '10px', fontSize: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+        <div style={{ textAlign: 'left', marginTop: '6px', fontSize: baseFontSize }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
             <span style={{ fontWeight: 'bold' }}>BILL TO:</span>
             <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{bu.name || 'CASH SALE'}</span>
           </div>
           {bu.phone && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
               <span style={{ fontWeight: 'bold' }}>MOBILE:</span>
               <span>{bu.phone}</span>
             </div>
           )}
           {bu.gstin && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
               <span style={{ fontWeight: 'bold' }}>GSTIN:</span>
               <span>{bu.gstin}</span>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
             <span style={{ fontWeight: 'bold' }}>INV NO:</span>
             <span>#{im.invoiceNo.replace(/^#/, '')}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
             <span style={{ fontWeight: 'bold' }}>DATE:</span>
             <span>{im.invoiceDate}</span>
           </div>
         </div>
 
         {/* Dotted / Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000000', margin: '12px 0' }} />
+        <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
 
         {/* 3. Items Table Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12.5px', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: baseFontSize, marginBottom: '6px' }}>
           <span style={{ textAlign: 'left', flex: 1 }}>ITEM</span>
-          <span style={{ textAlign: 'center', width: '50px' }}>QTY</span>
-          <span style={{ textAlign: 'right', width: '80px' }}>AMT</span>
+          <span style={{ textAlign: 'center', width: is3Inch ? '45px' : '35px' }}>QTY</span>
+          <span style={{ textAlign: 'right', width: is3Inch ? '75px' : '55px' }}>AMT</span>
         </div>
 
         {/* Item Rows matching user image */}
-        <div style={{ textAlign: 'left', fontSize: '12.5px' }}>
+        <div style={{ textAlign: 'left', fontSize: baseFontSize }}>
           {itemRows.map((it: any, i: number) => (
-            <div key={i} style={{ marginBottom: '8px' }}>
+            <div key={i} style={{ marginBottom: '6px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontWeight: 'bold', flex: 1, paddingRight: '4px' }}>
+                <span style={{ fontWeight: 'bold', flex: 1, paddingRight: '2px' }}>
                   {i + 1}. {it.name}
                 </span>
-                <span style={{ width: '50px', textAlign: 'center', fontWeight: 'bold' }}>
+                <span style={{ width: is3Inch ? '45px' : '35px', textAlign: 'center', fontWeight: 'bold' }}>
                   {it.qty}
                 </span>
-                <span style={{ width: '80px', textAlign: 'right', fontWeight: 'bold' }}>
+                <span style={{ width: is3Inch ? '75px' : '55px', textAlign: 'right', fontWeight: 'bold' }}>
                   ₹{Number(it.total || (it.qty * it.price)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
               {/* Secondary line: italic Qty x Rate */}
-              <div style={{ fontStyle: 'italic', fontSize: '11px', color: '#444444', paddingLeft: '16px', marginTop: '1px' }}>
+              <div style={{ fontStyle: 'italic', fontSize: subItalicSize, color: '#444444', paddingLeft: '10px', marginTop: '1px' }}>
                 {it.qty} x ₹{Number(it.price).toFixed(2)}
                 {it.gstPct > 0 && ` (+${it.gstPct}% GST)`}
               </div>
               {(it.subLines || []).map((sl: string, si: number) => (
-                <div key={si} style={{ fontStyle: 'italic', fontSize: '10px', color: '#666666', paddingLeft: '16px' }}>
+                <div key={si} style={{ fontStyle: 'italic', fontSize: subItalicSize, color: '#666666', paddingLeft: '10px' }}>
                   {sl}
                 </div>
               ))}
@@ -885,52 +891,52 @@ export default function InvoiceViewPage() {
         </div>
 
         {/* Dotted / Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000000', margin: '12px 0' }} />
+        <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
 
         {/* 4. Subtotal & Totals Breakup */}
-        <div style={{ textAlign: 'left', fontSize: '12.5px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <div style={{ textAlign: 'left', fontSize: baseFontSize }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
             <span style={{ fontWeight: 'bold' }}>SUBTOTAL:</span>
             <span style={{ fontWeight: 'bold' }}>₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           {globalDiscount > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
               <span style={{ fontWeight: 'bold' }}>DISCOUNT:</span>
               <span style={{ fontWeight: 'bold' }}>-₹{globalDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
           {totalTax > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
               <span style={{ fontWeight: 'bold' }}>TAX (GST):</span>
               <span style={{ fontWeight: 'bold' }}>₹{totalTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
           {shippingCharges > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
               <span style={{ fontWeight: 'bold' }}>SHIPPING:</span>
               <span style={{ fontWeight: 'bold' }}>₹{shippingCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '13.5px', marginTop: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: grandTotalSize, marginTop: '4px' }}>
             <span>GRAND TOTAL:</span>
             <span>₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
 
         {/* Dotted / Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000000', margin: '12px 0' }} />
+        <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
 
         {/* 5. Scan to Pay with UPI */}
         {showSec.upi_qr && upiUrl && (
-          <div style={{ margin: '12px 0 8px 0', textAlign: 'center' }}>
-            <div style={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px' }}>
+          <div style={{ margin: '8px 0 6px 0', textAlign: 'center' }}>
+            <div style={{ fontSize: subItalicSize, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
               SCAN TO PAY WITH UPI
             </div>
-            <div style={{ display: 'inline-block', padding: '4px', background: '#ffffff' }}>
+            <div style={{ display: 'inline-block', padding: '3px', background: '#ffffff' }}>
               <QRCodeSVG value={upiUrl} size={qrSize} level="M" />
             </div>
             {upiId && (
-              <div style={{ fontSize: '11px', marginTop: '6px', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: subItalicSize, marginTop: '4px', wordBreak: 'break-all' }}>
                 {upiId}
               </div>
             )}
@@ -938,14 +944,14 @@ export default function InvoiceViewPage() {
         )}
 
         {/* Dotted / Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000000', margin: '12px 0' }} />
+        <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
 
         {/* 6. Footer: InvoCentric Branding & Visit Again */}
-        <div style={{ marginTop: '8px', textAlign: 'center' }}>
-          <div style={{ fontWeight: 'bold', fontSize: '12.5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div style={{ marginTop: '6px', textAlign: 'center' }}>
+          <div style={{ fontWeight: 'bold', fontSize: docTitleSize, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             *** THANK YOU! VISIT AGAIN ***
           </div>
-          <div style={{ fontStyle: 'italic', fontSize: '10.5px', color: '#666666', marginTop: '4px' }}>
+          <div style={{ fontStyle: 'italic', fontSize: subItalicSize, color: '#666666', marginTop: '3px' }}>
             powered by invocentric • instant compliant invoicing
           </div>
         </div>
