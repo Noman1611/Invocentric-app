@@ -741,9 +741,9 @@ export default function InvoiceViewPage() {
   const renderPOS = (is3Inch = true) => {
     // 2-inch (58mm) paper has printable width ~48mm / 220px-240px
     // 3-inch (80mm) paper has printable width ~72mm / 280px-300px
-    const maxW = is3Inch ? '72mm' : '54mm';
-    const fontSize = is3Inch ? 11 : 9.5;
-    const titleSize = is3Inch ? 15 : 13;
+    const maxW = is3Inch ? '76mm' : '56mm';
+    const fontSize = is3Inch ? 11.5 : 10;
+    const titleSize = is3Inch ? 16 : 14;
     const qrSize = is3Inch ? 110 : 85;
 
     const invoiceTitle = invoice?.invoice_title || 'TAX INVOICE';
@@ -755,112 +755,112 @@ export default function InvoiceViewPage() {
       <div 
         className="invoice-page-sheet pos-thermal-receipt" 
         style={{
-          fontFamily: `'Courier New', Courier, monospace`,
+          fontFamily: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`,
           fontSize: `${fontSize}px`,
           maxWidth: maxW,
           width: '100%',
           margin: '0 auto',
-          padding: is3Inch ? '8px 10px' : '4px 6px',
+          padding: is3Inch ? '10px 12px' : '6px 8px',
           textAlign: 'center',
           background: '#ffffff',
-          color: '#000000',
-          lineHeight: 1.35,
+          color: '#111827',
+          lineHeight: 1.4,
           boxSizing: 'border-box'
         }}
       >
         {/* 1. Header: Business Information */}
-        <div style={{ fontWeight: 'bold', fontSize: `${titleSize}px`, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>
+        <div style={{ fontWeight: '800', fontSize: `${titleSize}px`, textTransform: 'uppercase', letterSpacing: '0.2px', marginBottom: '2px', color: '#000' }}>
           {co.name || 'INVOCENTRIC'}
         </div>
         {co.address && (
-          <div style={{ fontSize: `${fontSize - 0.5}px`, marginBottom: '2px' }}>
+          <div style={{ fontSize: `${fontSize - 0.5}px`, marginBottom: '2px', color: '#374151' }}>
             {co.address}
           </div>
         )}
         {co.phone && (
-          <div style={{ fontSize: `${fontSize - 0.5}px` }}>
+          <div style={{ fontSize: `${fontSize - 0.5}px`, fontWeight: '600', color: '#1f2937' }}>
             TEL: {co.phone}
           </div>
         )}
         {co.email && (
-          <div style={{ fontSize: `${fontSize - 0.5}px` }}>
+          <div style={{ fontSize: `${fontSize - 0.5}px`, color: '#374151' }}>
             EMAIL: {co.email}
           </div>
         )}
         {co.gstin && (
-          <div style={{ fontSize: `${fontSize - 0.5}px` }}>
+          <div style={{ fontSize: `${fontSize - 0.5}px`, fontWeight: '600', color: '#1f2937' }}>
             GSTIN: {co.gstin}
           </div>
         )}
 
         {/* Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+        <div style={{ borderTop: '1px dashed #9ca3af', margin: '8px 0' }} />
 
         {/* 2. Document Title */}
-        <div style={{ fontWeight: 'bold', fontSize: `${fontSize + 1}px`, letterSpacing: '1px', textTransform: 'uppercase', margin: '4px 0' }}>
+        <div style={{ fontWeight: '800', fontSize: `${fontSize + 1}px`, letterSpacing: '1px', textTransform: 'uppercase', margin: '3px 0', color: '#000' }}>
           * {invoiceTitle} *
         </div>
 
         {/* Meta Grid */}
-        <div style={{ textAlign: 'left', marginTop: '6px' }}>
+        <div style={{ textAlign: 'left', marginTop: '6px', fontSize: `${fontSize}px` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-            <span style={{ fontWeight: 'bold' }}>BILL TO:</span>
-            <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{bu.name || 'CASH SALE'}</span>
+            <span style={{ fontWeight: '700', color: '#4b5563' }}>BILL TO:</span>
+            <span style={{ fontWeight: '800', textTransform: 'uppercase', color: '#000' }}>{bu.name || 'CASH SALE'}</span>
           </div>
           {bu.phone && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-              <span>MOBILE:</span>
-              <span>{bu.phone}</span>
+              <span style={{ color: '#4b5563' }}>MOBILE:</span>
+              <span style={{ fontWeight: '600' }}>{bu.phone}</span>
             </div>
           )}
           {bu.gstin && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-              <span>GSTIN:</span>
-              <span>{bu.gstin}</span>
+              <span style={{ color: '#4b5563' }}>GSTIN:</span>
+              <span style={{ fontWeight: '600' }}>{bu.gstin}</span>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-            <span>INV NO:</span>
-            <span>#{im.invoiceNo.replace(/^#/, '')}</span>
+            <span style={{ color: '#4b5563' }}>INV NO:</span>
+            <span style={{ fontWeight: '700' }}>#{im.invoiceNo.replace(/^#/, '')}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-            <span>DATE:</span>
-            <span>{im.invoiceDate}</span>
+            <span style={{ color: '#4b5563' }}>DATE:</span>
+            <span style={{ fontWeight: '600' }}>{im.invoiceDate}</span>
           </div>
         </div>
 
         {/* Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+        <div style={{ borderTop: '1px dashed #9ca3af', margin: '8px 0' }} />
 
-        {/* 3. Items Table */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: `${fontSize}px`, marginBottom: '6px' }}>
+        {/* 3. Items Table Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '800', fontSize: `${fontSize}px`, marginBottom: '6px', color: '#000' }}>
           <span style={{ textAlign: 'left', flex: 1 }}>ITEM</span>
           <span style={{ textAlign: 'center', width: '45px' }}>QTY</span>
-          <span style={{ textAlign: 'right', width: '65px' }}>AMT</span>
+          <span style={{ textAlign: 'right', width: '70px' }}>AMT</span>
         </div>
 
-        {/* Item Rows matching user's reference layout */}
+        {/* Item Rows */}
         <div style={{ textAlign: 'left' }}>
           {itemRows.map((it: any, i: number) => (
             <div key={i} style={{ marginBottom: '6px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontWeight: 'bold', flex: 1, paddingRight: '4px' }}>
+                <span style={{ fontWeight: '700', flex: 1, paddingRight: '4px', color: '#111827' }}>
                   {i + 1}. {it.name}
                 </span>
-                <span style={{ width: '45px', textAlign: 'center', fontWeight: 'bold' }}>
+                <span style={{ width: '45px', textAlign: 'center', fontWeight: '700', color: '#111827' }}>
                   {it.qty}
                 </span>
-                <span style={{ width: '65px', textAlign: 'right', fontWeight: 'bold' }}>
+                <span style={{ width: '70px', textAlign: 'right', fontWeight: '800', color: '#000' }}>
                   ₹{Number(it.total || (it.qty * it.price)).toFixed(2)}
                 </span>
               </div>
               {/* Secondary line: Qty x Rate & optional serial/batch */}
-              <div style={{ fontStyle: 'italic', fontSize: `${fontSize - 1.5}px`, color: '#333', paddingLeft: '14px' }}>
+              <div style={{ fontSize: `${fontSize - 1.5}px`, color: '#4b5563', paddingLeft: '14px' }}>
                 {it.qty} x ₹{Number(it.price).toFixed(2)}
                 {it.gstPct > 0 && ` (+${it.gstPct}% GST)`}
               </div>
               {(it.subLines || []).map((sl: string, si: number) => (
-                <div key={si} style={{ fontStyle: 'italic', fontSize: `${fontSize - 2}px`, color: '#555', paddingLeft: '14px' }}>
+                <div key={si} style={{ fontSize: `${fontSize - 2}px`, color: '#6b7280', paddingLeft: '14px' }}>
                   {sl}
                 </div>
               ))}
@@ -869,52 +869,52 @@ export default function InvoiceViewPage() {
         </div>
 
         {/* Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+        <div style={{ borderTop: '1px dashed #9ca3af', margin: '8px 0' }} />
 
         {/* 4. Subtotal & Totals Breakup */}
-        <div style={{ textAlign: 'left' }}>
+        <div style={{ textAlign: 'left', fontSize: `${fontSize}px` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-            <span>SUBTOTAL:</span>
-            <span>₹{subtotal.toFixed(2)}</span>
+            <span style={{ color: '#4b5563' }}>SUBTOTAL:</span>
+            <span style={{ fontWeight: '600' }}>₹{subtotal.toFixed(2)}</span>
           </div>
           {globalDiscount > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-              <span>DISCOUNT:</span>
-              <span>-₹{globalDiscount.toFixed(2)}</span>
+              <span style={{ color: '#4b5563' }}>DISCOUNT:</span>
+              <span style={{ fontWeight: '600' }}>-₹{globalDiscount.toFixed(2)}</span>
             </div>
           )}
           {totalTax > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-              <span>TAX (GST):</span>
-              <span>₹{totalTax.toFixed(2)}</span>
+              <span style={{ color: '#4b5563' }}>TAX (GST):</span>
+              <span style={{ fontWeight: '600' }}>₹{totalTax.toFixed(2)}</span>
             </div>
           )}
           {shippingCharges > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-              <span>SHIPPING:</span>
-              <span>₹{shippingCharges.toFixed(2)}</span>
+              <span style={{ color: '#4b5563' }}>SHIPPING:</span>
+              <span style={{ fontWeight: '600' }}>₹{shippingCharges.toFixed(2)}</span>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: `${fontSize + 1.5}px`, marginTop: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '900', fontSize: `${fontSize + 2}px`, marginTop: '4px', color: '#000' }}>
             <span>GRAND TOTAL:</span>
             <span>₹{grandTotal.toFixed(2)}</span>
           </div>
         </div>
 
         {/* Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+        <div style={{ borderTop: '1px dashed #9ca3af', margin: '8px 0' }} />
 
         {/* 5. Scan to Pay with UPI */}
         {showSec.upi_qr && upiUrl && (
-          <div style={{ margin: '10px 0 6px 0', textAlign: 'center' }}>
-            <div style={{ fontSize: `${fontSize - 1}px`, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+          <div style={{ margin: '8px 0 6px 0', textAlign: 'center' }}>
+            <div style={{ fontSize: `${fontSize - 1}px`, fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', color: '#1f2937' }}>
               SCAN TO PAY WITH UPI
             </div>
-            <div style={{ display: 'inline-block', padding: '3px', background: '#fff' }}>
+            <div style={{ display: 'inline-block', padding: '3px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
               <QRCodeSVG value={upiUrl} size={qrSize} level="M" />
             </div>
             {upiId && (
-              <div style={{ fontSize: `${fontSize - 1.5}px`, marginTop: '4px', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: `${fontSize - 1.5}px`, fontWeight: '600', marginTop: '4px', wordBreak: 'break-all', color: '#374151' }}>
                 {upiId}
               </div>
             )}
@@ -922,14 +922,14 @@ export default function InvoiceViewPage() {
         )}
 
         {/* Dashed Separator */}
-        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+        <div style={{ borderTop: '1px dashed #9ca3af', margin: '8px 0' }} />
 
         {/* 6. Footer: InvoCentric Branding & Visit Again */}
         <div style={{ marginTop: '6px', textAlign: 'center' }}>
-          <div style={{ fontWeight: 'bold', fontSize: `${fontSize}px`, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <div style={{ fontWeight: '800', fontSize: `${fontSize}px`, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#111827' }}>
             *** THANK YOU! VISIT AGAIN ***
           </div>
-          <div style={{ fontStyle: 'italic', fontSize: `${fontSize - 2.5}px`, color: '#666', marginTop: '3px' }}>
+          <div style={{ fontSize: `${fontSize - 2.5}px`, color: '#6b7280', marginTop: '3px' }}>
             powered by invocentric • instant compliant invoicing
           </div>
         </div>
@@ -968,25 +968,29 @@ export default function InvoiceViewPage() {
 
           {/* Page Size Switcher (A4 vs A5 Horizontal) */}
           {!isPOS && (
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80">
               <button
-                type="button"
                 onClick={() => setPageSize('A4')}
-                className={cn('px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer', pageSize === 'A4' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900')}
+                className={cn(
+                  "px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all",
+                  pageSize === 'A4' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                )}
               >
-                A4
+                A4 (Vertical)
               </button>
               <button
-                type="button"
                 onClick={() => setPageSize('A5')}
-                className={cn('px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer', pageSize === 'A5' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900')}
+                className={cn(
+                  "px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all",
+                  pageSize === 'A5' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
+                )}
               >
-                A5 Horizontal
+                A5 (Horizontal)
               </button>
             </div>
           )}
 
-          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <button onClick={() => navigate(`/invoices/edit/${invoice.id}`)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"><Edit3 size={15} /><span className="hidden sm:inline">Edit</span></button>
             <button onClick={handleShare} className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"><WhatsAppIcon size={15} /><span className="hidden sm:inline">Share</span></button>
             <button onClick={handleDownloadPdf} disabled={downloading} className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50">{downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}<span className="hidden sm:inline">PDF</span></button>
@@ -995,10 +999,12 @@ export default function InvoiceViewPage() {
         </div>
       </header>
 
-      <main className="w-full max-w-5xl px-2 sm:px-4 mt-4 sm:mt-6 flex flex-col items-center print:max-w-none print:w-full print:p-0 print:m-0 print:block">
-        <div ref={invoiceRef} id="invoice-document-canvas" className="flex flex-col items-center gap-6 print:gap-0 print:block">
+      <main className="w-full max-w-5xl px-2 sm:px-4 mt-4 sm:mt-6 flex flex-col items-center print:max-w-none print:w-full print:p-0 print:m-0 print:flex print:items-center print:justify-center">
+        <div ref={invoiceRef} id="invoice-document-canvas" className="flex flex-col items-center gap-6 print:gap-0 print:w-full print:flex print:items-center print:justify-center">
           {isPOS ? (
-            renderPOS(tpl === 'template_14')
+            <div className="w-full flex justify-center print:w-full print:flex print:justify-center print:items-center">
+              {renderPOS(tpl === 'template_14')}
+            </div>
           ) : (
             itemPages.map((pItems, idx) => (
               <div
@@ -1030,7 +1036,7 @@ export default function InvoiceViewPage() {
       <style>{`
         @media print {
           @page {
-            size: ${isPOS ? (tpl === 'template_14' ? '80mm auto' : '58mm auto') : (isA5 ? 'A5 landscape' : 'A4 portrait')};
+            size: ${isPOS ? 'auto' : (isA5 ? 'A5 landscape' : 'A4 portrait')};
             margin: 0mm;
           }
           *, *:before, *:after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -1042,13 +1048,20 @@ export default function InvoiceViewPage() {
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
+            right: 0 !important;
             width: 100% !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
             padding: 0 !important;
+            display: flex !important;
+            justify-content: center !important;
+            align-items: flex-start !important;
             background: #ffffff !important;
           }
+          .pos-thermal-receipt {
+            margin: 0 auto !important;
+            display: block !important;
+          }
           .invoice-page-sheet {
-            margin: 0 !important;
             box-shadow: none !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
