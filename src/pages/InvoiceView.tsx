@@ -247,20 +247,37 @@ export default function InvoiceViewPage() {
 
       for (let i = 0; i < pageElements.length; i++) {
         const el = pageElements[i] as HTMLElement;
+        const rect = el.getBoundingClientRect();
+        const elWidthPx = rect.width || el.offsetWidth || 320;
+        const elHeightPx = rect.height || el.offsetHeight || 600;
+        const aspectRatio = elHeightPx / elWidthPx;
+
+        // For POS, roll width is 80mm (tpl 14) or 58mm (tpl 15), height is dynamically computed to fit all items perfectly
+        const pdfWidth = isPOS ? (tpl === 'template_14' ? 80 : 58) : (isA5 ? 210 : 210);
+        const pdfHeight = isPOS ? Math.max(pdfWidth * aspectRatio, 100) : (isA5 ? 148 : 297);
+
+        const currentFormat: [number, number] | string = isPOS ? [pdfWidth, pdfHeight] : (isA5 ? 'a5' : 'a4');
+        const currentOrientation = isPOS ? 'portrait' : (isA5 ? 'landscape' : 'portrait');
+
+        if (i === 0) {
+          // Re-initialize or adjust first page
+        }
+
         const dataUrl = await toPng(el, {
           quality: 1,
-          pixelRatio: 2,
-          backgroundColor: '#fff',
+          pixelRatio: 3, // High-DPI crystal clear render
+          backgroundColor: '#ffffff',
           fontEmbedCSS: '',
           skipFonts: true
         });
 
         if (i > 0) {
-          pdf.addPage(pdfFormat, pdfOrientation);
+          pdf.addPage(currentFormat, currentOrientation);
+        } else if (isPOS) {
+          // Delete default first page and add correctly sized dynamic roll page
+          pdf.deletePage(1);
+          pdf.addPage(currentFormat, currentOrientation);
         }
-
-        const pdfWidth = isPOS ? 76.2 : (isA5 ? 210 : 210);
-        const pdfHeight = isPOS ? 180 : (isA5 ? 148 : 297);
 
         pdf.setFillColor(255, 255, 255);
         pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
@@ -269,7 +286,7 @@ export default function InvoiceViewPage() {
 
       pdf.save(`Invoice_${invoice?.invoice_number || invoice?.id?.slice(0, 8) || 'doc'}.pdf`);
     } catch (e) {
-      console.error(e);
+      console.error("PDF generation fallback:", e);
       window.print();
     } finally {
       setDownloading(false);
