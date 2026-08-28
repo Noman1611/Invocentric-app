@@ -56,6 +56,15 @@ export default function DataBackupRecoveryModal() {
     setAutoBackup(snapshot);
 
     const wasInitialized = localStorage.getItem(`invocentric_db_initialized_${userId}`) === 'true';
+    const isFreshStarted = localStorage.getItem(`invocentric_fresh_started_${userId}`) === 'true';
+
+    // If user clicked start fresh, do not force open
+    if (isFreshStarted) {
+      setIsOpen(false);
+      setIsForceOpen(false);
+      isForceOpenRef.current = false;
+      return;
+    }
 
     // If active database has 0 records BUT it was previously initialized or a backup exists
     if (totalCurrentRecords === 0 && (wasInitialized || snapshot)) {
@@ -210,14 +219,11 @@ export default function DataBackupRecoveryModal() {
 
   const handleInitializeFresh = () => {
     if (!user) return;
-    const confirmFresh = window.confirm(
-      "क्या आप वास्तव में एक नई खाली डेटाबेस शुरू करना चाहते हैं?\n(Are you sure you want to initialize a fresh empty database?)"
-    );
-    if (confirmFresh) {
-      localStorage.setItem(`invocentric_db_initialized_${user.uid}`, 'true');
-      setIsOpen(false);
-      setIsForceOpen(false);
-    }
+    localStorage.setItem(`invocentric_db_initialized_${user.uid}`, 'true');
+    localStorage.setItem(`invocentric_fresh_started_${user.uid}`, 'true');
+    isForceOpenRef.current = false;
+    setIsForceOpen(false);
+    setIsOpen(false);
   };
 
   if (!isOpen) return null;
@@ -228,117 +234,106 @@ export default function DataBackupRecoveryModal() {
     : null;
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-neutral-950/80 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-neutral-950/70 backdrop-blur-xs overflow-y-auto">
       <div 
-        className="bg-white border-2 border-neutral-900 rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 space-y-6 relative animate-in fade-in zoom-in-95 duration-200 my-auto"
+        className="bg-white border border-neutral-200 rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full p-4 sm:p-6 space-y-4 relative animate-in fade-in zoom-in-95 duration-200 my-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Banner */}
-        <div className="flex items-start gap-4 p-5 bg-amber-50 border-2 border-amber-200 rounded-2xl">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
-            <AlertTriangle size={26} />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-black text-amber-950 uppercase tracking-tight">
-                Data Security & Recovery Required
-              </h2>
-              <span className="px-2 py-0.5 bg-amber-200 text-amber-900 font-bold text-[10px] rounded-full uppercase tracking-wider">
-                Action Needed
-              </span>
+        {/* Top Header Row with Close Button */}
+        <div className="flex items-center justify-between pb-2 border-b border-neutral-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <AlertTriangle size={18} />
             </div>
-            <p className="text-xs sm:text-sm font-bold text-amber-900 leading-relaxed">
-              आपकी Local Database फ़ाइल (<code className="bg-amber-100 px-1 py-0.5 rounded text-amber-950 font-mono">invocentric_db.json</code>) या ब्राउज़र कैशे साफ़/डिलीट हो गई है। आगे काम करने के लिए अपनी बैकअप फ़ाइल अपलोड करें या ऑटो-बैकअप से 1-क्लिक रिस्टोर करें।
-            </p>
+            <div>
+              <h3 className="text-sm font-black text-neutral-900 uppercase tracking-tight">Database Recovery</h3>
+              <p className="text-[10px] text-neutral-500 font-semibold">Local backup snapshot or fresh start</p>
+            </div>
           </div>
+          <button 
+            type="button"
+            onClick={handleInitializeFresh}
+            className="p-1.5 hover:bg-neutral-100 rounded-full transition-colors text-neutral-400 hover:text-neutral-700 cursor-pointer"
+            title="Close / Dismiss"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {/* Error / Success Banners */}
+        {/* Informative Alert Banner */}
+        <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed font-medium">
+          Aapki local database cache clear ho gayi hai. Agar aapke paas backup file hai to restore karein, ya fir niche <strong>Start Fresh</strong> click karke clean shuru karein.
+        </div>
+
         {errorMessage && (
-          <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-xs font-bold flex items-center gap-2">
-            <AlertTriangle size={18} className="shrink-0" />
+          <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold flex items-center gap-2">
+            <AlertTriangle size={14} className="shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
 
         {successMessage && (
-          <div className="p-4 bg-emerald-50 border-2 border-emerald-200 rounded-xl text-emerald-800 text-xs font-bold flex items-center gap-2">
-            <CheckCircle2 size={18} className="shrink-0 text-emerald-600" />
+          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-2">
+            <CheckCircle2 size={14} className="shrink-0" />
             <span>{successMessage}</span>
           </div>
         )}
 
-        {/* Option 1: Automatic Backup Found Card */}
-        {autoBackup && (
-          <div className="bg-emerald-50/80 border-2 border-emerald-300 rounded-2xl p-5 space-y-4 shadow-sm relative overflow-hidden">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Sparkles className="text-emerald-600 shrink-0" size={20} />
-                <h3 className="text-sm font-black text-emerald-950 uppercase tracking-wider">
-                  Automatic Local Backup Mirror Found (<code className="font-mono">invocentric_backup_db</code>)
-                </h3>
+        {/* Automatic Backup Mirror Option (if available and has records) */}
+        {autoBackup && (backupMeta.invoices > 0 || backupMeta.customers > 0 || backupMeta.items > 0) && (
+          <div className="bg-emerald-50/70 border border-emerald-300/80 rounded-xl p-3.5 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-xs">
+                <Sparkles size={14} className="text-emerald-600" />
+                <span>Auto-Backup Mirror Found</span>
               </div>
-              <span className="bg-emerald-600 text-white font-black text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest">
+              <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-600 text-white px-2 py-0.5 rounded-full">
                 Ready
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-              <div className="bg-white/80 border border-emerald-200 p-2.5 rounded-xl">
-                <p className="text-lg font-black text-emerald-900">{backupMeta.invoice_count || autoBackup.data.invoices?.length || 0}</p>
-                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Invoices</p>
+            {/* Micro Stats Grid */}
+            <div className="grid grid-cols-4 gap-1.5 text-center">
+              <div className="bg-white border border-emerald-200/80 p-1.5 rounded-lg">
+                <p className="text-xs font-black text-emerald-950">{backupMeta.invoices || 0}</p>
+                <p className="text-[8px] font-bold text-neutral-400 uppercase">Invoices</p>
               </div>
-              <div className="bg-white/80 border border-emerald-200 p-2.5 rounded-xl">
-                <p className="text-lg font-black text-emerald-900">{backupMeta.customer_count || autoBackup.data.customers?.length || 0}</p>
-                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Customers</p>
+              <div className="bg-white border border-emerald-200/80 p-1.5 rounded-lg">
+                <p className="text-xs font-black text-emerald-950">{backupMeta.customers || 0}</p>
+                <p className="text-[8px] font-bold text-neutral-400 uppercase">Parties</p>
               </div>
-              <div className="bg-white/80 border border-emerald-200 p-2.5 rounded-xl">
-                <p className="text-lg font-black text-emerald-900">{backupMeta.item_count || autoBackup.data.items?.length || 0}</p>
-                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Products</p>
+              <div className="bg-white border border-emerald-200/80 p-1.5 rounded-lg">
+                <p className="text-xs font-black text-emerald-950">{backupMeta.items || 0}</p>
+                <p className="text-[8px] font-bold text-neutral-400 uppercase">Items</p>
               </div>
-              <div className="bg-white/80 border border-emerald-200 p-2.5 rounded-xl">
-                <p className="text-lg font-black text-emerald-900">{backupMeta.expense_count || autoBackup.data.expenses?.length || 0}</p>
-                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Expenses</p>
+              <div className="bg-white border border-emerald-200/80 p-1.5 rounded-lg">
+                <p className="text-xs font-black text-emerald-950">{backupMeta.expenses || 0}</p>
+                <p className="text-[8px] font-bold text-neutral-400 uppercase">Expenses</p>
               </div>
             </div>
 
-            {backupDate && (
-              <p className="text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
-                <ShieldCheck size={14} className="text-emerald-600" />
-                <span>Last Auto-Backup Date: <strong>{backupDate}</strong></span>
-              </p>
-            )}
-
             <button
               type="button"
+              onClick={handleRestoreAutoBackup}
               disabled={isRestoring}
-              onClick={handleAutoRestore}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-widest py-3.5 px-4 rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw size={16} className={cn(isRestoring && "animate-spin")} />
-              {isRestoring ? "Restoring Data..." : "⚡ 1-Click Restore Everything from Auto-Backup"}
+              <RefreshCw size={13} className={isRestoring ? "animate-spin" : ""} />
+              {isRestoring ? "Restoring..." : "1-Click Restore From Auto-Backup"}
             </button>
           </div>
         )}
 
-        {/* Option 2: Upload Backup File Zone */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-black text-neutral-900 uppercase tracking-wider flex items-center gap-2">
-              <Upload size={16} className="text-neutral-700" />
-              Upload Backup File (<code className="font-mono text-neutral-800">invocentric_db.json</code>)
-            </h3>
-            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">JSON File</span>
-          </div>
-
+        {/* Upload Manual File Dropzone */}
+        <div className="space-y-2">
           <div
+            onClick={() => fileInputRef.current?.click()}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
             className={cn(
-              "border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 bg-neutral-50/80 hover:bg-neutral-100/80",
-              dragActive ? "border-emerald-600 bg-emerald-50/50 scale-[1.01]" : "border-neutral-300 hover:border-neutral-900"
+              "border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 bg-neutral-50 hover:bg-neutral-100",
+              dragActive ? "border-emerald-600 bg-emerald-50" : "border-neutral-300"
             )}
           >
             <input
@@ -348,37 +343,30 @@ export default function DataBackupRecoveryModal() {
               onChange={handleFileInputChange}
               className="hidden"
             />
-            <div className="w-12 h-12 rounded-2xl bg-white border-2 border-neutral-200 flex items-center justify-center text-neutral-800 shadow-sm">
-              <HardDrive size={24} />
-            </div>
-            <div>
-              <p className="text-xs font-black text-neutral-900 uppercase tracking-wider">
-                Click or Drag & Drop Backup File Here
-              </p>
-              <p className="text-[11px] font-bold text-neutral-500 mt-1">
-                Supports <code className="text-neutral-800 font-mono">invocentric_db.json</code> or <code className="text-neutral-800 font-mono">invocentric_backup_db.json</code>
-              </p>
-            </div>
+            <HardDrive size={20} className="text-neutral-600" />
+            <p className="text-xs font-bold text-neutral-900">
+              Upload Backup File (<code className="text-[10px] text-neutral-700">invocentric_db.json</code>)
+            </p>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t border-neutral-100 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="border-t border-neutral-100 pt-3 flex items-center justify-between gap-2">
           {user && (
             <button
               type="button"
               onClick={() => downloadBackupFile(user.uid)}
-              className="text-xs font-black text-neutral-700 hover:text-neutral-950 flex items-center gap-1.5 uppercase tracking-wider py-2"
+              className="text-[11px] font-bold text-neutral-600 hover:text-neutral-900 flex items-center gap-1 uppercase tracking-wider py-1 cursor-pointer"
             >
-              <Download size={14} />
-              Download Current Data Snapshot
+              <Download size={13} />
+              Export Snapshot
             </button>
           )}
 
           <button
             type="button"
             onClick={handleInitializeFresh}
-            className="text-xs font-bold text-neutral-500 hover:text-red-600 transition-colors py-2 uppercase tracking-wider"
+            className="text-[11px] font-black text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider cursor-pointer"
           >
             Start Fresh with Clean Database →
           </button>
