@@ -737,52 +737,202 @@ export default function InvoiceViewPage() {
     );
   };
 
-  // ── POS Thermal Receipt (T14=wide, T15=narrow)
-  const renderPOS = (wide = true) => {
-    const maxW = wide ? 380 : 340;
-    const div = wide ? '===============TAX INVOICE===============' : '=====TAX INVOICE=====';
-    const sep = wide ? '========================================' : '===============';
+  // ── POS Thermal Receipt (2-inch / 58mm = T15, 3-inch / 80mm = T14)
+  const renderPOS = (is3Inch = true) => {
+    // 2-inch (58mm) paper has printable width ~48mm / 220px-240px
+    // 3-inch (80mm) paper has printable width ~72mm / 280px-300px
+    const maxW = is3Inch ? '72mm' : '54mm';
+    const fontSize = is3Inch ? 11 : 9.5;
+    const titleSize = is3Inch ? 15 : 13;
+    const qrSize = is3Inch ? 110 : 85;
+
+    const invoiceTitle = invoice?.invoice_title || 'TAX INVOICE';
+    const subtotal = itemRows.reduce((a: number, i: any) => a + (i.qty * i.price), 0);
+    const globalDiscount = Number(invoice?.discount) || 0;
+    const shippingCharges = Number(invoice?.shipping_charges) || 0;
+
     return (
-      <div className="invoice-page-sheet" style={{fontFamily:`'Courier New',monospace`,fontSize:12,maxWidth:maxW,width:'100%',margin:'0 auto',padding:12,textAlign:'center',background:'#fff'}}>
-        <div style={{fontWeight:'bold'}}>{co.name}</div>
-        {showSec.seller_address && <div style={{fontSize:11}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}
-        <div style={{fontSize:11}}>{co.phone}</div><div style={{fontSize:11}}>GSTIN : {co.gstin}</div>
-        <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{div}</div>
-        <div style={{display:'flex',justifyContent:'space-between',fontSize:11}}><span>INVOICE #: {im.invoiceNo}</span><span>DATE: {im.invoiceDate}</span></div>
-        <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{wide?'================BILLED TO================':'=====BILLED TO====='}</div>
-        <div style={{textAlign:'left',fontSize:11}}>Name : {bu.name}<br/>{showSec.customer_gstin && <>GSTIN : {bu.gstin}<br/></>}PAN : {bu.pan}</div>
-        <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{sep}</div>
-        <table style={{width:'100%',borderCollapse:'collapse',textAlign:'left',fontSize:11,margin:'4px 0'}}>
-          <thead>
-            <tr>
-              <th style={{borderBottom:'1px solid #000',padding:'2px'}}>Items x Qty<br/>HSN<br/>Rate</th>
-              <th style={{borderBottom:'1px solid #000',padding:'2px'}}>Taxable<br/>+ GST</th>
-              <th style={{borderBottom:'1px solid #000',padding:'2px',textAlign:'right'}}>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {itemRows.map((it:any,i:number)=>(
-              <tr key={i}>
-                <td style={{padding:'2px',verticalAlign:'top'}}>
-                  <div style={{fontWeight:'bold'}}>{it.name} x {it.qty}</div>
-                  {(it.subLines||[]).map((sl:string,si:number)=><div key={si} style={{display:'block',fontSize:8.5,fontStyle:'italic'}}>{sl}</div>)}
-                  {colVis.hsn && <span style={{display:'block',fontSize:10}}>HSN : {it.hsn}</span>}
-                  <span style={{display:'block',fontSize:10}}>Rate: {fc(it.price,cur)}</span>
-                </td>
-                <td style={{padding:'2px',verticalAlign:'top',textAlign:'right'}}>{fc(it.taxable,cur)}<br/>+ {it.gstPct} %</td>
-                <td style={{padding:'2px',verticalAlign:'top',textAlign:'right'}}>{fc(it.total,cur)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{wide?'================SUMMARY================':'=====SUMMARY====='}</div>
-        <div style={{textAlign:'left'}}>{[['Taxable Amount',fc(totalTaxable,cur)],['Add : IGST',fc(totalTax,cur)],['Total Tax',fc(totalTax,cur)],[' Total Amount After Tax',`₹${fc(grandTotal,cur)}`],['GST Payable on Reverse Charge','N.A.']].map(([l,v])=>(<div key={l} style={{display:'flex',justifyContent:'space-between',fontSize:11}}><span>{l}</span><span>{v}</span></div>))}</div>
-        <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{sep}</div>
-        <div style={{display:'flex',justifyContent:'space-between',fontSize:11.5,fontWeight:'bold'}}><span>Grand Total :</span><span>{fc(grandTotal,cur)}</span></div>
-        <div style={{margin:'6px 0',letterSpacing:-1,fontSize:11}}>{sep}</div>
-        {showSec.upi_qr && (
-          <div style={{marginTop:6}}>{QRNode}<div style={{fontSize:10}}>Pay using UPI</div></div>
+      <div 
+        className="invoice-page-sheet pos-thermal-receipt" 
+        style={{
+          fontFamily: `'Courier New', Courier, monospace`,
+          fontSize: `${fontSize}px`,
+          maxWidth: maxW,
+          width: '100%',
+          margin: '0 auto',
+          padding: is3Inch ? '8px 10px' : '4px 6px',
+          textAlign: 'center',
+          background: '#ffffff',
+          color: '#000000',
+          lineHeight: 1.35,
+          boxSizing: 'border-box'
+        }}
+      >
+        {/* 1. Header: Business Information */}
+        <div style={{ fontWeight: 'bold', fontSize: `${titleSize}px`, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>
+          {co.name || 'INVOCENTRIC'}
+        </div>
+        {co.address && (
+          <div style={{ fontSize: `${fontSize - 0.5}px`, marginBottom: '2px' }}>
+            {co.address}
+          </div>
         )}
+        {co.phone && (
+          <div style={{ fontSize: `${fontSize - 0.5}px` }}>
+            TEL: {co.phone}
+          </div>
+        )}
+        {co.email && (
+          <div style={{ fontSize: `${fontSize - 0.5}px` }}>
+            EMAIL: {co.email}
+          </div>
+        )}
+        {co.gstin && (
+          <div style={{ fontSize: `${fontSize - 0.5}px` }}>
+            GSTIN: {co.gstin}
+          </div>
+        )}
+
+        {/* Dashed Separator */}
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+
+        {/* 2. Document Title */}
+        <div style={{ fontWeight: 'bold', fontSize: `${fontSize + 1}px`, letterSpacing: '1px', textTransform: 'uppercase', margin: '4px 0' }}>
+          * {invoiceTitle} *
+        </div>
+
+        {/* Meta Grid */}
+        <div style={{ textAlign: 'left', marginTop: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+            <span style={{ fontWeight: 'bold' }}>BILL TO:</span>
+            <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{bu.name || 'CASH SALE'}</span>
+          </div>
+          {bu.phone && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+              <span>MOBILE:</span>
+              <span>{bu.phone}</span>
+            </div>
+          )}
+          {bu.gstin && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+              <span>GSTIN:</span>
+              <span>{bu.gstin}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+            <span>INV NO:</span>
+            <span>#{im.invoiceNo.replace(/^#/, '')}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+            <span>DATE:</span>
+            <span>{im.invoiceDate}</span>
+          </div>
+        </div>
+
+        {/* Dashed Separator */}
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+
+        {/* 3. Items Table */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: `${fontSize}px`, marginBottom: '6px' }}>
+          <span style={{ textAlign: 'left', flex: 1 }}>ITEM</span>
+          <span style={{ textAlign: 'center', width: '45px' }}>QTY</span>
+          <span style={{ textAlign: 'right', width: '65px' }}>AMT</span>
+        </div>
+
+        {/* Item Rows matching user's reference layout */}
+        <div style={{ textAlign: 'left' }}>
+          {itemRows.map((it: any, i: number) => (
+            <div key={i} style={{ marginBottom: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <span style={{ fontWeight: 'bold', flex: 1, paddingRight: '4px' }}>
+                  {i + 1}. {it.name}
+                </span>
+                <span style={{ width: '45px', textAlign: 'center', fontWeight: 'bold' }}>
+                  {it.qty}
+                </span>
+                <span style={{ width: '65px', textAlign: 'right', fontWeight: 'bold' }}>
+                  ₹{Number(it.total || (it.qty * it.price)).toFixed(2)}
+                </span>
+              </div>
+              {/* Secondary line: Qty x Rate & optional serial/batch */}
+              <div style={{ fontStyle: 'italic', fontSize: `${fontSize - 1.5}px`, color: '#333', paddingLeft: '14px' }}>
+                {it.qty} x ₹{Number(it.price).toFixed(2)}
+                {it.gstPct > 0 && ` (+${it.gstPct}% GST)`}
+              </div>
+              {(it.subLines || []).map((sl: string, si: number) => (
+                <div key={si} style={{ fontStyle: 'italic', fontSize: `${fontSize - 2}px`, color: '#555', paddingLeft: '14px' }}>
+                  {sl}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* Dashed Separator */}
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+
+        {/* 4. Subtotal & Totals Breakup */}
+        <div style={{ textAlign: 'left' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+            <span>SUBTOTAL:</span>
+            <span>₹{subtotal.toFixed(2)}</span>
+          </div>
+          {globalDiscount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+              <span>DISCOUNT:</span>
+              <span>-₹{globalDiscount.toFixed(2)}</span>
+            </div>
+          )}
+          {totalTax > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+              <span>TAX (GST):</span>
+              <span>₹{totalTax.toFixed(2)}</span>
+            </div>
+          )}
+          {shippingCharges > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+              <span>SHIPPING:</span>
+              <span>₹{shippingCharges.toFixed(2)}</span>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: `${fontSize + 1.5}px`, marginTop: '4px' }}>
+            <span>GRAND TOTAL:</span>
+            <span>₹{grandTotal.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Dashed Separator */}
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+
+        {/* 5. Scan to Pay with UPI */}
+        {showSec.upi_qr && upiUrl && (
+          <div style={{ margin: '10px 0 6px 0', textAlign: 'center' }}>
+            <div style={{ fontSize: `${fontSize - 1}px`, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+              SCAN TO PAY WITH UPI
+            </div>
+            <div style={{ display: 'inline-block', padding: '3px', background: '#fff' }}>
+              <QRCodeSVG value={upiUrl} size={qrSize} level="M" />
+            </div>
+            {upiId && (
+              <div style={{ fontSize: `${fontSize - 1.5}px`, marginTop: '4px', wordBreak: 'break-all' }}>
+                {upiId}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Dashed Separator */}
+        <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+
+        {/* 6. Footer: InvoCentric Branding & Visit Again */}
+        <div style={{ marginTop: '6px', textAlign: 'center' }}>
+          <div style={{ fontWeight: 'bold', fontSize: `${fontSize}px`, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            *** THANK YOU! VISIT AGAIN ***
+          </div>
+          <div style={{ fontStyle: 'italic', fontSize: `${fontSize - 2.5}px`, color: '#666', marginTop: '3px' }}>
+            powered by invocentric • instant compliant invoicing
+          </div>
+        </div>
       </div>
     );
   };
@@ -880,7 +1030,7 @@ export default function InvoiceViewPage() {
       <style>{`
         @media print {
           @page {
-            size: ${isPOS ? '76mm 180mm' : (isA5 ? 'A5 landscape' : 'A4 portrait')};
+            size: ${isPOS ? (tpl === 'template_14' ? '80mm auto' : '58mm auto') : (isA5 ? 'A5 landscape' : 'A4 portrait')};
             margin: 0mm;
           }
           *, *:before, *:after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }

@@ -1433,8 +1433,8 @@ export default function CreateInvoicePage() {
                 <option value="template_09">Template 09 — Compact Border + Summary (A4)</option>
                 <option value="template_10">Template 10 — Centered Header + Table Meta (A4)</option>
                 <option value="template_12">Template 12 — Black Frame / All Table (A4)</option>
-                <option value="template_14">Template 14 — POS Receipt Thermal (Wide 380px)</option>
-                <option value="template_15">Template 15 — POS Receipt Thermal (Narrow 340px)</option>
+                <option value="template_14">Template 14 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
+                <option value="template_15">Template 15 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
               </select>
               <p className="text-[11px] text-slate-500 italic">
                 Applies instant layout formatting to preview &amp; printouts.
