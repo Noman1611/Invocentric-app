@@ -598,238 +598,175 @@ export default function PricingPage() {
 
             {/* Modal Body Container */}
             <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              initial={{ opacity: 0, y: 30, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.95 }}
-              className="relative w-full max-w-lg bg-white rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl overflow-y-auto max-h-[92vh] border border-slate-200/80 z-10 scrollbar-thin my-auto"
+              exit={{ opacity: 0, y: 30, scale: 0.96 }}
+              className="relative w-full max-w-lg lg:max-w-4xl bg-white rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200/80 z-10 my-auto max-h-[95vh] flex flex-col"
             >
               
               {/* DETAILS AND PAYMENT STEP */}
               {checkoutStep === 'details' && (
-                <div className="p-5 sm:p-8 space-y-4 sm:space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-[#F0FDF4] text-[#166534] flex items-center justify-center">
-                        <CreditCard size={16} />
+                <div className="p-5 sm:p-7 overflow-y-auto scrollbar-thin">
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-[#F0FDF4] text-[#166534] flex items-center justify-center shadow-xs">
+                        <CreditCard size={17} />
                       </div>
-                      <h2 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Secure Checkout</h2>
+                      <div>
+                        <h2 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">Secure Upgrade Checkout</h2>
+                        <p className="text-[11px] text-slate-500 font-semibold hidden sm:block">Instant Pro features activation with 0% gateway fee</p>
+                      </div>
                     </div>
                     <button 
                       onClick={() => setShowCheckoutModal(false)}
-                      className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-700"
+                      className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-700 cursor-pointer"
                     >
-                      <X size={18} />
+                      <X size={20} />
                     </button>
-                  </div>
-
-                  {/* Summary Box */}
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex justify-between items-center">
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Subscription Plan</p>
-                      <p className="text-sm font-extrabold text-slate-800 mt-0.5">InvoCentric Pro Account ({billingCycle})</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Amount Due</p>
-                      <p className="text-base font-black text-[#166534] mt-0.5">₹{currentPrice}</p>
-                    </div>
-                  </div>
-
-                  {/* Payment Method Selector Tab bar (UPI Only) */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Payment Method</label>
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-[#166534]/30 bg-[#F0FDF4]/40 text-[#166534]">
-                      <QrCode size={18} className="shrink-0 text-[#166534]" />
-                      <div className="text-left">
-                        <p className="text-xs font-black uppercase tracking-wider">UPI / QR Code</p>
-                        <p className="text-[10px] text-[#166534]/80 font-bold leading-normal">Direct transfer with instant manual verification</p>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Error Notification Alert */}
                   {paymentError && (
-                    <div className="bg-rose-50 border border-rose-100/50 p-3 rounded-xl text-[11px] text-rose-600 flex items-center gap-2 font-medium">
-                      <AlertCircle size={14} className="shrink-0" />
+                    <div className="mt-3 bg-rose-50 border border-rose-100 p-3 rounded-xl text-xs text-rose-600 flex items-center gap-2 font-semibold">
+                      <AlertCircle size={15} className="shrink-0" />
                       <span>{paymentError}</span>
                     </div>
                   )}
 
-                  {/* Payment form input fields dynamically updated */}
-                  <form onSubmit={handlePaymentSubmit} className="space-y-4">
-                    {paymentMethod === 'upi' && (
-                      <div className="space-y-4">
-                        {/* Interactive Official UPI Payment Info Card */}
-                        <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3 sm:p-4 flex flex-col items-center text-center space-y-2.5 sm:space-y-3.5">
-                          <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-wider">Scan QR or Pay UPI ID to Upgrade</p>
-                          
-                          {/* Generated QR Code Container */}
-                          <div className="bg-white p-2 sm:p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center">
-                            <img 
-                              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                                `upi://pay?pa=shekhnoman@sbi&pn=Shekh%20Mahammad%20Noman&am=${currentPrice}&cu=INR&tn=InvoCentric%20Pro%20Subscription`
-                              )}`}
-                              alt="UPI QR Code"
-                              className="w-[120px] h-[120px] sm:w-[150px] sm:h-[150px] object-contain"
-                              referrerPolicy="no-referrer"
-                            />
-                            <div className="mt-1.5 text-[10px] sm:text-[11px] font-bold text-slate-700 flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-[#166534] animate-pulse"></span>
-                              Dynamic QR Code Active
-                            </div>
-                          </div>
-
-                          {/* Account Info Details */}
-                          <div className="w-full space-y-1">
-                            <h5 className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Account Holder</h5>
-                            <p className="text-xs font-black text-slate-800">Shekh Mahammad Noman</p>
-                            <p className="text-[10px] font-bold text-slate-500">Receiving Bank: State Bank of India (SBI)</p>
-                          </div>
-
-                          {/* UPI Copy Button */}
-                          <div className="w-full bg-white border border-slate-100 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-inner">
-                            <span className="text-xs font-mono font-bold text-[#166534] truncate select-all">shekhnoman@sbi</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText('shekhnoman@sbi');
-                                setCopied(true);
-                                setTimeout(() => setCopied(false), 2000);
-                              }}
-                              className="px-3 py-1.5 bg-[#F0FDF4] hover:bg-[#DCFCE7] text-[#166534] rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 shrink-0"
-                            >
-                              <Copy size={11} />
-                              {copied ? 'Copied' : 'Copy ID'}
-                            </button>
-                          </div>
-
-                          {/* Direct Mobile App UPI Intent Button */}
-                          <div className="w-full pt-1">
-                            <a 
-                              href={`upi://pay?pa=shekhnoman@sbi&pn=Shekh%20Mahammad%20Noman&am=${currentPrice}&cu=INR&tn=InvoCentric%20Pro%20Subscription`}
-                              className="w-full py-3 px-4 bg-gradient-to-r from-green-600 to-green-600 hover:from-green-700 hover:to-green-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all"
-                            >
-                              <Sparkles size={14} className="animate-spin text-yellow-300" />
-                              Pay via GPay / PhonePe / Paytm
-                            </a>
-                            <p className="text-[9px] text-slate-400 mt-1.5 leading-normal font-medium">
-                              📱 Click above on mobile to pay instantly. 0% Commission & Lifetime Free standard transaction.
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Customer Transaction/UPI Reference Field */}
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Your UPI ID or Reference No.</label>
-                          <input 
-                            type="text"
-                            required
-                            placeholder="e.g. name@upi or Ref/UTR Number"
-                            className="w-full px-4 py-3 bg-[#F8FAFB] border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-[#166534] text-xs font-semibold text-slate-800"
-                            value={upiId}
-                            onChange={(e) => setUpiId(e.target.value)}
-                          />
-                          <p className="text-[10px] leading-normal text-slate-400 font-bold uppercase tracking-wider text-center">
-                            Scan, pay directly, and input details above to instantly unlock Pro features!
-                          </p>
+                  {/* Main Grid: 2-Columns on PC (Left QR, Right Form) | 1-Column on Mobile */}
+                  <form onSubmit={handlePaymentSubmit} className="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-7 items-start">
+                    
+                    {/* LEFT COLUMN: Prominent Big QR Code Card (5 cols on desktop) */}
+                    <div className="lg:col-span-5 bg-slate-50 border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center text-center space-y-3.5 shadow-xs">
+                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-slate-600 tracking-wider">
+                        <QrCode size={14} className="text-[#166534]" />
+                        <span>Scan & Pay with Any UPI App</span>
+                      </div>
+                      
+                      {/* High Resolution Dynamic QR Code */}
+                      <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                            `upi://pay?pa=shekhnoman@sbi&pn=Shekh%20Mahammad%20Noman&am=${currentPrice}&cu=INR&tn=InvoCentric%20Pro%20Subscription`
+                          )}`}
+                          alt="UPI QR Code"
+                          className="w-[150px] h-[150px] sm:w-[175px] sm:h-[175px] object-contain"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="mt-2 text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          <span className="text-emerald-700">Dynamic ₹{currentPrice} QR Active</span>
                         </div>
                       </div>
-                    )}
 
-                    {paymentMethod === 'card' && (
-                      <div className="space-y-2 sm:space-y-3">
-                        <div className="space-y-1 sm:space-y-1.5">
-                          <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Cardholder Name</label>
-                          <input 
-                            type="text"
-                            required
-                            placeholder="Full Name as on card"
-                            className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#F8FAFB] border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-[#166534] text-xs font-semibold text-slate-800"
-                          />
-                        </div>
-                        <div className="space-y-1 sm:space-y-1.5">
-                          <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Card Number</label>
-                          <input 
-                            type="text"
-                            required
-                            maxLength={19}
-                            placeholder="xxxx xxxx xxxx xxxx"
-                            value={cardNumber}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
-                              setCardNumber(val);
-                            }}
-                            className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#F8FAFB] border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-[#166534] text-xs font-semibold text-slate-800 tracking-widest"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                          <div className="space-y-1 sm:space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Expiry (MM/YY)</label>
-                            <input 
-                              type="text"
-                              required
-                              maxLength={5}
-                              placeholder="MM/YY"
-                              value={cardExpiry}
-                              onChange={(e) => {
-                                let val = e.target.value.replace(/\D/g, '');
-                                if (val.length > 2) {
-                                  val = val.slice(0, 2) + '/' + val.slice(2, 4);
-                                }
-                                setCardExpiry(val);
-                              }}
-                              className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#F8FAFB] border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-[#166534] text-xs font-semibold text-slate-800 text-center"
-                            />
-                          </div>
-                          <div className="space-y-1 sm:space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">CVV</label>
-                            <input 
-                              type="password"
-                              required
-                              maxLength={3}
-                              placeholder="***"
-                              value={cardCvv}
-                              onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, ''))}
-                              className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#F8FAFB] border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-[#166534] text-xs font-semibold text-slate-800 text-center tracking-widest"
-                            />
-                          </div>
-                        </div>
+                      {/* Account Beneficiary Info */}
+                      <div className="w-full space-y-0.5 text-center">
+                        <p className="text-xs font-black text-slate-800">Shekh Mahammad Noman</p>
+                        <p className="text-[10px] font-bold text-slate-500">State Bank of India (SBI)</p>
                       </div>
-                    )}
 
-                    {paymentMethod === 'netbanking' && (
-                      <div className="space-y-1 sm:space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Select Bank</label>
-                        <select className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#F8FAFB] border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-[#166534] text-xs font-semibold text-slate-800">
-                          <option>State Bank of India (SBI)</option>
-                          <option>HDFC Bank</option>
-                          <option>ICICI Bank</option>
-                          <option>Axis Bank</option>
-                          <option>Kotak Mahindra Bank</option>
-                        </select>
+                      {/* 1-Click Copy UPI ID */}
+                      <div className="w-full bg-white border border-slate-200/80 rounded-xl p-2 flex items-center justify-between gap-2 shadow-xs">
+                        <span className="text-xs font-mono font-bold text-[#166534] truncate pl-1">shekhnoman@sbi</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText('shekhnoman@sbi');
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          }}
+                          className="px-2.5 py-1 bg-[#F0FDF4] hover:bg-[#DCFCE7] text-[#166534] rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                        >
+                          <Copy size={11} />
+                          {copied ? 'Copied' : 'Copy'}
+                        </button>
                       </div>
-                    )}
 
-                    {/* Bottom buttons */}
-                    <div className="flex gap-2 sm:gap-3 pt-2 sm:pt-4">
-                      <button 
-                        type="button" 
-                        onClick={() => setShowCheckoutModal(false)}
-                        className="flex-1 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 py-2.5 sm:py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all"
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        type="submit"
-                        className="flex-1 bg-[#166534] hover:bg-[#0F3D21] text-white py-2.5 sm:py-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 sm:gap-2 shadow-md shadow-green-700/10"
-                      >
-                        <Lock size={12} />
-                        Pay ₹{currentPrice}
-                      </button>
+                      {/* Mobile Instant UPI Intent App Link */}
+                      <div className="w-full pt-0.5">
+                        <a 
+                          href={`upi://pay?pa=shekhnoman@sbi&pn=Shekh%20Mahammad%20Noman&am=${currentPrice}&cu=INR&tn=InvoCentric%20Pro%20Subscription`}
+                          className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white rounded-xl text-[11px] font-black uppercase tracking-wider shadow-xs flex items-center justify-center gap-2 transition-all active:scale-95"
+                        >
+                          <Sparkles size={13} className="text-amber-300" />
+                          Pay via GPay / PhonePe / Paytm
+                        </a>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-center gap-1.5 text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest pt-1 sm:pt-2">
-                      <ShieldCheck size={11} className="text-emerald-600" />
-                      Secure 256-Bit Encrypted Settle
+                    {/* RIGHT COLUMN: Plan Summary, Reference Details & Submit (7 cols on desktop) */}
+                    <div className="lg:col-span-7 space-y-4 sm:space-y-5 flex flex-col justify-between h-full">
+                      
+                      {/* Subscription Summary Card */}
+                      <div className="bg-slate-50 border border-slate-200/70 rounded-2xl p-4 sm:p-5 flex justify-between items-center shadow-xs">
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Selected Plan</p>
+                          <p className="text-sm sm:text-base font-black text-slate-900 mt-0.5">InvoCentric Pro ({billingCycle})</p>
+                          <p className="text-[11px] text-emerald-700 font-bold mt-0.5">Includes unlimited AI scanning & POS</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Total Payable</p>
+                          <p className="text-xl sm:text-2xl font-black text-[#166534] mt-0.5">₹{currentPrice}</p>
+                        </div>
+                      </div>
+
+                      {/* Reference Number / UPI ID Input */}
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider flex items-center justify-between">
+                          <span>Your UPI ID / 12-Digit UTR Ref Number</span>
+                          <span className="text-[10px] font-bold text-amber-600">Required for instant activation</span>
+                        </label>
+                        <input 
+                          type="text"
+                          required
+                          placeholder="e.g. 423987123456 or name@okaxis"
+                          className="w-full px-4 py-3 bg-[#F8FAFB] border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/10 focus:border-[#166534] text-xs sm:text-sm font-bold text-slate-900"
+                          value={upiId}
+                          onChange={(e) => setUpiId(e.target.value)}
+                        />
+                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                          Pay using the QR code on the left, then enter your transaction reference / UTR number above to verify and unlock Pro instantly.
+                        </p>
+                      </div>
+
+                      {/* Trust & Guarantee Badges */}
+                      <div className="grid grid-cols-2 gap-2.5 py-1">
+                        <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-2">
+                          <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                          <span className="text-[11px] font-bold text-slate-700">Instant Activation</span>
+                        </div>
+                        <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-2">
+                          <ShieldCheck size={15} className="text-emerald-600 shrink-0" />
+                          <span className="text-[11px] font-bold text-slate-700">100% Direct SBI Settle</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="space-y-2.5 pt-2">
+                        <div className="flex gap-3">
+                          <button 
+                            type="button" 
+                            onClick={() => setShowCheckoutModal(false)}
+                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            type="submit"
+                            className="flex-1 bg-[#166534] hover:bg-[#0F3D21] text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-900/15 cursor-pointer active:scale-95"
+                          >
+                            <Lock size={13} />
+                            Verify & Upgrade ₹{currentPrice}
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">
+                          <ShieldCheck size={12} className="text-emerald-600" />
+                          Encrypted Verification • Zero Transaction Commission
+                        </div>
+                      </div>
+
                     </div>
                   </form>
                 </div>
