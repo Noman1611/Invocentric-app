@@ -255,16 +255,17 @@ app.post("/api/send-email", authEmailLimiter, checkAuth, async (req, res) => {
 // --- EMAIL OTP AUTHENTICATION (100% Free, No Billing Required) ---
 const emailOtpStore = new Map<string, { otp: string; expires: number }>();
 
-app.post("/api/auth/send-email-otp", authEmailLimiter, async (req, res) => {
+app.post("/api/auth/send-email-otp", async (req, res) => {
   const { email } = req.body;
   if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Please enter a valid email address." });
   }
 
   const otp = crypto.randomInt(100000, 1000000).toString();
+  // Valid for full 10 minutes (600,000 ms)
   emailOtpStore.set(email.trim().toLowerCase(), {
     otp,
-    expires: Date.now() + 10 * 60 * 1000 // 10 mins expiry
+    expires: Date.now() + 10 * 60 * 1000 
   });
 
   const html = `
@@ -272,22 +273,22 @@ app.post("/api/auth/send-email-otp", authEmailLimiter, async (req, res) => {
       <h2 style="color: #15803d; text-align: center; margin-bottom: 8px;">InvoCentric</h2>
       <p style="text-align: center; color: #64748b; font-size: 14px; margin-bottom: 24px;">Free GST Billing & Invoice Maker</p>
       <p style="color: #334155; font-size: 15px;">Hello,</p>
-      <p style="color: #334155; font-size: 15px;">Your one-time login verification code is:</p>
+      <p style="color: #334155; font-size: 15px;">Your one-time verification code is:</p>
       <div style="background: #f0fdf4; color: #15803d; font-size: 32px; font-weight: bold; text-align: center; padding: 16px; border-radius: 12px; letter-spacing: 6px; margin: 24px 0; border: 1px solid #bbf7d0;">
         ${otp}
       </div>
-      <p style="font-size: 13px; color: #64748b; text-align: center;">This code is valid for 10 minutes. Do not share this with anyone.</p>
+      <p style="font-size: 13px; color: #64748b; text-align: center;">This code is valid for <strong>10 minutes</strong>. Do not share this with anyone.</p>
     </div>
   `;
 
   const result = await dispatchEmail({
     to: email.trim(),
-    subject: `Your InvoCentric Login OTP: ${otp}`,
+    subject: `Your InvoCentric Verification Code: ${otp}`,
     html
   });
 
   if (result.success) {
-    return res.json({ success: true, message: "OTP sent successfully to your email!" });
+    return res.json({ success: true, message: "OTP sent successfully to your email! Valid for 10 minutes." });
   } else {
     console.log(`[Development OTP Fallback] Email: ${email}, OTP: ${otp}`);
     return res.json({ 
@@ -367,10 +368,6 @@ app.post("/api/auth/register-password", async (req, res) => {
   }
 
   const db = loadUsersDb();
-  if (db[key]) {
-    return res.status(400).json({ error: "Account already exists with this email. Please log in directly with your password." });
-  }
-
   db[key] = {
     email: key,
     passwordHash: password,
@@ -401,7 +398,7 @@ app.post("/api/auth/login-password", (req, res) => {
   const userRecord = db[key];
 
   if (!userRecord || userRecord.passwordHash !== password) {
-    return res.status(400).json({ error: "Invalid email or password. If you forgot your password, use 'Forgot Password' with OTP." });
+    return res.status(400).json({ error: "Invalid email or password. Click 'Forgot password?' to set a new password with 10-minute OTP." });
   }
 
   return res.json({
@@ -433,15 +430,11 @@ app.post("/api/auth/reset-password", async (req, res) => {
   }
 
   const db = loadUsersDb();
-  if (!db[key]) {
-    db[key] = {
-      email: key,
-      passwordHash: password,
-      name: key.split('@')[0]
-    };
-  } else {
-    db[key].passwordHash = password;
-  }
+  db[key] = {
+    email: key,
+    passwordHash: password,
+    name: key.split('@')[0]
+  };
   saveUsersDb(db);
   emailOtpStore.delete(key);
 
