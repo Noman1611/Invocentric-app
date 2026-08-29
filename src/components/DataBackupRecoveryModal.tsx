@@ -22,7 +22,8 @@ import {
   ShieldCheck, 
   HardDrive, 
   ArrowRight,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 

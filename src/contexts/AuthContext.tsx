@@ -630,15 +630,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const sessionNotifiedKey = `login_telegram_notified_${firebaseUser.uid}`;
           if (!sessionStorage.getItem(sessionNotifiedKey)) {
             sessionStorage.setItem(sessionNotifiedKey, 'true');
-            firebaseUser.getIdToken().then(token => {
+            if (typeof (firebaseUser as any).getIdToken === 'function') {
+              (firebaseUser as any).getIdToken().then((token: string) => {
+                fetch('/api/notify-login', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  }
+                }).catch(err => console.warn("Login notification trigger failed (handled):", err));
+              }).catch((err: any) => console.warn("Failed to acquire user ID token for login alert (handled):", err));
+            } else {
               fetch('/api/notify-login', {
                 method: 'POST',
                 headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                }
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: firebaseUser.email, uid: firebaseUser.uid })
               }).catch(err => console.warn("Login notification trigger failed (handled):", err));
-            }).catch(err => console.warn("Failed to acquire user ID token for login alert (handled):", err));
+            }
           }
         }
       } else {
