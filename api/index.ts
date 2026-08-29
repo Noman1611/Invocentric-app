@@ -370,7 +370,7 @@ app.post("/api/auth/register-password", async (req, res) => {
   const db = loadUsersDb();
   db[key] = {
     email: key,
-    passwordHash: password,
+    passwordHash: String(password).trim(),
     name: key.split('@')[0]
   };
   saveUsersDb(db);
@@ -394,11 +394,12 @@ app.post("/api/auth/login-password", (req, res) => {
   }
 
   const key = email.trim().toLowerCase();
+  const rawPass = String(password).trim();
   const db = loadUsersDb();
   const userRecord = db[key];
 
-  if (!userRecord || userRecord.passwordHash !== password) {
-    return res.status(400).json({ error: "Invalid email or password. Click 'Forgot password?' to set a new password with 10-minute OTP." });
+  if (!userRecord || userRecord.passwordHash !== rawPass) {
+    return res.status(400).json({ error: "Invalid email or password. Click 'Forgot password?' to set or reset your password via OTP." });
   }
 
   return res.json({
