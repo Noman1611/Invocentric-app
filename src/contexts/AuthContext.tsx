@@ -623,6 +623,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
+        // Auto-bridge & sync storage between Google UID and user_email UID
+        if (firebaseUser.email) {
+          const emailUid = 'user_' + firebaseUser.email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
+          const primaryUid = firebaseUser.uid;
+          
+          // Mirror offline storage keys if they exist in one but not the other
+          const storageKeys = [
+            'user_profile',
+            'offline_invoices',
+            'offline_customers',
+            'offline_items',
+            'offline_expenses',
+            'offline_purchases',
+            'offline_daily_book',
+            'offline_quotations',
+            'offline_payments'
+          ];
+
+          for (const prefix of storageKeys) {
+            const valEmail = getSecureStorage(`${prefix}_${emailUid}`, null);
+            const valPrimary = getSecureStorage(`${prefix}_${primaryUid}`, null);
+
+            if (valEmail && !valPrimary) {
+              setSecureStorage(`${prefix}_${primaryUid}`, valEmail, true);
+            } else if (valPrimary && !valEmail) {
+              setSecureStorage(`${prefix}_${emailUid}`, valPrimary, true);
+            }
+          }
+        }
+
         setUser(firebaseUser);
 
         // Dispatch background Telegram alert for successful user login
