@@ -92,38 +92,61 @@ export default function InvoiceViewPage() {
         const upserts = getSecureStorage('offline_queue_upserts', []);
         const localInvoices = getSecureStorage(`offline_invoices_${user?.uid || 'guest'}`, []);
         let invData: any = null;
+        
+        // 1. Check offline queue
         const qi = upserts.find((u: any) => u.collection === 'invoices' && u.item.id === id);
         if (qi) invData = qi.item;
-        else if (isOfflineMode) invData = localInvoices.find((i: any) => i.id === id);
-        if (!invData && !isOfflineMode) {
-          const snap = await getDoc(doc(db, 'invoices', id));
-          if (snap.exists()) invData = { id: snap.id, ...snap.data() };
+        
+        // 2. Check local storage
+        if (!invData) invData = localInvoices.find((i: any) => i.id === id);
+        
+        // 3. Check Firestore
+        if (!invData) {
+          try {
+            const snap = await getDoc(doc(db, 'invoices', id));
+            if (snap.exists()) invData = { id: snap.id, ...snap.data() };
+          } catch (fsErr) {
+            console.warn("Firestore invoice fetch error:", fsErr);
+          }
         }
+
         if (invData) {
           setInvoice(invData);
+
+          // Fetch Customer details if present
           if (invData.customer_id) {
             let cust: any = null;
             const qc = upserts.find((u: any) => u.collection === 'customers' && u.item.id === invData.customer_id);
             if (qc) cust = qc.item;
-            else if (isOfflineMode) cust = getSecureStorage(`offline_customers_${user?.uid || 'guest'}`, []).find((c: any) => c.id === invData.customer_id);
-            else { const s = await getDoc(doc(db, 'customers', invData.customer_id)); if (s.exists()) cust = { id: s.id, ...s.data() }; }
+            if (!cust) cust = getSecureStorage(`offline_customers_${user?.uid || 'guest'}`, []).find((c: any) => c.id === invData.customer_id);
+            if (!cust) {
+              try { const s = await getDoc(doc(db, 'customers', invData.customer_id)); if (s.exists()) cust = { id: s.id, ...s.data() }; } catch (_) {}
+            }
             if (cust) setCustomer(cust);
           }
-          if (invData.user_id) {
+
+          // Fetch Seller / Business details
+          const userIdToFetch = invData.user_id || user?.uid;
+          if (userIdToFetch) {
             let ud: any = null;
-            if (isOfflineMode) {
-              ud = getSecureStorage(`offline_users_${user?.uid || 'guest'}`, []).find((u: any) => u.id === invData.user_id);
-              if (!ud && user?.uid === invData.user_id) {
-                const cp = getSecureStorage(`user_profile_${user.uid}`, null);
-                ud = cp ? { id: user.uid, ...(typeof cp === 'string' ? JSON.parse(cp) : cp) } : { id: user.uid, displayName: user.displayName, email: user.email };
-              }
-            } else { const s = await getDoc(doc(db, 'users', invData.user_id)); if (s.exists()) ud = { id: s.id, ...s.data() }; }
+            const cp = getSecureStorage(`user_profile_${userIdToFetch}`, null);
+            if (cp) ud = { id: userIdToFetch, ...(typeof cp === 'string' ? JSON.parse(cp) : cp) };
+            if (!ud) {
+              try { const s = await getDoc(doc(db, 'users', userIdToFetch)); if (s.exists()) ud = { id: s.id, ...s.data() }; } catch (_) {}
+            }
+            if (!ud && user) {
+              ud = { id: user.uid, business_name: user.displayName || 'Business', email: user.email };
+            }
             if (ud) setSellerInfo(ud);
           }
         }
-      } catch (err) { handleFirestoreError(err, OperationType.GET, `invoices/${id}`); }
-      finally { setLoading(false); }
+      } catch (err) { 
+        console.error("Error loading invoice:", err);
+      } finally { 
+        setLoading(false); 
+      }
     }
+    fetchData();
   }, [id, user, isOfflineMode]);
 
   // Trigger Auto-Print when navigating with ?print=true or ?pos=true
