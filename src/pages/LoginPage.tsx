@@ -151,7 +151,8 @@ export default function LoginPage() {
     loginWithPassword,
     registerWithPasswordAndOtp,
     resetPasswordWithOtp,
-    user 
+    user,
+    loading: authLoading
   } = useAuth();
   
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
@@ -286,8 +287,13 @@ export default function LoginPage() {
     }
   };
 
+  // Wait for auth to resolve before deciding to redirect
+  if (authLoading) {
+    return null; // Let the global PageLoader handle this
+  }
+
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return (

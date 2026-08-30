@@ -592,36 +592,44 @@ export default function QuickPOSPage() {
     <div className="flex flex-col -m-4 md:-m-10 min-h-[calc(100dvh-5rem)] md:min-h-0 md:h-full bg-slate-50 text-slate-800 font-sans select-none overflow-hidden">
       
       {/* ── Top POS Header ── */}
-      <header className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between sticky top-0 z-30 shadow-xs shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between sticky top-0 z-30 shadow-xs shrink-0 gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
           <button 
             onClick={() => navigate('/')}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:text-slate-950 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:text-slate-950 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer shrink-0"
             aria-label="Back"
+            title="Exit POS"
           >
             <X size={16} />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-sm shadow-xs">
-              IC
-            </div>
-            <div>
-              <h1 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-1.5">
-                QuickPOS Billing
-                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">Live</span>
-              </h1>
-            </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h1 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight flex items-center gap-1.5 truncate">
+              <span>QuickPOS</span>
+              <span className="hidden xs:inline-block text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">Live</span>
+            </h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right action buttons: fully responsive & touch-friendly */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => navigate('/invoices/new')}
+            className="h-8 px-2 sm:px-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
+            title="Create Standard Invoice"
+          >
+            <Plus size={14} strokeWidth={2.5} />
+            <span className="hidden sm:inline text-[11px] font-bold">New Invoice</span>
+          </button>
+
           {cart.length > 0 && (
             <button
               onClick={() => setCart([])}
-              className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all active:scale-95 cursor-pointer flex items-center gap-1"
+              className="h-8 w-8 sm:w-auto px-0 sm:px-2.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-1 shrink-0"
+              title="Reset Cart"
             >
               <RotateCcw size={13} />
-              <span className="hidden sm:inline">Reset Cart</span>
+              <span className="hidden sm:inline text-[11px]">Reset</span>
             </button>
           )}
 
@@ -629,7 +637,7 @@ export default function QuickPOSPage() {
             type="button"
             onClick={toggleSound}
             className={cn(
-              "h-8 px-2.5 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer",
+              "h-8 w-8 sm:w-auto px-0 sm:px-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0",
               soundEnabled
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                 : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
@@ -637,34 +645,36 @@ export default function QuickPOSPage() {
             title={soundEnabled ? "Mute scan beep" : "Enable scan beep"}
           >
             {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
-            <span className="hidden sm:inline text-[11px]">{soundEnabled ? 'Beep On' : 'Muted'}</span>
+            <span className="hidden md:inline text-[11px]">{soundEnabled ? 'Beep On' : 'Muted'}</span>
           </button>
 
           <button 
             type="button"
             onClick={() => setShowHelpGuide(!showHelpGuide)}
             className={cn(
-              "h-8 px-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 border flex items-center gap-1 cursor-pointer",
+              "h-8 w-8 sm:w-auto px-0 sm:px-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 border flex items-center justify-center gap-1 cursor-pointer shrink-0",
               showHelpGuide 
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
                 : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
             )}
+            title="Guide & Shortcuts"
           >
             <HelpCircle size={15} />
-            <span className="hidden sm:inline">Guide</span>
+            <span className="hidden md:inline text-[11px]">Guide</span>
           </button>
 
           <button 
             onClick={() => setIsScanning(!isScanning)}
             className={cn(
-              "h-8 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 border flex items-center gap-1.5 cursor-pointer",
+              "h-8 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all active:scale-95 border flex items-center justify-center gap-1.5 cursor-pointer shrink-0",
               isScanning 
                 ? "bg-emerald-600 text-white border-emerald-700 shadow-xs" 
                 : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
             )}
+            title="Toggle Camera Barcode Scanner"
           >
             <Camera size={15} />
-            <span>{isScanning ? 'Cam On' : 'Open Cam'}</span>
+            <span className="hidden xs:inline text-[11px]">{isScanning ? 'Cam On' : 'Camera'}</span>
           </button>
         </div>
       </header>
@@ -789,7 +799,7 @@ export default function QuickPOSPage() {
           </AnimatePresence>
 
           {/* Category Filter Pills */}
-          <div className="px-3 py-2 bg-white border-b border-slate-200 overflow-x-auto scrollbar-hide flex items-center gap-1.5 shrink-0">
+          <div className="px-3 py-2 bg-white border-b border-slate-200 overflow-x-auto no-scrollbar flex items-center gap-1.5 shrink-0 scroll-smooth">
             {categories.map((cat) => (
               <button
                 key={cat}

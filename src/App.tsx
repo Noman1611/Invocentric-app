@@ -59,7 +59,7 @@ function PageLoader() {
   );
 }
 
-import { Store, Briefcase, Search, Bell, ChevronDown, CheckCircle, Settings, User as UserIcon, LogOut, X, Loader, Phone, Building, Globe, FileText, Package, Users, TrendingDown, HelpCircle, Sparkles, Play, Check, CheckSquare, Square, ArrowRight, AlertCircle, Info, Landmark, QrCode, Video, Copy, ScanLine } from 'lucide-react';
+import { Store, Briefcase, Search, Bell, ChevronDown, CheckCircle, Settings, User as UserIcon, LogOut, X, Loader, Phone, Building, Globe, FileText, Package, Users, TrendingDown, HelpCircle, Sparkles, Play, Check, CheckSquare, Square, ArrowRight, AlertCircle, Info, Landmark, QrCode, Video, Copy, ScanLine, Plus } from 'lucide-react';
 import { initializeUsbScanner, registerScanListener, registerStatusListener, getScannerSessionId } from './utils/usbScanner';
 import { playScanBeepSound } from './utils/cameraUtils';
 import { QRCodeSVG } from 'qrcode.react';
@@ -841,12 +841,22 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Right Side: Active Controls & Profile */}
-            <div className="flex items-center gap-1.5 sm:gap-3 md:gap-5 shrink-0 relative">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-4 shrink-0 relative">
+              {/* Direct Quick Create Invoice Action Button (Always Accessible) */}
+              <button
+                onClick={() => navigate('/invoices/new')}
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 bg-[#166534] hover:bg-[#14532d] active:scale-95 text-white rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all shadow-xs shrink-0 cursor-pointer"
+                title="Create New Invoice"
+              >
+                <Plus size={13} strokeWidth={3} />
+                <span>Invoice</span>
+              </button>
+
               {/* Active Mode Pill Button */}
               <button
                 onClick={() => setAppMode(appMode === 'shop' ? 'freelancer' : 'shop')}
                 className={cn(
-                  "flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 border shrink-0",
+                  "flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 border shrink-0",
                   appMode === 'shop'
                     ? "bg-green-50/70 border-green-100 text-green-700 hover:bg-green-100/50"
                     : "bg-green-50/70 border-green-100 text-green-700 hover:bg-green-100/50"

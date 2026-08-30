@@ -174,6 +174,47 @@ export default function MobileNav() {
               </div>
 
               <div className="overflow-y-auto px-4 py-4 space-y-2 pb-8 custom-scrollbar">
+                {/* Primary Quick Action: Create New Invoice */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate('/invoices/new');
+                  }}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-800 text-white shadow-md active:scale-98 transition-all cursor-pointer mb-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                      <Plus size={22} strokeWidth={2.5} />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-black tracking-tight">Create New Invoice</p>
+                      <p className="text-[10px] text-emerald-200 font-semibold">Standard GST Billing</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-emerald-200" />
+                </button>
+
+                {/* QuickPOS Shortcut */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate('/pos');
+                  }}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 active:scale-98 transition-all cursor-pointer mb-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xs">
+                      POS
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-bold">QuickPOS Barcode Billing</p>
+                      <p className="text-[10px] text-slate-400">Fast retail touch checkout</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} className="text-slate-400" />
+                </button>
                 {menuItems.map((item) => {
                   const isActive = !(item as any).external && (location.pathname === item.path || location.pathname.startsWith(item.path));
                   return (item as any).external ? (
