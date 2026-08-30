@@ -612,16 +612,6 @@ export default function QuickPOSPage() {
 
         {/* Right action buttons: fully responsive & touch-friendly */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => navigate('/invoices/new')}
-            className="h-8 px-2 sm:px-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 text-xs font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0"
-            title="Create Standard Invoice"
-          >
-            <Plus size={14} strokeWidth={2.5} />
-            <span className="hidden sm:inline text-[11px] font-bold">New Invoice</span>
-          </button>
-
           {cart.length > 0 && (
             <button
               onClick={() => setCart([])}
@@ -1388,7 +1378,7 @@ export default function QuickPOSPage() {
       {/* ── Serial Number / IMEI Selection Modal ── */}
       <AnimatePresence>
         {activeSerialModalItem && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs">
             <motion.div
               initial={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
               animate={{ y: 0, sm: { scale: 1, opacity: 1 } }}
@@ -1540,7 +1530,7 @@ export default function QuickPOSPage() {
       {/* Help Guide Modal */}
       <AnimatePresence>
         {showHelpGuide && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs">
             <motion.div
               initial={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
               animate={{ y: 0, sm: { scale: 1, opacity: 1 } }}

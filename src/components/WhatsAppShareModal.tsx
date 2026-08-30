@@ -31,7 +31,7 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
   const isDesktopDevice = typeof window !== 'undefined' && window.innerWidth > 1024;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn" id="whatsapp-instructions-modal">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn" id="whatsapp-instructions-modal">
       <div className="bg-white dark:bg-zinc-950 rounded-t-3xl sm:rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-neutral-100 dark:border-zinc-800 transform transition-all relative max-h-[94vh] overflow-y-auto">
         <button 
           onClick={onClose}

@@ -57,7 +57,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 print:p-0 print:m-0">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 print:p-0 print:m-0">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

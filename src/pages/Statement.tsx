@@ -1203,7 +1203,7 @@ export default function StatementPage() {
 
       {/* Payment Modal */}
       {showPaymentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm"
             onClick={() => setShowPaymentModal(false)}
@@ -1279,7 +1279,7 @@ export default function StatementPage() {
       )}
       {/* Edit Customer Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm"
             onClick={() => setShowEditModal(false)}

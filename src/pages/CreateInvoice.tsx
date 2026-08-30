@@ -2603,7 +2603,7 @@ export default function CreateInvoicePage() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between card-base p-4 sm:p-8 gap-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-md">
+        <div className="flex flex-col md:flex-row items-center justify-between card-base p-4 sm:p-8 gap-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-md mb-20 md:mb-6">
           <div className="text-center md:text-left space-y-2 w-full md:w-auto">
             <p className="text-sm text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wide">Total Amount</p>
             <div className="flex flex-wrap items-baseline gap-4 justify-center md:justify-start">
@@ -3205,7 +3205,7 @@ export default function CreateInvoicePage() {
       {/* Quick Add Customer Modal */}
       <AnimatePresence>
         {showAddCustomerModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

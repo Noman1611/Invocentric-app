@@ -44,13 +44,13 @@ export function BulkSerialModal({ isOpen, onClose, onImport }: BulkSerialModalPr
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-neutral-900/60 backdrop-blur-xs"
+          className="absolute inset-0"
         />
 
         <motion.div
