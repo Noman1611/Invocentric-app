@@ -53,8 +53,31 @@ export default function InvoiceViewPage() {
   const [whatsAppWebUrlState, setWhatsAppWebUrlState] = useState('');
   const [whatsAppAppUrlState, setWhatsAppAppUrlState] = useState('');
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-  const [pageSize, setPageSize] = useState<'A4' | 'A5'>('A4');
   const invoiceRef = useRef<HTMLDivElement>(null);
+
+  // Responsive Auto-Fit Scaling on Mobile Devices (< 768px) - Hook called unconditionally at top level
+  const [fitToScreen, setFitToScreen] = useState(true);
+  const [scaleFactor, setScaleFactor] = useState(1);
+
+  useEffect(() => {
+    const computeScale = () => {
+      const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+      if (screenWidth < 768) {
+        // Base sheet width for 210mm A4 is ~794px
+        const baseA4WidthPx = 794;
+        const padding = 20; // 10px on each side
+        const availWidth = Math.max(screenWidth - padding, 280);
+        const computed = Math.min(1, availWidth / baseA4WidthPx);
+        setScaleFactor(computed);
+      } else {
+        setScaleFactor(1);
+      }
+    };
+
+    computeScale();
+    window.addEventListener('resize', computeScale);
+    return () => window.removeEventListener('resize', computeScale);
+  }, [pageSize]);
 
   useEffect(() => {
     async function fetchData() {
@@ -998,35 +1021,7 @@ export default function InvoiceViewPage() {
     WebkitOverflowScrolling: 'touch' as any,
   };
 
-  // Responsive Auto-Fit Scaling on Mobile Devices (< 768px)
-  const [fitToScreen, setFitToScreen] = useState(true);
-  const [scaleFactor, setScaleFactor] = useState(1);
-
-  useEffect(() => {
-    const computeScale = () => {
-      if (isPOS) {
-        setScaleFactor(1);
-        return;
-      }
-      const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
-      if (screenWidth < 768) {
-        // Base sheet width for 210mm A4 is ~794px
-        const baseA4WidthPx = 794;
-        const padding = 20; // 10px on each side
-        const availWidth = Math.max(screenWidth - padding, 280);
-        const computed = Math.min(1, availWidth / baseA4WidthPx);
-        setScaleFactor(computed);
-      } else {
-        setScaleFactor(1);
-      }
-    };
-
-    computeScale();
-    window.addEventListener('resize', computeScale);
-    return () => window.removeEventListener('resize', computeScale);
-  }, [isPOS, pageSize]);
-
-  const activeScale = fitToScreen ? scaleFactor : 1;
+  const activeScale = isPOS ? 1 : (fitToScreen ? scaleFactor : 1);
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center pb-24 md:pb-16 pb-safe print:bg-white print:p-0 print:m-0 print:pb-0">
