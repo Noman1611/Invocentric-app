@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useItems, useCustomers } from '../hooks/useData';
+import { useItems, useCustomers, useInvoices } from '../hooks/useData';
 import { dbService } from '../services/dbService';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { cn } from '../lib/utils';
@@ -44,6 +44,37 @@ import { initializeUsbScanner, registerScanListener, registerStatusListener } fr
 import { QRCodeSVG } from 'qrcode.react';
 import { toWords } from 'number-to-words';
 
+const generateSequentialInvoiceNumber = (allInvoices: any[], prefixOverride?: string) => {
+  const prefix = (prefixOverride || 'INV').trim().toUpperCase() || 'INV';
+  const year = new Date().getFullYear();
+
+  const existingNumSet = new Set(
+    (allInvoices || [])
+      .map((inv: any) => (inv.invoice_number || '').trim().toUpperCase())
+      .filter(Boolean)
+  );
+
+  const pattern = new RegExp(`^${prefix}-${year}-(\\d+)$`, 'i');
+  let maxSeq = 0;
+  (allInvoices || []).forEach((inv: any) => {
+    const match = typeof inv.invoice_number === 'string' ? inv.invoice_number.match(pattern) : null;
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n > maxSeq) maxSeq = n;
+    }
+  });
+
+  let candidateSeq = maxSeq > 0 ? maxSeq + 1 : (allInvoices?.length || 0) + 1;
+  let candidateNumber = `${prefix}-${year}-${String(candidateSeq).padStart(4, '0')}`;
+
+  while (existingNumSet.has(candidateNumber.toUpperCase())) {
+    candidateSeq++;
+    candidateNumber = `${prefix}-${year}-${String(candidateSeq).padStart(4, '0')}`;
+  }
+
+  return candidateNumber;
+};
+
 interface CartItem {
   id: string;
   item: any;
@@ -56,6 +87,7 @@ export default function QuickPOSPage() {
   const { user, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { items } = useItems();
   const { customers } = useCustomers();
+  const { invoices: existingInvoices } = useInvoices();
 
   useEffect(() => {
     if (!isPro) {
@@ -516,7 +548,10 @@ export default function QuickPOSPage() {
         console.warn("toWords failed in POS:", wordErr);
       }
 
+      const seqInvoiceNumber = generateSequentialInvoiceNumber(existingInvoices);
+
       const invoiceData = {
+        invoice_number: seqInvoiceNumber,
         customer_id: null,
         customer_name: customerName.trim() || 'Cash Sale',
         customer_phone: customerPhone.trim() || '',
@@ -544,7 +579,7 @@ export default function QuickPOSPage() {
         customer_name: customerName.trim() || 'Cash Sale',
         amount: totals.finalTotal,
         date: new Date().toISOString(),
-        note: `POS Invoice #${res.id.slice(0, 8).toUpperCase()} (${paymentMethod.toUpperCase()})`,
+        note: `POS Invoice #${seqInvoiceNumber} (${paymentMethod.toUpperCase()})`,
         method: paymentMethod,
         invoice_id: res.id,
       }, { offlineMode: false, userId: user.uid });
