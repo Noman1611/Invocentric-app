@@ -17,7 +17,7 @@ export default function UpgradeModal() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
         {/* Backdrop overlay with blur */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -29,11 +29,11 @@ export default function UpgradeModal() {
 
         {/* Modal Content */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          initial={{ opacity: 0, scale: 0.95, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          exit={{ opacity: 0, scale: 0.95, y: 30 }}
           transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          className="relative bg-white w-full max-w-md rounded-[2rem] p-8 border border-slate-100 shadow-2xl overflow-hidden z-10"
+          className="relative bg-white w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-8 border border-slate-100 shadow-2xl overflow-hidden z-10 max-h-[94vh] overflow-y-auto"
         >
           {/* Top Decorative Sparkle Background Accent */}
           <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#166534] via-green-500 to-[#0F3D21]" />

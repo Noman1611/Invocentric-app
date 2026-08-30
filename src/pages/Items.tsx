@@ -588,7 +588,62 @@ export default function ItemsPage() {
 
           <div className="card-base p-6 bg-white border border-slate-100 shadow-sm space-y-4">
             <h3 className="text-base font-bold text-slate-900">Stock Distribution & Status</h3>
-            <div className="overflow-x-auto">
+
+            {/* Mobile Card Feed */}
+            <div className="block md:hidden divide-y divide-slate-100">
+              {items.slice(0, 10).map((item) => {
+                const isLow = (Number(item.stock) || 0) <= (Number(item.low_stock_threshold) || 5);
+                return (
+                  <div key={item.id} className="py-3.5 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block">{item.name}</span>
+                        <span className="text-[10px] text-slate-400 font-semibold block mt-0.5">
+                          {item.category || 'General'} {item.barcode ? `· ${item.barcode}` : ''}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-black text-slate-800 block tabular-nums">{item.stock} {item.unit}</span>
+                        <span className={cn(
+                          "inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase",
+                          isLow ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
+                        )}>
+                          {isLow ? 'Low' : 'In Stock'}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditingItem(item as any);
+                        setFormData({
+                          name: item.name,
+                          description: item.description || '',
+                          price: String(item.price || ''),
+                          unit: item.unit || 'pcs',
+                          category: item.category || '',
+                          stock: String(item.stock || ''),
+                          low_stock_threshold: String(item.low_stock_threshold || 5),
+                          barcode: item.barcode || '',
+                          size: item.size || '',
+                          hsn: item.hsn || '',
+                          mrp: String(item.mrp || ''),
+                          discount: String(item.discount || ''),
+                          gstPercent: String(item.gstPercent || ''),
+                          custom_box: item.custom_box || ''
+                        });
+                        setIsModalOpen(true);
+                      }}
+                      className="text-[10px] font-black text-[#166534] uppercase tracking-wider"
+                    >
+                      Edit →
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-500 uppercase font-bold tracking-wider">
                   <tr>
@@ -1232,8 +1287,8 @@ export default function ItemsPage() {
           ))}
         </div>
       ) : (
-        <div className="card-base overflow-hidden bg-white">
-          <table className="w-full text-left">
+        <div className="card-base overflow-hidden bg-white overflow-x-auto">
+          <table className="w-full text-left min-w-[640px]">
             <thead className="bg-slate-50/50 border-b border-slate-100">
               <tr>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Product Information</th>
