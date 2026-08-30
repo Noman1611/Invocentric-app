@@ -523,6 +523,7 @@ export default function QuickPOSPage() {
         amount: totals.finalTotal,
         currency: 'INR',
         bill_type: 'INVOICE',
+        invoice_template: 'template_14',
         discount: discountAmount,
         sales_return: 0,
         payment_mode: paymentMethod.toUpperCase(),
@@ -580,7 +581,7 @@ export default function QuickPOSPage() {
         qrCodeRef.current.clear();
       }
       
-      navigate(`/invoices/${newInvoiceId}?pos=true`);
+      navigate(`/invoices/${newInvoiceId}?pos=true&print=true`);
       
     } catch (error) {
       console.error("Failed to create quick bill", error);

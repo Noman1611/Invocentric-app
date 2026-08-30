@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { getSecureStorage } from '../utils/cryptoUtils';
@@ -42,6 +42,7 @@ const fc = (n: any, cur = 'INR') => formatCurrency(Number(n) || 0, cur);
 export default function InvoiceViewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isOfflineMode } = useAuth();
   const [invoice, setInvoice] = useState<any>(null);
   const [customer, setCustomer] = useState<any>(null);
@@ -54,7 +55,10 @@ export default function InvoiceViewPage() {
   const [whatsAppAppUrlState, setWhatsAppAppUrlState] = useState('');
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [pageSize, setPageSize] = useState<'A4' | 'A5'>('A4');
+  const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
+
+  const shouldAutoPrint = searchParams.get('print') === 'true' || searchParams.get('pos') === 'true' || searchParams.get('autoPrint') === 'true';
 
   // Responsive Auto-Fit Scaling on Mobile Devices (< 768px) - Hook called unconditionally at top level
   const [fitToScreen, setFitToScreen] = useState(true);
@@ -120,10 +124,20 @@ export default function InvoiceViewPage() {
       } catch (err) { handleFirestoreError(err, OperationType.GET, `invoices/${id}`); }
       finally { setLoading(false); }
     }
-    fetchData();
   }, [id, user, isOfflineMode]);
 
-  const rawTpl: string = sellerInfo?.invoice_template || invoice?.invoice_template || 'template_01';
+  // Trigger Auto-Print when navigating with ?print=true or ?pos=true
+  useEffect(() => {
+    if (!loading && invoice && shouldAutoPrint && !hasAutoPrinted) {
+      setHasAutoPrinted(true);
+      const timer = setTimeout(() => {
+        window.print();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, invoice, shouldAutoPrint, hasAutoPrinted]);
+
+  const rawTpl: string = invoice?.invoice_template || sellerInfo?.invoice_template || 'template_01';
   // Map legacy template IDs to new system
   const legacyMap: Record<string, string> = {
     'tally_prime_gst': 'template_01',
