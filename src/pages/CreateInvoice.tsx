@@ -1,7 +1,7 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Plus, Trash2, Save, Send, Camera, Loader2, Sparkles, X, Barcode, ScanLine, Printer, Mic, Contact, CheckCircle2, AlertCircle, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Tag, Palette, EyeOff, Phone, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, Save, Send, Camera, Loader2, Sparkles, X, Barcode, ScanLine, Printer, Mic, Contact, CheckCircle2, AlertCircle, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Tag, Palette, EyeOff, Phone, HelpCircle, ChevronDown } from 'lucide-react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCustomers, useItems, useInvoices, useSettings } from '../hooks/useData';
 import { useAuth } from '../contexts/AuthContext';
@@ -63,6 +63,7 @@ export default function CreateInvoicePage() {
 
   const [focusedItemIndex, setFocusedItemIndex] = useState<number | null>(null);
   const [focusedRowField, setFocusedRowField] = useState<{ index: number; field: 'brand' | 'category' | 'serialNumber' } | null>(null);
+  const [openMobileDetails, setOpenMobileDetails] = useState<Record<number, boolean>>({});
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -1270,7 +1271,7 @@ export default function CreateInvoicePage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8 px-2 sm:px-4">
+    <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8 px-2 sm:px-4 pb-28 md:pb-12">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors cursor-pointer">
@@ -1611,502 +1612,935 @@ export default function CreateInvoicePage() {
           </div>
           <div className="space-y-4">
             {formData.items.map((item, index) => (
-              <div key={index} className="flex flex-col md:flex-row gap-4 items-start md:items-end bg-white p-4 rounded-xl border border-gray-50 shadow-sm relative">
-                <div className="flex-1 w-full min-w-[240px] space-y-2">
-                  <label className="label block">{appMode === 'freelancer' ? 'Service / Deliverable' : 'Description / Item'}</label>
-                  <div className="flex flex-col gap-2 relative">
-                    <input 
-                      type="text" 
-                      className="input-field animate-none" 
-                      placeholder={appMode === 'freelancer' ? 'e.g. Website Design, Consulting...' : 'Start typing item name...'}
-                      value={item.description}
-                      onFocus={() => setFocusedItemIndex(index)}
-                      onBlur={() => setTimeout(() => setFocusedItemIndex(null), 250)}
-                      onChange={(e) => updateItem(index, 'description', e.target.value)}
-                    />
-                    {item.serialNumber && (
-                      <div className="flex items-center gap-1.5 px-0.5">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
-                          <span className="text-slate-500 font-sans font-medium text-[10px]">SR/No:</span>
-                          <span>{item.serialNumber}</span>
-                        </span>
-                      </div>
-                    )}
-                    {focusedItemIndex === index && (
-                      <div className="absolute left-0 top-full z-[150] mt-1 w-full min-w-[360px] sm:min-w-[420px] max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
-                        {inventoryItems
-                          .filter(invItem => {
+              <React.Fragment key={index}>
+                {/* ── Mobile View: Dedicated Responsive Item Card (< 768px) ── */}
+                <div className="block md:hidden bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 relative">
+                  {/* Card Top: Index Badge + Description Input + Remove Button */}
+                  <div className="flex items-start gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 mt-6">
+                      #{index + 1}
+                    </span>
+                    <div className="flex-1 min-w-0 relative">
+                      <label className="label block text-[11px] mb-1">
+                        {appMode === 'freelancer' ? 'Service / Deliverable' : 'Description / Item'}
+                      </label>
+                      <input
+                        type="text"
+                        className="input-field animate-none text-xs"
+                        placeholder={appMode === 'freelancer' ? 'e.g. Website Design...' : 'Start typing item name...'}
+                        value={item.description}
+                        onFocus={() => setFocusedItemIndex(index)}
+                        onBlur={() => setTimeout(() => setFocusedItemIndex(null), 250)}
+                        onChange={(e) => updateItem(index, 'description', e.target.value)}
+                      />
+                      {item.serialNumber && (
+                        <div className="flex items-center gap-1.5 px-0.5 mt-1">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs break-all">
+                            <span className="text-slate-500 font-sans font-medium text-[9px]">S/N:</span>
+                            <span>{item.serialNumber}</span>
+                          </span>
+                        </div>
+                      )}
+                      {focusedItemIndex === index && (
+                        <div className="absolute left-0 right-0 sm:right-auto top-full z-[150] mt-1 w-full max-w-full sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
+                          {inventoryItems
+                            .filter(invItem => {
+                              const term = (item.description || '').toLowerCase();
+                              if (!term) return true;
+                              return (
+                                invItem.name.toLowerCase().includes(term) ||
+                                (invItem.brand || '').toLowerCase().includes(term) ||
+                                (invItem.category || '').toLowerCase().includes(term)
+                              );
+                            })
+                            .map((invItem) => {
+                              const itemStock = typeof invItem.stock === 'number' ? invItem.stock : 0;
+                              const isOutOfStock = itemStock <= 0;
+                              return (
+                                <button
+                                  key={invItem.id}
+                                  type="button"
+                                  onMouseDown={() => {
+                                    if (appMode !== 'freelancer' && isOutOfStock) {
+                                      playErrorBeepSound(soundEnabled);
+                                      alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nCannot add to invoice.`);
+                                      return;
+                                    }
+
+                                    const newVisibility = { ...formData.columnVisibility };
+                                    if (invItem.size) newVisibility.size = true;
+                                    if (invItem.hsn) newVisibility.hsn = true;
+                                    if (invItem.mrp) newVisibility.mrp = true;
+                                    if (invItem.discount) newVisibility.discount = true;
+                                    if (invItem.gstPercent) newVisibility.gstPercent = true;
+
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      columnVisibility: {
+                                        ...prev.columnVisibility,
+                                        ...newVisibility
+                                      }
+                                    }));
+
+                                    const selectedRate = (formData.price_tier === 'wholesale' && (invItem as any).wholesale_price)
+                                      ? Number((invItem as any).wholesale_price)
+                                      : (invItem.price || 0);
+
+                                    updateItemBatch(index, {
+                                      description: invItem.name,
+                                      price: selectedRate,
+                                      hsn: invItem.hsn || '',
+                                      size: invItem.size || '',
+                                      gstPercent: invItem.gstPercent || 0,
+                                      mrp: invItem.mrp || invItem.price || 0,
+                                      discount: invItem.discount || 0,
+                                      custom_box: invItem.custom_box || invItem.description || '',
+                                      serialNumber: (() => {
+                                        if (Array.isArray((invItem as any).serials) && (invItem as any).serials.length > 0) {
+                                          const otherSelected = new Set(
+                                            formData.items.filter((_, rIdx) => rIdx !== index).map(it => (it.serialNumber || '').trim().toLowerCase())
+                                          );
+                                          const isString = typeof (invItem as any).serials[0] === 'string';
+                                          if (isString) {
+                                            const avail = ((invItem as any).serials as string[]).find(s => s && !otherSelected.has(s.trim().toLowerCase()));
+                                            if (avail) return avail;
+                                          } else {
+                                            const availObj = (invItem as any).serials.find((s: any) => s && (s.status === 'in_stock' || !s.status) && !otherSelected.has(String(s.code || '').toLowerCase()));
+                                            if (availObj) return availObj.code;
+                                          }
+                                        }
+                                        return (invItem as any).serialNumber || '';
+                                      })(),
+                                      brand: invItem.brand || '',
+                                      category: invItem.category || ''
+                                    });
+                                    setFocusedItemIndex(null);
+                                  }}
+                                  className={cn(
+                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium text-xs",
+                                    isOutOfStock && appMode !== 'freelancer' ? "opacity-60 bg-gray-50/50" : ""
+                                  )}
+                                >
+                                  <div className="space-y-0.5">
+                                    <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                                      {invItem.name}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                      {invItem.brand && (
+                                        <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-medium">
+                                          {invItem.brand}
+                                        </span>
+                                      )}
+                                      {invItem.category && (
+                                        <span className="bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 font-medium">
+                                          {invItem.category}
+                                        </span>
+                                      )}
+                                      {invItem.hsn && (
+                                        <span className="text-[9px] text-gray-400">
+                                          HSN: {invItem.hsn}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right space-y-0.5 shrink-0 pl-3">
+                                    <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                      ₹{invItem.price || 0}
+                                    </div>
+                                    {invItem.mrp && invItem.mrp > (invItem.price || 0) && (
+                                      <div className="text-[10px] text-gray-400 line-through">
+                                        MRP: ₹{invItem.mrp}
+                                      </div>
+                                    )}
+                                    {appMode !== 'freelancer' && (
+                                      <div className={cn(
+                                        "text-[10px] font-semibold",
+                                        isOutOfStock ? "text-rose-600" : itemStock < 5 ? "text-amber-600" : "text-emerald-600"
+                                      )}>
+                                        {isOutOfStock ? 'Out of Stock' : `Stock: ${itemStock}`}
+                                      </div>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })
+                          }
+                          {inventoryItems.filter(invItem => {
                             const term = (item.description || '').toLowerCase();
-                            if (!term) return true; // show all when focused with empty description
+                            if (!term) return true;
                             return (
                               invItem.name.toLowerCase().includes(term) ||
                               (invItem.brand || '').toLowerCase().includes(term) ||
                               (invItem.category || '').toLowerCase().includes(term)
                             );
-                          })
-                          .map((invItem) => {
-                            const itemStock = typeof invItem.stock === 'number' ? invItem.stock : 0;
-                            const isOutOfStock = itemStock <= 0;
-                            return (
-                              <button
-                                key={invItem.id}
-                                type="button"
-                                onMouseDown={() => {
-                                  if (appMode !== 'freelancer' && isOutOfStock) {
-                                    playErrorBeepSound(soundEnabled);
-                                    alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nCannot add to invoice.`);
-                                    return;
-                                  }
+                          }).length === 0 && (
+                            <div className="px-4 py-4 text-xs text-gray-400 italic text-center">
+                              {item.description ? `Press tab to type/create new item "${item.description}"` : 'Type to search catalog items'}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="min-w-[44px] min-h-[44px] p-2.5 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all flex items-center justify-center active:scale-90 cursor-pointer shrink-0 mt-6"
+                      title="Remove Item"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
 
-                                  const newVisibility = { ...formData.columnVisibility };
-                                  if (invItem.size) newVisibility.size = true;
-                                  if (invItem.hsn) newVisibility.hsn = true;
-                                  if (invItem.mrp) newVisibility.mrp = true;
-                                  if (invItem.discount) newVisibility.discount = true;
-                                  if (invItem.gstPercent) newVisibility.gstPercent = true;
+                  {/* Card Middle: Quantity Stepper + Net Rate + Live Total */}
+                  <div className="grid grid-cols-12 gap-2 items-center pt-2 border-t border-slate-100 dark:border-slate-800">
+                    {/* Quantity Stepper (5 Cols) */}
+                    <div className="col-span-5">
+                      <label className="label block text-[10px] mb-1">
+                        {appMode === 'freelancer' ? 'Hours / Qty' : 'Quantity'}
+                      </label>
+                      <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = item.quantity || 1;
+                            if (current > 1) {
+                              updateItem(index, 'quantity', current - 1);
+                            }
+                          }}
+                          className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 flex items-center justify-center active:scale-90 cursor-pointer shadow-2xs"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <input
+                          type="number"
+                          className="w-full text-center text-xs font-black bg-transparent border-none focus:outline-none p-0"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const cleaned = val.replace(/^0+(?=\d)/, '');
+                            e.target.value = cleaned;
+                            const newQty = Number(cleaned);
+                            if (appMode !== 'freelancer' && item.description) {
+                              const selected = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
+                              if (selected) {
+                                const itemStock = typeof selected.stock === 'number' ? selected.stock : 0;
+                                if (newQty > itemStock) {
+                                  playErrorBeepSound(soundEnabled);
+                                  alert(`⚠️ INSUFFICIENT STOCK!\n\nItem "${selected.name}" only has ${itemStock} unit(s) available in stock.`);
+                                  return;
+                                }
+                              }
+                            }
+                            updateItem(index, 'quantity', newQty);
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = item.quantity || 0;
+                            const newQty = current + 1;
+                            if (appMode !== 'freelancer' && item.description) {
+                              const selected = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
+                              if (selected) {
+                                const itemStock = typeof selected.stock === 'number' ? selected.stock : 0;
+                                if (newQty > itemStock) {
+                                  playErrorBeepSound(soundEnabled);
+                                  alert(`⚠️ INSUFFICIENT STOCK!\n\nItem "${selected.name}" only has ${itemStock} unit(s) available in stock.`);
+                                  return;
+                                }
+                              }
+                            }
+                            updateItem(index, 'quantity', newQty);
+                          }}
+                          className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 flex items-center justify-center active:scale-90 cursor-pointer shadow-2xs"
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
 
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    columnVisibility: {
-                                      ...prev.columnVisibility,
-                                      ...newVisibility
-                                    }
-                                  }));
+                    {/* Net Rate (4 Cols) */}
+                    <div className="col-span-4">
+                      <label className="label block text-[10px] mb-1">
+                        {appMode === 'freelancer' ? 'Rate / Fee' : 'Net Rate (₹)'}
+                      </label>
+                      <input
+                        type="number"
+                        className="input-field text-xs text-right font-bold"
+                        value={item.price}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const cleaned = val.replace(/^0+(?=\d)/, '');
+                          e.target.value = cleaned;
+                          const newPrice = Number(cleaned);
+                          if ((item.discount || 0) === 0) {
+                            updateItemBatch(index, {
+                              price: newPrice,
+                              mrp: newPrice
+                            });
+                          } else {
+                            updateItem(index, 'price', newPrice);
+                          }
+                        }}
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </div>
 
-                                  const selectedRate = (formData.price_tier === 'wholesale' && (invItem as any).wholesale_price)
-                                    ? Number((invItem as any).wholesale_price)
-                                    : (invItem.price || 0);
+                    {/* Live Line Total (3 Cols) */}
+                    <div className="col-span-3 text-right">
+                      <label className="label block text-[10px] mb-1 text-slate-400">Total</label>
+                      <div className="text-xs font-black text-slate-900 dark:text-white truncate pt-2">
+                        ₹{((item.quantity || 0) * (item.price || 0)).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
 
-                                  updateItemBatch(index, {
-                                    description: invItem.name,
-                                    price: selectedRate,
-                                    hsn: invItem.hsn || '',
-                                    size: invItem.size || '',
-                                    gstPercent: invItem.gstPercent || 0,
-                                    mrp: invItem.mrp || invItem.price || 0,
-                                    discount: invItem.discount || 0,
-                                    custom_box: invItem.custom_box || invItem.description || '',
-                                    serialNumber: (() => {
-                                      if (Array.isArray((invItem as any).serials) && (invItem as any).serials.length > 0) {
-                                        const otherSelected = new Set(
-                                          formData.items.filter((_, rIdx) => rIdx !== index).map(it => (it.serialNumber || '').trim().toLowerCase())
-                                        );
-                                        const isString = typeof (invItem as any).serials[0] === 'string';
-                                        if (isString) {
-                                          const avail = ((invItem as any).serials as string[]).find(s => s && !otherSelected.has(s.trim().toLowerCase()));
-                                          if (avail) return avail;
-                                        } else {
-                                          const availObj = (invItem as any).serials.find((s: any) => s && (s.status === 'in_stock' || !s.status) && !otherSelected.has(String(s.code || '').toLowerCase()));
-                                          if (availObj) return availObj.code;
-                                        }
-                                      }
-                                      return (invItem as any).serialNumber || '';
-                                    })(),
-                                    brand: invItem.brand || '',
-                                    category: invItem.category || ''
-                                  });
-                                  setFocusedItemIndex(null);
-                                }}
-                                className={cn(
-                                  "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium text-xs",
-                                  isOutOfStock && appMode !== 'freelancer' ? "opacity-60 bg-gray-50/50" : ""
-                                )}
-                              >
-                                <div className="space-y-0.5">
-                                  <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-                                    {invItem.name}
-                                  </div>
-                                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                                    {invItem.brand && (
-                                      <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-medium">
-                                        {invItem.brand}
-                                      </span>
-                                    )}
-                                    {invItem.category && (
-                                      <span className="bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 font-medium">
-                                        {invItem.category}
-                                      </span>
-                                    )}
-                                    {invItem.hsn && (
-                                      <span className="text-[9px] text-gray-400">
-                                        HSN: {invItem.hsn}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="text-right space-y-0.5 shrink-0 pl-3">
-                                  <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                                    ₹{invItem.price || 0}
-                                  </div>
-                                  {invItem.mrp && invItem.mrp > (invItem.price || 0) && (
-                                    <div className="text-[10px] text-gray-400 line-through">
-                                      MRP: ₹{invItem.mrp}
-                                    </div>
-                                  )}
-                                  {appMode !== 'freelancer' && (
-                                    <div className={cn(
-                                      "text-[10px] font-semibold",
-                                      isOutOfStock ? "text-rose-600" : itemStock < 5 ? "text-amber-600" : "text-emerald-600"
-                                    )}>
-                                      {isOutOfStock ? 'Out of Stock' : `Stock: ${itemStock}`}
-                                    </div>
-                                  )}
-                                </div>
-                              </button>
-                            );
-                          })
-                        }
-                        {inventoryItems.filter(invItem => {
-                          const term = (item.description || '').toLowerCase();
-                          if (!term) return true;
-                          return (
-                            invItem.name.toLowerCase().includes(term) ||
-                            (invItem.brand || '').toLowerCase().includes(term) ||
-                            (invItem.category || '').toLowerCase().includes(term)
-                          );
-                        }).length === 0 && (
-                          <div className="px-4 py-4 text-xs text-gray-400 italic text-center">
-                            {item.description ? `Press tab to type/create new item "${item.description}"` : 'Type to search catalog items'}
-                          </div>
-                        )}
+                  {/* Active Toggles Grid (Size, HSN, MRP, Disc%, GST%) */}
+                  {(formData.columnVisibility.size || formData.columnVisibility.hsn || formData.columnVisibility.mrp || formData.columnVisibility.discount || formData.columnVisibility.gstPercent) && (
+                    <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      {formData.columnVisibility.size && (
+                        <div>
+                          <label className="label block text-[10px]">Size</label>
+                          <input
+                            type="text"
+                            className="input-field uppercase text-center text-xs"
+                            placeholder="L"
+                            value={item.size || ''}
+                            onChange={(e) => updateItem(index, 'size', e.target.value)}
+                          />
+                        </div>
+                      )}
+                      {formData.columnVisibility.hsn && (
+                        <div>
+                          <label className="label block text-[10px]">HSN</label>
+                          <input
+                            type="text"
+                            className="input-field text-center text-xs"
+                            placeholder="HSN"
+                            value={item.hsn || ''}
+                            onChange={(e) => updateItem(index, 'hsn', e.target.value)}
+                          />
+                        </div>
+                      )}
+                      {formData.columnVisibility.mrp && (
+                        <div>
+                          <label className="label block text-[10px]">MRP</label>
+                          <input
+                            type="number"
+                            className="input-field text-xs"
+                            value={item.mrp || 0}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const cleaned = val.replace(/^0+(?=\d)/, '');
+                              e.target.value = cleaned;
+                              const newMrp = Number(cleaned);
+                              const discount = item.discount || 0;
+                              const newPrice = newMrp * (1 - discount / 100);
+                              updateItemBatch(index, {
+                                mrp: newMrp,
+                                price: Number(newPrice.toFixed(2))
+                              });
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </div>
+                      )}
+                      {formData.columnVisibility.discount && (
+                        <div>
+                          <label className="label block text-[10px]">Disc%</label>
+                          <input
+                            type="number"
+                            className="input-field text-center text-xs"
+                            value={item.discount || 0}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const cleaned = val.replace(/^0+(?=\d)/, '');
+                              e.target.value = cleaned;
+                              const disc = Number(cleaned);
+                              const basePrice = item.mrp || item.price || 0;
+                              const newPrice = basePrice * (1 - disc / 100);
+                              updateItemBatch(index, {
+                                discount: disc,
+                                mrp: basePrice,
+                                price: Number(newPrice.toFixed(2))
+                              });
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </div>
+                      )}
+                      {formData.columnVisibility.gstPercent && (
+                        <div>
+                          <label className="label block text-[10px]">GST%</label>
+                          <input
+                            type="number"
+                            className="input-field text-center text-xs"
+                            value={item.gstPercent || 0}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const cleaned = val.replace(/^0+(?=\d)/, '');
+                              e.target.value = cleaned;
+                              updateItem(index, 'gstPercent', Number(cleaned));
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Collapsible More Details Accordion (Brand, Category, Serial, Notes) */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setOpenMobileDetails(prev => ({ ...prev, [index]: !prev[index] }))}
+                      className="w-full flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 py-1 cursor-pointer"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles size={12} className="text-emerald-600" />
+                        <span>{openMobileDetails[index] ? 'Hide Additional Details' : 'More Details (Brand, S/N, Notes)'}</span>
+                      </span>
+                      <ChevronDown size={14} className={cn("transition-transform duration-200", openMobileDetails[index] && "rotate-180")} />
+                    </button>
+
+                    {openMobileDetails[index] && (
+                      <div className="mt-2 space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+                            placeholder="Brand (e.g. Sony)"
+                            value={item.brand || ''}
+                            onChange={(e) => updateItem(index, 'brand', e.target.value)}
+                          />
+                          <input
+                            type="text"
+                            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+                            placeholder="Category (e.g. Battery)"
+                            value={item.category || ''}
+                            onChange={(e) => updateItem(index, 'category', e.target.value)}
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-semibold"
+                            placeholder="Serial Number (S/N)"
+                            value={item.serialNumber || ''}
+                            onChange={(e) => updateItem(index, 'serialNumber', e.target.value)}
+                          />
+                          <input
+                            type="text"
+                            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-normal"
+                            placeholder="Batch / Expiry / Notes"
+                            value={item.custom_box || ''}
+                            onChange={(e) => updateItem(index, 'custom_box', e.target.value)}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
-                  {/* Optional Item Details / Brand / Category / Serial No / Batch */}
-                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-12 gap-2">
-                    <div className="sm:col-span-3 relative">
+                </div>
+
+                {/* ── Desktop View: High-Density Inline Row (>= 768px) ── */}
+                <div className="hidden md:flex flex-col md:flex-row gap-4 items-start md:items-end bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-50 dark:border-slate-800 shadow-sm relative">
+                  <div className="flex-1 w-full min-w-[240px] space-y-2">
+                    <label className="label block">{appMode === 'freelancer' ? 'Service / Deliverable' : 'Description / Item'}</label>
+                    <div className="flex flex-col gap-2 relative">
                       <input 
-                        type="text"
-                        autoComplete="off"
-                        className="w-full text-[11px] px-3 py-1.5 bg-slate-50/70 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e5eb8] focus:bg-white transition-all placeholder:text-gray-400 font-medium text-gray-800"
-                        placeholder="Brand (e.g. Sony)"
-                        value={item.brand || ''}
-                        onChange={(e) => updateItem(index, 'brand', e.target.value)}
-                        onFocus={() => setFocusedRowField({ index, field: 'brand' })}
-                        onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
+                        type="text" 
+                        className="input-field animate-none" 
+                        placeholder={appMode === 'freelancer' ? 'e.g. Website Design, Consulting...' : 'Start typing item name...'}
+                        value={item.description}
+                        onFocus={() => setFocusedItemIndex(index)}
+                        onBlur={() => setTimeout(() => setFocusedItemIndex(null), 250)}
+                        onChange={(e) => updateItem(index, 'description', e.target.value)}
                       />
-                      {focusedRowField?.index === index && focusedRowField?.field === 'brand' && (
-                        <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white dark:bg-slate-900 shadow-xl py-1 text-[11px]">
-                          {uniqueBrands
-                            .filter(b => b.toLowerCase().includes((item.brand || '').toLowerCase()))
-                            .map((bName, bIdx) => (
-                              <button
-                                key={bIdx}
-                                type="button"
-                                onMouseDown={() => {
-                                  updateItem(index, 'brand', bName);
-                                  setFocusedRowField(null);
-                                }}
-                                className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
-                              >
-                                {bName}
-                              </button>
-                            ))
+                      {item.serialNumber && (
+                        <div className="flex items-center gap-1.5 px-0.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                            <span className="text-slate-500 font-sans font-medium text-[10px]">SR/No:</span>
+                            <span>{item.serialNumber}</span>
+                          </span>
+                        </div>
+                      )}
+                      {focusedItemIndex === index && (
+                        <div className="absolute left-0 right-0 sm:right-auto top-full z-[150] mt-1 w-full max-w-full sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
+                          {inventoryItems
+                            .filter(invItem => {
+                              const term = (item.description || '').toLowerCase();
+                              if (!term) return true; // show all when focused with empty description
+                              return (
+                                invItem.name.toLowerCase().includes(term) ||
+                                (invItem.brand || '').toLowerCase().includes(term) ||
+                                (invItem.category || '').toLowerCase().includes(term)
+                              );
+                            })
+                            .map((invItem) => {
+                              const itemStock = typeof invItem.stock === 'number' ? invItem.stock : 0;
+                              const isOutOfStock = itemStock <= 0;
+                              return (
+                                <button
+                                  key={invItem.id}
+                                  type="button"
+                                  onMouseDown={() => {
+                                    if (appMode !== 'freelancer' && isOutOfStock) {
+                                      playErrorBeepSound(soundEnabled);
+                                      alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nCannot add to invoice.`);
+                                      return;
+                                    }
+
+                                    const newVisibility = { ...formData.columnVisibility };
+                                    if (invItem.size) newVisibility.size = true;
+                                    if (invItem.hsn) newVisibility.hsn = true;
+                                    if (invItem.mrp) newVisibility.mrp = true;
+                                    if (invItem.discount) newVisibility.discount = true;
+                                    if (invItem.gstPercent) newVisibility.gstPercent = true;
+
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      columnVisibility: {
+                                        ...prev.columnVisibility,
+                                        ...newVisibility
+                                      }
+                                    }));
+
+                                    const selectedRate = (formData.price_tier === 'wholesale' && (invItem as any).wholesale_price)
+                                      ? Number((invItem as any).wholesale_price)
+                                      : (invItem.price || 0);
+
+                                    updateItemBatch(index, {
+                                      description: invItem.name,
+                                      price: selectedRate,
+                                      hsn: invItem.hsn || '',
+                                      size: invItem.size || '',
+                                      gstPercent: invItem.gstPercent || 0,
+                                      mrp: invItem.mrp || invItem.price || 0,
+                                      discount: invItem.discount || 0,
+                                      custom_box: invItem.custom_box || invItem.description || '',
+                                      serialNumber: (() => {
+                                        if (Array.isArray((invItem as any).serials) && (invItem as any).serials.length > 0) {
+                                          const otherSelected = new Set(
+                                            formData.items.filter((_, rIdx) => rIdx !== index).map(it => (it.serialNumber || '').trim().toLowerCase())
+                                          );
+                                          const isString = typeof (invItem as any).serials[0] === 'string';
+                                          if (isString) {
+                                            const avail = ((invItem as any).serials as string[]).find(s => s && !otherSelected.has(s.trim().toLowerCase()));
+                                            if (avail) return avail;
+                                          } else {
+                                            const availObj = (invItem as any).serials.find((s: any) => s && (s.status === 'in_stock' || !s.status) && !otherSelected.has(String(s.code || '').toLowerCase()));
+                                            if (availObj) return availObj.code;
+                                          }
+                                        }
+                                        return (invItem as any).serialNumber || '';
+                                      })(),
+                                      brand: invItem.brand || '',
+                                      category: invItem.category || ''
+                                    });
+                                    setFocusedItemIndex(null);
+                                  }}
+                                  className={cn(
+                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium text-xs",
+                                    isOutOfStock && appMode !== 'freelancer' ? "opacity-60 bg-gray-50/50" : ""
+                                  )}
+                                >
+                                  <div className="space-y-0.5">
+                                    <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                                      {invItem.name}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                      {invItem.brand && (
+                                        <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-medium">
+                                          {invItem.brand}
+                                        </span>
+                                      )}
+                                      {invItem.category && (
+                                        <span className="bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 font-medium">
+                                          {invItem.category}
+                                        </span>
+                                      )}
+                                      {invItem.hsn && (
+                                        <span className="text-[9px] text-gray-400">
+                                          HSN: {invItem.hsn}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right space-y-0.5 shrink-0 pl-3">
+                                    <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                      ₹{invItem.price || 0}
+                                    </div>
+                                    {invItem.mrp && invItem.mrp > (invItem.price || 0) && (
+                                      <div className="text-[10px] text-gray-400 line-through">
+                                        MRP: ₹{invItem.mrp}
+                                      </div>
+                                    )}
+                                    {appMode !== 'freelancer' && (
+                                      <div className={cn(
+                                        "text-[10px] font-semibold",
+                                        isOutOfStock ? "text-rose-600" : itemStock < 5 ? "text-amber-600" : "text-emerald-600"
+                                      )}>
+                                        {isOutOfStock ? 'Out of Stock' : `Stock: ${itemStock}`}
+                                      </div>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })
                           }
-                          {uniqueBrands.filter(b => b.toLowerCase().includes((item.brand || '').toLowerCase())).length === 0 && (
-                            <div className="px-3 py-2 text-slate-400 italic text-center text-[10px]">
-                              {item.brand ? `Press tab to type brand` : 'Type brand name'}
+                          {inventoryItems.filter(invItem => {
+                            const term = (item.description || '').toLowerCase();
+                            if (!term) return true;
+                            return (
+                              invItem.name.toLowerCase().includes(term) ||
+                              (invItem.brand || '').toLowerCase().includes(term) ||
+                              (invItem.category || '').toLowerCase().includes(term)
+                            );
+                          }).length === 0 && (
+                            <div className="px-4 py-4 text-xs text-gray-400 italic text-center">
+                              {item.description ? `Press tab to type/create new item "${item.description}"` : 'Type to search catalog items'}
                             </div>
                           )}
                         </div>
                       )}
                     </div>
-                    <div className="sm:col-span-3 relative">
-                      <input 
-                        type="text"
-                        autoComplete="off"
-                        className="w-full text-[11px] px-3 py-1.5 bg-slate-50/70 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e5eb8] focus:bg-white transition-all placeholder:text-gray-400 font-medium text-gray-800"
-                        placeholder="Group Category (e.g. Battery)"
-                        value={item.category || ''}
-                        onChange={(e) => updateItem(index, 'category', e.target.value)}
-                        onFocus={() => setFocusedRowField({ index, field: 'category' })}
-                        onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
-                      />
-                      {focusedRowField?.index === index && focusedRowField?.field === 'category' && (
-                        <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white dark:bg-slate-900 shadow-xl py-1 text-[11px]">
-                          {uniqueCategories
-                            .filter(c => c.toLowerCase().includes((item.category || '').toLowerCase()))
-                            .map((cName, cIdx) => (
-                              <button
-                                key={cIdx}
-                                type="button"
-                                onMouseDown={() => {
-                                  updateItem(index, 'category', cName);
-                                  setFocusedRowField(null);
-                                }}
-                                className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
-                              >
-                                {cName}
-                              </button>
-                            ))
-                          }
-                          {uniqueCategories.filter(c => c.toLowerCase().includes((item.category || '').toLowerCase())).length === 0 && (
-                            <div className="px-3 py-2 text-slate-400 italic text-center text-[10px]">
-                              {item.category ? `Press tab to type category` : 'Type category'}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="sm:col-span-3 relative">
-                      <input 
-                        type="text"
-                        autoComplete="off"
-                        className={cn(
-                          "w-full text-[11px] px-3 py-1.5 rounded-lg focus:outline-none transition-all font-semibold font-mono",
-                          item.serialNumber 
-                            ? "bg-emerald-50/70 border border-emerald-300 text-emerald-800 focus:border-emerald-500 dark:bg-emerald-950/40 dark:border-emerald-700 dark:text-emerald-200" 
-                            : "bg-slate-50/70 border border-gray-200 text-gray-800 focus:border-[#1e5eb8] focus:bg-white placeholder:text-gray-400 font-sans dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-                        )}
-                        placeholder="Serial Number (S/N)"
-                        value={item.serialNumber || ''}
-                        onChange={(e) => updateItem(index, 'serialNumber', e.target.value)}
-                        onFocus={() => setFocusedRowField({ index, field: 'serialNumber' })}
-                        onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
-                      />
-                      {focusedRowField?.index === index && focusedRowField?.field === 'serialNumber' && (() => {
-                        const matchedInvItem = inventoryItems.find(i => i.name.trim().toLowerCase() === (item.description || '').trim().toLowerCase());
-                        let availableSerials: string[] = [];
-                        if (matchedInvItem) {
-                          if (Array.isArray((matchedInvItem as any).serials)) {
-                            availableSerials = (matchedInvItem as any).serials.map((s: any) => {
-                              if (typeof s === 'string') return s;
-                              if (s && typeof s === 'object') {
-                                return (s.status === 'in_stock' || !s.status) ? s.code : null;
-                              }
-                              return null;
-                            }).filter(Boolean);
-                          } else if ((matchedInvItem as any).serialNumber) {
-                            availableSerials = String((matchedInvItem as any).serialNumber).split(',').map((s: string) => s.trim()).filter(Boolean);
-                          }
-                        }
-                        const otherSelected = new Set(
-                          formData.items
-                            .filter((_, rIdx) => rIdx !== index)
-                            .map(it => (it.serialNumber || '').trim().toLowerCase())
-                            .filter(Boolean)
-                        );
-                        const candidateSerials = (availableSerials.length > 0 ? availableSerials : uniqueSerials)
-                          .filter(s => !otherSelected.has(s.toLowerCase()));
-
-                        const filtered = candidateSerials.filter(s => s.toLowerCase().includes((item.serialNumber || '').toLowerCase()));
-
-                        return (
-                          <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl py-1 text-[11px]">
-                            {availableSerials.length > 0 && (
-                              <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border-b border-emerald-100 dark:border-emerald-900/50 flex items-center justify-between">
-                                <span>In-Stock Serials ({availableSerials.length})</span>
-                                <span className="font-normal text-emerald-600">Available</span>
-                              </div>
-                            )}
-                            {filtered.map((sn, sIdx) => (
-                              <button
-                                key={sIdx}
-                                type="button"
-                                onMouseDown={() => {
-                                  updateItem(index, 'serialNumber', sn);
-                                  setFocusedRowField(null);
-                                }}
-                                className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 transition-colors font-mono font-bold flex items-center justify-between"
-                              >
-                                <span>{sn}</span>
-                                <span className="text-[9px] font-sans font-semibold text-emerald-600 bg-emerald-100/60 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded">in_stock</span>
-                              </button>
-                            ))}
-                            {filtered.length === 0 && (
+                    {/* Optional Item Details / Brand / Category / Serial No / Batch */}
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-12 gap-2">
+                      <div className="sm:col-span-3 relative">
+                        <input 
+                          type="text" 
+                          autoComplete="off"
+                          className="w-full text-[11px] px-3 py-1.5 bg-slate-50/70 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e5eb8] focus:bg-white transition-all placeholder:text-gray-400 font-medium text-gray-800"
+                          placeholder="Brand (e.g. Sony)"
+                          value={item.brand || ''}
+                          onChange={(e) => updateItem(index, 'brand', e.target.value)}
+                          onFocus={() => setFocusedRowField({ index, field: 'brand' })}
+                          onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
+                        />
+                        {focusedRowField?.index === index && focusedRowField?.field === 'brand' && (
+                          <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white dark:bg-slate-900 shadow-xl py-1 text-[11px]">
+                            {uniqueBrands
+                              .filter(b => b.toLowerCase().includes((item.brand || '').toLowerCase()))
+                              .map((bName, bIdx) => (
+                                <button
+                                  key={bIdx}
+                                  type="button"
+                                  onMouseDown={() => {
+                                    updateItem(index, 'brand', bName);
+                                    setFocusedRowField(null);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+                                >
+                                  {bName}
+                                </button>
+                              ))
+                            }
+                            {uniqueBrands.filter(b => b.toLowerCase().includes((item.brand || '').toLowerCase())).length === 0 && (
                               <div className="px-3 py-2 text-slate-400 italic text-center text-[10px]">
-                                {item.serialNumber ? `Use "${item.serialNumber}"` : 'No in-stock serials found'}
+                                {item.brand ? `Press tab to type brand` : 'Type brand name'}
                               </div>
                             )}
                           </div>
-                        );
-                      })()}
-                    </div>
-                    <div className="sm:col-span-3">
-                      <input 
-                        type="text"
-                        className="w-full text-[11px] px-3 py-1.5 bg-slate-50/70 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e5eb8] focus:bg-white transition-all placeholder:text-gray-400 font-normal text-gray-700"
-                        placeholder="Details (Batch, Expiry, etc.)"
-                        value={item.custom_box || ''}
-                        onChange={(e) => updateItem(index, 'custom_box', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:flex md:flex-row gap-3 w-full md:w-auto items-end pt-3 md:pt-0 border-t border-slate-100 md:border-none">
-                  {formData.columnVisibility.size && (
-                    <div className="w-full md:w-20">
-                      <label className="label block">Size</label>
-                      <input 
-                        type="text" 
-                        className="input-field uppercase text-center" 
-                        placeholder="L"
-                        value={item.size || ''}
-                        onChange={(e) => updateItem(index, 'size', e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.columnVisibility.hsn && (
-                    <div className="w-full md:w-20">
-                      <label className="label block">HSN</label>
-                      <input 
-                        type="text" 
-                        className="input-field text-center" 
-                        placeholder="HSN"
-                        value={item.hsn || ''}
-                        onChange={(e) => updateItem(index, 'hsn', e.target.value)}
-                      />
-                    </div>
-                  )}
-                  <div className="w-full md:w-20">
-                    <label className="label block">{appMode === 'freelancer' ? 'Hours / Qty' : 'Qty'}</label>
-                    <input 
-                      type="number" 
-                      className="input-field text-center" 
-                      value={item.quantity}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const cleaned = val.replace(/^0+(?=\d)/, '');
-                        e.target.value = cleaned;
-                        const newQty = Number(cleaned);
-
-                        if (appMode !== 'freelancer' && item.description) {
-                          const selected = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
-                          if (selected) {
-                            const itemStock = typeof selected.stock === 'number' ? selected.stock : 0;
-                            if (newQty > itemStock) {
-                              playErrorBeepSound(soundEnabled);
-                              alert(`⚠️ INSUFFICIENT STOCK!\n\nItem "${selected.name}" only has ${itemStock} unit(s) available in stock.`);
-                              return;
+                        )}
+                      </div>
+                      <div className="sm:col-span-3 relative">
+                        <input 
+                          type="text" 
+                          autoComplete="off"
+                          className="w-full text-[11px] px-3 py-1.5 bg-slate-50/70 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e5eb8] focus:bg-white transition-all placeholder:text-gray-400 font-medium text-gray-800"
+                          placeholder="Group Category (e.g. Battery)"
+                          value={item.category || ''}
+                          onChange={(e) => updateItem(index, 'category', e.target.value)}
+                          onFocus={() => setFocusedRowField({ index, field: 'category' })}
+                          onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
+                        />
+                        {focusedRowField?.index === index && focusedRowField?.field === 'category' && (
+                          <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white dark:bg-slate-900 shadow-xl py-1 text-[11px]">
+                            {uniqueCategories
+                              .filter(c => c.toLowerCase().includes((item.category || '').toLowerCase()))
+                              .map((cName, cIdx) => (
+                                <button
+                                  key={cIdx}
+                                  type="button"
+                                  onMouseDown={() => {
+                                    updateItem(index, 'category', cName);
+                                    setFocusedRowField(null);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+                                >
+                                  {cName}
+                                </button>
+                              ))
+                            }
+                            {uniqueCategories.filter(c => c.toLowerCase().includes((item.category || '').toLowerCase())).length === 0 && (
+                              <div className="px-3 py-2 text-slate-400 italic text-center text-[10px]">
+                                {item.category ? `Press tab to type category` : 'Type category'}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="sm:col-span-3 relative">
+                        <input 
+                          type="text" 
+                          autoComplete="off"
+                          className={cn(
+                            "w-full text-[11px] px-3 py-1.5 rounded-lg focus:outline-none transition-all font-semibold font-mono",
+                            item.serialNumber 
+                              ? "bg-emerald-50/70 border border-emerald-300 text-emerald-800 focus:border-emerald-500 dark:bg-emerald-950/40 dark:border-emerald-700 dark:text-emerald-200" 
+                              : "bg-slate-50/70 border border-gray-200 text-gray-800 focus:border-[#1e5eb8] focus:bg-white placeholder:text-gray-400 font-sans dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+                          )}
+                          placeholder="Serial Number (S/N)"
+                          value={item.serialNumber || ''}
+                          onChange={(e) => updateItem(index, 'serialNumber', e.target.value)}
+                          onFocus={() => setFocusedRowField({ index, field: 'serialNumber' })}
+                          onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
+                        />
+                        {focusedRowField?.index === index && focusedRowField?.field === 'serialNumber' && (() => {
+                          const matchedInvItem = inventoryItems.find(i => i.name.trim().toLowerCase() === (item.description || '').trim().toLowerCase());
+                          let availableSerials: string[] = [];
+                          if (matchedInvItem) {
+                            if (Array.isArray((matchedInvItem as any).serials)) {
+                              availableSerials = (matchedInvItem as any).serials.map((s: any) => {
+                                if (typeof s === 'string') return s;
+                                if (s && typeof s === 'object') {
+                                  return (s.status === 'in_stock' || !s.status) ? s.code : null;
+                                }
+                                return null;
+                              }).filter(Boolean);
+                            } else if ((matchedInvItem as any).serialNumber) {
+                              availableSerials = String((matchedInvItem as any).serialNumber).split(',').map((s: string) => s.trim()).filter(Boolean);
                             }
                           }
-                        }
+                          const otherSelected = new Set(
+                            formData.items
+                              .filter((_, rIdx) => rIdx !== index)
+                              .map(it => (it.serialNumber || '').trim().toLowerCase())
+                              .filter(Boolean)
+                          );
+                          const candidateSerials = (availableSerials.length > 0 ? availableSerials : uniqueSerials)
+                            .filter(s => !otherSelected.has(s.toLowerCase()));
 
-                        updateItem(index, 'quantity', newQty);
-                      }}
-                      onFocus={(e) => e.target.select()}
-                    />
+                          const filtered = candidateSerials.filter(s => s.toLowerCase().includes((item.serialNumber || '').toLowerCase()));
+
+                          return (
+                            <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl py-1 text-[11px]">
+                              {availableSerials.length > 0 && (
+                                <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border-b border-emerald-100 dark:border-emerald-900/50 flex items-center justify-between">
+                                  <span>In-Stock Serials ({availableSerials.length})</span>
+                                  <span className="font-normal text-emerald-600">Available</span>
+                                </div>
+                              )}
+                              {filtered.map((sn, sIdx) => (
+                                <button
+                                  key={sIdx}
+                                  type="button"
+                                  onMouseDown={() => {
+                                    updateItem(index, 'serialNumber', sn);
+                                    setFocusedRowField(null);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 transition-colors font-mono font-bold flex items-center justify-between"
+                                >
+                                  <span>{sn}</span>
+                                  <span className="text-[9px] font-sans font-semibold text-emerald-600 bg-emerald-100/60 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded">in_stock</span>
+                                </button>
+                              ))}
+                              {filtered.length === 0 && (
+                                <div className="px-3 py-2 text-slate-400 italic text-center text-[10px]">
+                                  {item.serialNumber ? `Use "${item.serialNumber}"` : 'No in-stock serials found'}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <div className="sm:col-span-3">
+                        <input 
+                          type="text" 
+                          className="w-full text-[11px] px-3 py-1.5 bg-slate-50/70 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e5eb8] focus:bg-white transition-all placeholder:text-gray-400 font-normal text-gray-700"
+                          placeholder="Details (Batch, Expiry, etc.)"
+                          value={item.custom_box || ''}
+                          onChange={(e) => updateItem(index, 'custom_box', e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  {formData.columnVisibility.mrp && (
-                    <div className="w-full md:w-24">
-                      <label className="label block">MRP</label>
+                  <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:flex md:flex-row gap-3 w-full md:w-auto items-end pt-3 md:pt-0 border-t border-slate-100 md:border-none">
+                    {formData.columnVisibility.size && (
+                      <div className="w-full md:w-20">
+                        <label className="label block">Size</label>
+                        <input 
+                          type="text" 
+                          className="input-field uppercase text-center" 
+                          placeholder="L"
+                          value={item.size || ''}
+                          onChange={(e) => updateItem(index, 'size', e.target.value)}
+                        />
+                      </div>
+                    )}
+                    {formData.columnVisibility.hsn && (
+                      <div className="w-full md:w-20">
+                        <label className="label block">HSN</label>
+                        <input 
+                          type="text" 
+                          className="input-field text-center" 
+                          placeholder="HSN"
+                          value={item.hsn || ''}
+                          onChange={(e) => updateItem(index, 'hsn', e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <div className="w-full md:w-20">
+                      <label className="label block">{appMode === 'freelancer' ? 'Hours / Qty' : 'Qty'}</label>
+                      <input 
+                        type="number" 
+                        className="input-field text-center" 
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const cleaned = val.replace(/^0+(?=\d)/, '');
+                          e.target.value = cleaned;
+                          const newQty = Number(cleaned);
+
+                          if (appMode !== 'freelancer' && item.description) {
+                            const selected = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
+                            if (selected) {
+                              const itemStock = typeof selected.stock === 'number' ? selected.stock : 0;
+                              if (newQty > itemStock) {
+                                playErrorBeepSound(soundEnabled);
+                                alert(`⚠️ INSUFFICIENT STOCK!\n\nItem "${selected.name}" only has ${itemStock} unit(s) available in stock.`);
+                                return;
+                              }
+                            }
+                          }
+
+                          updateItem(index, 'quantity', newQty);
+                        }}
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </div>
+                    {formData.columnVisibility.mrp && (
+                      <div className="w-full md:w-24">
+                        <label className="label block">MRP</label>
+                        <input 
+                          type="number" 
+                          className="input-field" 
+                          value={item.mrp || 0}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const cleaned = val.replace(/^0+(?=\d)/, '');
+                            e.target.value = cleaned;
+                            const newMrp = Number(cleaned);
+                            const discount = item.discount || 0;
+                            const newPrice = newMrp * (1 - discount / 100);
+                            updateItemBatch(index, {
+                              mrp: newMrp,
+                              price: Number(newPrice.toFixed(2))
+                            });
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
+                      </div>
+                    )}
+                    {formData.columnVisibility.discount && (
+                      <div className="w-full md:w-20">
+                        <label className="label block">Disc%</label>
+                        <input 
+                          type="number" 
+                          className="input-field text-center" 
+                          value={item.discount || 0}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const cleaned = val.replace(/^0+(?=\d)/, '');
+                            e.target.value = cleaned;
+                            const disc = Number(cleaned);
+                            const basePrice = item.mrp || item.price || 0;
+                            const newPrice = basePrice * (1 - disc / 100);
+                            updateItemBatch(index, {
+                              discount: disc,
+                              mrp: basePrice,
+                              price: Number(newPrice.toFixed(2))
+                            });
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
+                      </div>
+                    )}
+                    {formData.columnVisibility.gstPercent && (
+                      <div className="w-full md:w-20">
+                        <label className="label block">GST%</label>
+                        <input 
+                          type="number" 
+                          className="input-field text-center" 
+                          value={item.gstPercent || 0}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const cleaned = val.replace(/^0+(?=\d)/, '');
+                            e.target.value = cleaned;
+                            updateItem(index, 'gstPercent', Number(cleaned));
+                          }}
+                          onFocus={(e) => e.target.select()}
+                        />
+                      </div>
+                    )}
+                    <div className="w-full md:w-32 text-right relative">
+                      <label className="label block">{appMode === 'freelancer' ? 'Hourly / Fee' : 'Net Rate'}</label>
                       <input 
                         type="number" 
                         className="input-field" 
-                        value={item.mrp || 0}
+                        value={item.price}
                         onChange={(e) => {
                           const val = e.target.value;
                           const cleaned = val.replace(/^0+(?=\d)/, '');
                           e.target.value = cleaned;
-                          const newMrp = Number(cleaned);
-                          const discount = item.discount || 0;
-                          const newPrice = newMrp * (1 - discount / 100);
-                          updateItemBatch(index, {
-                            mrp: newMrp,
-                            price: Number(newPrice.toFixed(2))
-                          });
+                          const newPrice = Number(cleaned);
+                          if ((item.discount || 0) === 0) {
+                            updateItemBatch(index, {
+                              price: newPrice,
+                              mrp: newPrice
+                            });
+                          } else {
+                            updateItem(index, 'price', newPrice);
+                          }
                         }}
                         onFocus={(e) => e.target.select()}
                       />
+                      {/* Party-Wise Last Selling Price auto-memory badge */}
+                      {(() => {
+                        if (!formData.customer_id || !item.description) return null;
+                        const prevInv = (existingInvoices || []).find((inv: any) => {
+                          if (inv.customer_id !== formData.customer_id) return false;
+                          if (inv.id === id) return false;
+                          return Array.isArray(inv.items) && inv.items.some((it: any) => (it.description || '').trim().toLowerCase() === (item.description || '').trim().toLowerCase());
+                        });
+                        if (!prevInv) return null;
+                        const prevItem = prevInv.items.find((it: any) => (it.description || '').trim().toLowerCase() === (item.description || '').trim().toLowerCase());
+                        const lastPrice = Number(prevItem?.price || 0);
+                        if (!lastPrice || lastPrice === item.price) return null;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => updateItem(index, 'price', lastPrice)}
+                            className="mt-1 text-[9px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 block text-right ml-auto transition-colors cursor-pointer"
+                            title="Click to apply last selling price to this customer"
+                          >
+                            Last: ₹{lastPrice} (Apply)
+                          </button>
+                        );
+                      })()}
                     </div>
-                  )}
-                  {formData.columnVisibility.discount && (
-                    <div className="w-full md:w-20">
-                      <label className="label block">Disc%</label>
-                      <input 
-                        type="number" 
-                        className="input-field text-center" 
-                        value={item.discount || 0}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const cleaned = val.replace(/^0+(?=\d)/, '');
-                          e.target.value = cleaned;
-                          const disc = Number(cleaned);
-                          const basePrice = item.mrp || item.price || 0;
-                          const newPrice = basePrice * (1 - disc / 100);
-                          updateItemBatch(index, {
-                            discount: disc,
-                            mrp: basePrice,
-                            price: Number(newPrice.toFixed(2))
-                          });
-                        }}
-                        onFocus={(e) => e.target.select()}
-                      />
-                    </div>
-                  )}
-                  {formData.columnVisibility.gstPercent && (
-                    <div className="w-full md:w-20">
-                      <label className="label block">GST%</label>
-                      <input 
-                        type="number" 
-                        className="input-field text-center" 
-                        value={item.gstPercent || 0}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const cleaned = val.replace(/^0+(?=\d)/, '');
-                          e.target.value = cleaned;
-                          updateItem(index, 'gstPercent', Number(cleaned));
-                        }}
-                        onFocus={(e) => e.target.select()}
-                      />
-                    </div>
-                  )}
-                  <div className="w-full md:w-32 text-right relative">
-                    <label className="label block">{appMode === 'freelancer' ? 'Hourly / Fee' : 'Net Rate'}</label>
-                    <input 
-                      type="number" 
-                      className="input-field" 
-                      value={item.price}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        const cleaned = val.replace(/^0+(?=\d)/, '');
-                        e.target.value = cleaned;
-                        const newPrice = Number(cleaned);
-                        if ((item.discount || 0) === 0) {
-                          updateItemBatch(index, {
-                            price: newPrice,
-                            mrp: newPrice
-                          });
-                        } else {
-                          updateItem(index, 'price', newPrice);
-                        }
-                      }}
-                      onFocus={(e) => e.target.select()}
-                    />
-                    {/* Party-Wise Last Selling Price auto-memory badge */}
-                    {(() => {
-                      if (!formData.customer_id || !item.description) return null;
-                      const prevInv = (existingInvoices || []).find((inv: any) => {
-                        if (inv.customer_id !== formData.customer_id) return false;
-                        if (inv.id === id) return false;
-                        return Array.isArray(inv.items) && inv.items.some((it: any) => (it.description || '').trim().toLowerCase() === (item.description || '').trim().toLowerCase());
-                      });
-                      if (!prevInv) return null;
-                      const prevItem = prevInv.items.find((it: any) => (it.description || '').trim().toLowerCase() === (item.description || '').trim().toLowerCase());
-                      const lastPrice = Number(prevItem?.price || 0);
-                      if (!lastPrice || lastPrice === item.price) return null;
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => updateItem(index, 'price', lastPrice)}
-                          className="mt-1 text-[9px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 block text-right ml-auto transition-colors cursor-pointer"
-                          title="Click to apply last selling price to this customer"
-                        >
-                          Last: ₹{lastPrice} (Apply)
-                        </button>
-                      );
-                    })()}
+                    <button 
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="min-w-[44px] min-h-[44px] p-2.5 text-rose-600 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition-all md:mb-1 shrink-0 flex items-center justify-center cursor-pointer active:scale-90"
+                      title="Remove Item"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
-                  <button 
-                    type="button"
-                    onClick={() => removeItem(index)}
-                    className="p-2.5 text-rose-600 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition-all md:mb-1 shrink-0 flex items-center justify-center min-h-[38px]"
-                    title="Remove Item"
-                  >
-                    <Trash2 size={18} />
-                  </button>
                 </div>
-              </div>
+              </React.Fragment>
             ))}
             <button 
               type="button"
@@ -2258,7 +2692,8 @@ export default function CreateInvoicePage() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 w-full md:flex md:items-center md:gap-3 md:w-auto">
+          {/* Desktop Actions (>= 768px) */}
+          <div className="hidden md:flex md:items-center md:gap-3 md:w-auto">
             <button 
               type="button"
               disabled={loading}
@@ -2314,6 +2749,72 @@ export default function CreateInvoicePage() {
               <Send size={16} />
               <span className="truncate">Send Invoice</span>
             </button>
+          </div>
+
+          {/* Mobile Actions (< 768px): Structured 2-Tier Stack */}
+          <div className="flex md:hidden flex-col gap-2.5 w-full">
+            {/* Primary Actions Row */}
+            <div className="grid grid-cols-2 gap-2 w-full">
+              <button 
+                type="button"
+                disabled={loading}
+                onClick={(e) => handleSubmit(e, 'paid', false, true)}
+                className="bg-neutral-950 dark:bg-zinc-800 hover:bg-neutral-900 dark:hover:bg-zinc-750 text-white border border-neutral-900 dark:border-zinc-700 font-bold py-3 px-3 rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[48px]"
+                id="save-and-print-btn-mobile"
+              >
+                <Printer size={16} />
+                <span className="truncate">Save & Print</span>
+              </button>
+              <button 
+                type="button"
+                disabled={loading}
+                onClick={(e) => handleSubmit(e, 'paid')}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-3 rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[48px]"
+              >
+                <CheckCircle2 size={16} />
+                <span className="truncate">Mark Paid</span>
+              </button>
+            </div>
+
+            {/* Secondary Actions 4-Column Grid */}
+            <div className="grid grid-cols-4 gap-1.5 w-full">
+              <button 
+                type="button"
+                disabled={loading}
+                onClick={(e) => handleSubmit(e, 'draft')}
+                className="btn-secondary flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-bold rounded-xl transition-all min-h-[44px] active:scale-95"
+              >
+                <Save size={14} />
+                <span className="truncate">Draft</span>
+              </button>
+              <button 
+                type="button"
+                disabled={loading}
+                onClick={(e) => handleSubmit(e, 'sent')}
+                className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-bold rounded-xl transition-all min-h-[44px] active:scale-95"
+              >
+                <AlertCircle size={14} />
+                <span className="truncate">Unpaid</span>
+              </button>
+              <button 
+                type="button"
+                disabled={loading}
+                onClick={(e) => handleSubmit(e, 'paid', true)}
+                className="bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 hover:bg-green-100 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-bold rounded-xl transition-all min-h-[44px] active:scale-95"
+              >
+                <Plus size={14} />
+                <span className="truncate">POS</span>
+              </button>
+              <button 
+                type="button"
+                disabled={loading}
+                onClick={(e) => handleSubmit(e, 'sent')}
+                className="btn-primary flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-bold rounded-xl transition-all min-h-[44px] active:scale-95 shadow-xs"
+              >
+                <Send size={14} />
+                <span className="truncate">Send</span>
+              </button>
+            </div>
           </div>
         </div>
       </form>

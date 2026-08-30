@@ -410,8 +410,77 @@ export default function Purchases() {
           </div>
         </div>
 
-        <div className="overflow-x-auto px-0">
-          <table className="w-full min-w-[520px] text-left border-collapse">
+        {/* Mobile View: Native Card Stack */}
+        <div className="block md:hidden divide-y divide-neutral-100">
+          {filteredPurchases.length === 0 ? (
+            <div className="p-10 text-center">
+              <div className="p-5 rounded-full bg-neutral-50 w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                <Package size={28} className="text-neutral-300" />
+              </div>
+              <p className="text-sm font-black text-neutral-900 uppercase tracking-tight">
+                No purchases found
+              </p>
+              <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mt-0.5">
+                Start tracking your supplier purchases
+              </p>
+            </div>
+          ) : (
+            filteredPurchases.map((pur: any) => (
+              <div key={pur.id} className="p-4 space-y-2.5 hover:bg-neutral-50/50 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-black text-neutral-900 uppercase tracking-tight block">
+                      {pur.supplier_name || "Vendor"}
+                    </span>
+                    <span className="text-[11px] font-bold text-neutral-500 block mt-0.5">
+                      {pur.description}
+                    </span>
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mt-1">
+                      {format(new Date(pur.date), "dd MMM yyyy")} • {pur.payment_method}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-black text-neutral-900 tracking-tight block">
+                      {formatCurrency(pur.amount, "INR")}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-block",
+                        (pur.status || "Paid") === "Paid"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700",
+                      )}
+                    >
+                      {pur.status || "Paid"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-neutral-100/60">
+                  {(pur.status || "Paid") === "Unpaid" && (
+                    <button
+                      onClick={() => markAsPaid(pur.id)}
+                      className="px-3 py-1 bg-neutral-900 text-white rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-neutral-800 transition-all"
+                    >
+                      Mark Paid
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(pur.id)}
+                    className="p-1.5 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-lg transition-all"
+                    title="Delete Purchase"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View: Full Data Table */}
+        <div className="hidden md:block overflow-x-auto px-0">
+          <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-neutral-50/50">
                 <th className="px-3 md:px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100">

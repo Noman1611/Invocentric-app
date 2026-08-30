@@ -305,7 +305,91 @@ export default function InvoicesPage() {
       </div>
 
       <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Mobile View: Native Card Stack */}
+        <div className="block md:hidden divide-y divide-slate-100/80">
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse [animation-delay:-0.2s]" />
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse [animation-delay:-0.4s]" />
+              </div>
+            </div>
+          ) : filteredInvoices.length === 0 ? (
+            <div className="p-10 text-center">
+              <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 mx-auto mb-3">
+                <FileText className="text-slate-400" size={28} />
+              </div>
+              <p className="text-slate-900 font-bold text-sm">No transaction records</p>
+              <p className="text-slate-500 text-xs mt-1">Adjust filters or create a new invoice.</p>
+            </div>
+          ) : (
+            filteredInvoices.map((invoice) => (
+              <div key={invoice.id} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <Link to={`/invoices/${invoice.id}`} className="font-bold text-slate-900 hover:text-green-600 transition-colors text-sm flex items-center gap-1.5">
+                      #INV-{invoice.id.slice(0, 4).toUpperCase()}
+                    </Link>
+                    <p className="text-xs font-semibold text-slate-700 mt-0.5">{invoice.customer_name || 'Individual Profile'}</p>
+                    <span className="text-[10px] text-slate-500 mt-1 font-medium flex items-center gap-1">
+                      <Calendar size={10} className="text-slate-400" />
+                      {invoice.created_at ? format(parseDateSafe(invoice.created_at), 'MMM d, yyyy') : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-slate-900 tabular-nums">
+                      {formatCurrency(invoice.amount, invoice.currency)}
+                    </div>
+                    <span className={cn(
+                      "inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                      invoice.status === 'paid' && "bg-green-50 text-green-700",
+                      invoice.status === 'sent' && "bg-amber-50 text-amber-700",
+                      invoice.status === 'draft' && "bg-slate-100 text-slate-600",
+                      invoice.status === 'overdue' && "bg-rose-50 text-rose-700",
+                    )}>
+                      {invoice.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100/60 text-xs">
+                  <span className="text-[11px] text-slate-500">
+                    Due: {invoice.due_date ? format(parseDateSafe(invoice.due_date), 'MMM d') : '-'}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Link 
+                      to={`/invoices/${invoice.id}`}
+                      className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 active:scale-95 rounded-xl transition-all"
+                      title="View Invoice"
+                    >
+                      <FileText size={16} />
+                    </Link>
+                    {invoice.status !== 'paid' && (
+                      <button 
+                        onClick={() => handleMarkAsPaid(invoice.id)}
+                        className="p-2 text-green-600 hover:text-green-700 bg-green-50 active:scale-95 rounded-xl transition-all"
+                        title="Record Payment"
+                      >
+                        <CheckCircle2 size={16} />
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => handleDelete(invoice.id)}
+                      className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 active:scale-95 rounded-xl transition-all"
+                      title="Delete Record"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View: Full Data Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50/50 border-b border-slate-100">
               <tr>

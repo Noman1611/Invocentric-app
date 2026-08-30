@@ -167,52 +167,105 @@ export default function PaymentsPage() {
         </div>
       ) : (
         <div className="glass-card overflow-hidden">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-neutral-50/50 border-b border-neutral-100">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-neutral-400">Date</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-neutral-400">Customer</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-neutral-400">Note</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-neutral-400 text-right">Amount</th>
-                <th className="px-6 py-4 text-right"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-50">
-              {filteredPayments.map((payment) => {
-                const customer = customers.find(c => c.id === payment.customer_id);
-                return (
-                  <tr key={payment.id} className="hover:bg-neutral-50/30 transition-colors group">
-                    <td className="px-6 py-4 text-sm font-bold text-neutral-900 tabular-nums">
-                      {payment.date ? format(parseDateSafe(payment.date), 'dd MMM yyyy') : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-neutral-100 flex items-center justify-center text-[10px] font-black uppercase">
-                          {customer?.name.charAt(0) || '?'}
-                        </div>
-                        <span className="text-sm font-bold text-neutral-900">{customer?.name || 'Unknown Customer'}</span>
+          {/* Mobile View: Native Card Stack */}
+          <div className="block md:hidden divide-y divide-neutral-100">
+            {filteredPayments.map((payment) => {
+              const customer = customers.find(c => c.id === payment.customer_id);
+              return (
+                <div key={payment.id} className="p-4 space-y-2 hover:bg-neutral-50/40 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center text-xs font-black uppercase text-neutral-600 shrink-0">
+                        {customer?.name.charAt(0) || '?'}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-500 truncate max-w-xs lowercase first-letter:uppercase">
-                      {payment.note || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm font-black text-green-600 tabular-nums">
-                      {formatCurrency(payment.amount, 'INR')}
-                    </td>
-                    <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
-                       <button 
-                         onClick={() => handleDelete(payment.id)}
-                         className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition-all"
-                         title="Delete Payment"
-                       >
-                         <Trash2 size={16} />
-                       </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <div>
+                        <span className="text-xs font-bold text-neutral-900 block">{customer?.name || 'Unknown Customer'}</span>
+                        <span className="text-[10px] text-neutral-400 uppercase tracking-wider block mt-0.5">
+                          {payment.date ? format(parseDateSafe(payment.date), 'dd MMM yyyy') : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-black text-green-600 tabular-nums block">
+                        +{formatCurrency(payment.amount, 'INR')}
+                      </span>
+                      {payment.payment_method && (
+                        <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider block mt-0.5">
+                          {payment.payment_method}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {payment.note && (
+                    <p className="text-xs text-neutral-500 bg-neutral-50 p-2 rounded-lg text-[11px]">
+                      {payment.note}
+                    </p>
+                  )}
+
+                  <div className="flex justify-end pt-1">
+                    <button 
+                      onClick={() => handleDelete(payment.id)}
+                      className="p-1.5 text-rose-600 bg-rose-50 active:scale-95 rounded-lg transition-all"
+                      title="Delete Payment"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop View: Full Data Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-neutral-50/50 border-b border-neutral-100">
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-neutral-400">Date</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-neutral-400">Customer</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-neutral-400">Note</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-neutral-400 text-right">Amount</th>
+                  <th className="px-6 py-4 text-right"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-50">
+                {filteredPayments.map((payment) => {
+                  const customer = customers.find(c => c.id === payment.customer_id);
+                  return (
+                    <tr key={payment.id} className="hover:bg-neutral-50/30 transition-colors group">
+                      <td className="px-6 py-4 text-sm font-bold text-neutral-900 tabular-nums">
+                        {payment.date ? format(parseDateSafe(payment.date), 'dd MMM yyyy') : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-neutral-100 flex items-center justify-center text-[10px] font-black uppercase">
+                            {customer?.name.charAt(0) || '?'}
+                          </div>
+                          <span className="text-sm font-bold text-neutral-900">{customer?.name || 'Unknown Customer'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-neutral-500 truncate max-w-xs lowercase first-letter:uppercase">
+                        {payment.note || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm font-black text-green-600 tabular-nums">
+                        {formatCurrency(payment.amount, 'INR')}
+                      </td>
+                      <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
+                         <button 
+                           onClick={() => handleDelete(payment.id)}
+                           className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition-all"
+                           title="Delete Payment"
+                         >
+                           <Trash2 size={16} />
+                         </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

@@ -589,7 +589,7 @@ export default function QuickPOSPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 text-slate-800 font-sans select-none overflow-hidden">
+    <div className="flex flex-col -m-4 md:-m-10 min-h-[calc(100dvh-5rem)] md:min-h-0 md:h-full bg-slate-50 text-slate-800 font-sans select-none overflow-hidden">
       
       {/* ── Top POS Header ── */}
       <header className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center justify-between sticky top-0 z-30 shadow-xs shrink-0">
@@ -816,7 +816,7 @@ export default function QuickPOSPage() {
                 <p className="text-xs text-slate-400 mt-0.5">Try searching with another keyword or category</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-4 gap-2 sm:gap-2.5">
                 {filteredProducts.map((prod) => {
                   const stockNum = typeof prod.stock === 'number' ? prod.stock : 0;
                   const isOutOfStock = appMode !== 'freelancer' && stockNum <= 0;
@@ -830,7 +830,7 @@ export default function QuickPOSPage() {
                       disabled={isOutOfStock}
                       onClick={() => addItemToCart(prod)}
                       className={cn(
-                        "text-left p-3 rounded-2xl border transition-all flex flex-col justify-between relative group cursor-pointer",
+                        "text-left p-2.5 sm:p-3 rounded-2xl border transition-all flex flex-col justify-between relative group cursor-pointer active:scale-[0.98]",
                         isOutOfStock 
                           ? "bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed" 
                           : inCartItem
@@ -863,22 +863,22 @@ export default function QuickPOSPage() {
                         )}
                       </div>
 
-                      <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
                         <div>
-                          <span className="text-xs font-extrabold text-slate-900">
+                          <span className="text-xs font-extrabold text-slate-900 truncate">
                             ₹{Number(prod.price || 0).toLocaleString('en-IN')}
                           </span>
                         </div>
                         {appMode !== 'freelancer' && (
                           <span className={cn(
-                            "text-[9px] font-extrabold px-1.5 py-0.5 rounded",
+                            "text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0",
                             isOutOfStock
                               ? "bg-rose-50 text-rose-600"
                               : stockNum <= 5
                                 ? "bg-amber-50 text-amber-700"
                                 : "bg-slate-100 text-slate-600"
                           )}>
-                            {isOutOfStock ? 'Out of Stock' : `${stockNum} in stock`}
+                            {isOutOfStock ? 'Out' : `${stockNum} left`}
                           </span>
                         )}
                       </div>
@@ -966,30 +966,30 @@ export default function QuickPOSPage() {
                       </button>
 
                       {/* Quantity Controls */}
-                      <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl p-0.5 shadow-2xs">
+                      <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-2xs">
                         <button
                           type="button"
                           onClick={() => updateQuantity(cartItem.id, -1)}
-                          className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all cursor-pointer"
+                          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
                         >
-                          <Minus size={12} />
+                          <Minus size={13} />
                         </button>
-                        <span className="w-6 text-center text-xs font-black text-slate-900">
+                        <span className="w-7 text-center text-xs font-black text-slate-900">
                           {cartItem.quantity}
                         </span>
                         <button
                           type="button"
                           onClick={() => updateQuantity(cartItem.id, 1)}
-                          className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all cursor-pointer"
+                          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
                         >
-                          <Plus size={12} />
+                          <Plus size={13} />
                         </button>
                         <button
                           type="button"
                           onClick={() => removeItem(cartItem.id)}
-                          className="w-6 h-6 rounded-lg text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all ml-1 cursor-pointer"
+                          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all ml-1 active:scale-90 cursor-pointer"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
@@ -1145,73 +1145,229 @@ export default function QuickPOSPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="w-full max-h-[85vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden"
+              className="w-full max-h-[90vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden"
             >
-              {/* Sheet Header */}
-              <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-                <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                  <ShoppingBag size={16} className="text-emerald-600" />
-                  <span>Cart Items ({totals.totalItems})</span>
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowMobileCart(false)}
-                  className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center cursor-pointer"
-                >
-                  <X size={16} />
-                </button>
+              {/* Sheet Drag Handle & Header */}
+              <div className="pt-3 px-4 pb-3 border-b border-slate-200 bg-slate-50">
+                <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-2" />
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                    <ShoppingBag size={16} className="text-emerald-600" />
+                    <span>Cart Items ({totals.totalItems})</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowMobileCart(false)}
+                    className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center cursor-pointer active:scale-90 transition-all"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
               </div>
 
-              {/* Sheet Cart List */}
-              <div className="p-4 overflow-y-auto space-y-2.5 flex-1">
-                {cart.map((cartItem) => (
-                  <div key={cartItem.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-bold text-xs text-slate-900">{cartItem.item.name}</h4>
-                        <span className="text-[11px] text-slate-500">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</span>
-                      </div>
-                      <span className="font-black text-xs text-slate-900">
-                        ₹{(Number(cartItem.item.price || 0) * cartItem.quantity).toLocaleString('en-IN')}
-                      </span>
+              {/* Scrollable Sheet Content */}
+              <div className="p-4 overflow-y-auto space-y-3.5 flex-1">
+                {/* Mobile Customer Details */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                    Customer Details
+                  </span>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Customer Name (Optional)"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-500"
+                      />
                     </div>
-
-                    <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
-                      <button
-                        type="button"
-                        onClick={() => openSerialModal(cartItem)}
-                        className="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 flex items-center gap-1"
-                      >
-                        <Barcode size={12} />
-                        <span>S/N ({cartItem.selectedSerials?.length || 0}/{cartItem.quantity})</span>
-                      </button>
-
-                      <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl p-1">
-                        <button onClick={() => updateQuantity(cartItem.id, -1)} className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center"><Minus size={12} /></button>
-                        <span className="text-xs font-bold w-5 text-center">{cartItem.quantity}</span>
-                        <button onClick={() => updateQuantity(cartItem.id, 1)} className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center"><Plus size={12} /></button>
-                        <button onClick={() => removeItem(cartItem.id)} className="w-6 h-6 text-rose-500 ml-1"><Trash2 size={12} /></button>
-                      </div>
+                    <div className="relative">
+                      <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="tel"
+                        placeholder="Phone Number (Optional)"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-500"
+                      />
                     </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Cart Items List */}
+                <div className="space-y-2.5">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                    Selected Products
+                  </span>
+                  {cart.map((cartItem) => (
+                    <div key={cartItem.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold text-xs text-slate-900">{cartItem.item.name}</h4>
+                          <span className="text-[11px] text-slate-500">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</span>
+                        </div>
+                        <span className="font-black text-xs text-slate-900">
+                          ₹{(Number(cartItem.item.price || 0) * cartItem.quantity).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+                        <button
+                          type="button"
+                          onClick={() => openSerialModal(cartItem)}
+                          className="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 flex items-center gap-1 active:scale-95 cursor-pointer"
+                        >
+                          <Barcode size={12} />
+                          <span>S/N ({cartItem.selectedSerials?.length || 0}/{cartItem.quantity})</span>
+                        </button>
+
+                        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl p-1 shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(cartItem.id, -1)}
+                            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center active:scale-90 cursor-pointer"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span className="text-xs font-black w-6 text-center">{cartItem.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(cartItem.id, 1)}
+                            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center active:scale-90 cursor-pointer"
+                          >
+                            <Plus size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeItem(cartItem.id)}
+                            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg text-rose-500 hover:bg-rose-50 flex items-center justify-center ml-1 active:scale-90 cursor-pointer"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mobile Payment Mode Selector */}
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                    Payment Mode
+                  </label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { id: 'cash', label: 'Cash', icon: Banknote },
+                      { id: 'upi', label: 'UPI QR', icon: QrCode },
+                      { id: 'card', label: 'Card', icon: CreditCard },
+                      { id: 'credit', label: 'Credit', icon: User },
+                    ].map((mode) => {
+                      const Icon = mode.icon;
+                      return (
+                        <button
+                          key={mode.id}
+                          type="button"
+                          onClick={() => setPaymentMethod(mode.id as any)}
+                          className={cn(
+                            "min-h-[44px] py-2 px-1 rounded-xl text-[11px] font-bold border transition-all flex flex-col items-center justify-center gap-1 active:scale-95 cursor-pointer",
+                            paymentMethod === mode.id
+                              ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-black"
+                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                          )}
+                        >
+                          <Icon size={14} />
+                          <span>{mode.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Quick Cash Shortcuts (if cash selected) */}
+                  {paymentMethod === 'cash' && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pt-1">
+                      {[100, 200, 500, 2000].map(cashVal => (
+                        <button
+                          key={cashVal}
+                          type="button"
+                          onClick={() => {
+                            if (totals.finalTotal > 0) {
+                              alert(`Cash Tendered: ₹${cashVal}\nChange to return: ₹${Math.max(0, cashVal - totals.finalTotal).toFixed(2)}`);
+                            }
+                          }}
+                          className="min-h-[36px] px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-[11px] font-bold whitespace-nowrap cursor-pointer transition-all shadow-2xs active:scale-95"
+                        >
+                          ₹{cashVal}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Discount Input */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/80">
+                    <span className="text-xs font-bold text-slate-600">Discount (₹)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={discountAmount || ''}
+                      onChange={(e) => setDiscountAmount(Math.max(0, parseFloat(e.target.value) || 0))}
+                      placeholder="0"
+                      className="w-24 px-2.5 py-1 text-right bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Sheet Checkout Footer */}
-              <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-600">Net Payable</span>
-                  <span className="text-lg font-black text-emerald-700">₹{totals.finalTotal.toFixed(2)}</span>
+              <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-3 pb-safe">
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between text-slate-500 font-medium">
+                    <span>Subtotal</span>
+                    <span>₹{totals.rawSubtotal.toFixed(2)}</span>
+                  </div>
+                  {totals.totalGst > 0 && (
+                    <div className="flex justify-between text-slate-500 font-medium">
+                      <span>GST Tax</span>
+                      <span>+₹{totals.totalGst.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-emerald-600 font-medium">
+                      <span>Discount</span>
+                      <span>-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center text-slate-900 pt-1 border-t border-slate-200">
+                    <span className="font-extrabold text-sm">Net Payable:</span>
+                    <span className="font-black text-base text-emerald-700">
+                      ₹{totals.finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
                 </div>
                 
                 <button
                   type="button"
                   disabled={cart.length === 0 || isCreating}
                   onClick={handleCreateBill}
-                  className="w-full py-3 rounded-2xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+                  className={cn(
+                    "w-full min-h-[48px] py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer",
+                    cart.length === 0
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                  )}
                 >
-                  {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                  <span>Generate Bill &amp; Print</span>
+                  {isCreating ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Processing Bill...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} />
+                      <span>Generate Bill &amp; Print</span>
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -1222,13 +1378,14 @@ export default function QuickPOSPage() {
       {/* ── Serial Number / IMEI Selection Modal ── */}
       <AnimatePresence>
         {activeSerialModalItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl p-5 w-full max-w-md shadow-2xl border border-slate-200 space-y-4"
+              initial={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
+              animate={{ y: 0, sm: { scale: 1, opacity: 1 } }}
+              exit={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 space-y-4 pb-safe sm:pb-5"
             >
+              <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto sm:hidden -mt-1 mb-1" />
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
@@ -1242,7 +1399,7 @@ export default function QuickPOSPage() {
                 <button
                   type="button"
                   onClick={() => setActiveSerialModalItem(null)}
-                  className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center cursor-pointer active:scale-90 transition-all"
                 >
                   <X size={14} />
                 </button>
@@ -1266,7 +1423,7 @@ export default function QuickPOSPage() {
                       }
                     }}
                     placeholder="Scan barcode on box..."
-                    className="flex-1 text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                    className="flex-1 text-xs font-semibold px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
                   />
                   <button
                     type="button"
@@ -1277,7 +1434,7 @@ export default function QuickPOSPage() {
                         setSerialScanInput('');
                       }
                     }}
-                    className="px-3 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs cursor-pointer"
+                    className="min-h-[44px] px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs cursor-pointer active:scale-95"
                   >
                     Add
                   </button>
@@ -1301,13 +1458,13 @@ export default function QuickPOSPage() {
                         <label 
                           key={s} 
                           className={cn(
-                            "flex items-center justify-between p-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all",
+                            "flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all",
                             isSelected 
                               ? "bg-emerald-50 text-emerald-800 border-emerald-300 font-bold" 
                               : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
                           )}
                         >
-                          <span className="font-mono">{s}</span>
+                          <span className="font-mono break-all">{s}</span>
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -1322,7 +1479,7 @@ export default function QuickPOSPage() {
                                 }
                               }
                             }}
-                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                            className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500"
                           />
                         </label>
                       );
@@ -1339,9 +1496,9 @@ export default function QuickPOSPage() {
                   <span className="text-[10px] font-bold text-slate-500 uppercase">Assigned S/N for this Bill</span>
                   <div className="flex flex-wrap gap-1">
                     {tempSerials.map((s, idx) => (
-                      <span key={s} className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1 border border-emerald-200">
+                      <span key={s} className="text-[10px] font-bold px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1 border border-emerald-200 break-all">
                         <span>{s}</span>
-                        <button type="button" onClick={() => setTempSerials(tempSerials.filter((_, i) => i !== idx))} className="hover:text-rose-600"><X size={10} /></button>
+                        <button type="button" onClick={() => setTempSerials(tempSerials.filter((_, i) => i !== idx))} className="hover:text-rose-600 p-0.5"><X size={12} /></button>
                       </span>
                     ))}
                   </div>
@@ -1353,14 +1510,14 @@ export default function QuickPOSPage() {
                 <button
                   type="button"
                   onClick={() => setActiveSerialModalItem(null)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition-all"
+                  className="flex-1 min-h-[44px] py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition-all active:scale-95"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={saveSerialModal}
-                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs"
+                  className="flex-1 min-h-[44px] py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs active:scale-95"
                 >
                   Save Serials ({tempSerials.length})
                 </button>
@@ -1373,16 +1530,17 @@ export default function QuickPOSPage() {
       {/* Help Guide Modal */}
       <AnimatePresence>
         {showHelpGuide && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs">
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl p-5 w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-slate-200"
+              initial={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
+              animate={{ y: 0, sm: { scale: 1, opacity: 1 } }}
+              exit={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 pb-safe sm:pb-5"
             >
+              <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto sm:hidden -mt-1 mb-2" />
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
                 <h3 className="font-extrabold text-sm text-slate-900">POS Scanner &amp; Setup Guide</h3>
-                <button onClick={() => setShowHelpGuide(false)} className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center"><X size={14} /></button>
+                <button onClick={() => setShowHelpGuide(false)} className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center active:scale-90"><X size={14} /></button>
               </div>
               <ScannerHelpGuide />
             </motion.div>

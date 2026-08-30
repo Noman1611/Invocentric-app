@@ -746,14 +746,37 @@ html.dark .btn-ghost:hover {
 }
 
 /* Global Card & Container Border-Radius Override (Forces small, clean, uniform 12px corners across the entire application) */
-[class*="rounded-lg"],
-[class*="rounded-xl"],
-[class*="rounded-2xl"],
-[class*="rounded-3xl"],
-[class*="rounded-4xl"],
-[class*="rounded-["]:not([class*="rounded-full"]):not([class*="rounded-t-full"]):not([class*="rounded-b-full"]):not([class*="rounded-l-full"]):not([class*="rounded-r-full"]):not([class*="rounded-[50%"]):not([class*="rounded-[9999px]"]) {
+:is(
+  [class*="rounded-lg"],
+  [class*="rounded-xl"],
+  [class*="rounded-2xl"],
+  [class*="rounded-3xl"],
+  [class*="rounded-4xl"],
+  [class*="rounded-["]
+):not([class*="rounded-full"]):not([class*="rounded-t-"]):not([class*="rounded-b-"]):not([class*="rounded-l-"]):not([class*="rounded-r-"]):not([class*="rounded-[50%"]):not([class*="rounded-[9999px]"]) {
   border-radius: 12px !important;
 }
+
+/* Safe Area Utility Classes */
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pl-safe { padding-left: env(safe-area-inset-left, 0px); }
+.pr-safe { padding-right: env(safe-area-inset-right, 0px); }
+.p-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.mt-safe { margin-top: env(safe-area-inset-top, 0px); }
+.mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
+.ml-safe { margin-left: env(safe-area-inset-left, 0px); }
+.mr-safe { margin-right: env(safe-area-inset-right, 0px); }
+
+/* Scrollbar Utilities */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 
 
 

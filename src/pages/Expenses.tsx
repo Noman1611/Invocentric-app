@@ -176,7 +176,57 @@ export default function Expenses() {
           </div>
         </div>
 
-        <div className="overflow-x-auto px-0">
+        {/* Mobile View: Native Card Stack */}
+        <div className="block md:hidden divide-y divide-neutral-100">
+          {filteredExpenses.length === 0 ? (
+            <div className="p-10 text-center">
+              <div className="p-5 rounded-full bg-neutral-50 w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                <Receipt size={28} className="text-neutral-300" />
+              </div>
+              <p className="text-sm font-black text-neutral-900 uppercase tracking-tight">No expenses found</p>
+              <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mt-0.5">Start tracking your business spend</p>
+            </div>
+          ) : (
+            filteredExpenses.map((exp) => (
+              <div key={exp.id} className="p-4 space-y-2 hover:bg-neutral-50/50 transition-all">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-2 rounded-xl bg-neutral-100 text-neutral-600 shrink-0 mt-0.5">
+                      <Receipt size={16} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-black text-neutral-900 uppercase tracking-tight block">{exp.description}</span>
+                      <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mt-0.5">
+                        {format(new Date(exp.date), 'dd MMM yyyy')} • {exp.payment_method}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-black text-neutral-900 tracking-tight block">
+                      {formatCurrency(exp.amount, 'INR')}
+                    </span>
+                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-neutral-100 text-[9px] font-bold text-neutral-600 uppercase tracking-wider">
+                      {exp.category}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button 
+                    onClick={() => handleDelete(exp.id)}
+                    className="p-1.5 text-rose-600 bg-rose-50 active:scale-95 rounded-lg transition-all"
+                    title="Delete Expense"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View: Full Data Table */}
+        <div className="hidden md:block overflow-x-auto px-0">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-neutral-50/50">

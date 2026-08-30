@@ -61,7 +61,7 @@ export default function MobileNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden print:hidden h-[68px] pb-safe flex items-center justify-between px-2 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg shadow-slate-900/5">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden print:hidden h-[calc(64px+env(safe-area-inset-bottom,0px))] pb-safe flex items-center justify-between px-2 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg shadow-slate-900/5">
         
         <div className="flex-1 flex justify-around items-center">
           {navItems.map((item) => {
@@ -71,7 +71,7 @@ export default function MobileNav() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-2xl transition-all",
+                  "flex flex-col items-center justify-center gap-0.5 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
                   isActive ? "text-green-600" : "text-neutral-400"
                 )}
                 onClick={() => setMenuOpen(false)}
@@ -112,7 +112,7 @@ export default function MobileNav() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-2xl transition-all",
+                  "flex flex-col items-center justify-center gap-0.5 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
                   isActive ? "text-green-600" : "text-neutral-400"
                 )}
                 onClick={() => setMenuOpen(false)}
@@ -126,7 +126,7 @@ export default function MobileNav() {
           <button
             onClick={() => setMenuOpen(true)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 w-16 h-14 rounded-2xl transition-all",
+              "flex flex-col items-center justify-center gap-0.5 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
               menuOpen ? "text-green-600" : "text-neutral-400"
             )}
           >
@@ -152,7 +152,7 @@ export default function MobileNav() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 rounded-t-3xl z-[70] max-h-[85vh] flex flex-col  bg-white"
+              className="fixed bottom-0 left-0 right-0 rounded-t-3xl z-[70] max-h-[85vh] flex flex-col bg-white pb-safe"
             >
               <div className="flex justify-center pt-3 pb-2 w-full" onClick={() => setMenuOpen(false)}>
                 <div className="w-12 h-1.5 rounded-full bg-neutral-200" />

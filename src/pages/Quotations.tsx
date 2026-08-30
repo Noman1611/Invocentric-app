@@ -125,7 +125,73 @@ export default function Quotations() {
           </div>
         </div>
 
-        <div className="overflow-x-auto px-0">
+        {/* Mobile View: Native Card Stack */}
+        <div className="block md:hidden divide-y divide-neutral-100">
+          {filteredQuotations.length === 0 ? (
+            <div className="p-10 text-center">
+              <div className="p-5 rounded-full bg-neutral-50 w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                <FileEdit size={28} className="text-neutral-300" />
+              </div>
+              <p className="text-sm font-black text-neutral-900 uppercase tracking-tight">No quotations found</p>
+              <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mt-0.5">Create your first estimate</p>
+            </div>
+          ) : (
+            filteredQuotations.map((q) => {
+              const customer = customers.find(c => c.id === q.customer_id);
+              return (
+                <div key={q.id} className="p-4 space-y-3 hover:bg-neutral-50/50 transition-all">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className="text-xs font-black text-neutral-900 uppercase tracking-wider block">#{q.id.slice(0, 8).toUpperCase()}</span>
+                      <span className="text-xs font-bold text-neutral-800 mt-0.5 block">{customer?.name || 'Walk-in Customer'}</span>
+                      <div className="flex items-center gap-2 mt-1 text-[10px] font-bold text-neutral-400 uppercase">
+                        <Calendar size={11} className="text-neutral-400" />
+                        <span>{getQuotationDate(q)}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-black text-neutral-900 tracking-tight block">
+                        {formatCurrency(q.amount, q.currency || 'INR')}
+                      </span>
+                      <span className="inline-block mt-1 text-[9px] font-bold px-2 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase tracking-wider">
+                        {q.bill_type || 'ESTIMATE'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-neutral-100 gap-2">
+                    <button 
+                      onClick={() => navigate(`/invoices/create?from_quotation=${q.id}`)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 active:scale-95 text-emerald-700 font-bold rounded-xl text-xs uppercase tracking-wide transition-all"
+                    >
+                      <span>Convert to Invoice</span>
+                      <ArrowRight size={13} />
+                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button 
+                        onClick={() => navigate(`/invoices/${q.id}`)}
+                        className="p-2 text-neutral-600 bg-neutral-100 active:scale-95 rounded-xl transition-all"
+                        title="View Quotation"
+                      >
+                        <ExternalLink size={15} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(q.id)}
+                        className="p-2 text-rose-600 bg-rose-50 active:scale-95 rounded-xl transition-all"
+                        title="Delete Quotation"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Full Data Table */}
+        <div className="hidden md:block overflow-x-auto px-0">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-neutral-50/50">

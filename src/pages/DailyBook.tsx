@@ -777,27 +777,13 @@ export default function DailyBook() {
             <p className="text-xs text-slate-400 mt-1">Select a different date using the calendar above to view historical entries.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-300">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-100 text-slate-800 font-black uppercase text-[10px] tracking-wider border-b border-slate-300">
-                  <th className="p-3 border-r border-slate-300 text-center w-12">#</th>
-                  <th className="p-3 border-r border-slate-300 w-32">Type</th>
-                  <th className="p-3 border-r border-slate-300">Party / Customer / Vendor</th>
-                  <th className="p-3 border-r border-slate-300">Particulars / Details</th>
-                  <th className="p-3 border-r border-slate-300 text-center w-28">Payment Method</th>
-                  <th className="p-3 border-r border-slate-300 text-right w-32 bg-green-50/50 text-green-900">Cash In (+ ₹)</th>
-                  <th className="p-3 text-right w-32 bg-rose-50/50 text-rose-900">Cash Out (- ₹)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {allCombinedTransactions.map((tx, idx) => (
-                  <tr
-                    key={tx.id}
-                    className={`hover:bg-slate-50 transition-colors font-medium ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"}`}
-                  >
-                    <td className="p-3 border-r border-slate-200 text-center font-bold text-slate-500">{idx + 1}</td>
-                    <td className="p-3 border-r border-slate-200">
+          <>
+            {/* Mobile Card Feed */}
+            <div className="block md:hidden divide-y divide-slate-100 space-y-2">
+              {allCombinedTransactions.map((tx, idx) => (
+                <div key={tx.id} className="p-3.5 bg-slate-50/70 rounded-xl space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                         tx.type === 'PAYMENT_IN' ? 'bg-green-100 text-green-800' :
                         tx.type === 'SALE' ? 'bg-blue-100 text-blue-800' :
@@ -806,42 +792,94 @@ export default function DailyBook() {
                       }`}>
                         {tx.typeLabel}
                       </span>
+                      <span className="font-bold text-slate-900 text-xs truncate max-w-[150px]">{tx.party}</span>
+                    </div>
+                    <span className={`text-xs font-black tabular-nums ${tx.cashIn > 0 ? "text-green-700" : "text-rose-700"}`}>
+                      {tx.cashIn > 0 ? `+${formatCurrency(tx.cashIn, "INR")}` : `-${formatCurrency(tx.cashOut, "INR")}`}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200/50">
+                    <span className="truncate max-w-[180px]">{tx.details}</span>
+                    <span className="font-medium text-slate-400">{tx.method}</span>
+                  </div>
+                </div>
+              ))}
+
+              <div className="p-3.5 bg-slate-900 text-white rounded-xl flex items-center justify-between mt-3 font-black text-xs">
+                <span>NET CASH FLOW:</span>
+                <span className={netBalance >= 0 ? "text-green-400" : "text-rose-400"}>
+                  {formatCurrency(netBalance, "INR")}
+                </span>
+              </div>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-300">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-800 font-black uppercase text-[10px] tracking-wider border-b border-slate-300">
+                    <th className="p-3 border-r border-slate-300 text-center w-12">#</th>
+                    <th className="p-3 border-r border-slate-300 w-32">Type</th>
+                    <th className="p-3 border-r border-slate-300">Party / Customer / Vendor</th>
+                    <th className="p-3 border-r border-slate-300">Particulars / Details</th>
+                    <th className="p-3 border-r border-slate-300 text-center w-28">Payment Method</th>
+                    <th className="p-3 border-r border-slate-300 text-right w-32 bg-green-50/50 text-green-900">Cash In (+ ₹)</th>
+                    <th className="p-3 text-right w-32 bg-rose-50/50 text-rose-900">Cash Out (- ₹)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {allCombinedTransactions.map((tx, idx) => (
+                    <tr
+                      key={tx.id}
+                      className={`hover:bg-slate-50 transition-colors font-medium ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"}`}
+                    >
+                      <td className="p-3 border-r border-slate-200 text-center font-bold text-slate-500">{idx + 1}</td>
+                      <td className="p-3 border-r border-slate-200">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                          tx.type === 'PAYMENT_IN' ? 'bg-green-100 text-green-800' :
+                          tx.type === 'SALE' ? 'bg-blue-100 text-blue-800' :
+                          tx.type === 'PURCHASE' ? 'bg-orange-100 text-orange-800' :
+                          'bg-rose-100 text-rose-800'
+                        }`}>
+                          {tx.typeLabel}
+                        </span>
+                      </td>
+                      <td className="p-3 border-r border-slate-200 font-bold text-slate-900">{tx.party}</td>
+                      <td className="p-3 border-r border-slate-200 text-slate-600">{tx.details}</td>
+                      <td className="p-3 border-r border-slate-200 text-center text-slate-600 font-medium">{tx.method}</td>
+                      <td className="p-3 border-r border-slate-200 text-right font-black text-green-700 bg-green-50/20">
+                        {tx.cashIn > 0 ? `+${formatCurrency(tx.cashIn, "INR")}` : "-"}
+                      </td>
+                      <td className="p-3 text-right font-black text-rose-700 bg-rose-50/20">
+                        {tx.cashOut > 0 ? `-${formatCurrency(tx.cashOut, "INR")}` : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-slate-100 font-black text-slate-900 border-t-2 border-slate-400 uppercase text-xs">
+                    <td colSpan={5} className="p-3 border-r border-slate-300 text-right">
+                      TOTAL CASH IN & OUT:
                     </td>
-                    <td className="p-3 border-r border-slate-200 font-bold text-slate-900">{tx.party}</td>
-                    <td className="p-3 border-r border-slate-200 text-slate-600">{tx.details}</td>
-                    <td className="p-3 border-r border-slate-200 text-center text-slate-600 font-medium">{tx.method}</td>
-                    <td className="p-3 border-r border-slate-200 text-right font-black text-green-700 bg-green-50/20">
-                      {tx.cashIn > 0 ? `+${formatCurrency(tx.cashIn, "INR")}` : "-"}
+                    <td className="p-3 border-r border-slate-300 text-right text-green-800 font-black text-sm bg-green-100/50">
+                      +{formatCurrency(payStats.total, "INR")}
                     </td>
-                    <td className="p-3 text-right font-black text-rose-700 bg-rose-50/20">
-                      {tx.cashOut > 0 ? `-${formatCurrency(tx.cashOut, "INR")}` : "-"}
+                    <td className="p-3 text-right text-rose-800 font-black text-sm bg-rose-100/50">
+                      -{formatCurrency(purStats.total + expStats.total, "INR")}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-slate-100 font-black text-slate-900 border-t-2 border-slate-400 uppercase text-xs">
-                  <td colSpan={5} className="p-3 border-r border-slate-300 text-right">
-                    TOTAL CASH IN & OUT:
-                  </td>
-                  <td className="p-3 border-r border-slate-300 text-right text-green-800 font-black text-sm bg-green-100/50">
-                    +{formatCurrency(payStats.total, "INR")}
-                  </td>
-                  <td className="p-3 text-right text-rose-800 font-black text-sm bg-rose-100/50">
-                    -{formatCurrency(purStats.total + expStats.total, "INR")}
-                  </td>
-                </tr>
-                <tr className="bg-slate-800 text-white font-black uppercase text-xs">
-                  <td colSpan={5} className="p-3 text-right tracking-wider">
-                    NET CASH FLOW BALANCE:
-                  </td>
-                  <td colSpan={2} className={`p-3 text-right text-base font-black ${netBalance >= 0 ? "text-green-300" : "text-rose-300"}`}>
-                    {formatCurrency(netBalance, "INR")}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                  <tr className="bg-slate-800 text-white font-black uppercase text-xs">
+                    <td colSpan={5} className="p-3 text-right tracking-wider">
+                      NET CASH FLOW BALANCE:
+                    </td>
+                    <td colSpan={2} className={`p-3 text-right text-base font-black ${netBalance >= 0 ? "text-green-300" : "text-rose-300"}`}>
+                      {formatCurrency(netBalance, "INR")}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

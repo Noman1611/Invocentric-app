@@ -9,7 +9,8 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "eslint . && tsc --noEmit"
+    "lint": "eslint . && tsc --noEmit",
+    "test": "node tests/run-all-tests.mjs"
   },
   "dependencies": {
     "@eslint/js": "^10.0.1",
@@ -64,6 +65,7 @@
     "@types/dompurify": "^3.0.5",
     "@types/express": "^4.17.25",
     "@types/node": "^22.14.0",
-    "@types/nodemailer": "^8.0.1"
+    "@types/nodemailer": "^8.0.1",
+    "playwright": "^1.62.1"
   }
 }

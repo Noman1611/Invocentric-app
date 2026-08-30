@@ -315,7 +315,7 @@ export default function DataBackupRecoveryModal() {
 
             <button
               type="button"
-              onClick={handleRestoreAutoBackup}
+              onClick={handleAutoRestore}
               disabled={isRestoring}
               className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
             >

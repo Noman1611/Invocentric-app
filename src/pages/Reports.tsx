@@ -919,79 +919,114 @@ export default function Reports() {
                   </p>
                 </div>
               ) : (
-                <table className="w-full text-left border-collapse min-w-[700px]">
-                  <thead>
-                    <tr className="border-b border-neutral-100 text-[9px] font-black text-neutral-400 uppercase tracking-widest pb-4">
-                      <th className="pb-4 font-black">Invoice Number</th>
-                      <th className="pb-4 font-black">Customer Name</th>
-                      <th className="pb-4 font-black">Issue Date</th>
-                      <th className="pb-4 font-black">Status</th>
-                      <th className="pb-4 font-black text-right">
-                        Billing Amount
-                      </th>
-                      <th className="pb-4 font-black text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100/60">
+                <>
+                  {/* Mobile Card Feed */}
+                  <div className="block md:hidden divide-y divide-neutral-100">
                     {searchedInvoices.map((inv) => (
-                      <tr
-                        key={inv.id}
-                        className="text-xs hover:bg-neutral-50/50 transition-colors"
-                      >
-                        <td className="py-4 font-mono font-bold text-neutral-900">
-                          {inv.invoice_number ||
-                            inv.invoiceNumber ||
-                            inv.id?.slice(0, 8).toUpperCase()}
-                        </td>
-                        <td className="py-4 font-bold text-neutral-800">
-                          {inv.customer_name ||
-                            inv.customerName ||
-                            "Walk-in Client"}
-                        </td>
-                        <td className="py-4 font-semibold text-neutral-500">
-                          {inv.created_at || inv.createdAt
-                            ? format(
-                                parseDateSafe(inv.created_at || inv.createdAt),
-                                "dd MMM yyyy",
-                              )
-                            : "N/A"}
-                        </td>
-                        <td className="py-4">
-                          <span
-                            className={cn(
-                              "px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg",
-                              inv.status === "paid" &&
-                                "bg-green-50 text-green-700 border border-green-100",
-                              inv.status === "sent" &&
-                                "bg-amber-50 text-amber-700 border border-amber-100",
-                              inv.status === "draft" &&
-                                "bg-slate-100 text-slate-600 border border-slate-200",
-                              inv.status === "overdue" &&
-                                "bg-rose-50 text-rose-700 border border-rose-100",
-                            )}
-                          >
-                            {inv.status || "draft"}
-                          </span>
-                        </td>
-                        <td className="py-4 text-right font-black text-neutral-900 tabular-nums">
-                          {formatCurrency(
-                            inv.amount || 0,
-                            inv.currency || "INR",
-                          )}
-                        </td>
-                        <td className="py-4 text-right">
+                      <div key={inv.id} className="py-3.5 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-mono font-bold text-xs text-neutral-900 block">
+                              {inv.invoice_number || inv.invoiceNumber || inv.id?.slice(0, 8).toUpperCase()}
+                            </span>
+                            <span className="text-xs font-bold text-neutral-800 block mt-0.5">
+                              {inv.customer_name || inv.customerName || "Walk-in Client"}
+                            </span>
+                            <span className="text-[10px] text-neutral-400 font-semibold block mt-0.5">
+                              {inv.created_at || inv.createdAt
+                                ? format(parseDateSafe(inv.created_at || inv.createdAt), "dd MMM yyyy")
+                                : "N/A"}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-black text-neutral-900 tabular-nums block">
+                              {formatCurrency(inv.amount || 0, inv.currency || "INR")}
+                            </span>
+                            <span
+                              className={cn(
+                                "inline-block mt-1 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded",
+                                inv.status === "paid" && "bg-green-50 text-green-700",
+                                inv.status === "sent" && "bg-amber-50 text-amber-700",
+                                inv.status === "draft" && "bg-slate-100 text-slate-600",
+                                inv.status === "overdue" && "bg-rose-50 text-rose-700",
+                              )}
+                            >
+                              {inv.status || "draft"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end pt-1">
                           <Link
                             to={`/invoices/${inv.id}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-950 hover:text-white rounded-lg transition-all font-black text-[10px] uppercase tracking-wider text-neutral-700"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-neutral-100 active:scale-95 rounded-lg font-black text-[10px] uppercase text-neutral-700"
                           >
-                            <Eye size={12} />
+                            <Eye size={11} />
                             View
                           </Link>
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-neutral-100 text-[9px] font-black text-neutral-400 uppercase tracking-widest pb-4">
+                          <th className="pb-4 font-black">Invoice Number</th>
+                          <th className="pb-4 font-black">Customer Name</th>
+                          <th className="pb-4 font-black">Issue Date</th>
+                          <th className="pb-4 font-black">Status</th>
+                          <th className="pb-4 font-black text-right">Billing Amount</th>
+                          <th className="pb-4 font-black text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100/60">
+                        {searchedInvoices.map((inv) => (
+                          <tr key={inv.id} className="text-xs hover:bg-neutral-50/50 transition-colors">
+                            <td className="py-4 font-mono font-bold text-neutral-900">
+                              {inv.invoice_number || inv.invoiceNumber || inv.id?.slice(0, 8).toUpperCase()}
+                            </td>
+                            <td className="py-4 font-bold text-neutral-800">
+                              {inv.customer_name || inv.customerName || "Walk-in Client"}
+                            </td>
+                            <td className="py-4 font-semibold text-neutral-500">
+                              {inv.created_at || inv.createdAt
+                                ? format(parseDateSafe(inv.created_at || inv.createdAt), "dd MMM yyyy")
+                                : "N/A"}
+                            </td>
+                            <td className="py-4">
+                              <span
+                                className={cn(
+                                  "px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg",
+                                  inv.status === "paid" && "bg-green-50 text-green-700 border border-green-100",
+                                  inv.status === "sent" && "bg-amber-50 text-amber-700 border border-amber-100",
+                                  inv.status === "draft" && "bg-slate-100 text-slate-600 border border-slate-200",
+                                  inv.status === "overdue" && "bg-rose-50 text-rose-700 border border-rose-100",
+                                )}
+                              >
+                                {inv.status || "draft"}
+                              </span>
+                            </td>
+                            <td className="py-4 text-right font-black text-neutral-900 tabular-nums">
+                              {formatCurrency(inv.amount || 0, inv.currency || "INR")}
+                            </td>
+                            <td className="py-4 text-right">
+                              <Link
+                                to={`/invoices/${inv.id}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-950 hover:text-white rounded-lg transition-all font-black text-[10px] uppercase tracking-wider text-neutral-700"
+                              >
+                                <Eye size={12} />
+                                View
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </motion.div>
           ) : (
@@ -1016,51 +1051,71 @@ export default function Reports() {
                   </p>
                 </div>
               ) : (
-                <table className="w-full text-left border-collapse min-w-[700px]">
-                  <thead>
-                    <tr className="border-b border-neutral-100 text-[9px] font-black text-neutral-400 uppercase tracking-widest pb-4">
-                      <th className="pb-4 font-black">Customer Name</th>
-                      <th className="pb-4 font-black">Payment Date</th>
-                      <th className="pb-4 font-black">Method</th>
-                      <th className="pb-4 font-black">Reference ID</th>
-                      <th className="pb-4 font-black text-right">
-                        Amount Received
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100/60">
+                <>
+                  {/* Mobile Collections Feed */}
+                  <div className="block md:hidden divide-y divide-neutral-100">
                     {searchedPayments.map((pay) => (
-                      <tr
-                        key={pay.id}
-                        className="text-xs hover:bg-neutral-50/50 transition-colors"
-                      >
-                        <td className="py-4 font-bold text-neutral-800">
-                          {pay.customer_name || pay.customerName || "N/A"}
-                        </td>
-                        <td className="py-4 font-semibold text-neutral-500">
-                          {pay.date
-                            ? format(parseDateSafe(pay.date), "dd MMM yyyy")
-                            : "N/A"}
-                        </td>
-                        <td className="py-4">
-                          <span className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-neutral-100 text-neutral-600 rounded-md border border-neutral-200">
-                            {pay.method || "Cash"}
-                          </span>
-                        </td>
-                        <td className="py-4 font-mono text-neutral-400">
-                          {pay.reference || pay.transaction_id || "-"}
-                        </td>
-                        <td className="py-4 text-right font-black text-green-700 tabular-nums">
-                          +
-                          {formatCurrency(
-                            pay.amount || 0,
-                            pay.currency || "INR",
-                          )}
-                        </td>
-                      </tr>
+                      <div key={pay.id} className="py-3.5 space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="text-xs font-bold text-neutral-900 block">
+                              {pay.customer_name || pay.customerName || "N/A"}
+                            </span>
+                            <span className="text-[10px] text-neutral-400 font-semibold block mt-0.5">
+                              {pay.date ? format(parseDateSafe(pay.date), "dd MMM yyyy") : "N/A"}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-black text-green-600 tabular-nums block">
+                              +{formatCurrency(pay.amount || 0, "INR")}
+                            </span>
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-neutral-100 text-neutral-600 rounded inline-block mt-0.5">
+                              {pay.method || "Cash"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Desktop Collections Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-neutral-100 text-[9px] font-black text-neutral-400 uppercase tracking-widest pb-4">
+                          <th className="pb-4 font-black">Customer Name</th>
+                          <th className="pb-4 font-black">Payment Date</th>
+                          <th className="pb-4 font-black">Method</th>
+                          <th className="pb-4 font-black">Reference ID</th>
+                          <th className="pb-4 font-black text-right">Amount Received</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100/60">
+                        {searchedPayments.map((pay) => (
+                          <tr key={pay.id} className="text-xs hover:bg-neutral-50/50 transition-colors">
+                            <td className="py-4 font-bold text-neutral-800">
+                              {pay.customer_name || pay.customerName || "N/A"}
+                            </td>
+                            <td className="py-4 font-semibold text-neutral-500">
+                              {pay.date ? format(parseDateSafe(pay.date), "dd MMM yyyy") : "N/A"}
+                            </td>
+                            <td className="py-4">
+                              <span className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-neutral-100 text-neutral-600 rounded-md border border-neutral-200">
+                                {pay.method || "Cash"}
+                              </span>
+                            </td>
+                            <td className="py-4 font-mono text-neutral-400">
+                              {pay.reference || pay.transaction_id || "-"}
+                            </td>
+                            <td className="py-4 text-right font-black text-green-600 tabular-nums">
+                              +{formatCurrency(pay.amount || 0, "INR")}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </motion.div>
           )}

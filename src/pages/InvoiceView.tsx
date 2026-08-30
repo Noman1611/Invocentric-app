@@ -999,13 +999,13 @@ export default function InvoiceViewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center pb-16 print:bg-white print:p-0 print:m-0 print:pb-0">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center pb-32 md:pb-16 pb-safe print:bg-white print:p-0 print:m-0 print:pb-0">
       <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200 shadow-xs print:hidden">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <button onClick={() => navigate('/invoices')} className="p-2 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors shrink-0"><ArrowLeft size={19} /></button>
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <button onClick={() => navigate('/invoices')} className="p-2 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center active:scale-90"><ArrowLeft size={19} /></button>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <h1 className="text-sm md:text-base font-black text-slate-900 truncate leading-none">#{invNo}</h1>
                 <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider', isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800')}>{invoice.status || 'Draft'}</span>
               </div>
@@ -1015,69 +1015,109 @@ export default function InvoiceViewPage() {
 
           {/* Page Size Switcher (A4 vs A5 Horizontal) */}
           {!isPOS && (
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/80">
+            <div className="flex items-center bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-200/80 shrink-0">
               <button
                 onClick={() => setPageSize('A4')}
                 className={cn(
-                  "px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all",
+                  "px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-extrabold rounded-lg transition-all min-h-[32px]",
                   pageSize === 'A4' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
                 )}
               >
-                A4 (Vertical)
+                A4
               </button>
               <button
                 onClick={() => setPageSize('A5')}
                 className={cn(
-                  "px-2.5 py-1 text-[11px] font-extrabold rounded-lg transition-all",
+                  "px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-extrabold rounded-lg transition-all min-h-[32px]",
                   pageSize === 'A5' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
                 )}
               >
-                A5 (Horizontal)
+                A5
               </button>
             </div>
           )}
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => navigate(`/invoices/edit/${invoice.id}`)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"><Edit3 size={15} /><span className="hidden sm:inline">Edit</span></button>
-            <button onClick={handleShare} className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"><WhatsAppIcon size={15} /><span className="hidden sm:inline">Share</span></button>
-            <button onClick={handleDownloadPdf} disabled={downloading} className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50">{downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}<span className="hidden sm:inline">PDF</span></button>
+          {/* Desktop Toolbar Actions (>= 768px) */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            <button onClick={() => navigate(`/invoices/edit/${invoice.id}`)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"><Edit3 size={15} /><span>Edit</span></button>
+            <button onClick={handleShare} className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"><WhatsAppIcon size={15} /><span>Share</span></button>
+            <button onClick={handleDownloadPdf} disabled={downloading} className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50">{downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}<span>PDF</span></button>
             <button onClick={handlePrint} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"><Printer size={15} /><span>Print</span></button>
           </div>
         </div>
       </header>
 
-      <main className="w-full max-w-5xl px-0 sm:px-4 mt-4 sm:mt-6 flex flex-col items-center print:max-w-none print:w-full print:p-0 print:m-0 print:flex print:items-center print:justify-center overflow-x-auto">
-        <div ref={invoiceRef} id="invoice-document-canvas" className="flex flex-col items-center gap-6 print:gap-0 print:w-full print:flex print:items-center print:justify-center">
-          {isPOS ? (
-            <div className="w-full flex justify-center print:w-full print:flex print:justify-center print:items-center">
-              {renderPOS(tpl === 'template_14')}
-            </div>
-          ) : (
-            itemPages.map((pItems, idx) => (
-              <div
-                key={idx}
-                className="invoice-page-sheet shadow-md print:shadow-none"
-                style={{
-                  width: sheetWidth,
-                  height: isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : 'auto'),
-                  minHeight: sheetMinHeight,
-                  maxHeight: isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : undefined),
-                  padding: sheetPadding,
-                  background: '#fff',
-                  boxSizing: 'border-box',
-                  margin: '0 auto 16px auto',
-                  pageBreakAfter: idx < totalPages - 1 ? 'always' : 'auto',
-                  breakAfter: idx < totalPages - 1 ? 'page' : 'auto',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                {renderPage(pItems, idx, idx === totalPages - 1)}
+      <main className="w-full max-w-5xl px-0 sm:px-4 mt-4 sm:mt-6 flex flex-col items-center print:max-w-none print:w-full print:p-0 print:m-0 print:flex print:items-center print:justify-center overflow-x-auto custom-scrollbar">
+        <div className="w-full max-w-full overflow-x-auto custom-scrollbar flex flex-col items-center py-2">
+          <div ref={invoiceRef} id="invoice-document-canvas" className="flex flex-col items-center gap-6 print:gap-0 print:w-full print:flex print:items-center print:justify-center shrink-0">
+            {isPOS ? (
+              <div className="w-full flex justify-center print:w-full print:flex print:justify-center print:items-center">
+                {renderPOS(tpl === 'template_14')}
               </div>
-            ))
-          )}
+            ) : (
+              itemPages.map((pItems, idx) => (
+                <div
+                  key={idx}
+                  className="invoice-page-sheet shadow-md print:shadow-none"
+                  style={{
+                    width: sheetWidth,
+                    height: isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : 'auto'),
+                    minHeight: sheetMinHeight,
+                    maxHeight: isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : undefined),
+                    padding: sheetPadding,
+                    background: '#fff',
+                    boxSizing: 'border-box',
+                    margin: '0 auto 16px auto',
+                    pageBreakAfter: idx < totalPages - 1 ? 'always' : 'auto',
+                    breakAfter: idx < totalPages - 1 ? 'page' : 'auto',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {renderPage(pItems, idx, idx === totalPages - 1)}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </main>
+
+      {/* Mobile Sticky Bottom Action Bar (< 768px) */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-2.5 flex items-center justify-around gap-2 md:hidden pb-safe shadow-lg print:hidden">
+        <button
+          type="button"
+          onClick={() => navigate(`/invoices/edit/${invoice.id}`)}
+          className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-[10px] active:scale-95 transition-all cursor-pointer"
+        >
+          <Edit3 size={16} />
+          <span>Edit</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleShare}
+          className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-[10px] active:scale-95 transition-all cursor-pointer"
+        >
+          <WhatsAppIcon size={16} />
+          <span>Share</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleDownloadPdf}
+          disabled={downloading}
+          className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl text-[10px] active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+        >
+          {downloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+          <span>PDF</span>
+        </button>
+        <button
+          type="button"
+          onClick={handlePrint}
+          className="flex-1 min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-[10px] active:scale-95 transition-all shadow-xs cursor-pointer"
+        >
+          <Printer size={16} />
+          <span>Print</span>
+        </button>
+      </div>
 
       <WhatsAppShareModal isOpen={showWhatsAppModal} onClose={() => setShowWhatsAppModal(false)} whatsAppUrl={whatsAppUrlState} whatsAppWebUrl={whatsAppWebUrlState} whatsAppAppUrl={whatsAppAppUrlState} documentTitle="Invoice" copiedToClipboard={copiedToClipboard} fileName={`Invoice_${invoice?.invoice_number || 'bill'}.pdf`} />
       <style>{`
