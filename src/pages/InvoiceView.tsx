@@ -99,7 +99,16 @@ export default function InvoiceViewPage() {
     fetchData();
   }, [id, user, isOfflineMode]);
 
-  const tpl: string = sellerInfo?.invoice_template || invoice?.invoice_template || 'template_01';
+  const rawTpl: string = sellerInfo?.invoice_template || invoice?.invoice_template || 'template_01';
+  // Map legacy template IDs to new system
+  const legacyMap: Record<string, string> = {
+    'tally_prime_gst': 'template_01',
+    'gst_classic': 'template_03',
+    'modern_blue': 'template_07',
+    'compact': 'template_09',
+    'minimal': 'template_08',
+  };
+  const tpl: string = legacyMap[rawTpl] || rawTpl;
   const isPOS = tpl === 'template_14' || tpl === 'template_15';
   const isA5 = !isPOS && pageSize === 'A5';
   const items = invoice?.items || [];
@@ -511,9 +520,9 @@ export default function InvoiceViewPage() {
             </table>
 
             {showSec.amount_in_words && (
-              <div style={{border:b,borderTop:'none',padding:'3px 6px',fontSize: isA5 ? 8.5 : 10.5,display:'flex',alignItems:'center',gap:6}}>
-                <span style={{fontWeight:'bold'}}>Total in words:</span>
-                <span style={{fontWeight:'bold',textTransform:'uppercase'}}>{safeToWords(grandTotal,cur)}</span>
+              <div style={{border:b,borderTop:'none',padding:'3px 6px',fontSize: isA5 ? 8.5 : 10.5}}>
+                <span style={{fontWeight:'bold'}}>Total in words: </span>
+                <span style={{fontWeight:'bold',textTransform:'uppercase', wordBreak:'break-word'}}>{safeToWords(grandTotal,cur)}</span>
               </div>
             )}
             
@@ -576,15 +585,17 @@ export default function InvoiceViewPage() {
                 )}
 
                 {(showSec.signature || showSec.declaration) && (
-                  <div style={{padding:'2px 5px',textAlign:'center',fontSize: isA5 ? 8 : 10}}>
+                  <div style={{padding:'2px 5px',textAlign:'center',fontSize: isA5 ? 8 : 10, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
                     {showSec.declaration && (
                       <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b,margin:'-2px -5px 2px'}}>Certified that particulars are true and correct.</div>
                     )}
                     {showSec.signature && (
                       <>
-                        <div style={{fontWeight:'bold',margin:'1px 0'}}>{co.forCo}</div>
-                        <div style={{height: isA5 ? 24 : 38}}>{co.sign&&<img src={co.sign} alt="sig" style={{maxHeight: isA5 ? 24 : 38}}/>}</div>
-                        <div style={{fontWeight:'bold',marginTop:1,borderTop:'1px solid #ccc',paddingTop:1}}>Authorised Signatory</div>
+                        <div style={{fontWeight:'bold',margin:'1px 0',textAlign:'center'}}>{co.forCo}</div>
+                        <div style={{height: isA5 ? 24 : 38, display:'flex', alignItems:'center', justifyContent:'center'}}>
+                          {co.sign && <img src={co.sign} alt="sig" style={{maxHeight: isA5 ? 24 : 38, maxWidth:'100%', objectFit:'contain'}}/>}
+                        </div>
+                        <div style={{fontWeight:'bold',marginTop:1,borderTop:'1px solid #ccc',paddingTop:1,textAlign:'center'}}>Authorised Signatory</div>
                       </>
                     )}
                   </div>
@@ -963,7 +974,14 @@ export default function InvoiceViewPage() {
     const startIndex = getStartIndex(pageIdx);
     switch (tpl) {
       case 'template_03':
+      case 'template_04':
+      case 'template_09':
+      case 'template_10':
         return renderTemplate03Page(pageItems, pageIdx, isLastPage, startIndex);
+      case 'template_01':
+      case 'template_02':
+      case 'template_07':
+      case 'template_08':
       default:
         return renderTemplate01Page(pageItems, pageIdx, isLastPage, startIndex);
     }
@@ -972,6 +990,13 @@ export default function InvoiceViewPage() {
   const sheetWidth = isPOS ? 'auto' : '210mm';
   const sheetMinHeight = isPOS ? 'auto' : (isA5 ? '148mm' : '297mm');
   const sheetPadding = isPOS ? '0' : (isA5 ? '4mm 6mm' : '8mm');
+  // Mobile scaling wrapper style
+  const mobileScaleStyle = isPOS ? {} : {
+    transformOrigin: 'top center',
+    overflowX: 'auto' as const,
+    maxWidth: '100%',
+    WebkitOverflowScrolling: 'touch' as any,
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center pb-16 print:bg-white print:p-0 print:m-0 print:pb-0">
@@ -1021,7 +1046,7 @@ export default function InvoiceViewPage() {
         </div>
       </header>
 
-      <main className="w-full max-w-5xl px-2 sm:px-4 mt-4 sm:mt-6 flex flex-col items-center print:max-w-none print:w-full print:p-0 print:m-0 print:flex print:items-center print:justify-center">
+      <main className="w-full max-w-5xl px-0 sm:px-4 mt-4 sm:mt-6 flex flex-col items-center print:max-w-none print:w-full print:p-0 print:m-0 print:flex print:items-center print:justify-center overflow-x-auto">
         <div ref={invoiceRef} id="invoice-document-canvas" className="flex flex-col items-center gap-6 print:gap-0 print:w-full print:flex print:items-center print:justify-center">
           {isPOS ? (
             <div className="w-full flex justify-center print:w-full print:flex print:justify-center print:items-center">
@@ -1062,7 +1087,7 @@ export default function InvoiceViewPage() {
             margin: 0mm;
           }
           *, *:before, *:after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          html, body { width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; background: #ffffff !important; }
+          html, body { width: 100% !important; height: auto !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; background: #ffffff !important; }
           body * { visibility: hidden !important; }
           header, nav, aside, footer, button { display: none !important; }
           #invoice-document-canvas, #invoice-document-canvas * { visibility: visible !important; }
@@ -1088,6 +1113,10 @@ export default function InvoiceViewPage() {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             overflow: hidden !important;
+          }
+          .invoice-page-sheet:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}</style>

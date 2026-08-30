@@ -24,6 +24,7 @@ import {
   signOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult
@@ -78,19 +79,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('email_otp_session');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          // ignore
-        }
-      }
-    }
-    return null;
-  });
+  const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [planStatus, setPlanStatus] = useState<string>('active'); // Default to active for now
   const [planTier, setPlanTier] = useState<'free' | 'pro'>('free'); // Default to free plan
@@ -623,36 +612,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Auto-bridge & sync storage between Google UID and user_email UID
-        if (firebaseUser.email) {
-          const emailUid = 'user_' + firebaseUser.email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, '_');
-          const primaryUid = firebaseUser.uid;
-          
-          // Mirror offline storage keys if they exist in one but not the other
-          const storageKeys = [
-            'user_profile',
-            'offline_invoices',
-            'offline_customers',
-            'offline_items',
-            'offline_expenses',
-            'offline_purchases',
-            'offline_daily_book',
-            'offline_quotations',
-            'offline_payments'
-          ];
-
-          for (const prefix of storageKeys) {
-            const valEmail = getSecureStorage(`${prefix}_${emailUid}`, null);
-            const valPrimary = getSecureStorage(`${prefix}_${primaryUid}`, null);
-
-            if (valEmail && !valPrimary) {
-              setSecureStorage(`${prefix}_${primaryUid}`, valEmail, true);
-            } else if (valPrimary && !valEmail) {
-              setSecureStorage(`${prefix}_${emailUid}`, valPrimary, true);
-            }
-          }
-        }
-
         setUser(firebaseUser);
 
         // Dispatch background Telegram alert for successful user login
@@ -808,110 +767,93 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginWithEmailOtp = (email: string) => {
-    const cleanEmail = email.trim().toLowerCase();
-    const verifiedUser: any = {
-      uid: 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'),
-      email: cleanEmail,
-      displayName: cleanEmail.split('@')[0],
-      photoURL: null,
-      emailVerified: true
-    };
-    localStorage.setItem('email_otp_session', JSON.stringify(verifiedUser));
-    setUser(verifiedUser);
-    handleUserChange(verifiedUser as any);
+    // Deprecated: Use loginWithPassword with Firebase Auth instead
+    console.warn('loginWithEmailOtp is deprecated. Use loginWithPassword instead.');
   };
 
   const loginWithPassword = async (email: string, password: string) => {
-    const cleanEmail = email.trim().toLowerCase();
-    const rawPass = password.trim();
-    
-    // First try backend API
     try {
-      const res = await fetch('/api/auth/login-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, password: rawPass })
-      });
-      const data = await res.json();
-      if (res.ok && data.user) {
-        const userObj = {
-          ...data.user,
-          uid: data.user?.uid || ('user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')),
-          email: cleanEmail
-        };
-        localStorage.setItem('email_otp_session', JSON.stringify(userObj));
-        // Cache local password proof for uninterrupted offline/serverless continuity
-        localStorage.setItem(`pwd_hash_${cleanEmail}`, btoa(rawPass));
-        setUser(userObj);
-        handleUserChange(userObj as any);
-        return;
+      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+    } catch (error: any) {
+      const code = error?.code || '';
+      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        throw new Error('Invalid email or password. Please check your credentials or use "Forgot password?" to reset.');
+      } else if (code === 'auth/too-many-requests') {
+        throw new Error('Too many failed attempts. Please try again later or reset your password.');
+      } else if (code === 'auth/user-disabled') {
+        throw new Error('This account has been disabled. Please contact support.');
       }
-    } catch (apiErr) {
-      console.warn("Backend login-password fetch error, trying verified local credential check:", apiErr);
+      throw error;
     }
-
-    // Fallback: Check verified local credential if set
-    const savedLocalPwd = localStorage.getItem(`pwd_hash_${cleanEmail}`);
-    if (savedLocalPwd && savedLocalPwd === btoa(rawPass)) {
-      const userObj = {
-        uid: 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'),
-        email: cleanEmail,
-        displayName: cleanEmail.split('@')[0],
-        emailVerified: true
-      };
-      localStorage.setItem('email_otp_session', JSON.stringify(userObj));
-      setUser(userObj);
-      handleUserChange(userObj as any);
-      return;
-    }
-    
-    throw new Error("Invalid email or password. If you forgot your password, click 'Forgot password?' to reset.");
   };
 
   const registerWithPasswordAndOtp = async (email: string, password: string, otp: string) => {
+    // First verify OTP with backend
     const cleanEmail = email.trim().toLowerCase();
     const rawPass = password.trim();
-    const res = await fetch('/api/auth/register-password', {
+    
+    // Verify OTP
+    const verifyRes = await fetch('/api/auth/verify-email-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: cleanEmail, password: rawPass, otp: otp.trim() })
+      body: JSON.stringify({ email: cleanEmail, otp: otp.trim() })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Registration failed');
-    
-    const userObj = {
-      ...data.user,
-      uid: data.user?.uid || ('user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')),
-      email: cleanEmail
-    };
+    const verifyData = await verifyRes.json();
+    if (!verifyRes.ok) throw new Error(verifyData.error || 'Invalid verification code.');
 
-    localStorage.setItem(`pwd_hash_${cleanEmail}`, btoa(rawPass));
-    localStorage.setItem('email_otp_session', JSON.stringify(userObj));
-    setUser(userObj);
-    handleUserChange(userObj as any);
+    // Create Firebase Auth account
+    try {
+      await createUserWithEmailAndPassword(auth, cleanEmail, rawPass);
+      // Firebase's onAuthStateChanged will fire and handleUserChange will set up the profile
+    } catch (error: any) {
+      const code = error?.code || '';
+      if (code === 'auth/email-already-in-use') {
+        // Account exists - try to sign in with provided password
+        try {
+          await signInWithEmailAndPassword(auth, cleanEmail, rawPass);
+        } catch (signInErr: any) {
+          throw new Error('This email is already registered. Please sign in or use "Forgot password?" if you forgot your password.');
+        }
+      } else if (code === 'auth/weak-password') {
+        throw new Error('Password must be at least 6 characters long.');
+      } else {
+        throw error;
+      }
+    }
   };
 
   const resetPasswordWithOtp = async (email: string, password: string, otp: string) => {
     const cleanEmail = email.trim().toLowerCase();
-    const rawPass = password.trim();
-    const res = await fetch('/api/auth/reset-password', {
+    
+    // Verify OTP first
+    const verifyRes = await fetch('/api/auth/verify-email-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: cleanEmail, password: rawPass, otp: otp.trim() })
+      body: JSON.stringify({ email: cleanEmail, otp: otp.trim() })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Password reset failed');
-    
-    const userObj = {
-      ...data.user,
-      uid: data.user?.uid || ('user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')),
-      email: cleanEmail
-    };
+    const verifyData = await verifyRes.json();
+    if (!verifyRes.ok) throw new Error(verifyData.error || 'Invalid verification code.');
 
-    localStorage.setItem(`pwd_hash_${cleanEmail}`, btoa(rawPass));
-    localStorage.setItem('email_otp_session', JSON.stringify(userObj));
-    setUser(userObj);
-    handleUserChange(userObj as any);
+    // Send Firebase password reset email
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+      // Also try to update password if user is signed in
+    } catch (error: any) {
+      const code = error?.code || '';
+      if (code === 'auth/user-not-found') {
+        // User doesn't exist in Firebase yet - create account
+        try {
+          await createUserWithEmailAndPassword(auth, cleanEmail, password.trim());
+        } catch (createErr: any) {
+          if (createErr?.code === 'auth/email-already-in-use') {
+            throw new Error('Account exists. Please sign in with Google or check your password.');
+          }
+          throw createErr;
+        }
+      } else {
+        throw error;
+      }
+    }
   };
 
   const logout = async () => {

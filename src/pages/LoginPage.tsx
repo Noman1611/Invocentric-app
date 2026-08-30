@@ -261,6 +261,8 @@ export default function LoginPage() {
     }
   };
 
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
   const handleCompleteReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpCode || otpCode.length !== 6) {
@@ -275,6 +277,8 @@ export default function LoginPage() {
     setError(null);
     try {
       await resetPasswordWithOtp(emailInput, passwordInput, otpCode);
+      // If user already exists in Firebase, a password reset link was sent to their email
+      setResetEmailSent(true);
     } catch (err: any) {
       setError(err.message || "Password reset failed. Please check the verification code.");
     } finally {
@@ -608,6 +612,23 @@ export default function LoginPage() {
                     {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Send Reset Code</span>}
                   </button>
                 </form>
+              ) : resetEmailSent ? (
+                <div className="text-center space-y-4">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                    <CheckCircle2 size={28} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base">Check your inbox!</h3>
+                    <p className="text-xs text-slate-500 mt-1">A password reset link has been sent to <span className="font-semibold text-slate-800">{emailInput}</span>. Click the link in the email to set your new password.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('login'); setOtpSent(false); setResetEmailSent(false); setError(null); }}
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
               ) : (
                 <form onSubmit={handleCompleteReset} className="space-y-4">
                   <div>
@@ -652,7 +673,7 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Update Password & Sign In</span>}
+                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Reset Password</span>}
                   </button>
 
                   <button
