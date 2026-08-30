@@ -61,7 +61,7 @@ export default function MobileNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden print:hidden h-[calc(64px+env(safe-area-inset-bottom,0px))] pb-safe flex items-center justify-between px-2 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg shadow-slate-900/5">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden print:hidden h-[calc(64px+env(safe-area-inset-bottom,0px))] pb-safe flex items-center justify-between px-2 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg shadow-slate-900/5">
         
         <div className="flex-1 flex justify-around items-center">
           {navItems.map((item) => {

@@ -1121,9 +1121,9 @@ export default function QuickPOSPage() {
       </div>
 
       {/* ── Mobile Sticky Bottom Floating Bar (< lg) ── */}
-      <div className="lg:hidden p-3 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 shadow-lg z-30">
+      <div className="lg:hidden p-3.5 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 shadow-lg z-30 mb-16 md:mb-0">
         <div>
-          <span className="text-[10px] font-bold text-slate-500 block uppercase">Total Payable</span>
+          <span className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">Total Payable</span>
           <span className="text-base font-black text-emerald-700">
             ₹{totals.finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </span>
@@ -1137,11 +1137,11 @@ export default function QuickPOSPage() {
             "px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md",
             cart.length === 0
               ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-              : "bg-emerald-600 text-white shadow-emerald-600/20 active:scale-95"
+              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 active:scale-95"
           )}
         >
           <ShoppingBag size={15} />
-          <span>Cart ({totals.totalItems})</span>
+          <span>View Cart & Checkout ({totals.totalItems})</span>
           <ChevronRight size={15} />
         </button>
       </div>
@@ -1149,7 +1149,7 @@ export default function QuickPOSPage() {
       {/* ── Mobile Cart Bottom Sheet Modal ── */}
       <AnimatePresence>
         {showMobileCart && (
-          <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-xs">
+          <div className="lg:hidden fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-xs">
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
@@ -1330,7 +1330,7 @@ export default function QuickPOSPage() {
               </div>
 
               {/* Sheet Checkout Footer */}
-              <div className="p-4 bg-slate-50 border-t border-slate-200 space-y-3 pb-safe">
+              <div className="p-4 pb-8 sm:pb-4 bg-slate-50 border-t border-slate-200 space-y-3 pb-safe">
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between text-slate-500 font-medium">
                     <span>Subtotal</span>
@@ -1361,21 +1361,21 @@ export default function QuickPOSPage() {
                   disabled={cart.length === 0 || isCreating}
                   onClick={handleCreateBill}
                   className={cn(
-                    "w-full min-h-[48px] py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer",
+                    "w-full min-h-[50px] py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 cursor-pointer",
                     cart.length === 0
                       ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20"
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30"
                   )}
                 >
                   {isCreating ? (
                     <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Processing Bill...</span>
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>Generating Invoice...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles size={16} />
-                      <span>Generate Bill &amp; Print</span>
+                      <Sparkles size={18} />
+                      <span>Generate &amp; Print Invoice</span>
                     </>
                   )}
                 </button>
