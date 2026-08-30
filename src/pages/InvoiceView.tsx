@@ -53,6 +53,7 @@ export default function InvoiceViewPage() {
   const [whatsAppWebUrlState, setWhatsAppWebUrlState] = useState('');
   const [whatsAppAppUrlState, setWhatsAppAppUrlState] = useState('');
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [pageSize, setPageSize] = useState<'A4' | 'A5'>('A4');
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   // Responsive Auto-Fit Scaling on Mobile Devices (< 768px) - Hook called unconditionally at top level
