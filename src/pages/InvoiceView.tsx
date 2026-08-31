@@ -1094,8 +1094,8 @@ export default function InvoiceViewPage() {
             <thead>
               <tr style={{ background: headerBlue, color: '#ffffff' }}>
                 <th style={{ padding: '6px 4px', textAlign: 'center', width: '30px', fontWeight: 700 }}>S.No.</th>
-                <th style={{ padding: '6px 8px', textAlign: 'left', width: '130px', fontWeight: 700 }}>Serial / Batch No.</th>
                 <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>Item Description</th>
+                <th style={{ padding: '6px 8px', textAlign: 'left', width: '130px', fontWeight: 700 }}>Serial / Batch No.</th>
                 <th style={{ padding: '6px 6px', textAlign: 'center', width: '60px', fontWeight: 700 }}>HSN</th>
                 <th style={{ padding: '6px 6px', textAlign: 'center', width: '45px', fontWeight: 700 }}>Qty</th>
                 <th style={{ padding: '6px 8px', textAlign: 'right', width: '75px', fontWeight: 700 }}>Rate ({cur === 'INR' ? '₹' : cur})</th>
@@ -1110,14 +1110,14 @@ export default function InvoiceViewPage() {
                 return (
                   <tr key={idx} style={{ borderBottom: `1px solid ${borderGray}` }}>
                     <td style={{ textAlign: 'center', padding: '6px 4px', verticalAlign: 'top' }}>{startIndex + idx + 1}</td>
-                    <td style={{ padding: '6px 8px', verticalAlign: 'top', fontFamily: 'monospace', fontWeight: 700, color: '#334155' }}>
-                      {serialOrBatch}
-                    </td>
                     <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
                       <div style={{ fontWeight: 700, color: '#0f172a' }}>{it.name}</div>
                       {(it.subLines || []).map((sl: string, si: number) => (
                         <div key={si} style={{ fontSize: isA5 ? 7.5 : 9, color: '#64748b', marginTop: 1 }}>{sl}</div>
                       ))}
+                    </td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top', fontFamily: 'monospace', fontWeight: 700, color: '#334155' }}>
+                      {serialOrBatch}
                     </td>
                     <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top' }}>{it.hsn || '---'}</td>
                     <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top', fontWeight: 700 }}>{it.qty}</td>
