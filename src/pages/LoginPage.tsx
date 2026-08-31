@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
 import { motion, AnimatePresence } from 'motion/react';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 import { Link, Navigate } from 'react-router-dom';
 import { 
   AlertCircle, 
@@ -207,7 +209,30 @@ export default function LoginPage() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailInput || !emailInput.includes('@')) {
-      setError("Please enter a valid business email address.");
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (authMode === 'forgot') {
+      setLoading(true);
+      setError(null);
+      try {
+        await sendPasswordResetEmail(auth, emailInput.trim().toLowerCase());
+        setResetEmailSent(true);
+      } catch (err: any) {
+        const code = err?.code || '';
+        if (code === 'auth/user-not-found') {
+          setError("No account found with this email address. Please check your email or Sign Up.");
+        } else if (code === 'auth/invalid-email') {
+          setError("Please enter a valid email address.");
+        } else if (code === 'auth/too-many-requests') {
+          setError("Too many password reset attempts. Please wait a few minutes before trying again.");
+        } else {
+          setError(err.message || "Unable to send password reset email. Please try again.");
+        }
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -591,7 +616,7 @@ export default function LoginPage() {
           {/* FORM 3: FORGOT PASSWORD */}
           {authMode === 'forgot' && (
             <div className="space-y-4">
-              {!otpSent ? (
+              {!resetEmailSent ? (
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">Registered Email Address</label>
@@ -615,81 +640,52 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
                   >
-                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Send Reset Code</span>}
+                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Send Password Reset Link</span>}
                   </button>
                 </form>
-              ) : resetEmailSent ? (
-                <div className="text-center space-y-4">
-                  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-                    <CheckCircle2 size={28} className="text-emerald-600" />
+              ) : (
+                <div className="text-center space-y-4 py-2">
+                  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto shadow-xs">
+                    <CheckCircle2 size={30} className="text-emerald-600" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-base">Check your inbox!</h3>
-                    <p className="text-xs text-slate-500 mt-1">A password reset link has been sent to <span className="font-semibold text-slate-800">{emailInput}</span>. Click the link in the email to set your new password.</p>
+
+                  <div className="space-y-2">
+                    <h3 className="font-extrabold text-slate-900 text-lg">Check your Mail Box!</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      A password reset email has been sent to <span className="font-bold text-slate-900">{emailInput}</span>.
+                    </p>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Please open your email mailbox, click the link inside to set your new password, and then return here to log in.
+                    </p>
                   </div>
+
+                  {/* SPAM FOLDER ALERT BOX */}
+                  <div className="p-3.5 bg-amber-50 border border-amber-200/90 rounded-xl text-left text-xs text-amber-900 space-y-1.5 shadow-2xs">
+                    <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                      <AlertCircle size={16} className="shrink-0 text-amber-600" />
+                      <span>Check Spam / Junk Folder</span>
+                    </div>
+                    <p className="leading-relaxed text-amber-850 pl-5 text-[11.5px]">
+                      If the email is not in your Inbox within 1-2 minutes, <strong>please check your Spam / Junk folder</strong>. Open the email and click <em>"Not Spam"</em> to access the password reset link.
+                    </p>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => { setAuthMode('login'); setOtpSent(false); setResetEmailSent(false); setError(null); }}
-                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
+                    onClick={() => { setAuthMode('login'); setResetEmailSent(false); setError(null); }}
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm cursor-pointer mt-2"
                   >
                     Back to Sign In
                   </button>
-                </div>
-              ) : (
-                <form onSubmit={handleCompleteReset} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Enter 6-Digit Reset Code</label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      placeholder="123456"
-                      className="w-full h-12 text-center tracking-[0.6em] text-lg font-bold bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all font-mono"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Enter New Password</label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Lock size={16} />
-                      </span>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={passwordInput}
-                        onChange={(e) => setPasswordInput(e.target.value)}
-                        placeholder="Minimum 6 characters"
-                        className="w-full h-11 pl-10 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Reset Password</span>}
-                  </button>
 
                   <button
                     type="button"
-                    onClick={() => setOtpSent(false)}
+                    onClick={() => setResetEmailSent(false)}
                     className="w-full text-xs font-medium text-slate-500 hover:text-slate-900 text-center py-1 cursor-pointer"
                   >
-                    Resend Code / Change Email
+                    Didn't receive email? Try again
                   </button>
-                </form>
+                </div>
               )}
             </div>
           )}
