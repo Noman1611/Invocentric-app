@@ -847,7 +847,8 @@ export default function InvoiceViewPage() {
       <div 
         className="invoice-page-sheet pos-thermal-receipt" 
         style={{
-          fontFamily: `'Courier New', Consolas, 'Lucida Console', Monaco, monospace`,
+          fontFamily: `'Roboto Mono', 'Courier New', Consolas, Monaco, monospace`,
+          fontWeight: 500,
           fontSize: baseFontSize,
           width: containerWidth,
           maxWidth: containerWidth,
@@ -859,11 +860,11 @@ export default function InvoiceViewPage() {
           color: '#000000',
           lineHeight: '1.4',
           boxSizing: 'border-box',
-          letterSpacing: '-0.2px'
+          letterSpacing: '0.5px'
         }}
       >
         {/* 1. Header: Business Information (Centered Bold) */}
-        <div style={{ fontWeight: 'bold', fontSize: headerTitleSize, textTransform: 'uppercase', letterSpacing: '0.2px', marginBottom: '3px' }}>
+        <div style={{ fontWeight: 700, fontSize: headerTitleSize, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '3px' }}>
           {co.name || 'NOMAN SHAIKH'}
         </div>
         {co.address && (
@@ -891,34 +892,34 @@ export default function InvoiceViewPage() {
         <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
 
         {/* 2. Document Title */}
-        <div style={{ fontWeight: 'bold', fontSize: docTitleSize, letterSpacing: '0.5px', textTransform: 'uppercase', margin: '3px 0' }}>
+        <div style={{ fontWeight: 700, fontSize: docTitleSize, letterSpacing: '0.6px', textTransform: 'uppercase', margin: '3px 0' }}>
           * {invoiceTitle} *
         </div>
 
         {/* Meta Grid (Key on left, Value on right in monospace) */}
         <div style={{ textAlign: 'left', marginTop: '6px', fontSize: baseFontSize }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-            <span style={{ fontWeight: 'bold' }}>BILL TO:</span>
-            <span style={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{bu.name || 'CASH SALE'}</span>
+            <span style={{ fontWeight: 700 }}>BILL TO:</span>
+            <span style={{ fontWeight: 700, textTransform: 'uppercase' }}>{bu.name || 'CASH SALE'}</span>
           </div>
           {bu.phone && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-              <span style={{ fontWeight: 'bold' }}>MOBILE:</span>
+              <span style={{ fontWeight: 700 }}>MOBILE:</span>
               <span>{bu.phone}</span>
             </div>
           )}
           {bu.gstin && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-              <span style={{ fontWeight: 'bold' }}>GSTIN:</span>
+              <span style={{ fontWeight: 700 }}>GSTIN:</span>
               <span>{bu.gstin}</span>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-            <span style={{ fontWeight: 'bold' }}>INV NO:</span>
+            <span style={{ fontWeight: 700 }}>INV NO:</span>
             <span>#{im.invoiceNo.replace(/^#/, '')}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-            <span style={{ fontWeight: 'bold' }}>DATE:</span>
+            <span style={{ fontWeight: 700 }}>DATE:</span>
             <span>{im.invoiceDate}</span>
           </div>
         </div>
@@ -927,7 +928,7 @@ export default function InvoiceViewPage() {
         <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
 
         {/* 3. Items Table Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: baseFontSize, marginBottom: '6px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: baseFontSize, marginBottom: '6px' }}>
           <span style={{ textAlign: 'left', flex: 1 }}>ITEM</span>
           <span style={{ textAlign: 'center', width: is3Inch ? '45px' : '35px' }}>QTY</span>
           <span style={{ textAlign: 'right', width: is3Inch ? '75px' : '55px' }}>AMT</span>
@@ -938,23 +939,23 @@ export default function InvoiceViewPage() {
           {itemRows.map((it: any, i: number) => (
             <div key={i} style={{ marginBottom: '6px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontWeight: 'bold', flex: 1, paddingRight: '2px' }}>
+                <span style={{ fontWeight: 700, flex: 1, paddingRight: '2px' }}>
                   {i + 1}. {it.name}
                 </span>
-                <span style={{ width: is3Inch ? '45px' : '35px', textAlign: 'center', fontWeight: 'bold' }}>
+                <span style={{ width: is3Inch ? '45px' : '35px', textAlign: 'center', fontWeight: 700 }}>
                   {it.qty}
                 </span>
-                <span style={{ width: is3Inch ? '75px' : '55px', textAlign: 'right', fontWeight: 'bold' }}>
+                <span style={{ width: is3Inch ? '75px' : '55px', textAlign: 'right', fontWeight: 700 }}>
                   ₹{Number(it.total || (it.qty * it.price)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
               {/* Secondary line: italic Qty x Rate */}
-              <div style={{ fontStyle: 'italic', fontSize: subItalicSize, color: '#444444', paddingLeft: '10px', marginTop: '1px' }}>
+              <div style={{ fontStyle: 'italic', fontWeight: 400, fontSize: subItalicSize, color: '#444444', paddingLeft: '10px', marginTop: '1px' }}>
                 {it.qty} x ₹{Number(it.price).toFixed(2)}
                 {it.gstPct > 0 && ` (+${it.gstPct}% GST)`}
               </div>
               {(it.subLines || []).map((sl: string, si: number) => (
-                <div key={si} style={{ fontStyle: 'italic', fontSize: subItalicSize, color: '#666666', paddingLeft: '10px' }}>
+                <div key={si} style={{ fontStyle: 'italic', fontWeight: 400, fontSize: subItalicSize, color: '#666666', paddingLeft: '10px' }}>
                   {sl}
                 </div>
               ))}
@@ -968,28 +969,28 @@ export default function InvoiceViewPage() {
         {/* 4. Subtotal & Totals Breakup */}
         <div style={{ textAlign: 'left', fontSize: baseFontSize }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-            <span style={{ fontWeight: 'bold' }}>SUBTOTAL:</span>
-            <span style={{ fontWeight: 'bold' }}>₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span style={{ fontWeight: 700 }}>SUBTOTAL:</span>
+            <span style={{ fontWeight: 700 }}>₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
           {globalDiscount > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-              <span style={{ fontWeight: 'bold' }}>DISCOUNT:</span>
-              <span style={{ fontWeight: 'bold' }}>-₹{globalDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span style={{ fontWeight: 700 }}>DISCOUNT:</span>
+              <span style={{ fontWeight: 700 }}>-₹{globalDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
           {totalTax > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-              <span style={{ fontWeight: 'bold' }}>TAX (GST):</span>
-              <span style={{ fontWeight: 'bold' }}>₹{totalTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span style={{ fontWeight: 700 }}>TAX (GST):</span>
+              <span style={{ fontWeight: 700 }}>₹{totalTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
           {shippingCharges > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-              <span style={{ fontWeight: 'bold' }}>SHIPPING:</span>
-              <span style={{ fontWeight: 'bold' }}>₹{shippingCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span style={{ fontWeight: 700 }}>SHIPPING:</span>
+              <span style={{ fontWeight: 700 }}>₹{shippingCharges.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: grandTotalSize, marginTop: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: grandTotalSize, marginTop: '4px' }}>
             <span>GRAND TOTAL:</span>
             <span>₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
@@ -1001,7 +1002,7 @@ export default function InvoiceViewPage() {
         {/* 5. Scan to Pay with UPI */}
         {showSec.upi_qr && upiUrl && (
           <div style={{ margin: '8px 0 6px 0', textAlign: 'center' }}>
-            <div style={{ fontSize: subItalicSize, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+            <div style={{ fontSize: subItalicSize, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '6px' }}>
               SCAN TO PAY WITH UPI
             </div>
             <div style={{ display: 'inline-block', padding: '3px', background: '#ffffff' }}>
@@ -1020,10 +1021,10 @@ export default function InvoiceViewPage() {
 
         {/* 6. Footer: InvoCentric Branding & Visit Again */}
         <div style={{ marginTop: '6px', textAlign: 'center' }}>
-          <div style={{ fontWeight: 'bold', fontSize: docTitleSize, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <div style={{ fontWeight: 700, fontSize: docTitleSize, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
             *** THANK YOU! VISIT AGAIN ***
           </div>
-          <div style={{ fontStyle: 'italic', fontSize: subItalicSize, color: '#666666', marginTop: '3px' }}>
+          <div style={{ fontStyle: 'italic', fontWeight: 400, fontSize: subItalicSize, color: '#666666', marginTop: '3px' }}>
             powered by invocentric • instant compliant invoicing
           </div>
         </div>
@@ -1233,6 +1234,7 @@ export default function InvoiceViewPage() {
 
       <WhatsAppShareModal isOpen={showWhatsAppModal} onClose={() => setShowWhatsAppModal(false)} whatsAppUrl={whatsAppUrlState} whatsAppWebUrl={whatsAppWebUrlState} whatsAppAppUrl={whatsAppAppUrlState} documentTitle="Invoice" copiedToClipboard={copiedToClipboard} fileName={`Invoice_${invoice?.invoice_number || 'bill'}.pdf`} />
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
         @media print {
           @page {
             size: ${isPOS ? 'auto' : (isA5 ? 'A5 landscape' : 'A4 portrait')};
