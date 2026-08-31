@@ -303,7 +303,7 @@ export default function UpdateCatalogEntryModal({
           </div>
 
           {/* Form Scroll Body */}
-          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-5 sm:py-6 space-y-6">
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pt-5 sm:pt-6 pb-28 sm:pb-12 space-y-6">
             
             {/* SECTION 1: BASIC INFO */}
             <div className="border-b border-slate-100 dark:border-slate-800/80 pb-6 space-y-4">
@@ -551,13 +551,12 @@ export default function UpdateCatalogEntryModal({
                 </div>
 
                 {/* HSN / SAC Code */}
-                <div style={{}} className="space-y-1.5">
-                  <label style={{ marginLeft: '90px' }} className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     HSN / SAC Code
                   </label>
                   <input
                     type="text"
-                    style={{ marginLeft: '90px', marginRight: '0px' }}
                     placeholder="e.g. 8471 (Goods) or 9983 (Services)"
                     value={formData.hsn}
                     onChange={(e) => setFormData({ ...formData, hsn: e.target.value })}

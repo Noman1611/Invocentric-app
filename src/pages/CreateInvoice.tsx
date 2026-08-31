@@ -2044,7 +2044,7 @@ export default function CreateInvoicePage() {
                 </div>
 
                 {/* ── Desktop View: High-Density Inline Row (>= 768px) ── */}
-                <div className="hidden md:flex flex-col md:flex-row gap-4 items-start md:items-end bg-white dark:bg-slate-900 p-4 rounded-xl border border-gray-50 dark:border-slate-800 shadow-sm relative">
+                <div className="hidden md:flex flex-col md:flex-row gap-3 items-start md:items-end bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs relative w-full overflow-x-auto">
                   <div className="flex-1 w-full min-w-[240px] space-y-2">
                     <label className="label block">{appMode === 'freelancer' ? 'Service / Deliverable' : 'Description / Item'}</label>
                     <div className="flex flex-col gap-2 relative">
@@ -2366,7 +2366,7 @@ export default function CreateInvoicePage() {
                       </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:flex md:flex-row gap-3 w-full md:w-auto items-end pt-3 md:pt-0 border-t border-slate-100 md:border-none">
+                  <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:flex md:flex-row gap-2.5 w-full md:w-auto items-end pt-3 md:pt-0 border-t border-slate-100 md:border-none shrink-0">
                     {formData.columnVisibility.size && (
                       <div className="w-full md:w-20">
                         <label className="label block">Size</label>
