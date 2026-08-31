@@ -53,6 +53,7 @@ import { BulkSerialImportModal } from '../components/BulkSerialImportModal';
 export default function ItemsPage() {
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { items, loading } = useItems();
+  const { customers } = useCustomers();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const currentTab = searchParams.get('tab') || 'products';
@@ -126,6 +127,39 @@ export default function ItemsPage() {
 
     try {
       setAiScanning(true);
+
+      const supplierName = (extractedBillData.supplierName || extractedBillData.customerName || 'Supplier').trim();
+      const billNo = extractedBillData.invoiceNo || extractedBillData.supplierBillNo || `PUR-${Date.now().toString().slice(-5)}`;
+      const calcTotal = extractedBillData.totalAmount || extractedBillData.subTotal || extractedBillData.items.reduce((acc, i) => acc + ((i.rate || i.price || 0) * (i.quantity || 1)), 0);
+      const invoiceDateIso = extractedBillData.invoiceDate ? new Date(extractedBillData.invoiceDate).toISOString() : new Date().toISOString();
+
+      // 1. Auto-Register Supplier in Parties (customers collection) if not already existing
+      if (supplierName && supplierName.toLowerCase() !== 'supplier') {
+        const existingSupplier = (customers || []).find((c: any) => 
+          (c.name || '').toLowerCase().trim() === supplierName.toLowerCase() ||
+          (c.company_name || '').toLowerCase().trim() === supplierName.toLowerCase()
+        );
+
+        if (!existingSupplier) {
+          try {
+            await dbService.add("customers", {
+              name: supplierName,
+              company_name: supplierName,
+              gst_number: (extractedBillData.supplierGst || '').toUpperCase(),
+              phone: extractedBillData.supplierPhone || '',
+              email: extractedBillData.supplierPhone || '',
+              address: extractedBillData.supplierAddress || '',
+              party_type: 'Supplier',
+              notes: `Auto-registered via AI Bill Scan (${billNo})`,
+              created_at: serverTimestamp()
+            }, { userId: user?.uid || '' });
+          } catch (supErr) {
+            console.warn("Could not auto-create supplier party:", supErr);
+          }
+        }
+      }
+
+      // 2. Update Inventory Items (Stock, Cost Price, Barcode, Batch, Serials)
       for (const extractedItem of extractedBillData.items) {
         const existing = items.find(i => i.name.toLowerCase().trim() === extractedItem.description.toLowerCase().trim());
         const itemPrice = extractedItem.rate || extractedItem.price || 0;
@@ -139,7 +173,9 @@ export default function ItemsPage() {
           
           await updateDoc(itemRef, {
             stock: newStock,
-            price: itemPrice || existing.price,
+            cost_price: itemPrice || (existing as any).cost_price || 0,
+            costPrice: itemPrice || (existing as any).costPrice || 0,
+            price: existing.price || (itemPrice > 0 ? Math.round(itemPrice * 1.25) : itemPrice),
             hsn: extractedItem.hsn || existing.hsn || '',
             barcode: extractedItem.barcode || existing.barcode || '',
             batch: extractedItem.batchNo || (existing as any).batch || '',
@@ -152,8 +188,10 @@ export default function ItemsPage() {
           await addDoc(collection(db, 'items'), {
             name: extractedItem.description,
             description: '',
-            internal_notes: `AI Scan Source: ${extractedBillData.supplierName || extractedBillData.customerName || 'Supplier'} (Bill: ${extractedBillData.invoiceNo || 'N/A'})`,
-            price: itemPrice,
+            internal_notes: `AI Scan Source: ${supplierName} (Bill: ${billNo})`,
+            cost_price: itemPrice,
+            costPrice: itemPrice,
+            price: itemPrice > 0 ? Math.round(itemPrice * 1.25) : itemPrice, // 25% default margin if new
             unit: 'pcs',
             category: 'General',
             stock: extractedItem.quantity || 1,
@@ -170,25 +208,39 @@ export default function ItemsPage() {
         }
       }
 
-      // ALSO create Purchase Record in Purchases collection for Supplier Ledger
-      const supplierName = (extractedBillData.supplierName || extractedBillData.customerName || 'Supplier').trim();
-      const billNo = extractedBillData.invoiceNo || extractedBillData.supplierBillNo || `PUR-${Date.now().toString().slice(-5)}`;
-      const calcTotal = extractedBillData.totalAmount || extractedBillData.subTotal || extractedBillData.items.reduce((acc, i) => acc + ((i.rate || i.price || 0) * (i.quantity || 1)), 0);
-      const invoiceDateIso = extractedBillData.invoiceDate ? new Date(extractedBillData.invoiceDate).toISOString() : new Date().toISOString();
+      // 3. Create Full Purchase Voucher in Purchases Collection (for Supplier Ledger & GST/ITC Audit)
+      const taxableAmt = extractedBillData.taxableAmount || extractedBillData.subTotal || Math.max(0, calcTotal - (extractedBillData.cgst || 0) - (extractedBillData.sgst || 0));
+      const cgstAmt = extractedBillData.cgst || 0;
+      const sgstAmt = extractedBillData.sgst || 0;
 
       await dbService.add("purchases", {
         description: `Bill #${billNo} - ${extractedBillData.items.map(i => i.description).slice(0, 3).join(', ')}${extractedBillData.items.length > 3 ? '...' : ''}`,
         amount: calcTotal,
+        taxable_amount: taxableAmt,
+        cgst: cgstAmt,
+        sgst: sgstAmt,
+        tax_amount: cgstAmt + sgstAmt,
         supplier_name: supplierName,
         supplier_gstin: extractedBillData.supplierGst || '',
         bill_number: billNo,
         date: invoiceDateIso,
         payment_method: 'Cash',
         status: 'Paid',
+        items: extractedBillData.items.map(i => ({
+          name: i.description,
+          hsn: i.hsn || '',
+          batch: i.batchNo || '',
+          serial_no: i.serialNo || '',
+          barcode: i.barcode || '',
+          qty: i.quantity || 1,
+          cost_price: i.rate || i.price || 0,
+          gst_percent: i.gstPercent || 0,
+          amount: i.amount || ((i.quantity || 1) * (i.rate || i.price || 0))
+        }))
       }, { userId: user?.uid || '' });
 
       setAiScanning(false);
-      setAiSuccessMsg(`🎉 Live Stock & Supplier Ledger Auto-Updated! ${extractedBillData.items.length} items & Purchase record saved successfully.`);
+      setAiSuccessMsg(`🎉 Live Stock, Vendor Party & Purchases Ledger Auto-Updated! ${extractedBillData.items.length} items saved.`);
       setTimeout(() => {
         setIsAiBillModalOpen(false);
         setExtractedBillData(null);
