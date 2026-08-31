@@ -3,6 +3,9 @@ import { auth } from '../lib/firebase';
 export interface ExtractedInvoice {
   customerName?: string;
   supplierName?: string;
+  supplierGst?: string;
+  supplierPhone?: string;
+  supplierAddress?: string;
   invoiceNo?: string;
   invoiceDate?: string;
   supplierBillNo?: string;
@@ -16,6 +19,7 @@ export interface ExtractedInvoice {
   items: Array<{
     description: string;
     hsn?: string;
+    barcode?: string;
     batchNo?: string;
     serialNo?: string;
     quantity: number;

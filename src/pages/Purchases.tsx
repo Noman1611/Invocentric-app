@@ -103,6 +103,8 @@ export default function Purchases() {
     description: "",
     amount: "",
     supplierName: "",
+    supplierGstin: "",
+    billNumber: "",
     date: new Date().toISOString().split("T")[0],
     paymentMethod: "Cash",
     status: "Paid",
@@ -252,9 +254,11 @@ export default function Purchases() {
     setIsSubmitting(true);
     try {
       await dbService.add("purchases", {
-        description: formData.description,
+        description: formData.billNumber ? `Bill #${formData.billNumber} - ${formData.description}` : formData.description,
         amount: parseFloat(formData.amount as string),
         supplier_name: formData.supplierName,
+        supplier_gstin: formData.supplierGstin,
+        bill_number: formData.billNumber,
         date: new Date(formData.date).toISOString(),
         payment_method: formData.paymentMethod,
         status: formData.status,
@@ -265,6 +269,8 @@ export default function Purchases() {
         description: "",
         amount: "",
         supplierName: "",
+        supplierGstin: "",
+        billNumber: "",
         date: new Date().toISOString().split("T")[0],
         paymentMethod: "Cash",
         status: "Paid",
@@ -645,6 +651,43 @@ export default function Purchases() {
                         <option key={idx} value={supplier} />
                       ))}
                     </datalist>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] ml-1">
+                        Supplier Bill / Invoice #
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.billNumber}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            billNumber: e.target.value,
+                          }))
+                        }
+                        placeholder="E.G. INV-9042"
+                        className="w-full px-5 py-4 bg-neutral-50 border-none rounded-2xl text-xs font-bold uppercase tracking-wider placeholder:text-neutral-300 focus:ring-2 focus:ring-black"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] ml-1">
+                        Supplier GSTIN (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.supplierGstin}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            supplierGstin: e.target.value.toUpperCase(),
+                          }))
+                        }
+                        placeholder="27AAAAA0000A1Z5"
+                        className="w-full px-5 py-4 bg-neutral-50 border-none rounded-2xl text-xs font-bold uppercase tracking-wider placeholder:text-neutral-300 focus:ring-2 focus:ring-black"
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">

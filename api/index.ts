@@ -643,7 +643,7 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
     }
 
     const aiInstance = getAI();
-    const prompt = "Extract complete invoice information from this purchase invoice or supplier bill image. Extract header fields (invoiceNo, invoiceDate, supplierBillNo, dueDate, supplierName), item table rows (description, hsn, batchNo, serialNo, quantity, rate, gstPercent, amount), and totals (subTotal, discount, taxableAmount, cgst, sgst, roundOff, totalAmount). Ensure the output is valid JSON.";
+    const prompt = "Extract complete invoice information from this purchase invoice or supplier bill image. Extract header fields (invoiceNo, invoiceDate, supplierBillNo, dueDate, supplierName, supplierGst, supplierPhone, supplierAddress), item table rows (description, hsn, barcode, batchNo, serialNo, quantity, rate, gstPercent, amount), and totals (subTotal, discount, taxableAmount, cgst, sgst, roundOff, totalAmount). Ensure the output is valid JSON.";
 
     const response = await generateContentWithRetry(aiInstance, {
       model: "gemini-3.6-flash",
@@ -661,6 +661,9 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
           properties: {
             customerName: { type: Type.STRING },
             supplierName: { type: Type.STRING },
+            supplierGst: { type: Type.STRING },
+            supplierPhone: { type: Type.STRING },
+            supplierAddress: { type: Type.STRING },
             invoiceNo: { type: Type.STRING },
             invoiceDate: { type: Type.STRING },
             supplierBillNo: { type: Type.STRING },
@@ -680,6 +683,7 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
                 properties: {
                   description: { type: Type.STRING },
                   hsn: { type: Type.STRING },
+                  barcode: { type: Type.STRING },
                   batchNo: { type: Type.STRING },
                   serialNo: { type: Type.STRING },
                   quantity: { type: Type.NUMBER },

@@ -129,17 +129,23 @@ export default function ItemsPage() {
       for (const extractedItem of extractedBillData.items) {
         const existing = items.find(i => i.name.toLowerCase().trim() === extractedItem.description.toLowerCase().trim());
         const itemPrice = extractedItem.rate || extractedItem.price || 0;
+        const serialsList = extractedItem.serialNo ? extractedItem.serialNo.split(',').map(s => s.trim()).filter(Boolean) : [];
         
         if (existing) {
           const newStock = (Number(existing.stock) || 0) + (Number(extractedItem.quantity) || 1);
           const itemRef = doc(db, 'items', existing.id);
+          const existingSerials = Array.isArray((existing as any).serials) ? (existing as any).serials : [];
+          const combinedSerials = Array.from(new Set([...existingSerials, ...serialsList]));
+          
           await updateDoc(itemRef, {
             stock: newStock,
             price: itemPrice || existing.price,
             hsn: extractedItem.hsn || existing.hsn || '',
-            batch: extractedItem.batchNo || '',
-            serial_no: extractedItem.serialNo || '',
-            gst_percent: extractedItem.gstPercent || 0,
+            barcode: extractedItem.barcode || existing.barcode || '',
+            batch: extractedItem.batchNo || (existing as any).batch || '',
+            serial_no: extractedItem.serialNo || existing.serial_no || '',
+            serials: combinedSerials,
+            gst_percent: extractedItem.gstPercent || existing.gstPercent || 0,
             updated_at: serverTimestamp()
           });
         } else {
@@ -152,8 +158,10 @@ export default function ItemsPage() {
             category: 'General',
             stock: extractedItem.quantity || 1,
             hsn: extractedItem.hsn || '',
+            barcode: extractedItem.barcode || '',
             batch: extractedItem.batchNo || '',
             serial_no: extractedItem.serialNo || '',
+            serials: serialsList,
             gstPercent: extractedItem.gstPercent || 0,
             low_stock_threshold: 5,
             user_id: user?.uid,
@@ -162,16 +170,33 @@ export default function ItemsPage() {
         }
       }
 
+      // ALSO create Purchase Record in Purchases collection for Supplier Ledger
+      const supplierName = (extractedBillData.supplierName || extractedBillData.customerName || 'Supplier').trim();
+      const billNo = extractedBillData.invoiceNo || extractedBillData.supplierBillNo || `PUR-${Date.now().toString().slice(-5)}`;
+      const calcTotal = extractedBillData.totalAmount || extractedBillData.subTotal || extractedBillData.items.reduce((acc, i) => acc + ((i.rate || i.price || 0) * (i.quantity || 1)), 0);
+      const invoiceDateIso = extractedBillData.invoiceDate ? new Date(extractedBillData.invoiceDate).toISOString() : new Date().toISOString();
+
+      await dbService.add("purchases", {
+        description: `Bill #${billNo} - ${extractedBillData.items.map(i => i.description).slice(0, 3).join(', ')}${extractedBillData.items.length > 3 ? '...' : ''}`,
+        amount: calcTotal,
+        supplier_name: supplierName,
+        supplier_gstin: extractedBillData.supplierGst || '',
+        bill_number: billNo,
+        date: invoiceDateIso,
+        payment_method: 'Cash',
+        status: 'Paid',
+      }, { userId: user?.uid || '' });
+
       setAiScanning(false);
-      setAiSuccessMsg(`🎉 Live Stock Auto-Updated! ${extractedBillData.items.length} items successfully updated with zero errors.`);
+      setAiSuccessMsg(`🎉 Live Stock & Supplier Ledger Auto-Updated! ${extractedBillData.items.length} items & Purchase record saved successfully.`);
       setTimeout(() => {
         setIsAiBillModalOpen(false);
         setExtractedBillData(null);
         setAiSuccessMsg(null);
       }, 2500);
     } catch (err: any) {
-      console.error("Failed to auto-update stock:", err);
-      setAiScanError(err.message || "Failed to update inventory stock.");
+      console.error("Failed to auto-update stock & purchase ledger:", err);
+      setAiScanError(err.message || "Failed to update inventory stock and supplier ledger.");
       setAiScanning(false);
     }
   };
