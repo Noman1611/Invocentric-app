@@ -252,6 +252,11 @@ export default function InvoiceViewPage() {
   const cgstTotal = totalTax / 2, sgstTotal = totalTax / 2;
 
   const isIgst = Boolean(customer?.state && sellerInfo?.state && customer.state.trim().toLowerCase() !== sellerInfo.state.trim().toLowerCase());
+  const calcGst = {
+    cgst: isIgst ? 0 : totalTax / 2,
+    sgst: isIgst ? 0 : totalTax / 2,
+    igst: isIgst ? totalTax : 0
+  };
 
   const hsnMap: Record<string, { taxable: number; cgst: number; sgst: number; igst: number; tax: number; pct: number }> = {};
   itemRows.forEach((i: any) => {
