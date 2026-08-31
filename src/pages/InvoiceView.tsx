@@ -1032,9 +1032,220 @@ export default function InvoiceViewPage() {
     );
   };
 
+  // Template 16 (Supplier B2B Invoice with Dedicated Serial / Batch Column)
+  const renderTemplate16Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
+    const headerBlue = '#1e5eb8';
+    const borderGray = '#e2e8f0';
+
+    return (
+      <div className="flex flex-col h-full justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily: 'Inter, Arial, sans-serif', fontSize: isA5 ? 9 : 11.5, color: '#0f172a' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          
+          {/* Header Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `2px solid ${headerBlue}`, paddingBottom: 10, marginBottom: 12 }}>
+            <div>
+              <h1 style={{ fontSize: isA5 ? 18 : 24, fontWeight: 900, color: headerBlue, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>
+                {sellerInfo?.business_name ? 'SUPPLIER INVOICE' : 'TAX INVOICE'}
+              </h1>
+            </div>
+
+            <div style={{ textAlign: 'right', fontSize: isA5 ? 9 : 11, lineHeight: 1.4 }}>
+              <div><span style={{ fontWeight: 700 }}>Invoice No:</span> <span style={{ fontWeight: 800 }}>{im.invoiceNo}</span></div>
+              <div><span style={{ fontWeight: 700 }}>Date:</span> {im.invoiceDate}</div>
+              {im.poNo && <div><span style={{ fontWeight: 700 }}>PO Number:</span> {im.poNo}</div>}
+              {im.dueDate && <div><span style={{ fontWeight: 700 }}>Due Date:</span> {im.dueDate}</div>}
+              <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>Page {pageIdx + 1} of {totalPages}</div>
+            </div>
+          </div>
+
+          {/* 2-Column Party Details Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14, fontSize: isA5 ? 8.5 : 10.5 }}>
+            {/* FROM (SUPPLIER) */}
+            <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: `1px solid ${borderGray}` }}>
+              <div style={{ fontWeight: 800, fontSize: isA5 ? 9 : 11, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+                FROM (SUPPLIER):
+              </div>
+              <div style={{ fontWeight: 800, fontSize: isA5 ? 10.5 : 13, color: '#0f172a', marginBottom: 2 }}>
+                {co.name}
+              </div>
+              {showSec.seller_address && (
+                <div style={{ color: '#475569', lineHeight: 1.3, marginBottom: 2 }} dangerouslySetInnerHTML={{ __html: co.address.replace(/\n/g, '<br>') }} />
+              )}
+              {co.email && <div style={{ color: '#475569' }}><span style={{ fontWeight: 600 }}>Email:</span> {co.email}</div>}
+              {co.gstin && <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 2 }}>GSTIN: {co.gstin}</div>}
+            </div>
+
+            {/* BILL TO (CUSTOMER) */}
+            <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: `1px solid ${borderGray}` }}>
+              <div style={{ fontWeight: 800, fontSize: isA5 ? 9 : 11, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+                BILL TO (CUSTOMER):
+              </div>
+              <div style={{ fontWeight: 800, fontSize: isA5 ? 10.5 : 13, color: '#0f172a', marginBottom: 2 }}>
+                {bu.name}
+              </div>
+              <div style={{ color: '#475569', lineHeight: 1.3, marginBottom: 2 }}>{bu.address}</div>
+              {bu.phone && <div style={{ color: '#475569' }}><span style={{ fontWeight: 600 }}>Phone:</span> {bu.phone}</div>}
+              {showSec.customer_gstin && bu.gstin && <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 2 }}>GSTIN: {bu.gstin}</div>}
+            </div>
+          </div>
+
+          {/* Items Table with Dedicated Serial/Batch Column */}
+          <table style={{ width: '100%', flex: 1, borderCollapse: 'collapse', border: `1px solid ${borderGray}`, fontSize: isA5 ? 8.5 : 10.5 }}>
+            <thead>
+              <tr style={{ background: headerBlue, color: '#ffffff' }}>
+                <th style={{ padding: '6px 4px', textAlign: 'center', width: '30px', fontWeight: 700 }}>S.No.</th>
+                <th style={{ padding: '6px 8px', textAlign: 'left', width: '130px', fontWeight: 700 }}>Serial / Batch No.</th>
+                <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>Item Description</th>
+                <th style={{ padding: '6px 6px', textAlign: 'center', width: '60px', fontWeight: 700 }}>HSN</th>
+                <th style={{ padding: '6px 6px', textAlign: 'center', width: '45px', fontWeight: 700 }}>Qty</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', width: '75px', fontWeight: 700 }}>Rate ({cur === 'INR' ? '₹' : cur})</th>
+                <th style={{ padding: '6px 6px', textAlign: 'center', width: '50px', fontWeight: 700 }}>Tax</th>
+                <th style={{ padding: '6px 8px', textAlign: 'right', width: '85px', fontWeight: 700 }}>Total ({cur === 'INR' ? '₹' : cur})</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageItems.map((it: any, idx: number) => {
+                const serialOrBatch = it.serialNumber || it.serial_no || it.batch || (it.serials && it.serials.length > 0 ? it.serials.join(', ') : '---');
+                const lineTotal = (it.taxable || 0) + (it.taxAmount || 0);
+                return (
+                  <tr key={idx} style={{ borderBottom: `1px solid ${borderGray}` }}>
+                    <td style={{ textAlign: 'center', padding: '6px 4px', verticalAlign: 'top' }}>{startIndex + idx + 1}</td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top', fontFamily: 'monospace', fontWeight: 700, color: '#334155' }}>
+                      {serialOrBatch}
+                    </td>
+                    <td style={{ padding: '6px 8px', verticalAlign: 'top' }}>
+                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{it.name}</div>
+                      {(it.subLines || []).map((sl: string, si: number) => (
+                        <div key={si} style={{ fontSize: isA5 ? 7.5 : 9, color: '#64748b', marginTop: 1 }}>{sl}</div>
+                      ))}
+                    </td>
+                    <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top' }}>{it.hsn || '---'}</td>
+                    <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top', fontWeight: 700 }}>{it.qty}</td>
+                    <td style={{ textAlign: 'right', padding: '6px 8px', verticalAlign: 'top' }}>{fc(it.price, cur)}</td>
+                    <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top' }}>{it.gstPct ? `${it.gstPct}%` : '0%'}</td>
+                    <td style={{ textAlign: 'right', padding: '6px 8px', verticalAlign: 'top', fontWeight: 700 }}>{fc(lineTotal, cur)}</td>
+                  </tr>
+                );
+              })}
+              {/* Flexible spacer row */}
+              <tr>
+                <td colSpan={8} style={{ height: '100%' }}></td>
+              </tr>
+            </tbody>
+          </table>
+
+        </div>
+
+        {/* Bottom Section */}
+        {isLastPage ? (
+          <div style={{ marginTop: 10 }}>
+            {/* Grid for Bank Details and Summary */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, marginBottom: 10, alignItems: 'flex-start' }}>
+              
+              {/* Left Column: Bank Details */}
+              <div style={{ fontSize: isA5 ? 8.5 : 10 }}>
+                {showSec.bank_details && co.bank && (
+                  <div>
+                    <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4, color: '#0f172a' }}>
+                      BANK DETAILS
+                    </div>
+                    <div style={{ lineHeight: 1.4, color: '#334155' }}>
+                      <div><span style={{ fontWeight: 700 }}>Bank Name:</span> {co.bank}</div>
+                      <div><span style={{ fontWeight: 700 }}>Account Name:</span> {co.name}</div>
+                      <div><span style={{ fontWeight: 700 }}>Account Number:</span> {co.acc}</div>
+                      {co.ifsc && <div><span style={{ fontWeight: 700 }}>IFSC Code:</span> {co.ifsc}</div>}
+                      {co.branch && <div><span style={{ fontWeight: 700 }}>Branch:</span> {co.branch}</div>}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column: Tax & Grand Total Summary */}
+              <div style={{ textAlign: 'right', fontSize: isA5 ? 9 : 11 }}>
+                <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4, color: '#0f172a' }}>
+                  SUMMARY
+                </div>
+                <div style={{ display: 'flex', justifySelf: 'end', flexDirection: 'column', gap: 2, width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#475569' }}>Taxable Value:</span>
+                    <span style={{ fontWeight: 600 }}>{fc(totalTaxable, cur)}</span>
+                  </div>
+                  {!isIgst ? (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#475569' }}>CGST:</span>
+                        <span style={{ fontWeight: 600 }}>{fc(calcGst.cgst, cur)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#475569' }}>SGST:</span>
+                        <span style={{ fontWeight: 600 }}>{fc(calcGst.sgst, cur)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#475569' }}>IGST:</span>
+                      <span style={{ fontWeight: 600 }}>{fc(calcGst.igst, cur)}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${borderGray}`, paddingTop: 4, marginTop: 2, fontSize: isA5 ? 11 : 14, fontWeight: 900, color: '#0f172a' }}>
+                    <span>Grand Total:</span>
+                    <span>{fc(grandTotal, cur)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Amount in Words */}
+            {showSec.amount_in_words && (
+              <div style={{ background: '#f8fafc', padding: '6px 10px', borderRadius: 6, border: `1px solid ${borderGray}`, marginBottom: 10, fontSize: isA5 ? 8.5 : 10.5 }}>
+                <span style={{ fontWeight: 700 }}>Amount in Words: </span>
+                <span style={{ fontWeight: 700, textTransform: 'uppercase' }}>{safeToWords(grandTotal, cur)}</span>
+              </div>
+            )}
+
+            {/* Terms and Signatory Footer */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, alignItems: 'flex-end', paddingTop: 6 }}>
+              {/* Left: Terms & Conditions */}
+              <div>
+                {showSec.terms && termsText.length > 0 && (
+                  <div style={{ fontSize: isA5 ? 8 : 9.5, color: '#334155' }}>
+                    <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>TERMS &amp; CONDITIONS:</div>
+                    {termsText.slice(0, 3).map((term: string, tIdx: number) => (
+                      <div key={tIdx}>{tIdx + 1}. {term}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Authorized Signatory */}
+              <div style={{ textAlign: 'right', fontSize: isA5 ? 8.5 : 10 }}>
+                {showSec.signature && (
+                  <div>
+                    <div style={{ height: isA5 ? 28 : 42, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                      {co.sign && <img src={co.sign} alt="Signature" style={{ maxHeight: isA5 ? 28 : 42, maxWidth: '100%', objectFit: 'contain' }} />}
+                    </div>
+                    <div style={{ fontWeight: 800, color: '#0f172a', marginTop: 2 }}>Authorized Signatory</div>
+                    <div style={{ fontWeight: 700, color: '#475569', fontSize: isA5 ? 7.5 : 9 }}>{co.forCo}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        ) : (
+          <div style={{ textAlign: 'right', fontSize: 9.5, fontWeight: 700, padding: 4, color: headerBlue, marginTop: 'auto' }}>
+            Continued on Next Page →
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderPage = (pageItems: any[], pageIdx: number, isLastPage: boolean) => {
     const startIndex = getStartIndex(pageIdx);
     switch (tpl) {
+      case 'template_16':
+        return renderTemplate16Page(pageItems, pageIdx, isLastPage, startIndex);
       case 'template_03':
       case 'template_04':
       case 'template_09':

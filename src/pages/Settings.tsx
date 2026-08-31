@@ -797,6 +797,7 @@ export default function SettingsPage() {
                 <option value="template_12">Template 12 — Black Frame / All Table (A4)</option>
                 <option value="template_14">Template 14 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
                 <option value="template_15">Template 15 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
+                <option value="template_16">Template 16 — Supplier B2B (Dedicated Serial / Batch Column)</option>
               </select>
             </div>
           </div>
