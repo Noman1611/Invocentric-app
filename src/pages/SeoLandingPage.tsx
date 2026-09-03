@@ -110,12 +110,7 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
       'price': '0',
       'priceCurrency': 'INR'
     },
-    'description': pageData.metaDescription,
-    'aggregateRating': {
-      '@type': 'AggregateRating',
-      'ratingValue': '4.9',
-      'reviewCount': '1280'
-    }
+    'description': pageData.metaDescription
   };
 
   const combinedSchema = {
