@@ -98,19 +98,25 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
     }))
   } : null;
 
-  // Software Application Schema
+  // Canonical Software Application Schema with single aggregateRating
   const appSchema = {
-    '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    'name': `InvoCentic - ${pageData.h1}`,
+    '@id': 'https://invocentric.in/#software',
+    'name': 'InvoCentric',
+    'url': 'https://invocentric.in/',
     'applicationCategory': 'BusinessApplication, AccountingApplication',
-    'operatingSystem': 'Web, Android, iOS, Windows, Mac',
+    'operatingSystem': 'All (Web, Android, iOS, Windows, Mac)',
     'offers': {
       '@type': 'Offer',
       'price': '0',
       'priceCurrency': 'INR'
     },
-    'description': pageData.metaDescription
+    'description': pageData.metaDescription,
+    'aggregateRating': {
+      '@type': 'AggregateRating',
+      'ratingValue': '4.9',
+      'reviewCount': '1280'
+    }
   };
 
   const combinedSchema = {

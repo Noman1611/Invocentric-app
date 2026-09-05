@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { updatePageSchema, resetPageSchema } from '../lib/seoSchema';
 
 export interface SEOProps {
   title: string;
@@ -84,19 +85,16 @@ export const SEOHead: React.FC<SEOProps> = ({
     setMeta('name', 'twitter:description', description);
     setMeta('name', 'twitter:image', ogImage);
 
-    // 7. Inject Structured Data JSON-LD
-    let scriptTag = document.getElementById('page-structured-data') as HTMLScriptElement | null;
+    // 7. Update Single Master Structured Data JSON-LD
     if (structuredData) {
-      if (!scriptTag) {
-        scriptTag = document.createElement('script');
-        scriptTag.id = 'page-structured-data';
-        scriptTag.type = 'application/ld+json';
-        document.head.appendChild(scriptTag);
-      }
-      scriptTag.textContent = JSON.stringify(structuredData);
-    } else if (scriptTag) {
-      scriptTag.remove();
+      updatePageSchema(structuredData);
     }
+
+    return () => {
+      if (structuredData) {
+        resetPageSchema();
+      }
+    };
   }, [title, description, keywords, canonicalUrl, ogType, ogImage, structuredData, noindex]);
 
   return null;

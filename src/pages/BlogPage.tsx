@@ -20,6 +20,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { updatePageSchema, resetPageSchema } from '../lib/seoSchema';
 
 export interface BlogPostData {
   slug: string;
@@ -1292,53 +1293,57 @@ export default function BlogPage() {
       }
       metaDesc.setAttribute('content', currentPost.metaDescription);
 
-      // JSON-LD Schema
+      // Unified JSON-LD Schema (BlogPosting + BreadcrumbList) with NO aggregateRating
       const schemaData = {
         "@context": "https://schema.org",
-        "@type": "BlogPosting",
-        "headline": currentPost.title,
-        "description": currentPost.metaDescription,
-        "image": [currentPost.coverImage],
-        "datePublished": "2026-07-27",
-        "author": {
-          "@type": "Organization",
-          "name": "InvoCentric",
-          "url": "https://invocentric.in/"
-        },
-        "publisher": {
-          "@type": "Organization",
-          "name": "InvoCentric",
-          "url": "https://invocentric.in/",
-          "logo": {
-            "@type": "ImageObject",
-            "url": "https://invocentric.in/logo.png"
+        "@graph": [
+          {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://invocentric.in/" },
+              { "@type": "ListItem", "position": 2, "name": "Blog", "item": "https://invocentric.in/blog" },
+              { "@type": "ListItem", "position": 3, "name": currentPost.title, "item": `https://invocentric.in/blog/${currentPost.slug}` }
+            ]
+          },
+          {
+            "@type": "BlogPosting",
+            "@id": `https://invocentric.in/blog/${currentPost.slug}#article`,
+            "headline": currentPost.title,
+            "description": currentPost.metaDescription,
+            "image": [currentPost.coverImage],
+            "datePublished": currentPost.date || "2026-07-27",
+            "author": {
+              "@type": "Organization",
+              "name": "InvoCentric",
+              "url": "https://invocentric.in/"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "InvoCentric",
+              "url": "https://invocentric.in/",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://invocentric.in/logo.png"
+              }
+            },
+            "mainEntityOfPage": {
+              "@type": "WebPage",
+              "@id": `https://invocentric.in/blog/${currentPost.slug}`
+            }
           }
-        },
-        "mainEntityOfPage": {
-          "@type": "WebPage",
-          "@id": `https://invocentric.in/blog/${currentPost.slug}`
-        }
+        ]
       };
 
-      const scriptId = 'blog-jsonld-schema';
-      let script = document.getElementById(scriptId) as HTMLScriptElement;
-      if (!script) {
-        script = document.createElement('script');
-        script.id = scriptId;
-        script.type = 'application/ld+json';
-        document.head.appendChild(script);
-      }
-      script.text = JSON.stringify(schemaData);
-
+      updatePageSchema(schemaData);
       window.scrollTo(0, 0);
     } else {
       document.title = "InvoCentric Knowledge Base & GST Billing Blogs";
+      resetPageSchema();
     }
 
     return () => {
       document.title = "InvoCentric — Free GST Invoicing & Billing App";
-      const script = document.getElementById('blog-jsonld-schema');
-      if (script) script.remove();
+      resetPageSchema();
     };
   }, [currentPost]);
 
