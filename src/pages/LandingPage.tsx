@@ -8,7 +8,7 @@ import {
   Receipt, PieChart, Package, Printer, Store, 
   Smartphone, Activity, FileText, QrCode, TrendingUp,
   Mail, Phone, MapPin, ChevronRight, MessageCircle, HelpCircle,
-  Sparkles, Star, Award, History, User, Users, RefreshCw, Upload, Download, BookOpen, X, Globe, Share2
+  Sparkles, Star, Award, History, User, Users, RefreshCw, Upload, Download, BookOpen, X, Globe, Share2, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { BLOG_POSTS } from './BlogPage';
@@ -1678,18 +1678,31 @@ export default function LandingPage() {
               </div>
               
               <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-white">WhatsApp & Support Phone: +91 98241 94869</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-white">Email: support@invocentric.in</span>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Globe className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-white">Website: www.invocentric.in</span>
-                </div>
+                <a 
+                  href="https://wa.me/919824194869?text=Hello%20InvoCentric%20Support,%20I%20have%20a%20question..." 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-start gap-3 text-white hover:text-emerald-300 transition-colors group cursor-pointer"
+                >
+                  <Phone className="w-5 h-5 text-emerald-400 group-hover:scale-110 mt-0.5 flex-shrink-0 transition-transform" />
+                  <span className="text-sm font-semibold">WhatsApp & Support Phone: +91 98241 94869</span>
+                </a>
+                <a 
+                  href="mailto:support@invocentric.in?subject=InvoCentric%20Inquiry" 
+                  className="flex items-start gap-3 text-white hover:text-emerald-300 transition-colors group cursor-pointer"
+                >
+                  <Mail className="w-5 h-5 text-emerald-400 group-hover:scale-110 mt-0.5 flex-shrink-0 transition-transform" />
+                  <span className="text-sm font-semibold">Email: support@invocentric.in</span>
+                </a>
+                <a 
+                  href="https://invocentric.in" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-start gap-3 text-white hover:text-emerald-300 transition-colors group cursor-pointer"
+                >
+                  <Globe className="w-5 h-5 text-emerald-400 group-hover:scale-110 mt-0.5 flex-shrink-0 transition-transform" />
+                  <span className="text-sm font-semibold">Website: www.invocentric.in</span>
+                </a>
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
                   <span className="text-sm font-semibold text-white leading-relaxed">Patan Gujarat India</span>
@@ -1778,57 +1791,82 @@ export default function LandingPage() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSupportOpen(false)} className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-sm bg-white rounded-[32px] overflow-hidden shadow-2xl p-8 text-center border border-gray-100">
-              <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <button 
+                type="button"
+                onClick={() => setIsSupportOpen(false)}
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Close support dialog"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
                 <WhatsAppIcon size={36} />
               </div>
               <h3 className="text-2xl font-black text-gray-900 mb-2">Customer Support</h3>
-              <p className="text-gray-500 text-sm mb-8">Get live, expert help regarding thermal layouts, GST configs, and invoice imports.</p>
+              <p className="text-gray-500 text-sm mb-6">Get live, expert help regarding thermal layouts, GST configs, and invoice imports.</p>
                 
               <div className="space-y-3">
-                <div 
-                  className="flex items-center justify-between p-4 bg-slate-900 rounded-2xl border border-slate-800 text-white"
+                <a 
+                  href="https://wa.me/919824194869?text=Hello%20InvoCentric%20Support,%20I%20need%20help%20with%20InvoCentric%20Billing%20Software"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] rounded-2xl border border-slate-800 hover:border-emerald-500/50 text-white transition-all cursor-pointer group shadow-sm"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-emerald-400 shadow-sm">
+                    <div className="w-10 h-10 bg-slate-800 group-hover:bg-emerald-600 rounded-xl flex items-center justify-center text-emerald-400 group-hover:text-white transition-all shadow-sm">
                       <WhatsAppIcon size={20} />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-white">WhatsApp Support</p>
-                      <p className="text-[11px] text-white font-medium">+91 98241 94869</p>
+                      <p className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">WhatsApp Support</p>
+                      <p className="text-[11px] text-slate-300 font-medium">+91 98241 94869</p>
                     </div>
                   </div>
-                </div>
+                  <ExternalLink size={16} className="text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                </a>
 
-                <div 
-                  className="flex items-center justify-between p-4 bg-slate-900 rounded-2xl border border-slate-800 text-white"
+                <a 
+                  href="mailto:support@invocentric.in?subject=InvoCentric%20Customer%20Support%20Request"
+                  className="flex items-center justify-between p-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] rounded-2xl border border-slate-800 hover:border-green-500/50 text-white transition-all cursor-pointer group shadow-sm"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-green-400 shadow-sm">
+                    <div className="w-10 h-10 bg-slate-800 group-hover:bg-green-600 rounded-xl flex items-center justify-center text-green-400 group-hover:text-white transition-all shadow-sm">
                       <Mail size={20} />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-white">Email Support</p>
-                      <p className="text-[11px] text-white font-medium">support@invocentric.in</p>
+                      <p className="text-sm font-bold text-white group-hover:text-green-400 transition-colors">Email Support</p>
+                      <p className="text-[11px] text-slate-300 font-medium">support@invocentric.in</p>
                     </div>
                   </div>
-                </div>
+                  <ExternalLink size={16} className="text-slate-500 group-hover:text-green-400 transition-colors" />
+                </a>
 
-                <div 
-                  className="flex items-center justify-between p-4 bg-slate-900 rounded-2xl border border-slate-800 text-white"
+                <a 
+                  href="https://invocentric.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] rounded-2xl border border-slate-800 hover:border-blue-500/50 text-white transition-all cursor-pointer group shadow-sm"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-400 shadow-sm">
+                    <div className="w-10 h-10 bg-slate-800 group-hover:bg-blue-600 rounded-xl flex items-center justify-center text-blue-400 group-hover:text-white transition-all shadow-sm">
                       <Globe size={20} />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-white">Website</p>
-                      <p className="text-[11px] text-white font-medium">www.invocentric.in</p>
+                      <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">Website</p>
+                      <p className="text-[11px] text-slate-300 font-medium">www.invocentric.in</p>
                     </div>
                   </div>
-                </div>
+                  <ExternalLink size={16} className="text-slate-500 group-hover:text-blue-400 transition-colors" />
+                </a>
               </div>
 
-              <button onClick={() => setIsSupportOpen(false)} className="mt-8 text-xs font-bold text-gray-500 uppercase tracking-widest hover:text-gray-900 transition-colors">Close</button>
+              <button 
+                type="button"
+                onClick={() => setIsSupportOpen(false)} 
+                className="mt-6 w-full py-3 bg-slate-100 hover:bg-slate-200 active:scale-[0.98] rounded-xl text-xs font-bold text-slate-700 uppercase tracking-widest transition-all cursor-pointer"
+              >
+                Close
+              </button>
             </motion.div>
           </div>
         )}

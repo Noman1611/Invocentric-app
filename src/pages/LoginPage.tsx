@@ -16,7 +16,9 @@ import {
   Globe, 
   HelpCircle,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  ExternalLink,
+  X
 } from 'lucide-react';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
 
@@ -730,6 +732,15 @@ export default function LoginPage() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className="relative w-full max-w-sm bg-white rounded-2xl p-6 border border-slate-200 shadow-xl"
             >
+              <button 
+                type="button"
+                onClick={() => setIsSupportOpen(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Close support dialog"
+              >
+                <X size={16} />
+              </button>
+
               <div className="text-center mb-5">
                 <Logo size={44} className="mx-auto mb-3" />
                 <h3 className="text-lg font-bold text-slate-900">InvoCentric Support</h3>
@@ -737,40 +748,63 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2.5">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                    <WhatsAppIcon size={18} />
+                <a 
+                  href="https://wa.me/919824194869?text=Hello%20InvoCentric%20Support,%20I%20need%20help%20with%20my%20account"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-emerald-50 active:scale-[0.98] border border-slate-100 hover:border-emerald-200 rounded-xl transition-all cursor-pointer group shadow-2xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
+                      <WhatsAppIcon size={18} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-900 group-hover:text-emerald-700 transition-colors">WhatsApp Helpdesk</p>
+                      <p className="text-xs text-slate-500">+91 98241 94869</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-900">WhatsApp Helpdesk</p>
-                    <p className="text-xs text-slate-500">+91 98241 94869</p>
-                  </div>
-                </div>
+                  <ExternalLink size={14} className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                </a>
 
-                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                    <Mail size={16} />
+                <a 
+                  href="mailto:support@invocentric.in?subject=InvoCentric%20Login%20Support%20Request"
+                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-blue-50 active:scale-[0.98] border border-slate-100 hover:border-blue-200 rounded-xl transition-all cursor-pointer group shadow-2xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
+                      <Mail size={16} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">Email Support</p>
+                      <p className="text-xs text-slate-500">support@invocentric.in</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-900">Email Support</p>
-                    <p className="text-xs text-slate-500">support@invocentric.in</p>
-                  </div>
-                </div>
+                  <ExternalLink size={14} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                </a>
 
-                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-                    <Globe size={16} />
+                <a 
+                  href="https://invocentric.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 active:scale-[0.98] border border-slate-100 hover:border-slate-300 rounded-xl transition-all cursor-pointer group shadow-2xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
+                      <Globe size={16} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-slate-900 group-hover:text-slate-900 transition-colors">Official Portal</p>
+                      <p className="text-xs text-slate-500">www.invocentric.in</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-900">Official Portal</p>
-                    <p className="text-xs text-slate-500">www.invocentric.in</p>
-                  </div>
-                </div>
+                  <ExternalLink size={14} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+                </a>
               </div>
 
               <button 
+                type="button"
                 onClick={() => setIsSupportOpen(false)}
-                className="mt-5 w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                className="mt-5 w-full py-2.5 bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-800 text-xs font-semibold rounded-xl transition-all cursor-pointer"
               >
                 Close
               </button>
