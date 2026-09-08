@@ -635,7 +635,7 @@ export default function LandingPage() {
                   initial={{ scale: 1.01 }}
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
-                  src="https://i.ibb.co/5XL4DSQV/Invo-Centric-showcase-web-1.webp" 
+                  src="https://i.ibb.co/jkjMxGvz/Invo-Centric-showcase-NEW.webp" 
                   alt="InvoCentric Smart Invoicing Web Application High-Fidelity Showcase" 
                   className="w-full h-auto object-cover object-center shadow-2xl block transition-transform duration-500"
                   referrerPolicy="no-referrer"
