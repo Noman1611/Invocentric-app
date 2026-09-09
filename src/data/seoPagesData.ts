@@ -37,8 +37,8 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
     secondaryKeywords: ['invoice maker', 'invoice generator', 'online invoice software', 'invoice software India', 'free invoice software'],
     h1: 'Professional Invoice Software for Indian Small Businesses',
     subtitle: 'Generate beautiful GST-compliant invoices in under 30 seconds. Choose from 11+ professional standard & industry templates, share via WhatsApp, and manage payments effortlessly.',
-    badge: '100% Free Cloud & Offline Invoice Software',
-    heroHighlight: 'No credit card required • Zero watermarks • Unlimited invoices',
+    badge: 'Free Plan Available • Cloud & Offline',
+    heroHighlight: 'No credit card required • Zero watermarks • Unlimited manual invoices',
     features: [
       {
         title: '11+ Professional Invoice Templates',
@@ -94,7 +94,7 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
       { name: 'Home', url: 'https://invocentric.in/' },
       { name: 'Invoice Software', url: 'https://invocentric.in/invoice-software' }
     ],
-    ctaText: 'Create Your First Invoice Now — 100% Free',
+    ctaText: 'Create Your Free Account Now',
     ctaSubtext: 'No signup friction. Start billing in 30 seconds.',
     relatedPages: [
       { title: 'Free Invoice Maker', slug: 'free-invoice-maker', desc: 'Instant online PDF invoice generator' },
@@ -443,63 +443,93 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'barcode-billing': {
     slug: 'barcode-billing',
-    metaTitle: 'Barcode Billing Software & Scanner App | InvoCentric',
-    metaDescription: 'Free barcode billing software with smartphone camera and USB barcode gun support. Generate custom barcode labels, print sticker sheets, and bill items in seconds.',
+    metaTitle: 'Barcode Billing Software & Scanner for Retail Shops | InvoCentric',
+    metaDescription: 'Scan products with a phone camera or barcode scanner, create bills faster, update stock, and print or share receipts with InvoCentric.',
     focusKeyword: 'barcode billing software',
-    secondaryKeywords: ['barcode billing system', 'barcode scanner billing', 'barcode inventory software', 'retail barcode billing', 'barcode generator'],
-    h1: 'Barcode Billing Software & Product Label Generator',
-    subtitle: 'Equip your retail shop with professional barcode scanning and sticker printing. Scan with any phone camera or USB gun, and print labels on A4 sticker sheets or thermal rolls.',
-    badge: 'Scan & Generate Barcodes • Zero Hardware Cost',
-    heroHighlight: 'Phone Camera Scanning • USB Gun Ready • A4 24/65-in-1 Sticker Printing',
+    secondaryKeywords: ['barcode billing system', 'barcode scanner billing', 'retail barcode billing', 'pos barcode scanner', 'barcode generator'],
+    h1: 'Fast Barcode Billing for Retail Shops',
+    subtitle: 'Scan a product barcode with your phone camera or supported USB scanner, add the item to a bill, and complete checkout faster. Use thermal printing and digital sharing where supported by your account and device.',
+    badge: 'High-Speed Retail Checkout • Hardware-Flexible',
+    heroHighlight: 'Smartphone Camera Scanning • USB Scanner Gun Support • A4 & Thermal Sticker Printing',
     features: [
       {
-        title: 'Zero-Hardware Camera Scanner',
-        description: 'Turn any smartphone camera into a high-speed laser-quality barcode scanner without buying expensive hardware.',
+        title: 'Smartphone Camera Barcode Scanner',
+        description: 'Scan barcodes directly using your mobile phone camera with zero added hardware investment.',
         iconName: 'Smartphone'
       },
       {
-        title: 'USB Barcode Gun Compatibility',
-        description: 'Plug any standard USB barcode scanner gun into your laptop or PC for high-volume counter operations.',
+        title: 'Plug-and-Play USB Scanner Support',
+        description: 'Connect any standard USB handheld barcode scanner gun to your PC or laptop for rapid counter billing.',
         iconName: 'Barcode'
       },
       {
-        title: 'Barcode Label Sticker Printing',
-        description: 'Generate and print custom barcode stickers for products on A4 sheets (24-in-1, 65-in-1) or thermal sticker rolls.',
+        title: 'Barcode Generator & Sticker Label Printing',
+        description: 'Create unique product barcodes and print sticker sheets on standard A4 paper (24-in-1, 65-in-1) or thermal rolls.',
         iconName: 'Printer'
       },
       {
-        title: 'Format Support (EAN-13, CODE128)',
-        description: 'Support for EAN-13, EAN-8, UPC, CODE128, CODE39, and ITF-14 barcode standards with validation.',
-        iconName: 'Tag'
+        title: '2-Inch & 3-Inch Thermal Receipt Printing',
+        description: 'Print clean, compact POS receipts instantly on 58mm or 80mm thermal receipt printers with store details.',
+        iconName: 'Receipt'
       }
     ],
     detailedSections: [
       {
-        heading: 'How Barcode Billing Transforms Your Retail Business',
+        heading: 'Speed Up Checkout Counter Lines by 5x',
         content: [
-          'Barcode billing eliminates manual pricing errors, speeds up checkout by 5x, and ensures that item sales deduct the exact variant from your inventory database.',
-          'With InvoCentric, you can generate custom barcodes for unbranded products, print sticker labels, and scan them at checkout effortlessly.'
+          'Long billing queues frustrate customers and cause checkout mistakes. InvoCentric transforms your billing counter into a high-speed POS station where cashiers simply scan barcodes to populate items, prices, and tax rates instantly.',
+          'Whether you use a standard handheld USB laser scanner gun or your mobile phone camera, InvoCentric automatically detects the barcode, checks inventory, and adds the product to the active bill in milliseconds.'
         ],
         bulletPoints: [
-          'Assign unique barcodes or auto-generate EAN-13 codes with valid checksums',
-          'Print stickers with Store Name, Product Description, Selling Price, and MRP',
-          'Global phone scanner feature: scan barcodes with your mobile to auto-type into your PC bill',
-          'Track serial numbers for electronics, mobile phones, and warranty items'
+          'Scan item barcode to auto-populate description, unit price, and applicable GST',
+          'Zero manual typing eliminates incorrect pricing and cashier calculation mistakes',
+          'Compatible with popular barcode formats including EAN-13, EAN-8, CODE128, and UPC-A',
+          'Synchronized stock deduction ensures your physical shelf inventory matches your records'
+        ]
+      },
+      {
+        heading: 'Step-by-Step: From Scan to Thermal Print & WhatsApp Bill',
+        content: [
+          'InvoCentric is designed for the fast-paced retail environment of Indian kirana stores, supermarkets, garment shops, and mobile retailers.',
+          'The complete checkout workflow requires just 4 quick steps: scan product barcode, verify quantities or apply discount, collect payment (Cash or UPI QR), and print a 2-inch/3-inch thermal bill or share it directly to the customer\'s WhatsApp.'
+        ],
+        bulletPoints: [
+          'Step 1: Scan barcode with camera or USB scanner gun to add items to cart',
+          'Step 2: Review line items and automatically compute CGST/SGST/IGST breakdown',
+          'Step 3: Present dynamic UPI QR code on screen for instant digital payments',
+          'Step 4: Print thermal receipt or send digital bill via WhatsApp without wasting paper'
         ]
       }
     ],
     faqs: [
       {
-        question: 'Can I print barcode stickers on regular A4 sticker paper?',
-        answer: 'Yes. InvoCentric includes exact millimeter layout presets for standard A4 24-in-1 (3x8) and 65-in-1 (5x13) pre-cut sticker sheets.'
+        question: 'Can I scan barcodes using my smartphone camera?',
+        answer: 'Yes. InvoCentric includes a built-in mobile camera scanner that lets you scan product barcodes directly from your phone or tablet without needing a dedicated scanner machine.'
+      },
+      {
+        question: 'Which USB barcode scanners are supported?',
+        answer: 'Any standard plug-and-play USB barcode scanner (wired or wireless 2.4GHz) that emulates keyboard input works seamlessly with InvoCentric on Windows, Mac, and Linux PCs.'
+      },
+      {
+        question: 'Can I generate and print custom barcode sticker labels?',
+        answer: 'Yes. InvoCentric features a Barcode Generator that produces EAN-13 and Code-128 barcode stickers formatted for standard A4 pre-cut label sheets (such as 24-in-1 and 65-in-1) as well as continuous thermal sticker rolls.'
+      },
+      {
+        question: 'Does scanning a barcode automatically update inventory?',
+        answer: 'Yes. Each barcode corresponds to a specific product SKU. When an invoice or POS receipt is finalized, the item count is automatically deducted from inventory.'
+      },
+      {
+        question: 'Can I print 2-inch and 3-inch thermal receipts?',
+        answer: 'Yes. InvoCentric offers dedicated thermal receipt templates for both 2-inch (58mm) and 3-inch (80mm) POS printers with store headers, itemized totals, GST breakdowns, and UPI QR codes.'
       }
     ],
     breadcrumbs: [
       { name: 'Home', url: 'https://invocentric.in/' },
+      { name: 'Features', url: 'https://invocentric.in/#features' },
       { name: 'Barcode Billing', url: 'https://invocentric.in/barcode-billing' }
     ],
-    ctaText: 'Open Barcode Studio Free',
-    ctaSubtext: 'Generate and print barcodes with zero setup fees.',
+    ctaText: 'Start Barcode Billing Free',
+    ctaSubtext: 'Scan products and print receipts with zero hardware lock-in.',
     relatedPages: [
       { title: 'POS Billing Software', slug: 'pos-billing-software', desc: 'Fast retail POS checkout counter' },
       { title: 'Inventory Management', slug: 'inventory-management', desc: 'Track products & stock levels' },
@@ -509,63 +539,92 @@ export const SEO_LANDING_PAGES: Record<string, SeoLandingPageData> = {
 
   'inventory-management': {
     slug: 'inventory-management',
-    metaTitle: 'Inventory Management Software India | Free Stock Control | InvoCentric',
-    metaDescription: 'Free inventory management software for small businesses in India. Track live stock, manage serial numbers, lot/batch expiry alerts, low stock warnings, and stock adjustments.',
+    metaTitle: 'Inventory Management Software for Retail Shops | InvoCentric',
+    metaDescription: 'Track products, stock levels, prices, HSN codes, barcodes, and low-stock alerts with InvoCentric inventory management software for Indian shops.',
     focusKeyword: 'inventory management software',
-    secondaryKeywords: ['stock management software', 'inventory software', 'stock management app', 'inventory billing software', 'product inventory software'],
-    h1: 'Real-Time Inventory & Stock Management Software',
-    subtitle: 'Keep accurate control over your product catalog, warehouse stock, serial numbers, batch expiry dates, and low stock reorder thresholds.',
-    badge: 'Live Stock Control • Serial & Batch Tracking',
-    heroHighlight: 'Auto Stock Deduction • Expiry Date Alerts • Low Stock Warnings • Bulk Excel Upload',
+    secondaryKeywords: ['stock management software', 'retail inventory software', 'stock management app', 'inventory billing software', 'product inventory software'],
+    h1: 'Inventory Management Software for Small Businesses',
+    subtitle: 'Track products, stock levels, purchase costs, selling prices, categories, barcodes, and low-stock alerts from one simple workspace. InvoCentric helps Indian shops reduce manual stock counting and make better reordering decisions.',
+    badge: 'Smart Stock Control • Real-Time Tracking',
+    heroHighlight: 'Excel Import/Export • Auto Stock Deductions • Low Stock Alerts • HSN & GST Sync',
     features: [
       {
-        title: 'Automated Live Stock Sync',
-        description: 'Stock deducts automatically when invoices or POS receipts are generated, and increments when purchase bills are added.',
+        title: 'Excel / CSV Bulk Product Import & Export',
+        description: 'Import your existing inventory list in seconds with prices, opening quantities, HSN codes, and barcodes.',
+        iconName: 'FileText'
+      },
+      {
+        title: 'Automated Sales & Purchase Stock Tracking',
+        description: 'Live stock automatically reduces when invoices or POS receipts are generated, and updates when supplier purchase bills are added.',
         iconName: 'RefreshCw'
       },
       {
-        title: 'Serial Number & IMEI Tracking',
-        description: 'Track individual serial numbers and device IMEIs from purchase to sale for electronics and warranty items.',
-        iconName: 'Barcode'
-      },
-      {
-        title: 'Lot / Batch & Expiry Alerts',
-        description: 'Monitor batch numbers and manufacturing/expiry dates for food, FMCG, and pharmaceutical products.',
-        iconName: 'AlertCircle'
-      },
-      {
-        title: 'Low Stock Alerts',
-        description: 'Set minimum stock thresholds per item and receive proactive alerts before running out of high-demand goods.',
+        title: 'Configurable Low-Stock Warning Thresholds',
+        description: 'Set minimum safety stock limits per item to trigger visual alerts before running out of top-selling goods.',
         iconName: 'TrendingDown'
+      },
+      {
+        title: 'HSN Codes, Tax Rates & Category Organization',
+        description: 'Assign HSN codes, GST percentages, unit measurements (PCS, KGS, BOX), and categories for accurate tax filing.',
+        iconName: 'Tag'
       }
     ],
     detailedSections: [
       {
-        heading: 'Complete Stock Visibility from Purchase to Sale',
+        heading: 'Eliminate Manual Stock Counting and Prevent Costly Stockouts',
         content: [
-          'Poor inventory management leads to stockouts, expired goods, and untracked losses. InvoCentric gives you full visibility over your stock quantities, purchase costs, and profit margins in real-time.',
-          'Import your entire product list in seconds using Excel / CSV spreadsheets, organize items by categories, and adjust stock counts with audit logs.'
+          'Managing inventory manually on paper registers or scattered spreadsheets leads to lost sales, expired items, and untracked discrepancies. InvoCentric unifies your product catalog, real-time quantity on hand, and purchase valuation into an intuitive, offline-ready dashboard.',
+          'Every time a retail invoice is generated, the sold quantities are deducted immediately. When new shipments arrive, log purchase bills or use AI Bill Scan to update warehouse counts without repetitive manual data entry.'
         ],
         bulletPoints: [
-          'Bulk item import and export with Excel compatibility',
-          'AI Bill Scan: Snap photo of supplier purchase bills to auto-update stock without manual typing',
-          'Stock adjustment logs recording reasons for damages, shrinkage, or returns',
-          'Gross profit and margin calculation per product category'
+          'Track opening stock, current available stock, and minimum safety levels',
+          'Support for item categories, units of measurement (PCS, KGS, LTR, PKT), and tax slabs',
+          'Record stock adjustments with audit reasons for shrinkage, supplier returns, or damages',
+          'Fast spreadsheet import and export compatible with Microsoft Excel and Google Sheets'
+        ]
+      },
+      {
+        heading: 'Audit Logs, Stock Adjustments, and Profit Margins',
+        content: [
+          'Keep your accounting books accurate with detailed item movement history. Inspect item-by-item sales velocity, cost of goods sold (COGS), and gross margins to make informed reordering decisions.',
+          'Free Plan users can manage up to 50 inventory products with full manual invoicing, while growing stores can upgrade to Pro for unlimited item catalogs.'
+        ],
+        bulletPoints: [
+          'View transaction history per product to trace every sale and stock addition',
+          'Wholesale vs retail price tiers for differentiated customer pricing',
+          'Fast search and barcode filter to look up inventory items in milliseconds'
         ]
       }
     ],
     faqs: [
       {
         question: 'Can I import my existing product list from Excel?',
-        answer: 'Yes. InvoCentric allows you to import hundreds of items with names, prices, HSN codes, opening stock, and barcodes in one click using CSV or Excel.'
+        answer: 'Yes. InvoCentric supports bulk product imports via CSV and Excel spreadsheets, allowing you to import product names, selling prices, purchase costs, opening stock, HSN codes, and barcodes in one click.'
+      },
+      {
+        question: 'Does stock reduce automatically after an invoice or POS sale?',
+        answer: 'Yes. As soon as an invoice, cash bill, or POS receipt is finalized, InvoCentric automatically deducts the exact item quantities from your active inventory.'
+      },
+      {
+        question: 'Can I set low-stock alerts for fast-moving items?',
+        answer: 'Yes. You can configure minimum reorder thresholds for each product. When stock dips below your threshold, InvoCentric highlights the item with an alert banner.'
+      },
+      {
+        question: 'Can I track HSN codes and GST rates for my items?',
+        answer: 'Yes. Each product can have its official HSN/SAC code and applicable GST rate (0%, 5%, 12%, 18%, 28%) assigned, ensuring tax amounts auto-populate correctly on every invoice.'
+      },
+      {
+        question: 'Is inventory management available on the Free Plan?',
+        answer: 'Yes! The Free Plan includes full inventory management for up to 50 products with stock tracking, categories, and invoicing. Businesses needing an unlimited catalog can upgrade to the Pro Plan for ₹199/month.'
       }
     ],
     breadcrumbs: [
       { name: 'Home', url: 'https://invocentric.in/' },
+      { name: 'Features', url: 'https://invocentric.in/#features' },
       { name: 'Inventory Management', url: 'https://invocentric.in/inventory-management' }
     ],
-    ctaText: 'Manage Inventory Free',
-    ctaSubtext: 'Track stock, serials, and batches in one place.',
+    ctaText: 'Manage Your Inventory Free',
+    ctaSubtext: 'Start with up to 50 products on the Free Plan. No credit card required.',
     relatedPages: [
       { title: 'Barcode Billing', slug: 'barcode-billing', desc: 'Scan and generate product barcodes' },
       { title: 'GST Billing Software', slug: 'gst-billing-software', desc: 'Auto stock sync with GST bills' },

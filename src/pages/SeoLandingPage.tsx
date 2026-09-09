@@ -66,7 +66,7 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
         <h1 className="text-2xl font-black text-slate-900 mt-4">Page Not Found</h1>
         <p className="text-sm text-slate-500 mt-2 mb-6">The requested SEO guide could not be located.</p>
         <Link to="/" className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-xs">
-          Back to InvoCentic Home
+          Back to InvoCentric Home
         </Link>
       </div>
     );
@@ -149,12 +149,11 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
 
         {/* Desktop Quick Nav */}
         <nav className="hidden md:flex items-center gap-6 text-xs font-bold text-slate-600">
-          <Link to="/invoice-software" className="hover:text-emerald-700 transition-colors">Invoice Software</Link>
-          <Link to="/gst-billing-software" className="hover:text-emerald-700 transition-colors">GST Billing</Link>
-          <Link to="/pos-billing-software" className="hover:text-emerald-700 transition-colors">POS Billing</Link>
-          <Link to="/barcode-billing" className="hover:text-emerald-700 transition-colors">Barcode Studio</Link>
-          <Link to="/inventory-management" className="hover:text-emerald-700 transition-colors">Inventory</Link>
-          <Link to="/blog" className="hover:text-emerald-700 transition-colors">Knowledge Base</Link>
+          <Link to="/#features" className="hover:text-emerald-700 transition-colors">Features</Link>
+          <Link to="/pricing" className="hover:text-emerald-700 transition-colors">Pricing</Link>
+          <Link to="/gst-calculator" className="hover:text-emerald-700 transition-colors">GST Tools</Link>
+          <Link to="/blog" className="hover:text-emerald-700 transition-colors">Blogs</Link>
+          <Link to="/#faq" className="hover:text-emerald-700 transition-colors">FAQ</Link>
         </nav>
 
         <div className="flex items-center gap-3">
@@ -162,13 +161,13 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
             to="/login"
             className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors"
           >
-            Sign In
+            Log In
           </Link>
           <Link
-            to="/invoices/create"
+            to="/login"
             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-emerald-600/10 flex items-center gap-1.5"
           >
-            <span>Create Bill</span>
+            <span>Create Free Account</span>
             <ArrowRight size={14} />
           </Link>
         </div>
@@ -288,7 +287,7 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
                 Frequently Asked Questions
               </h2>
               <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-                Clear answers about InvoCentic billing and tax compliance
+                Clear answers about InvoCentric billing and tax compliance
               </p>
             </div>
 
@@ -327,7 +326,7 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
           </section>
         )}
 
-        {/* Related InvoCentic Feature Guides */}
+        {/* Related InvoCentric Feature Guides */}
         {pageData.relatedPages.length > 0 && (
           <section className="max-w-6xl mx-auto px-4 md:px-8 py-10 space-y-6 border-t border-slate-200/60 mt-12">
             <h3 className="text-lg font-black text-slate-900">
@@ -352,6 +351,27 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
             </div>
           </section>
         )}
+
+        {/* Standardized Bottom Call-to-Action Banner */}
+        <section className="max-w-4xl mx-auto px-4 md:px-8 py-12 text-center">
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-3xl p-8 md:p-12 shadow-xl space-y-4">
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+              Ready to simplify your billing?
+            </h2>
+            <p className="text-sm md:text-base text-emerald-100 max-w-xl mx-auto font-medium">
+              Create your free InvoCentric account and start with the tools your business needs.
+            </p>
+            <div className="pt-2">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-emerald-50 text-emerald-800 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg transition-all"
+              >
+                <span>Start Free</span>
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
@@ -360,10 +380,10 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Logo size={28} />
-              <span className="font-brand text-base font-black text-white">InvoCentic</span>
+              <span className="font-brand text-base font-black text-white">InvoCentric</span>
             </div>
             <p className="text-slate-400 text-[11px] leading-relaxed">
-              100% Free GST Billing App &amp; Invoicing platform engineered for Indian shopkeepers, retailers, traders, and freelancers.
+              Free GST Billing App &amp; Invoicing platform engineered for Indian shopkeepers, retailers, traders, and freelancers.
             </p>
           </div>
 
@@ -393,14 +413,14 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
             <h4 className="font-black text-white uppercase tracking-wider mb-3 text-[11px]">Compliance &amp; Legal</h4>
             <ul className="space-y-2 text-[11px]">
               <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service &amp; Privacy</Link></li>
-              <li><span className="text-slate-500">Government GST Compliant (CGST/SGST/IGST)</span></li>
+              <li><span className="text-slate-500">Supports common CGST, SGST, and IGST invoice fields</span></li>
               <li><span className="text-slate-500">Local Offline Data Encryption</span></li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-slate-800 py-6 text-center text-slate-500 text-[11px]">
-          © {new Date().getFullYear()} InvoCentic. Made with ❤️ for Indian Businesses. All Rights Reserved.
+          © {new Date().getFullYear()} InvoCentric. Made with ❤️ for Indian Businesses. All Rights Reserved.
         </div>
       </footer>
     </div>

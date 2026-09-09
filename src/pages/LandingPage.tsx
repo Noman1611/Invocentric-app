@@ -324,16 +324,16 @@ export default function LandingPage() {
               >
                 <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-100 text-green-700 text-xs font-bold uppercase tracking-wider mb-6">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
-                  India's #1 Free Billing App
+                  Free GST Billing Software for Indian Small Businesses
                 </motion.div>
                 
-                <motion.h1 variants={FADE_UP_ANIMATION_VARIANTS} className="text-5xl md:text-7xl font-extrabold text-gray-900 tracking-tight leading-[1.1] mb-6">
-                  Smart Billing for <br/>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-blue-600" style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Smart Businesses.</span>
+                <motion.h1 variants={FADE_UP_ANIMATION_VARIANTS} className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 tracking-tight leading-[1.1] mb-6">
+                  GST Billing and Inventory Software for <br/>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-blue-600" style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Indian Small Businesses</span>
                 </motion.h1>
                 
                 <motion.p variants={FADE_UP_ANIMATION_VARIANTS} className="text-lg md:text-xl text-gray-800 mb-8 max-w-xl leading-relaxed">
-                  Generate professional GST invoices, manage inventory, track daily expenses, and print thermal bills directly from your browser. Perfect for retail and mobile shops.
+                  Create professional GST and non-GST invoices, manage stock, scan barcodes, track khata balances, and share bills through WhatsApp. Start with a free plan and upgrade when your business needs advanced tools.
                 </motion.p>
                 
                 <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="flex flex-col sm:flex-row items-center gap-4">
@@ -341,24 +341,25 @@ export default function LandingPage() {
                     onClick={() => navigate('/login')}
                     className="w-full sm:w-auto px-8 py-4 bg-gray-900 text-white text-sm font-bold rounded-full hover:bg-gray-800 transition-all flex items-center justify-center gap-2 group active:scale-95 shadow-xl shadow-gray-900/20"
                   >
-                    Create Free Account
+                    Create Your Free Account
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                   <button 
-                     onClick={() => {
-                        const el = document.getElementById('calculator');
-                        el?.scrollIntoView({ behavior: 'smooth' });
-                     }}
+                     onClick={() => navigate('/pos')}
                     className="w-full sm:w-auto px-8 py-4 bg-white text-gray-900 border border-gray-200 text-sm font-bold rounded-full hover:bg-gray-50 transition-all flex items-center justify-center gap-2 active:scale-95"
                   >
-                    <Calculator size={18} />
-                    Try GST Calculator
+                    <Store size={18} />
+                    See a Live POS Demo
                   </button>
                 </motion.div>
 
-                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="mt-10 flex items-center gap-6 text-sm font-medium text-gray-700">
-                  <div className="flex items-center gap-2"><Check size={16} className="text-green-500"/> No credit card</div>
-                  <div className="flex items-center gap-2"><Check size={16} className="text-green-500"/> 100% Free Tier</div>
+                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="mt-4 text-xs text-gray-500 font-medium">
+                  No credit card required. Setup takes less than a minute.
+                </motion.div>
+
+                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="mt-6 flex items-center gap-6 text-sm font-medium text-gray-700">
+                  <div className="flex items-center gap-2"><Check size={16} className="text-green-500"/> Free Plan Available</div>
+                  <div className="flex items-center gap-2"><Check size={16} className="text-green-500"/> Offline First</div>
                   <div className="flex items-center gap-2"><Check size={16} className="text-green-500"/> Secure Data</div>
                 </motion.div>
               </motion.div>
@@ -458,50 +459,50 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Ideal For Section - Business Niches */}
+        {/* Target Audience Section - Built for Indian Small Businesses */}
         <section className="py-20 bg-gradient-to-b from-white via-green-50/10 to-gray-50 border-b border-gray-100/60">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 border border-green-100 text-[#0B524E] text-[10px] font-bold uppercase tracking-widest mb-4">
-                Supported Business Niches
+                Target Audience
               </div>
               <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-                Designed for your specific business.
+                Built for the way Indian small businesses sell.
               </h2>
               <p className="text-gray-700 max-w-xl mx-auto text-base">
-                InvoCentric adapts to your retail, wholesale, or service operations seamlessly. Whether a small shop or a larger store.
+                Whether you run a fast-paced retail counter, a wholesale distribution point, or a freelance professional practice, InvoCentric provides the tailored workflows you need.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
               {[
                 {
-                  title: "Kirana & Provision Stores",
-                  desc: "Fast billing, offline credit ledger, and camera barcode scanner for quick checkouts.",
+                  title: "Kirana Stores & FMCG",
+                  desc: "Fast counter billing, offline customer credit khata, and camera barcode scanning for instant checkout queues.",
                   icon: <Store className="text-green-600" size={24} />,
-                  badge: "Popular"
+                  badge: "Retail Essential"
                 },
                 {
-                  title: "Wholesale & Distributors",
-                  desc: "Manage high-volume purchase records, credit summaries, and tax invoice distributions.",
+                  title: "Wholesale & Distribution Traders",
+                  desc: "Manage high-volume purchase records, credit summaries, bulk tax invoices, and B2B GST compliance.",
                   icon: <TrendingUp className="text-blue-600" size={24} />,
                   badge: "Bulk Trade"
                 },
                 {
-                  title: "Mobile & Accessories Shops",
-                  desc: "Track custom stock models, fast search features, and easy digital GST invoicing.",
+                  title: "Mobile & Electronics Shops",
+                  desc: "Track serial/IMEI stock models, fast item lookups, warranty notes, and instant digital GST invoicing.",
                   icon: <Smartphone className="text-green-600" size={24} />,
-                  badge: "Modern Retail"
+                  badge: "Electronics Ready"
                 },
                 {
-                  title: "Garments & Apparel",
-                  desc: "Organize items with color, size attributes, printed thermal tags, and instant PDFs.",
+                  title: "Garment & Footwear Stores",
+                  desc: "Organize items with color, size, and category tags with thermal receipt and barcode label printing.",
                   icon: <Package className="text-purple-600" size={24} />,
                   badge: "Apparel Ready"
                 },
                 {
-                  title: "Service Providers & Freelancers",
-                  desc: "Quickly generate quotations, share bills via WhatsApp, and add custom digital signatures.",
+                  title: "Freelancers & Service Providers",
+                  desc: "Generate professional estimates, tax invoices, and share bills directly via WhatsApp with payment QR codes.",
                   icon: <FileText className="text-amber-600" size={24} />,
                   badge: "Professional"
                 }
@@ -946,7 +947,7 @@ export default function LandingPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            const text = encodeURIComponent(`📊 GST Calculation Summary:\n• Base Price: ₹${calculatedGst.base.toFixed(2)}\n• GST (${calcGstRate}%): ₹${calculatedGst.tax.toFixed(2)} (CGST: ₹${(calculatedGst.tax/2).toFixed(2)} + SGST: ₹${(calculatedGst.tax/2).toFixed(2)})\n• Total Value: ₹${calculatedGst.total.toFixed(2)}\n\nCalculated with InvoCentic Free GST Tool: https://invocentric.in/gst-calculator`);
+                            const text = encodeURIComponent(`📊 GST Calculation Summary:\n• Base Price: ₹${calculatedGst.base.toFixed(2)}\n• GST (${calcGstRate}%): ₹${calculatedGst.tax.toFixed(2)} (CGST: ₹${(calculatedGst.tax/2).toFixed(2)} + SGST: ₹${(calculatedGst.tax/2).toFixed(2)})\n• Total Value: ₹${calculatedGst.total.toFixed(2)}\n\nCalculated with InvoCentric Free GST Tool: https://invocentric.in/gst-calculator`);
                             window.open(`https://wa.me/?text=${text}`, '_blank');
                           }}
                           className="px-3.5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
@@ -966,6 +967,9 @@ export default function LandingPage() {
                     </div>
                  </div>
                </div>
+               <p className="text-[11px] text-gray-500 text-center mt-3 max-w-2xl mx-auto">
+                 * Tax calculations are provided as estimates for general business reference. Verify rates and final returns against official GST guidelines or with your chartered accountant.
+               </p>
             </div>
 
             {/* Sub-tools Links */}
@@ -1040,8 +1044,8 @@ export default function LandingPage() {
                         <Check size={16} />
                       </div>
                       <div>
-                        <h4 className="font-bold text-gray-900 text-sm">100% Free Professional Invoicing</h4>
-                        <p className="text-sm text-gray-800 mt-1">Generate beautiful GST and non-GST invoices without paying a single rupee. No hidden trial limits or credit card requirements.</p>
+                        <h4 className="font-bold text-gray-900 text-sm">Free Plan with Core Invoicing Tools</h4>
+                        <p className="text-sm text-gray-800 mt-1">Generate professional GST and non-GST invoices without upfront payment. Manage up to 30 customers and 50 inventory items on the Free Plan with zero credit card required.</p>
                       </div>
                     </li>
                     <li className="flex items-start gap-3">
@@ -1091,18 +1095,22 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Right Column: Schema-Structured FAQ Section */}
+              {/* Right Column: FAQ Section */}
               <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm space-y-6">
                 <div>
                   <span className="text-xs font-extrabold uppercase tracking-widest text-green-600 bg-green-50 px-3 py-1 rounded-full">InvoCentric FAQs</span>
                   <h3 className="text-2xl font-black text-gray-900 mt-3">Frequently Asked Questions</h3>
-                  <p className="text-xs text-gray-700 mt-1">Common queries regarding our free billing app and automated features.</p>
+                  <p className="text-xs text-gray-700 mt-1">Common queries regarding our billing plans, data storage, and automated features.</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
-                    <h4 className="font-bold text-gray-900 text-sm">Is InvoCentric really free?</h4>
-                    <p className="text-xs text-gray-700 mt-2 leading-relaxed">Yes! InvoCentric is 100% free with no credit card required. Generate invoices, track client statements, and manage stocks with zero subscriptions.</p>
+                    <h4 className="font-bold text-gray-900 text-sm">Does InvoCentric offer a free plan?</h4>
+                    <p className="text-xs text-gray-700 mt-2 leading-relaxed">Yes! InvoCentric offers a generous Free Plan with no credit card required. You can create invoices, manage up to 30 customers and 50 inventory items, and use offline storage at zero cost. A Pro Plan is available for businesses that need unlimited capacity, multi-device cloud sync, and AI OCR bill scanning.</p>
+                  </div>
+                  <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
+                    <h4 className="font-bold text-gray-900 text-sm">What happens if I change or lose my device?</h4>
+                    <p className="text-xs text-gray-700 mt-2 leading-relaxed">With the Free Plan, data is stored locally in your browser cache, so we recommend exporting regular backups. With the Pro Plan, your business data automatically syncs to secure cloud storage, allowing you to log in on any new device and resume instantly.</p>
                   </div>
                   <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
                     <h4 className="font-bold text-gray-900 text-sm">How do I print GST bills offline?</h4>
@@ -1113,68 +1121,6 @@ export default function LandingPage() {
                     <p className="text-xs text-gray-700 mt-2 leading-relaxed">Yes. InvoCentric includes a smart barcode scanning tool. Scan any item to add it directly to an invoice, quote, or customer statement ledger instantaneously.</p>
                   </div>
                 </div>
-
-                {/* Structured JSON-LD for Search Indexing */}
-                <script
-                  type="application/ld+json"
-                  dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                      "@context": "https://schema.org",
-                      "@graph": [
-                        {
-                          "@type": "SoftwareApplication",
-                          "@id": "https://vercel.app/#software",
-                          "name": "InvoCentric",
-                          "operatingSystem": "All",
-                          "applicationCategory": "BusinessApplication, AccountingApplication",
-                          "offers": {
-                            "@type": "Offer",
-                            "price": "0",
-                            "priceCurrency": "INR"
-                          },
-                          "description": "Free GST Billing, Invoicing, Mobile Camera Barcode Scanner, and Inventory Management App for small shops and retail stores in India.",
-                          "featureList": [
-                            "GST and non-GST Invoice Generation",
-                            "Live Camera Barcode Scanner integration",
-                            "Instant PDF sharing on WhatsApp",
-                            "Customer credit credit ledger log",
-                            "Inventory Stock Alerts"
-                          ]
-                        },
-                        {
-                          "@type": "FAQPage",
-                          "@id": "https://vercel.app/#faq",
-                          "mainEntity": [
-                            {
-                              "@type": "Question",
-                              "name": "Is InvoCentric really free?",
-                              "acceptedAnswer": {
-                                "@type": "Answer",
-                                "text": "Yes! InvoCentric is 100% free with no credit card required. Generate invoices, track client statements, and manage stocks with zero subscriptions."
-                              }
-                            },
-                            {
-                              "@type": "Question",
-                              "name": "How do I print GST bills offline?",
-                              "acceptedAnswer": {
-                                "@type": "Answer",
-                                "text": "You can connect any standard thermal printer (2-inch or 3-inch) or laser printer to print GST bills offline directly from your web browser."
-                              }
-                            },
-                            {
-                              "@type": "Question",
-                              "name": "Can I generate statements with barcode scans?",
-                              "acceptedAnswer": {
-                                "@type": "Answer",
-                                "text": "Yes. InvoCentric includes a smart barcode scanning tool. Scan any item to add it directly to an invoice, quote, or customer statement ledger instantaneously."
-                              }
-                            }
-                          ]
-                        }
-                      ]
-                    })
-                  }}
-                />
               </div>
 
             </div>
@@ -1232,7 +1178,7 @@ export default function LandingPage() {
                 Choose the Right Plan for Your Business
               </h2>
               <p className="text-slate-600 mt-3.5 text-base md:text-lg">
-                Start 100% free with zero hidden charges. Upgrade when you need advanced AI scanning, POS, and full exports.
+                Start with our Free Plan with zero hidden charges. Upgrade to Pro when you need advanced AI scanning, cloud backup, and unlimited capacity.
               </p>
             </div>
 
@@ -1279,7 +1225,7 @@ export default function LandingPage() {
                   <div className="flex items-center justify-between mb-3 mt-1">
                     <div>
                       <h3 className="text-2xl font-black text-slate-900 leading-none">Free Plan</h3>
-                      <p className="text-xs text-slate-400 font-bold mt-1">Forever Free</p>
+                      <p className="text-xs text-slate-400 font-bold mt-1">Free Plan</p>
                     </div>
                     {user && (!planTier || planTier === 'free') && (
                       <span className="px-3 py-1 bg-green-50 text-green-700 font-bold text-xs rounded-full border border-green-200/80">Active Plan</span>
@@ -1291,7 +1237,7 @@ export default function LandingPage() {
                   
                   <div className="flex items-baseline gap-1.5 mb-8 pb-6 border-b border-slate-100">
                     <span className="text-5xl font-black text-slate-900 tracking-tight">₹0</span>
-                    <span className="text-slate-500 text-sm font-bold">/ forever free</span>
+                    <span className="text-slate-500 text-sm font-bold">/ free tier</span>
                   </div>
 
                   <div className="space-y-4 mb-8">
@@ -1493,6 +1439,21 @@ export default function LandingPage() {
 
             </div>
 
+            {/* Data Storage & Backup Architecture Notice */}
+            <div className="mt-12 max-w-4xl mx-auto bg-white rounded-2xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                <RefreshCw size={24} />
+              </div>
+              <div className="flex-1 space-y-1">
+                <h4 className="font-extrabold text-slate-900 text-sm md:text-base">
+                  Offline-First Architecture &amp; Data Security
+                </h4>
+                <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-medium">
+                  InvoCentric is engineered offline-first. Your invoices, items, and customer balances are saved directly in your local device browser storage, allowing you to bill customers even without internet. With our <strong>Pro Plan</strong>, all records automatically sync in real-time to encrypted cloud storage, giving you multi-device access and seamless backup protection if a device is ever lost or upgraded.
+                </p>
+              </div>
+            </div>
+
             {/* Bottom Trust Row */}
             <div className="mt-12 flex flex-wrap items-center justify-center gap-6 md:gap-12 text-slate-500 text-xs font-extrabold uppercase tracking-wider">
               <div className="flex items-center gap-2">
@@ -1501,7 +1462,7 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
-                100% Free Forever Plan
+                Generous Free Tier
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -1741,8 +1702,8 @@ export default function LandingPage() {
             <div className="space-y-6">
                <h3 className="text-white text-lg font-bold mb-4">About &amp; Policies</h3>
                <ul className="space-y-3">
-                <li><button onClick={() => setIsAboutOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">About InvoCentic</button></li>
-                <li><button onClick={() => setIsWhyInvoCentricOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Why InvoCentic</button></li>
+                <li><button onClick={() => setIsAboutOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">About InvoCentric</button></li>
+                <li><button onClick={() => setIsWhyInvoCentricOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Why InvoCentric</button></li>
                 <li><button onClick={() => setIsSupportOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Customer Support</button></li>
                 <li><Link to="/terms#privacy" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Privacy Policy</Link></li>
                 <li><Link to="/terms#terms" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Terms of Service</Link></li>
@@ -1884,7 +1845,7 @@ export default function LandingPage() {
                 InvoCentric was built in **Patan, Gujarat, India** to serve and empower local merchants, shop owners, and freelance service providers. 
               </p>
               <p className="text-gray-600 text-sm leading-relaxed mb-6 font-medium">
-                Our vision is to deliver 100% free, robust, cloud-synchronized, and offline-compatible invoicing software that doesn't restrict small merchants with paywalls or forced credit card logins. We represent the digital future of traditional Indian retail.
+                Our vision is to deliver accessible, robust, cloud-synchronized, and offline-compatible invoicing software that provides small merchants with powerful free tools without forced credit card requirements. We represent the digital future of traditional Indian retail.
               </p>
               <button onClick={() => setIsAboutOpen(false)} className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">Understood</button>
             </motion.div>
@@ -2076,7 +2037,7 @@ export default function LandingPage() {
               <div className="space-y-4 mb-6 text-left font-medium text-xs text-gray-600">
                 <div className="flex gap-3">
                   <div className="w-6 h-6 rounded bg-green-50 text-green-600 flex items-center justify-center font-bold shrink-0">1</div>
-                  <p><strong>100% Free:</strong> No hidden payments, no forced premium subscriptions, and no trial limits.</p>
+                  <p><strong>Generous Free Plan:</strong> Start with essential billing, inventory, and customer management without paying upfront.</p>
                 </div>
                 <div className="flex gap-3">
                   <div className="w-6 h-6 rounded bg-green-50 text-green-600 flex items-center justify-center font-bold shrink-0">2</div>
@@ -2084,7 +2045,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex gap-3">
                   <div className="w-6 h-6 rounded bg-green-50 text-green-600 flex items-center justify-center font-bold shrink-0">3</div>
-                  <p><strong>Automatic Sync:</strong> When online, your records are automatically backed up securely to the cloud database.</p>
+                  <p><strong>Cloud Backup:</strong> With Pro cloud sync, your records are automatically backed up securely across all your devices.</p>
                 </div>
                 <div className="flex gap-3">
                   <div className="w-6 h-6 rounded bg-green-50 text-green-600 flex items-center justify-center font-bold shrink-0">4</div>

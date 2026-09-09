@@ -14,7 +14,6 @@ export const DEFAULT_HOME_SCHEMA = {
       "url": "https://invocentric.in/",
       "name": "InvoCentric",
       "alternateName": [
-        "Invo Centric",
         "InvoCentric Billing",
         "InvoCentric App",
         "InvoCentric Invoice Maker"
@@ -37,7 +36,7 @@ export const DEFAULT_HOME_SCHEMA = {
         "price": "0",
         "priceCurrency": "INR"
       },
-      "description": "100% Free GST Billing & Invoicing software application with Live Camera Barcode Scanner, PDF Invoice Sharing, and Offline Khata Book Ledger for retail shops and small businesses.",
+      "description": "Free GST Billing & Invoicing software application with Live Camera Barcode Scanner, PDF Invoice Sharing, and Offline Khata Book Ledger for retail shops and small businesses.",
       "featureList": [
         "GST & Non-GST Invoice Generation with CGST/SGST/IGST calculation",
         "Direct Mobile Camera Barcode Scanning for items",
@@ -79,10 +78,10 @@ export const DEFAULT_HOME_SCHEMA = {
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "Is InvoCentric GST Billing App free forever? (क्या InvoCentric सच में हमेशा के लिए फ्री है?)",
+          "name": "Does InvoCentric offer a free plan? (क्या InvoCentric में फ्री प्लान उपलब्ध है?)",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes! InvoCentric is 100% free forever with no credit card required, no hidden trial limits, and no monthly fees. You can create unlimited GST invoices, print bills, and manage inventory with zero subscription costs."
+            "text": "Yes! InvoCentric offers a Free Plan with no credit card required, allowing you to create invoices, manage up to 30 customers and 50 items, and use offline storage. A Pro Plan is available at ₹199/month for unlimited items, cloud sync, and advanced features."
           }
         },
         {
@@ -106,7 +105,7 @@ export const DEFAULT_HOME_SCHEMA = {
           "name": "Does InvoCentric work offline without internet? (क्या यह ऑफलाइन बिना इंटरनेट के काम करता है?)",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Absolutely! InvoCentric is offline-first. It saves all your sales, bills, invoices, and ledgers locally on your device. Once your device connects to the internet, it auto-syncs your data securely."
+            "text": "Yes! InvoCentric is designed offline-first, saving sales, invoices, and customer records locally in your browser storage so you can work without an internet connection. Pro users can also enable cloud backup and multi-device sync."
           }
         },
         {
