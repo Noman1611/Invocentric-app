@@ -91,35 +91,50 @@ export default function SettingsPage() {
 
   const isLoadedRef = useRef(false);
   const debounceTimerRef = useRef<any>(null);
-  const [formData, setFormData] = useState({
-    business_name: '',
-    owner_name: '',
-    currency: 'INR',
-    phone: '',
-    email: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: '',
-    gstin: '',
-    upi_id: '',
-    bank_name: '',
-    bank_branch: '',
-    account_number: '',
-    ifsc_code: '',
-    account_holder: '',
-    invoice_prefix: 'INV',
-    logo_url: '',
-    backup_enabled: false,
-    email_reminders_enabled: true,
-    instagram: '',
-    facebook: '',
-    website: '',
-    social_qr_url: '',
-    social_qr_label: '@business_handle',
-    invoice_template: 'gst_classic',
-    signature_url: ''
-  });
+
+  const getInitialFormData = () => {
+    const defaultData = {
+      business_name: '',
+      owner_name: '',
+      currency: 'INR',
+      phone: '',
+      email: '',
+      address: '',
+      city: '',
+      state: '',
+      pincode: '',
+      gstin: '',
+      upi_id: '',
+      bank_name: '',
+      bank_branch: '',
+      account_number: '',
+      ifsc_code: '',
+      account_holder: '',
+      invoice_prefix: 'INV',
+      logo_url: '',
+      backup_enabled: false,
+      email_reminders_enabled: true,
+      instagram: '',
+      facebook: '',
+      website: '',
+      social_qr_url: '',
+      social_qr_label: '@business_handle',
+      invoice_template: 'template_01',
+      signature_url: ''
+    };
+    if (typeof window !== 'undefined' && user?.uid) {
+      try {
+        const cached = getSecureStorage(`user_profile_${user.uid}`, null) || 
+          (localStorage.getItem(`user_profile_${user.uid}`) ? JSON.parse(localStorage.getItem(`user_profile_${user.uid}`)!) : null);
+        if (cached && typeof cached === 'object') {
+          return { ...defaultData, ...cached };
+        }
+      } catch (e) {}
+    }
+    return defaultData;
+  };
+
+  const [formData, setFormData] = useState(getInitialFormData);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -330,40 +345,23 @@ export default function SettingsPage() {
       if (!user) return;
       setLoading(true);
       try {
+        // 1. Immediately read local cache (both secureStorage and localStorage) to avoid blank-screen wipes
+        const cached = getSecureStorage(`user_profile_${user.uid}`, null) || 
+          (localStorage.getItem(`user_profile_${user.uid}`) ? JSON.parse(localStorage.getItem(`user_profile_${user.uid}`)!) : null);
+        
+        if (cached && typeof cached === 'object') {
+          setFormData(prev => ({
+            ...prev,
+            ...cached,
+            upi_id: cached.upi_id || prev.upi_id || '',
+            bank_name: cached.bank_name || prev.bank_name || '',
+            account_number: cached.account_number || prev.account_number || '',
+            ifsc_code: cached.ifsc_code || prev.ifsc_code || '',
+            invoice_template: cached.invoice_template || prev.invoice_template || 'template_01'
+          }));
+        }
+
         if (isOfflineModeReal) {
-          const cached = getSecureStorage(`user_profile_${user.uid}`, null);
-          if (cached) {
-            const data = typeof cached === 'string' ? JSON.parse(cached) : cached;
-            setFormData({
-              business_name: data.business_name || '',
-              owner_name: data.owner_name || data.display_name || '',
-              currency: data.currency || 'INR',
-              phone: data.phone || '',
-              email: data.email || '',
-              address: data.address || '',
-              city: data.city || '',
-              state: data.state || '',
-              pincode: data.pincode || '',
-              gstin: data.gstin || '',
-              upi_id: data.upi_id || '',
-              bank_name: data.bank_name || '',
-              bank_branch: data.bank_branch || '',
-              account_number: data.account_number || '',
-              ifsc_code: data.ifsc_code || '',
-              account_holder: data.account_holder || '',
-              invoice_prefix: data.invoice_prefix || 'INV',
-              logo_url: data.logo_url || '',
-              backup_enabled: data.backup_enabled || false,
-              email_reminders_enabled: data.email_reminders_enabled !== undefined ? data.email_reminders_enabled : true,
-              instagram: data.instagram || '',
-              facebook: data.facebook || '',
-              website: data.website || '',
-              social_qr_url: data.social_qr_url || '',
-              social_qr_label: data.social_qr_label || '@business_handle',
-              invoice_template: data.invoice_template || 'gst_classic',
-              signature_url: data.signature_url || ''
-            });
-          }
           setTimeout(() => {
             isLoadedRef.current = true;
           }, 300);
@@ -371,40 +369,49 @@ export default function SettingsPage() {
           return;
         }
 
+        // 2. Fetch from Firestore and intelligently merge with cached data
         const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setFormData({
-            business_name: data.business_name || '',
-            owner_name: data.owner_name || data.display_name || '',
-            currency: data.currency || 'INR',
-            phone: data.phone || '',
-            email: data.email || '',
-            address: data.address || '',
-            city: data.city || '',
-            state: data.state || '',
-            pincode: data.pincode || '',
-            gstin: data.gstin || '',
-            upi_id: data.upi_id || '',
-            bank_name: data.bank_name || '',
-            bank_branch: data.bank_branch || '',
-            account_number: data.account_number || '',
-            ifsc_code: data.ifsc_code || '',
-            account_holder: data.account_holder || '',
-            invoice_prefix: data.invoice_prefix || 'INV',
-            logo_url: data.logo_url || '',
-            backup_enabled: data.backup_enabled || false,
-            email_reminders_enabled: data.email_reminders_enabled !== undefined ? data.email_reminders_enabled : true,
-            instagram: data.instagram || '',
-            facebook: data.facebook || '',
-            website: data.website || '',
-            social_qr_url: data.social_qr_url || '',
-            social_qr_label: data.social_qr_label || '@business_handle',
-            invoice_template: data.invoice_template || 'gst_classic',
-            signature_url: data.signature_url || ''
-          });
+          const merged: any = {
+            business_name: data.business_name || cached?.business_name || '',
+            owner_name: data.owner_name || data.display_name || cached?.owner_name || cached?.display_name || '',
+            currency: data.currency || cached?.currency || 'INR',
+            phone: data.phone || cached?.phone || '',
+            email: data.email || cached?.email || '',
+            address: data.address || cached?.address || '',
+            city: data.city || cached?.city || '',
+            state: data.state || cached?.state || '',
+            pincode: data.pincode || cached?.pincode || '',
+            gstin: data.gstin || cached?.gstin || '',
+            upi_id: data.upi_id || cached?.upi_id || '',
+            bank_name: data.bank_name || cached?.bank_name || '',
+            bank_branch: data.bank_branch || cached?.bank_branch || '',
+            account_number: data.account_number || cached?.account_number || '',
+            ifsc_code: data.ifsc_code || cached?.ifsc_code || '',
+            account_holder: data.account_holder || cached?.account_holder || '',
+            invoice_prefix: data.invoice_prefix || cached?.invoice_prefix || 'INV',
+            logo_url: data.logo_url || cached?.logo_url || '',
+            backup_enabled: data.backup_enabled ?? cached?.backup_enabled ?? false,
+            email_reminders_enabled: data.email_reminders_enabled ?? cached?.email_reminders_enabled ?? true,
+            instagram: data.instagram || cached?.instagram || '',
+            facebook: data.facebook || cached?.facebook || '',
+            website: data.website || cached?.website || '',
+            social_qr_url: data.social_qr_url || cached?.social_qr_url || '',
+            social_qr_label: data.social_qr_label || cached?.social_qr_label || '@business_handle',
+            invoice_template: data.invoice_template || cached?.invoice_template || 'template_01',
+            signature_url: data.signature_url || cached?.signature_url || ''
+          };
+          setFormData(merged);
+          setSecureStorage(`user_profile_${user.uid}`, merged);
+          localStorage.setItem(`user_profile_${user.uid}`, JSON.stringify(merged));
+
+          // If local cache had upi_id but Firestore was missing it, sync to Firestore now
+          if (!data.upi_id && merged.upi_id) {
+            setDoc(docRef, { upi_id: merged.upi_id }, { merge: true }).catch(console.warn);
+          }
         }
         // Wait a brief moment to ensure React state has flushed before turning on auto-save
         setTimeout(() => {
@@ -418,7 +425,53 @@ export default function SettingsPage() {
       }
     }
     fetchSettings();
-  }, [user]);
+  }, [user, isOfflineModeReal]);
+
+  // Robust persistence across local secureStorage, localStorage, IndexedDB, and Firestore
+  const persistSettings = async (dataToSave: typeof formData) => {
+    if (!user) return;
+    
+    // 1. Local secure storage & localStorage
+    setSecureStorage(`user_profile_${user.uid}`, dataToSave);
+    localStorage.setItem(`user_profile_${user.uid}`, JSON.stringify(dataToSave));
+
+    // 2. Offline users collection mirror
+    const cachedUsers = getSecureStorage(`offline_users_${user.uid}`, []);
+    const updatedUsers = Array.isArray(cachedUsers) && cachedUsers.length > 0
+      ? cachedUsers.map((u: any) => u.id === user.uid ? { ...u, ...dataToSave } : u)
+      : [{ id: user.uid, ...dataToSave }];
+    setSecureStorage(`offline_users_${user.uid}`, updatedUsers);
+
+    // 3. dbService (IndexedDB) in both online and offline modes
+    try {
+      await dbService.update('users', user.uid, dataToSave, { offlineMode: isOfflineModeReal, userId: user.uid });
+    } catch (err) {
+      console.warn("dbService users update handled:", err);
+    }
+
+    // 4. Firestore (if online)
+    if (!isOfflineModeReal && navigator.onLine) {
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      
+      const updateData: any = {
+        ...dataToSave,
+        updated_at: serverTimestamp(),
+      };
+      
+      if (!userDocSnap.exists() || !userDocSnap.data()?.created_at) {
+        updateData.created_at = serverTimestamp();
+      }
+      if (!userDocSnap.exists() || !userDocSnap.data()?.email) {
+        updateData.email = user.email || null;
+      }
+      if (!userDocSnap.exists() || !userDocSnap.data()?.id) {
+        updateData.id = user.uid;
+      }
+      
+      await setDoc(userDocRef, updateData, { merge: true });
+    }
+  };
 
   // Debounced Auto-Save
   useEffect(() => {
@@ -438,39 +491,8 @@ export default function SettingsPage() {
 
     debounceTimerRef.current = setTimeout(async () => {
       try {
-        // Always cache local profile immediately so changes show up in invoices right away
-        setSecureStorage(`user_profile_${user.uid}`, formData);
-
-        if (isOfflineModeReal) {
-          await dbService.update('users', user.uid, formData, { offlineMode: true, userId: user.uid });
-          setSaveStatus('saved');
-          setTimeout(() => {
-            setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
-          }, 3000);
-          return;
-        }
-
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        
-        const updateData: any = {
-          ...formData,
-          updated_at: serverTimestamp(),
-        };
-        
-        if (!userDocSnap.exists() || !userDocSnap.data()?.created_at) {
-          updateData.created_at = serverTimestamp();
-        }
-        if (!userDocSnap.exists() || !userDocSnap.data()?.email) {
-          updateData.email = user.email || null;
-        }
-        if (!userDocSnap.exists() || !userDocSnap.data()?.id) {
-          updateData.id = user.uid;
-        }
-        
-        await setDoc(userDocRef, updateData, { merge: true });
+        await persistSettings(formData);
         setSaveStatus('saved');
-        
         setTimeout(() => {
           setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
         }, 3000);
@@ -498,41 +520,9 @@ export default function SettingsPage() {
     setSaving(true);
     setSaveStatus('saving');
     try {
-      // Always cache local profile immediately so changes show up in invoices right away
-      setSecureStorage(`user_profile_${user.uid}`, formData);
-
-      if (isOfflineModeReal) {
-        await dbService.update('users', user.uid, formData, { offlineMode: true, userId: user.uid });
-        setSaveStatus('saved');
-        alert("Settings saved successfully offline!");
-        setTimeout(() => {
-          setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
-        }, 3000);
-        return;
-      }
-
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-      
-      const updateData: any = {
-        ...formData,
-        updated_at: serverTimestamp(),
-      };
-      
-      if (!userDocSnap.exists() || !userDocSnap.data()?.created_at) {
-        updateData.created_at = serverTimestamp();
-      }
-      if (!userDocSnap.exists() || !userDocSnap.data()?.email) {
-        updateData.email = user.email || null;
-      }
-      if (!userDocSnap.exists() || !userDocSnap.data()?.id) {
-        updateData.id = user.uid;
-      }
-      
-      await setDoc(userDocRef, updateData, { merge: true });
-      
+      await persistSettings(formData);
       setSaveStatus('saved');
-      alert("Settings saved successfully!");
+      alert("Settings saved successfully! (सेटिंग्स सुरक्षित रूप से सहेज ली गई हैं)");
       setTimeout(() => {
         setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
       }, 3000);

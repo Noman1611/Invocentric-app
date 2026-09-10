@@ -200,12 +200,14 @@ export default function SetupWizard({
     if (!user) return;
 
     setSavingWizard(true);
+    const existingProfile = getSecureStorage(`user_profile_${user.uid}`, null) || {};
     const updatedData = {
+      ...existingProfile,
       ...wizardForm,
-      business_name: wizardForm.business_name?.trim() || user.displayName || 'My Business',
-      owner_name: wizardForm.owner_name || user.displayName || 'Owner',
-      display_name: wizardForm.owner_name || user.displayName || 'Owner',
-      email: wizardForm.email || user.email || '',
+      business_name: wizardForm.business_name?.trim() || existingProfile.business_name || user.displayName || 'My Business',
+      owner_name: wizardForm.owner_name || existingProfile.owner_name || user.displayName || 'Owner',
+      display_name: wizardForm.owner_name || existingProfile.display_name || user.displayName || 'Owner',
+      email: wizardForm.email || existingProfile.email || user.email || '',
       wizard_completed: true,
       updated_at: new Date().toISOString()
     };

@@ -74,6 +74,7 @@ export default function CreateInvoicePage() {
   const [focusedItemIndex, setFocusedItemIndex] = useState<number | null>(null);
   const [focusedRowField, setFocusedRowField] = useState<{ index: number; field: 'brand' | 'category' | 'serialNumber' } | null>(null);
   const [openMobileDetails, setOpenMobileDetails] = useState<Record<number, boolean>>({});
+  const [showCustomizationPanel, setShowCustomizationPanel] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -914,6 +915,64 @@ export default function CreateInvoicePage() {
     });
   };
 
+  const handleSelectInventoryItem = (index: number, invItem: any) => {
+    const itemStock = typeof invItem.stock === 'number' ? invItem.stock : 0;
+    const isOutOfStock = itemStock <= 0;
+    if (appMode !== 'freelancer' && isOutOfStock && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE') {
+      playErrorBeepSound(soundEnabled);
+      alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nPlease update item stock in inventory.`);
+    }
+
+    const newVisibility = { ...formData.columnVisibility };
+    if (invItem.size) newVisibility.size = true;
+    if (invItem.hsn) newVisibility.hsn = true;
+    if (invItem.mrp) newVisibility.mrp = true;
+    if (invItem.discount) newVisibility.discount = true;
+    if (invItem.gstPercent) newVisibility.gstPercent = true;
+
+    setFormData(prev => ({
+      ...prev,
+      columnVisibility: {
+        ...prev.columnVisibility,
+        ...newVisibility
+      }
+    }));
+
+    const selectedRate = (formData.price_tier === 'wholesale' && (invItem as any).wholesale_price)
+      ? Number((invItem as any).wholesale_price)
+      : (invItem.price || 0);
+
+    updateItemBatch(index, {
+      description: invItem.name,
+      price: selectedRate,
+      hsn: invItem.hsn || '',
+      size: invItem.size || '',
+      gstPercent: invItem.gstPercent || 0,
+      mrp: invItem.mrp || invItem.price || 0,
+      discount: invItem.discount || 0,
+      custom_box: invItem.custom_box || invItem.description || '',
+      serialNumber: (() => {
+        if (Array.isArray((invItem as any).serials) && (invItem as any).serials.length > 0) {
+          const otherSelected = new Set(
+            formData.items.filter((_, rIdx) => rIdx !== index).map(it => (it.serialNumber || '').trim().toLowerCase())
+          );
+          const isString = typeof (invItem as any).serials[0] === 'string';
+          if (isString) {
+            const avail = ((invItem as any).serials as string[]).find(s => s && !otherSelected.has(s.trim().toLowerCase()));
+            if (avail) return avail;
+          } else {
+            const availObj = (invItem as any).serials.find((s: any) => s && (s.status === 'in_stock' || !s.status) && !otherSelected.has(String(s.code || '').toLowerCase()));
+            if (availObj) return availObj.code;
+          }
+        }
+        return (invItem as any).serialNumber || '';
+      })(),
+      brand: invItem.brand || '',
+      category: invItem.category || ''
+    });
+    setFocusedItemIndex(null);
+  };
+
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newCustomer.name) return;
@@ -1296,116 +1355,123 @@ export default function CreateInvoicePage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8 px-2 sm:px-4 pb-28 md:pb-12">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors cursor-pointer">
-            <ArrowLeft size={20} />
+    <div className="w-full max-w-5xl lg:max-w-[1680px] mx-auto px-2 sm:px-4 pb-28 lg:pb-3 lg:h-[calc(100vh-4.25rem)] lg:overflow-hidden flex flex-col space-y-3">
+      {/* ── Top Header Bar ── */}
+      <header className="flex flex-row items-center justify-between gap-2 sm:gap-4 bg-white dark:bg-slate-900 px-3 py-2 sm:px-5 sm:py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer text-slate-700 dark:text-slate-200">
+            <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{id ? 'Edit' : 'Create'} Invoice</h1>
-            <p className="text-xs font-semibold text-slate-400">{id ? 'Modify your existing invoice.' : 'Create a new invoice and deliver it instantly.'}</p>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{id ? 'Edit' : 'Create'} Invoice</h1>
+            <p className="text-[10px] sm:text-xs font-semibold text-slate-400 hidden sm:block">{id ? 'Modify your existing invoice.' : 'Create a new invoice and deliver it instantly.'}</p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
           <label className={cn(
-            "btn-secondary flex items-center gap-2 cursor-pointer transition-all px-3 py-2 rounded-2xl text-xs font-bold",
+            "btn-secondary flex items-center gap-1.5 cursor-pointer transition-all px-2.5 py-1.5 rounded-xl text-xs font-bold",
             aiLoading ? "opacity-50 pointer-events-none" : "hover:border-emerald-500 hover:text-emerald-700"
           )}>
-            {aiLoading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+            {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
             <span className="flex items-center gap-1">
               {aiLoading ? 'AI Reading...' : 'AI Scan Bill'}
-              {!aiLoading && <Sparkles size={13} className="text-amber-500" />}
+              {!aiLoading && <Sparkles size={12} className="text-amber-500" />}
             </span>
             <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
           </label>
         </div>
       </header>
 
-      <form className="space-y-6 sm:space-y-8" onSubmit={(e) => e.preventDefault()}>
-        <div className="glass-card p-4 sm:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="label">{appMode === 'freelancer' ? 'Client' : 'Customer'}</label>
+      {/* ── Main Responsive Content Area (PC: 2 Columns, No Scroll | Mobile: Stacked) ── */}
+      <form className="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 sm:gap-4 overflow-visible lg:overflow-hidden" onSubmit={(e) => e.preventDefault()}>
+        
+        {/* ── Left Pane: Meta Row + Items Table (Fills remaining height) ── */}
+        <div className="w-full lg:flex-1 flex flex-col lg:min-w-0 lg:h-full lg:overflow-hidden gap-3">
+          
+          {/* Compact Metadata Row */}
+          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 shrink-0">
+            {/* Customer */}
+            <div className="col-span-2 md:col-span-1 lg:col-span-1">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{appMode === 'freelancer' ? 'Client' : 'Customer'}</label>
                 <button
                   type="button"
                   onClick={() => setShowAddCustomerModal(true)}
-                  className="text-xs font-bold text-neutral-900 flex items-center gap-1 hover:underline"
+                  className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 hover:underline cursor-pointer"
                 >
-                  <Plus size={12} />
-                  {appMode === 'freelancer' ? 'New Client' : 'New Customer'}
+                  <Plus size={10} />
+                  <span>New</span>
                 </button>
               </div>
-              <select 
-                className="input-field"
+              <select
+                className="input-field text-xs py-1.5 px-2 font-medium"
                 value={formData.customer_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, customer_id: e.target.value }))}
               >
-                <option value="">{appMode === 'freelancer' ? 'Direct / Individual Client' : 'Cash Sale (No Customer)'}</option>
+                <option value="">{appMode === 'freelancer' ? 'Direct Client' : 'Cash Sale (No Customer)'}</option>
                 {customers.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
-          </div>
-          <div className="space-y-4">
+
+            {/* Invoice Number */}
             <div>
-              <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">Invoice Number</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">Invoice #</label>
               <input
                 type="text"
-                className="input-field font-semibold text-xs"
+                className="input-field text-xs py-1.5 px-2 font-semibold"
                 value={formData.invoice_number}
                 onChange={(e) => setFormData(prev => ({ ...prev, invoice_number: e.target.value }))}
-                placeholder="INV-2026-0001 (Auto)"
+                placeholder="INV-Auto"
               />
             </div>
-          </div>
-          <div className="space-y-4">
+
+            {/* Invoice Date */}
             <div>
-              <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">Invoice Date</label>
-              <input 
-                type="date" 
-                className="input-field font-semibold text-xs" 
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">Inv Date</label>
+              <input
+                type="date"
+                className="input-field text-xs py-1.5 px-2 font-semibold"
                 value={formData.invoice_date || new Date().toISOString().split('T')[0]}
                 onChange={(e) => setFormData(prev => ({ ...prev, invoice_date: e.target.value }))}
                 required
               />
             </div>
-          </div>
-          <div className="space-y-4">
+
+            {/* Due Date */}
             <div>
-              <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">Due Date</label>
-              <input 
-                type="date" 
-                className="input-field font-semibold text-xs" 
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">Due Date</label>
+              <input
+                type="date"
+                className="input-field text-xs py-1.5 px-2 font-semibold"
                 value={formData.due_date}
                 onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
                 required
               />
             </div>
-          </div>
-          <div className="space-y-4">
+
+            {/* Currency */}
             <div>
-              <label className="label block">Currency</label>
-              <select 
-                className="input-field"
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">Currency</label>
+              <select
+                className="input-field text-xs py-1.5 px-2 font-medium"
                 value={formData.currency}
                 onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
                 required
               >
                 {CURRENCIES.map(c => (
-                  <option key={c.code} value={c.code}>{c.code} ({c.symbol}) - {c.name}</option>
+                  <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
                 ))}
               </select>
             </div>
-          </div>
-          <div className="space-y-4">
+
+            {/* Bill Type */}
             <div>
-              <label className="label block">Bill Type</label>
-              <select 
-                className="input-field"
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 block">Bill Type</label>
+              <select
+                className="input-field text-xs py-1.5 px-2 font-medium"
                 value={formData.bill_type === 'ESTIMATE' ? 'QUOTATION' : formData.bill_type}
                 onChange={(e) => {
                   const newType = e.target.value;
@@ -1425,223 +1491,112 @@ export default function CreateInvoicePage() {
               </select>
             </div>
           </div>
-        </div>
 
-        {/* Template & Box Visibility Customization Panel */}
-        <div className="glass-card p-4 sm:p-6 space-y-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-sm rounded-2xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-zinc-800 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Palette className="w-5 h-5 text-green-600 dark:text-green-400" />
-                Invoice Layout Template &amp; Box Customization
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Select professional GST template style &amp; choose which boxes to display on this invoice.
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold px-2.5 py-1 bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-300 rounded-lg border border-green-200 dark:border-green-800">
-                100% Fully Configurable
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Template Selector */}
-            <div className="md:col-span-1 space-y-2">
-              <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Invoice Template Style
-              </label>
-              <select
-                className="input-field font-semibold text-sm"
-                value={formData.invoice_template || 'template_01'}
-                onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
-              >
-                <option value="template_01">Template 01 — Blue Bordered + IGST Columns (A4)</option>
-                <option value="template_02">Template 02 — Blue Line Top + IGST Columns (A4)</option>
-                <option value="template_03">Template 03 — Supplier B2B (Dedicated Serial / Batch Column)</option>
-                <option value="template_04">Template 04 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
-                <option value="template_05">Template 05 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
-              </select>
-              <p className="text-[11px] text-slate-500 italic">
-                Applies instant layout formatting to preview &amp; printouts.
-              </p>
-            </div>
-
-            {/* Document Header Text Customization */}
-            <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Custom Invoice Title
-                </label>
-                <input
-                  type="text"
-                  className="input-field text-xs font-semibold"
-                  placeholder="TAX INVOICE / CASH MEMO"
-                  value={formData.invoice_title || 'TAX INVOICE'}
-                  onChange={(e) => setFormData(p => ({ ...p, invoice_title: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Copy Subtitle
-                </label>
-                <input
-                  type="text"
-                  className="input-field text-xs font-semibold"
-                  placeholder="ORIGINAL FOR RECIPIENT"
-                  value={formData.copy_subtitle || 'ORIGINAL FOR RECIPIENT'}
-                  onChange={(e) => setFormData(p => ({ ...p, copy_subtitle: e.target.value }))}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Granular Box Toggles (Show / Hide any box) */}
-          <div className="pt-2">
-            <label className="label block font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2">
-              Select Boxes / Sections to Include in this Invoice (Show or Hide any Box)
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-              {[
-                { key: 'bank_details', label: 'Bank Details' },
-                { key: 'upi_qr', label: 'UPI QR Code' },
-                { key: 'signature', label: 'Signature Box' },
-                { key: 'seller_address', label: 'Shop Address' },
-                { key: 'customer_gstin', label: 'Customer GSTIN' },
-                { key: 'terms', label: 'Terms & Conditions' },
-                { key: 'declaration', label: 'Declaration Box' },
-                { key: 'amount_in_words', label: 'Amount in Words' },
-                { key: 'hsn_summary', label: 'HSN Table' },
-                { key: 'footer', label: 'Footer Notes' },
-              ].map((box) => {
-                const isHidden = formData.hide_sections?.[box.key] === true;
-                return (
+          {/* Items Card */}
+          <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex-1 flex flex-col min-h-0 lg:overflow-hidden">
+            {/* Items Toolbar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-2.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{appMode === 'freelancer' ? 'Services' : 'Items'}</h3>
+                
+                {/* Retail / Wholesale Toggle */}
+                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
                   <button
-                    key={box.key}
                     type="button"
-                    onClick={() => setFormData(p => ({
-                      ...p,
-                      hide_sections: {
-                        ...p.hide_sections,
-                        [box.key]: !isHidden
-                      }
-                    }))}
+                    onClick={() => setFormData(p => ({ ...p, price_tier: 'retail' }))}
                     className={cn(
-                      "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer select-none",
-                      !isHidden
-                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 shadow-xs"
-                        : "bg-slate-50 dark:bg-zinc-800/50 border-slate-200 dark:border-zinc-700 text-slate-400 line-through opacity-70"
+                      "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                      formData.price_tier !== 'wholesale'
+                        ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-xs"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                     )}
                   >
-                    <span>{box.label}</span>
-                    {!isHidden ? (
-                      <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
-                    ) : (
-                      <EyeOff size={13} className="text-slate-400 shrink-0 ml-1" />
-                    )}
+                    Retail
                   </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(p => ({ ...p, price_tier: 'wholesale' }))}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                      formData.price_tier === 'wholesale'
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                    )}
+                  >
+                    Wholesale
+                  </button>
+                </div>
 
-        <div className="glass-card p-4 sm:p-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-            <div>
-              <h3 className="text-lg font-bold">{appMode === 'freelancer' ? 'Services & Deliverables' : 'Items'}</h3>
-              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-1">
-                {appMode === 'freelancer' ? 'Configure billing details columns' : 'Configure columns to show in invoice'}
-              </p>
-            </div>
-            
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Pricing Tier Toggle (Wholesale vs Retail) */}
-              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setFormData(p => ({ ...p, price_tier: 'retail' }))}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
-                    formData.price_tier !== 'wholesale'
-                      ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                  )}
-                >
-                  Retail Price
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData(p => ({ ...p, price_tier: 'wholesale' }))}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
-                    formData.price_tier === 'wholesale'
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                  )}
-                >
-                  Wholesale Rate
-                </button>
+                {/* Column Visibility Toggles */}
+                <div className="hidden sm:flex items-center gap-1">
+                  {[
+                    { key: 'size', label: 'Size' },
+                    { key: 'hsn', label: 'HSN' },
+                    { key: 'mrp', label: 'MRP' },
+                    { key: 'discount', label: 'Disc%' },
+                    { key: 'gstPercent', label: 'GST%' }
+                  ].map(col => (
+                    <button
+                      key={col.key}
+                      type="button"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        columnVisibility: {
+                          ...prev.columnVisibility,
+                          [col.key]: !prev.columnVisibility[col.key as keyof typeof prev.columnVisibility]
+                        }
+                      }))}
+                      className={cn(
+                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all border cursor-pointer",
+                        formData.columnVisibility[col.key as keyof typeof formData.columnVisibility]
+                          ? "bg-green-50 border-green-200 text-green-700 shadow-2xs"
+                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300"
+                      )}
+                    >
+                      {col.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {[
-                { key: 'size', label: 'Size' },
-                { key: 'hsn', label: 'HSN' },
-                { key: 'mrp', label: 'MRP' },
-                { key: 'discount', label: 'Disc%' },
-                { key: 'gstPercent', label: 'GST%' }
-              ].map(col => (
+              {/* Barcode & Add Item controls */}
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-52">
+                  <Barcode className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                  <input
+                    type="text"
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    onKeyDown={handleBarcodeScan}
+                    placeholder="Scan Barcode / SKU..."
+                    className="input-field pl-8 py-1 text-xs bg-slate-50 dark:bg-slate-800 focus:bg-white"
+                  />
+                </div>
                 <button
-                  key={col.key}
                   type="button"
-                  onClick={() => setFormData(prev => ({
-                    ...prev,
-                    columnVisibility: {
-                      ...prev.columnVisibility,
-                      [col.key]: !prev.columnVisibility[col.key as keyof typeof prev.columnVisibility]
-                    }
-                  }))}
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all border",
-                    formData.columnVisibility[col.key as keyof typeof formData.columnVisibility]
-                      ? "bg-green-50 border-green-100 text-green-700 shadow-sm"
-                      : "bg-white border-neutral-100 text-neutral-400 hover:border-neutral-200"
-                  )}
+                  onClick={() => setShowScanner(true)}
+                  className="p-1.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg cursor-pointer"
+                  title="Open Camera Scanner"
                 >
-                  {col.label}
+                  <ScanLine size={15} />
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="flex items-center gap-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
+                >
+                  <Plus size={14} />
+                  <span>Add Item</span>
+                </button>
+              </div>
             </div>
 
-            <div className="relative w-full md:w-80 shrink-0 flex gap-2">
-              <div className="relative flex-1">
-                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-                <input
-                  type="text"
-                  value={barcodeInput}
-                  onChange={(e) => setBarcodeInput(e.target.value)}
-                  onKeyDown={handleBarcodeScan}
-                  placeholder="Scan Barcode or SKU..."
-                  className="input-field pl-10 py-2 border-green-100 bg-green-50/50 text-sm focus:bg-white"
-                />
-              </div>
-              <button 
-                type="button"
-                onClick={() => setShowScanner(true)}
-                className="btn-secondary px-3 flex items-center justify-center shrink-0 border-green-200 text-green-700 hover:bg-green-50 focus:ring-4 focus:ring-green-100"
-                title="Open Camera Scanner"
-              >
-                <ScanLine size={18} />
-              </button>
-            </div>
-          </div>
-          <div className="space-y-4">
+            {/* Items List (Internal scroll container on PC, normal on mobile) */}
+            <div className="space-y-3 pt-3 flex-1 lg:overflow-y-auto lg:pr-1.5">
             {formData.items.map((item, index) => (
               <React.Fragment key={index}>
                 {/* ── Mobile View: Dedicated Responsive Item Card (< 768px) ── */}
-                <div className="block md:hidden bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 relative">
+                <div className={cn("block md:hidden bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 relative transition-all", focusedItemIndex === index ? "z-40 ring-2 ring-emerald-500/20" : "z-0")}>
                   {/* Card Top: Index Badge + Description Input + Remove Button */}
                   <div className="flex items-start gap-2">
                     <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 mt-6">
@@ -1657,7 +1612,7 @@ export default function CreateInvoicePage() {
                         placeholder={appMode === 'freelancer' ? 'e.g. Website Design...' : 'Start typing item name...'}
                         value={item.description}
                         onFocus={() => setFocusedItemIndex(index)}
-                        onBlur={() => setTimeout(() => setFocusedItemIndex(null), 250)}
+                        onBlur={() => setTimeout(() => setFocusedItemIndex(null), 350)}
                         onChange={(e) => updateItem(index, 'description', e.target.value)}
                       />
                       {item.serialNumber && (
@@ -1669,7 +1624,7 @@ export default function CreateInvoicePage() {
                         </div>
                       )}
                       {focusedItemIndex === index && (
-                        <div className="absolute left-0 right-0 sm:right-auto top-full z-[150] mt-1 w-full max-w-full sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
+                        <div className="absolute -left-9 -right-12 sm:left-0 sm:right-auto top-full z-[150] mt-1 sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
                           {inventoryItems
                             .filter(invItem => {
                               const term = (item.description || '').toLowerCase();
@@ -1687,60 +1642,13 @@ export default function CreateInvoicePage() {
                                 <button
                                   key={invItem.id}
                                   type="button"
-                                  onMouseDown={() => {
-                                    if (appMode !== 'freelancer' && isOutOfStock && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE') {
-                                      playErrorBeepSound(soundEnabled);
-                                      alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nPlease update item stock in inventory.`);
-                                    }
-
-                                    const newVisibility = { ...formData.columnVisibility };
-                                    if (invItem.size) newVisibility.size = true;
-                                    if (invItem.hsn) newVisibility.hsn = true;
-                                    if (invItem.mrp) newVisibility.mrp = true;
-                                    if (invItem.discount) newVisibility.discount = true;
-                                    if (invItem.gstPercent) newVisibility.gstPercent = true;
-
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      columnVisibility: {
-                                        ...prev.columnVisibility,
-                                        ...newVisibility
-                                      }
-                                    }));
-
-                                    const selectedRate = (formData.price_tier === 'wholesale' && (invItem as any).wholesale_price)
-                                      ? Number((invItem as any).wholesale_price)
-                                      : (invItem.price || 0);
-
-                                    updateItemBatch(index, {
-                                      description: invItem.name,
-                                      price: selectedRate,
-                                      hsn: invItem.hsn || '',
-                                      size: invItem.size || '',
-                                      gstPercent: invItem.gstPercent || 0,
-                                      mrp: invItem.mrp || invItem.price || 0,
-                                      discount: invItem.discount || 0,
-                                      custom_box: invItem.custom_box || invItem.description || '',
-                                      serialNumber: (() => {
-                                        if (Array.isArray((invItem as any).serials) && (invItem as any).serials.length > 0) {
-                                          const otherSelected = new Set(
-                                            formData.items.filter((_, rIdx) => rIdx !== index).map(it => (it.serialNumber || '').trim().toLowerCase())
-                                          );
-                                          const isString = typeof (invItem as any).serials[0] === 'string';
-                                          if (isString) {
-                                            const avail = ((invItem as any).serials as string[]).find(s => s && !otherSelected.has(s.trim().toLowerCase()));
-                                            if (avail) return avail;
-                                          } else {
-                                            const availObj = (invItem as any).serials.find((s: any) => s && (s.status === 'in_stock' || !s.status) && !otherSelected.has(String(s.code || '').toLowerCase()));
-                                            if (availObj) return availObj.code;
-                                          }
-                                        }
-                                        return (invItem as any).serialNumber || '';
-                                      })(),
-                                      brand: invItem.brand || '',
-                                      category: invItem.category || ''
-                                    });
-                                    setFocusedItemIndex(null);
+                                  onPointerDown={(e) => {
+                                    e.preventDefault();
+                                    handleSelectInventoryItem(index, invItem);
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleSelectInventoryItem(index, invItem);
                                   }}
                                   className={cn(
                                     "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium text-xs",
@@ -2080,7 +1988,7 @@ export default function CreateInvoicePage() {
                         placeholder={appMode === 'freelancer' ? 'e.g. Website Design, Consulting...' : 'Start typing item name...'}
                         value={item.description}
                         onFocus={() => setFocusedItemIndex(index)}
-                        onBlur={() => setTimeout(() => setFocusedItemIndex(null), 250)}
+                        onBlur={() => setTimeout(() => setFocusedItemIndex(null), 350)}
                         onChange={(e) => updateItem(index, 'description', e.target.value)}
                       />
                       {item.serialNumber && (
@@ -2092,7 +2000,7 @@ export default function CreateInvoicePage() {
                         </div>
                       )}
                       {focusedItemIndex === index && (
-                        <div className="absolute left-0 right-0 sm:right-auto top-full z-[150] mt-1 w-full max-w-full sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
+                        <div className="absolute -left-9 -right-12 sm:left-0 sm:right-auto top-full z-[150] mt-1 sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
                           {inventoryItems
                             .filter(invItem => {
                               const term = (item.description || '').toLowerCase();
@@ -2110,60 +2018,13 @@ export default function CreateInvoicePage() {
                                 <button
                                   key={invItem.id}
                                   type="button"
-                                  onMouseDown={() => {
-                                    if (appMode !== 'freelancer' && isOutOfStock && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE') {
-                                      playErrorBeepSound(soundEnabled);
-                                      alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nPlease update item stock in inventory.`);
-                                    }
-
-                                    const newVisibility = { ...formData.columnVisibility };
-                                    if (invItem.size) newVisibility.size = true;
-                                    if (invItem.hsn) newVisibility.hsn = true;
-                                    if (invItem.mrp) newVisibility.mrp = true;
-                                    if (invItem.discount) newVisibility.discount = true;
-                                    if (invItem.gstPercent) newVisibility.gstPercent = true;
-
-                                    setFormData(prev => ({
-                                      ...prev,
-                                      columnVisibility: {
-                                        ...prev.columnVisibility,
-                                        ...newVisibility
-                                      }
-                                    }));
-
-                                    const selectedRate = (formData.price_tier === 'wholesale' && (invItem as any).wholesale_price)
-                                      ? Number((invItem as any).wholesale_price)
-                                      : (invItem.price || 0);
-
-                                    updateItemBatch(index, {
-                                      description: invItem.name,
-                                      price: selectedRate,
-                                      hsn: invItem.hsn || '',
-                                      size: invItem.size || '',
-                                      gstPercent: invItem.gstPercent || 0,
-                                      mrp: invItem.mrp || invItem.price || 0,
-                                      discount: invItem.discount || 0,
-                                      custom_box: invItem.custom_box || invItem.description || '',
-                                      serialNumber: (() => {
-                                        if (Array.isArray((invItem as any).serials) && (invItem as any).serials.length > 0) {
-                                          const otherSelected = new Set(
-                                            formData.items.filter((_, rIdx) => rIdx !== index).map(it => (it.serialNumber || '').trim().toLowerCase())
-                                          );
-                                          const isString = typeof (invItem as any).serials[0] === 'string';
-                                          if (isString) {
-                                            const avail = ((invItem as any).serials as string[]).find(s => s && !otherSelected.has(s.trim().toLowerCase()));
-                                            if (avail) return avail;
-                                          } else {
-                                            const availObj = (invItem as any).serials.find((s: any) => s && (s.status === 'in_stock' || !s.status) && !otherSelected.has(String(s.code || '').toLowerCase()));
-                                            if (availObj) return availObj.code;
-                                          }
-                                        }
-                                        return (invItem as any).serialNumber || '';
-                                      })(),
-                                      brand: invItem.brand || '',
-                                      category: invItem.category || ''
-                                    });
-                                    setFocusedItemIndex(null);
+                                  onPointerDown={(e) => {
+                                    e.preventDefault();
+                                    handleSelectInventoryItem(index, invItem);
+                                  }}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleSelectInventoryItem(index, invItem);
                                   }}
                                   className={cn(
                                     "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium text-xs",
@@ -2575,270 +2436,367 @@ export default function CreateInvoicePage() {
               <Plus size={16} />
               {appMode === 'freelancer' ? 'Add Service / Task' : 'Add Item'}
             </button>
+            </div>
           </div>
         </div>
 
-        {/* Invoice Terms & Conditions */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">
-              Terms &amp; Conditions / Notes for this Invoice
-            </label>
-            <span className="text-[11px] text-slate-500 font-medium">Prints at the bottom of the invoice</span>
-          </div>
-          <textarea
-            style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
-            className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-600 transition-all resize-y min-h-[90px] shadow-xs placeholder:text-slate-400"
-            placeholder="Specify any terms, conditions, or customized notes for this specific invoice..."
-            value={formData.notes || ''}
-            onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))}
-          />
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 mt-1">
-            <p className="text-[11px] text-slate-600 font-medium">
-              Want to save this as default for all future invoices? (भविष्य के लिए डिफ़ॉल्ट सेट करें)
-            </p>
-            <button
-              type="button"
-              onClick={handleSaveAsDefault}
-              disabled={savingDefaultTerms}
-              className={cn(
-                "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer self-end sm:self-auto",
-                saveTermsSuccess 
-                  ? "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600"
-                  : "bg-green-600 hover:bg-green-700 text-white border border-green-600"
-              )}
-            >
-              {savingDefaultTerms ? (
-                <>
-                  <Loader2 size={13} className="animate-spin text-white" />
-                  Saving...
-                </>
-              ) : saveTermsSuccess ? (
-                <>
-                  <CheckCircle2 size={13} className="text-white animate-bounce" />
-                  Saved as Default!
-                </>
-              ) : (
-                <>
-                  <Save size={13} className="text-white" />
-                  Save as Default
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        {/* ── Right Pane: Summary, Notes, Collapsible Template & Actions ── */}
+        <div className="w-full lg:w-84 xl:lg:w-96 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm lg:h-full lg:overflow-hidden shrink-0">
+          
+          {/* Scrollable middle container */}
+          <div className="p-3.5 sm:p-4 space-y-3.5 lg:flex-1 lg:overflow-y-auto">
+            
+            {/* Collapsible Template & Box Customization */}
+            <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/60 dark:bg-slate-800/40">
+              <button
+                type="button"
+                onClick={() => setShowCustomizationPanel(p => !p)}
+                className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Palette size={14} className="text-emerald-600 shrink-0" />
+                  <span className="truncate">
+                    Template: {formData.invoice_template ? formData.invoice_template.toUpperCase() : 'TEMPLATE_01'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] text-slate-400 font-medium">{showCustomizationPanel ? 'Collapse' : 'Customize'}</span>
+                  <ChevronDown size={14} className={cn("transition-transform duration-200", showCustomizationPanel && "rotate-180")} />
+                </div>
+              </button>
 
-        <div className="flex flex-col md:flex-row items-center justify-between card-base p-4 sm:p-8 gap-6 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-md mb-20 md:mb-6">
-          <div className="text-center md:text-left space-y-2 w-full md:w-auto">
-            <p className="text-sm text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wide">Total Amount</p>
-            <div className="flex flex-wrap items-baseline gap-4 justify-center md:justify-start">
-              <p className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 tabular-nums">
-                {CURRENCIES.find(c => c.code === formData.currency)?.symbol || '$'}
-                {(calculateTotal() || 0).toFixed(2)}
-              </p>
-              {(Number(formData.advance_amount) || 0) > 0 && (
-                <div className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800/60 rounded-xl text-left">
-                  <div className="text-[11px] font-bold text-emerald-800 dark:text-emerald-400">
-                    Advance: {CURRENCIES.find(c => c.code === formData.currency)?.symbol || '₹'}{(Number(formData.advance_amount) || 0).toFixed(2)}
+              {showCustomizationPanel && (
+                <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Invoice Template Style</label>
+                    <select
+                      className="input-field text-xs py-1.5 font-semibold"
+                      value={formData.invoice_template || 'template_01'}
+                      onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
+                    >
+                      <option value="template_01">Template 01 — Blue Bordered + IGST (A4)</option>
+                      <option value="template_02">Template 02 — Blue Line Top + IGST (A4)</option>
+                      <option value="template_03">Template 03 — Supplier B2B (Serial/Batch)</option>
+                      <option value="template_04">Template 04 — POS Thermal (3-Inch / 80mm)</option>
+                      <option value="template_05">Template 05 — POS Thermal (2-Inch / 58mm)</option>
+                    </select>
                   </div>
-                  <div className="text-sm font-black text-green-800 dark:text-green-300">
-                    Balance Due: {CURRENCIES.find(c => c.code === formData.currency)?.symbol || '₹'}{Math.max(0, calculateTotal() - (Number(formData.advance_amount) || 0)).toFixed(2)}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Custom Title</label>
+                      <input
+                        type="text"
+                        className="input-field text-xs py-1"
+                        placeholder="TAX INVOICE"
+                        value={formData.invoice_title || 'TAX INVOICE'}
+                        onChange={(e) => setFormData(p => ({ ...p, invoice_title: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Subtitle</label>
+                      <input
+                        type="text"
+                        className="input-field text-xs py-1"
+                        placeholder="ORIGINAL FOR RECIPIENT"
+                        value={formData.copy_subtitle || 'ORIGINAL FOR RECIPIENT'}
+                        onChange={(e) => setFormData(p => ({ ...p, copy_subtitle: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1.5">Show / Hide Boxes</label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {[
+                        { key: 'bank_details', label: 'Bank Details' },
+                        { key: 'upi_qr', label: 'UPI QR Code' },
+                        { key: 'signature', label: 'Signature Box' },
+                        { key: 'seller_address', label: 'Shop Address' },
+                        { key: 'customer_gstin', label: 'Customer GSTIN' },
+                        { key: 'terms', label: 'Terms & Conditions' },
+                        { key: 'declaration', label: 'Declaration Box' },
+                        { key: 'amount_in_words', label: 'Amount in Words' },
+                        { key: 'hsn_summary', label: 'HSN Table' },
+                        { key: 'footer', label: 'Footer Notes' },
+                      ].map((box) => {
+                        const isHidden = formData.hide_sections?.[box.key] === true;
+                        return (
+                          <button
+                            key={box.key}
+                            type="button"
+                            onClick={() => setFormData(p => ({
+                              ...p,
+                              hide_sections: {
+                                ...p.hide_sections,
+                                [box.key]: !isHidden
+                              }
+                            }))}
+                            className={cn(
+                              "flex items-center justify-between px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer select-none",
+                              !isHidden
+                                ? "bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300"
+                                : "bg-slate-50 border-slate-200 text-slate-400 line-through dark:bg-slate-800 dark:border-slate-700"
+                            )}
+                          >
+                            <span className="truncate">{box.label}</span>
+                            {!isHidden ? (
+                              <CheckCircle2 size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
+                            ) : (
+                              <EyeOff size={11} className="text-slate-400 shrink-0 ml-1" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
-              <div className="flex flex-col">
-                <label className="text-[11px] font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 mb-1">Extra Discount (-)</label>
-                <input 
-                  type="number" 
-                  className="w-28 px-3 py-1.5 border border-slate-300 dark:border-zinc-600 rounded-lg text-sm bg-white dark:bg-zinc-800 text-slate-900 dark:text-slate-100 font-bold focus:ring-2 focus:ring-green-500 shadow-xs"
-                  value={formData.discount}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const cleaned = val.replace(/^0+(?=\d)/, '');
-                    e.target.value = cleaned;
-                    setFormData(p => ({ ...p, discount: Number(cleaned) }));
-                  }}
-                  onFocus={(e) => e.target.select()}
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[11px] font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300 mb-1">Sales Return (+)</label>
-                <input 
-                  type="number" 
-                  className="w-28 px-3 py-1.5 border border-slate-300 dark:border-zinc-600 rounded-lg text-sm bg-white dark:bg-zinc-800 text-slate-900 dark:text-slate-100 font-bold focus:ring-2 focus:ring-green-500 shadow-xs"
-                  value={formData.sales_return}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const cleaned = val.replace(/^0+(?=\d)/, '');
-                    e.target.value = cleaned;
-                    setFormData(p => ({ ...p, sales_return: Number(cleaned) }));
-                  }}
-                  onFocus={(e) => e.target.select()}
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[11px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1">
-                  <span>Delivery / Shipping (+)</span>
-                </label>
-                <input 
-                  type="number" 
-                  placeholder="0"
-                  className="w-32 px-3 py-1.5 border border-blue-300 dark:border-blue-700 rounded-lg text-sm bg-white dark:bg-zinc-800 text-blue-900 dark:text-blue-300 font-bold focus:ring-2 focus:ring-blue-500 shadow-xs"
-                  value={formData.shipping_charges || ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const cleaned = val.replace(/^0+(?=\d)/, '');
-                    e.target.value = cleaned;
-                    setFormData(p => ({ ...p, shipping_charges: Number(cleaned) }));
-                  }}
-                  onFocus={(e) => e.target.select()}
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-[11px] font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-400 mb-1 flex items-center gap-1">
-                  <span>Advance Paid (-)</span>
-                  <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">(एडवांस)</span>
-                </label>
-                <input 
-                  type="number" 
-                  placeholder="0"
-                  className="w-32 px-3 py-1.5 border border-emerald-500 dark:border-emerald-600 rounded-lg text-sm bg-white dark:bg-zinc-800 text-emerald-900 dark:text-emerald-300 font-bold focus:ring-2 focus:ring-emerald-500 shadow-xs"
-                  value={formData.advance_amount || ''}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const cleaned = val.replace(/^0+(?=\d)/, '');
-                    e.target.value = cleaned;
-                    setFormData(p => ({ ...p, advance_amount: Number(cleaned) }));
-                  }}
-                  onFocus={(e) => e.target.select()}
-                />
-              </div>
-            </div>
-          </div>
-          {/* Desktop Actions (>= 768px) */}
-          <div className="hidden md:flex md:items-center md:gap-3 md:w-auto">
-            <button 
-              type="button"
-              disabled={loading}
-              onClick={(e) => handleSubmit(e, 'draft')}
-              className="btn-secondary flex items-center justify-center gap-1.5 py-2 px-2.5 text-xs font-bold rounded-xl transition-all h-11"
-            >
-              <Save size={16} />
-              <span className="truncate">Draft</span>
-            </button>
-            <button 
-              type="button"
-              disabled={loading}
-              onClick={(e) => handleSubmit(e, 'paid', false, true)}
-              className="bg-neutral-950 dark:bg-zinc-800 hover:bg-neutral-900 dark:hover:bg-zinc-750 text-white border border-neutral-900 dark:border-zinc-700 font-bold py-2 px-2.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs h-11"
-              id="save-and-print-btn"
-            >
-              <Printer size={16} />
-              <span className="truncate">Save & Print</span>
-            </button>
-            <button 
-              type="button"
-              disabled={loading}
-              onClick={(e) => handleSubmit(e, 'paid')}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-2.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs h-11"
-            >
-              <CheckCircle2 size={16} />
-              <span className="truncate">Paid</span>
-            </button>
-            <button 
-              type="button"
-              disabled={loading}
-              onClick={(e) => handleSubmit(e, 'sent')}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-2.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs h-11"
-            >
-              <AlertCircle size={16} />
-              <span className="truncate">Unpaid</span>
-            </button>
-            <button 
-              type="button"
-              disabled={loading}
-              onClick={(e) => handleSubmit(e, 'paid', true)}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-2.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 text-xs h-11"
-            >
-              <Plus size={16} />
-              <span className="truncate">Quick POS</span>
-            </button>
-            <button 
-              type="button"
-              disabled={loading}
-              onClick={(e) => handleSubmit(e, 'sent')}
-              className="btn-primary flex items-center justify-center gap-1.5 py-2 px-2.5 shadow-lg shadow-neutral-900/10 text-xs font-bold rounded-xl transition-all h-11"
-            >
-              <Send size={16} />
-              <span className="truncate">Send Invoice</span>
-            </button>
-          </div>
 
-          {/* Mobile Actions (< 768px): Structured 2-Tier Stack */}
-          <div className="flex md:hidden flex-col gap-2.5 w-full">
-            {/* Primary Actions Row */}
-            <div className="grid grid-cols-2 gap-2 w-full">
-              <button 
-                type="button"
-                disabled={loading}
-                onClick={(e) => handleSubmit(e, 'paid', false, true)}
-                className="bg-neutral-950 dark:bg-zinc-800 hover:bg-neutral-900 dark:hover:bg-zinc-750 text-white border border-neutral-900 dark:border-zinc-700 font-bold py-3 px-3 rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[48px]"
-                id="save-and-print-btn-mobile"
-              >
-                <Printer size={16} />
-                <span className="truncate">Save & Print</span>
-              </button>
-              <button 
-                type="button"
-                disabled={loading}
-                onClick={(e) => handleSubmit(e, 'paid')}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-3 rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[48px]"
-              >
-                <CheckCircle2 size={16} />
-                <span className="truncate">Mark Paid</span>
-              </button>
+            {/* Terms & Conditions / Notes */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Terms &amp; Notes</label>
+                <button
+                  type="button"
+                  onClick={handleSaveAsDefault}
+                  disabled={savingDefaultTerms}
+                  className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
+                >
+                  {savingDefaultTerms ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+                  <span>{saveTermsSuccess ? 'Saved!' : 'Save Default'}</span>
+                </button>
+              </div>
+              <textarea
+                rows={2}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 resize-y"
+                placeholder="Terms, conditions, or customized notes..."
+                value={formData.notes || ''}
+                onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))}
+              />
             </div>
 
-            {/* Secondary Actions 4-Column Grid */}
-            <div className="grid grid-cols-4 gap-1.5 w-full">
-              <button 
-                type="button"
-                disabled={loading}
-                onClick={(e) => handleSubmit(e, 'draft')}
-                className="btn-secondary flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-bold rounded-xl transition-all min-h-[44px] active:scale-95"
-              >
-                <Save size={14} />
-                <span className="truncate">Draft</span>
-              </button>
-              <button 
-                type="button"
-                disabled={loading}
-                onClick={(e) => handleSubmit(e, 'sent')}
-                className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-bold rounded-xl transition-all min-h-[44px] active:scale-95"
-              >
-                <AlertCircle size={14} />
-                <span className="truncate">Unpaid</span>
-              </button>
-              <button 
-                type="button"
-                disabled={loading}
-                onClick={(e) => handleSubmit(e, 'paid', true)}
-                className="bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 hover:bg-green-100 flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-bold rounded-xl transition-all min-h-[44px] active:scale-95"
-              >
-                <Plus size={14} />
-                <span className="truncate">POS</span>
-              </button>
-              <button 
-                type="button"
-                disabled={loading}
-                onClick={(e) => handleSubmit(e, 'sent')}
-                className="btn-primary flex flex-col items-center justify-center gap-1 py-2 px-1 text-[10px] font-bold rounded-xl transition-all min-h-[44px] active:scale-95 shadow-xs"
-              >
-                <Send size={14} />
-                <span className="truncate">Send</span>
-              </button>
+            {/* Financial Adjustments */}
+            <div className="space-y-1.5 pt-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Financial Adjustments</label>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold uppercase text-slate-400 block mb-0.5">Extra Discount (-)</label>
+                  <input
+                    type="number"
+                    className="input-field text-xs py-1 px-2 font-bold"
+                    value={formData.discount || ''}
+                    placeholder="0"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const cleaned = val.replace(/^0+(?=\d)/, '');
+                      e.target.value = cleaned;
+                      setFormData(p => ({ ...p, discount: Number(cleaned) }));
+                    }}
+                    onFocus={(e) => e.target.select()}
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold uppercase text-slate-400 block mb-0.5">Sales Return (+)</label>
+                  <input
+                    type="number"
+                    className="input-field text-xs py-1 px-2 font-bold"
+                    value={formData.sales_return || ''}
+                    placeholder="0"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const cleaned = val.replace(/^0+(?=\d)/, '');
+                      e.target.value = cleaned;
+                      setFormData(p => ({ ...p, sales_return: Number(cleaned) }));
+                    }}
+                    onFocus={(e) => e.target.select()}
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold uppercase text-blue-600 block mb-0.5">Delivery / Shipping (+)</label>
+                  <input
+                    type="number"
+                    className="input-field text-xs py-1 px-2 font-bold text-blue-700 dark:text-blue-300"
+                    value={formData.shipping_charges || ''}
+                    placeholder="0"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const cleaned = val.replace(/^0+(?=\d)/, '');
+                      e.target.value = cleaned;
+                      setFormData(p => ({ ...p, shipping_charges: Number(cleaned) }));
+                    }}
+                    onFocus={(e) => e.target.select()}
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold uppercase text-emerald-700 block mb-0.5">Advance Paid (-)</label>
+                  <input
+                    type="number"
+                    className="input-field text-xs py-1 px-2 font-bold text-emerald-800 dark:text-emerald-300"
+                    value={formData.advance_amount || ''}
+                    placeholder="0"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const cleaned = val.replace(/^0+(?=\d)/, '');
+                      e.target.value = cleaned;
+                      setFormData(p => ({ ...p, advance_amount: Number(cleaned) }));
+                    }}
+                    onFocus={(e) => e.target.select()}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Total Amount Card */}
+            <div className="bg-slate-100 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Total Amount:</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
+                  {CURRENCIES.find(c => c.code === formData.currency)?.symbol || '$'}
+                  {(calculateTotal() || 0).toFixed(2)}
+                </span>
+              </div>
+              {(Number(formData.advance_amount) || 0) > 0 && (
+                <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                  <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                    Advance: {CURRENCIES.find(c => c.code === formData.currency)?.symbol || '₹'}{(Number(formData.advance_amount) || 0).toFixed(2)}
+                  </span>
+                  <span className="font-black text-slate-900 dark:text-slate-100">
+                    Due: {CURRENCIES.find(c => c.code === formData.currency)?.symbol || '₹'}{Math.max(0, calculateTotal() - (Number(formData.advance_amount) || 0)).toFixed(2)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Actions Bar (Desktop & Mobile) */}
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-700 shrink-0">
+            {/* Desktop Actions (>= lg) */}
+            <div className="hidden lg:flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'paid', false, true)}
+                  className="bg-neutral-950 dark:bg-zinc-800 hover:bg-neutral-900 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+                  id="save-and-print-btn"
+                >
+                  <Printer size={15} />
+                  <span>Save &amp; Print</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'paid')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+                >
+                  <CheckCircle2 size={15} />
+                  <span>Mark Paid</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'draft')}
+                  className="btn-secondary py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Save size={13} />
+                  <span>Draft</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'sent')}
+                  className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <AlertCircle size={13} />
+                  <span>Unpaid</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'paid', true)}
+                  className="bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 hover:bg-green-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Plus size={13} />
+                  <span>POS</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'sent')}
+                  className="btn-primary py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                >
+                  <Send size={13} />
+                  <span>Send</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Actions (< lg) */}
+            <div className="flex lg:hidden flex-col gap-2 w-full">
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'paid', false, true)}
+                  className="bg-neutral-950 dark:bg-zinc-800 text-white font-bold py-3 px-3 rounded-xl active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[46px]"
+                  id="save-and-print-btn-mobile"
+                >
+                  <Printer size={16} />
+                  <span>Save &amp; Print</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'paid')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-3 rounded-xl active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[46px]"
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Mark Paid</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 w-full">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'draft')}
+                  className="btn-secondary py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                >
+                  <Save size={13} />
+                  <span>Draft</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'sent')}
+                  className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                >
+                  <AlertCircle size={13} />
+                  <span>Unpaid</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'paid', true)}
+                  className="bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                >
+                  <Plus size={13} />
+                  <span>POS</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={(e) => handleSubmit(e, 'sent')}
+                  className="btn-primary py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                >
+                  <Send size={13} />
+                  <span>Send</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

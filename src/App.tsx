@@ -646,7 +646,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     if (!user) return;
     setSavingProfile(true);
     try {
+      const existingProfile = getSecureStorage(`user_profile_${user.uid}`, null) || {};
       const updatedProfile = {
+        ...existingProfile,
         owner_name: profileForm.displayName,
         display_name: profileForm.displayName,
         business_name: profileForm.businessName,
@@ -658,6 +660,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
       // 1. Save to local storage cache immediately
       setSecureStorage(`user_profile_${user.uid}`, updatedProfile);
+      localStorage.setItem(`user_profile_${user.uid}`, JSON.stringify(updatedProfile));
 
       // 2. Save to Firestore if we are online
       if (!isOfflineMode && navigator.onLine) {
