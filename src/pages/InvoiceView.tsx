@@ -161,16 +161,31 @@ export default function InvoiceViewPage() {
   }, [loading, invoice, shouldAutoPrint, hasAutoPrinted]);
 
   const rawTpl: string = invoice?.invoice_template || sellerInfo?.invoice_template || 'template_01';
-  // Map legacy template IDs to new system
+  // Map templates: support the 5 sequential templates and legacy fallbacks
   const legacyMap: Record<string, string> = {
+    'template_01': 'template_01', // Template 01 - Blue Bordered + IGST Columns (A4)
+    'template_02': 'template_02', // Template 02 - Blue Line Top + IGST Columns (A4)
+    'template_03': 'template_03', // Template 03 - Supplier B2B (Dedicated Serial / Batch Column)
+    'template_04': 'template_04', // Template 04 - POS Receipt Thermal (3-Inch / 80mm Roll)
+    'template_05': 'template_05', // Template 05 - POS Receipt Thermal (2-Inch / 58mm Roll)
+
+    // Legacy fallback mapping
+    'template_16': 'template_03',
+    'template_14': 'template_04',
+    'template_15': 'template_05',
     'tally_prime_gst': 'template_01',
-    'gst_classic': 'template_03',
-    'modern_blue': 'template_07',
-    'compact': 'template_09',
-    'minimal': 'template_08',
+    'gst_classic': 'template_02',
+    'modern_blue': 'template_01',
+    'compact': 'template_02',
+    'minimal': 'template_02',
+    'template_07': 'template_01',
+    'template_08': 'template_02',
+    'template_09': 'template_02',
+    'template_10': 'template_02',
+    'template_12': 'template_01',
   };
   const tpl: string = legacyMap[rawTpl] || rawTpl;
-  const isPOS = tpl === 'template_14' || tpl === 'template_15';
+  const isPOS = tpl === 'template_04' || tpl === 'template_05' || tpl === 'template_14' || tpl === 'template_15';
   const isA5 = !isPOS && pageSize === 'A5';
   const items = invoice?.items || [];
   const cur = invoice?.currency || 'INR';
@@ -327,8 +342,8 @@ export default function InvoiceViewPage() {
         const elHeightPx = rect.height || el.offsetHeight || 600;
         const aspectRatio = elHeightPx / elWidthPx;
 
-        // For POS, roll width is 80mm (tpl 14) or 58mm (tpl 15), height is dynamically computed to fit all items perfectly
-        const pdfWidth = isPOS ? (tpl === 'template_14' ? 80 : 58) : (isA5 ? 210 : 210);
+        // For POS, roll width is 80mm (tpl 04/14) or 58mm (tpl 05/15), height is dynamically computed to fit all items perfectly
+        const pdfWidth = isPOS ? ((tpl === 'template_04' || tpl === 'template_14') ? 80 : 58) : (isA5 ? 210 : 210);
         const pdfHeight = isPOS ? Math.max(pdfWidth * aspectRatio, 100) : (isA5 ? 148 : 297);
 
         const currentFormat: [number, number] | string = isPOS ? [pdfWidth, pdfHeight] : (isA5 ? 'a5' : 'a4');
@@ -833,15 +848,15 @@ export default function InvoiceViewPage() {
 
   // ── POS Thermal Receipt (2-inch / 58mm = T15, 3-inch / 80mm = T14)
   const renderPOS = (is3Inch = true) => {
-    // 3-inch roll (80mm total width / ~72mm printable area)
-    // 2-inch roll (58mm total width / ~48mm printable area)
-    const containerWidth = is3Inch ? '72mm' : '48mm';
-    const baseFontSize = is3Inch ? '11.5px' : '9.5px';
-    const headerTitleSize = is3Inch ? '14px' : '11.5px';
-    const docTitleSize = is3Inch ? '12px' : '10px';
-    const subItalicSize = is3Inch ? '10px' : '8.5px';
-    const grandTotalSize = is3Inch ? '13px' : '11px';
-    const qrSize = is3Inch ? 115 : 85;
+    // 3-inch roll (80mm total width)
+    // 2-inch roll (58mm total width)
+    const containerWidth = is3Inch ? '80mm' : '58mm';
+    const baseFontSize = is3Inch ? '11px' : '9px';
+    const headerTitleSize = is3Inch ? '13px' : '11px';
+    const docTitleSize = is3Inch ? '11.5px' : '9.5px';
+    const subItalicSize = is3Inch ? '9.5px' : '8px';
+    const grandTotalSize = is3Inch ? '12.5px' : '10.5px';
+    const qrSize = is3Inch ? 100 : 70;
 
     const invoiceTitle = invoice?.invoice_title || 'TAX INVOICE';
     const subtotal = itemRows.reduce((a: number, i: any) => a + (i.qty * i.price), 0);
@@ -858,14 +873,15 @@ export default function InvoiceViewPage() {
           width: containerWidth,
           maxWidth: containerWidth,
           minWidth: containerWidth,
-          margin: '0 auto',
-          padding: is3Inch ? '10px 6px' : '6px 3px',
+          margin: '1cm auto',
+          border: '1px solid #111827',
+          padding: '1cm',
           textAlign: 'center',
           background: '#ffffff',
           color: '#000000',
           lineHeight: '1.4',
           boxSizing: 'border-box',
-          letterSpacing: '0.5px'
+          letterSpacing: '0.4px'
         }}
       >
         {/* 1. Header: Business Information (Centered Bold) */}
@@ -1249,17 +1265,13 @@ export default function InvoiceViewPage() {
   const renderPage = (pageItems: any[], pageIdx: number, isLastPage: boolean) => {
     const startIndex = getStartIndex(pageIdx);
     switch (tpl) {
+      case 'template_03':
       case 'template_16':
         return renderTemplate16Page(pageItems, pageIdx, isLastPage, startIndex);
-      case 'template_03':
+      case 'template_02':
       case 'template_04':
-      case 'template_09':
-      case 'template_10':
         return renderTemplate03Page(pageItems, pageIdx, isLastPage, startIndex);
       case 'template_01':
-      case 'template_02':
-      case 'template_07':
-      case 'template_08':
       default:
         return renderTemplate01Page(pageItems, pageIdx, isLastPage, startIndex);
     }
@@ -1397,7 +1409,7 @@ export default function InvoiceViewPage() {
           <div ref={invoiceRef} id="invoice-document-canvas" className="flex flex-col items-center gap-4 print:gap-0 print:w-full print:flex print:items-center print:justify-center shrink-0">
             {isPOS ? (
               <div className="w-full flex justify-center print:w-full print:flex print:justify-center print:items-center">
-                {renderPOS(tpl === 'template_14')}
+                {renderPOS(tpl === 'template_04' || tpl === 'template_14')}
               </div>
             ) : (
               itemPages.map((pItems, idx) => {
@@ -1475,7 +1487,10 @@ export default function InvoiceViewPage() {
             background: #ffffff !important;
           }
           .pos-thermal-receipt {
-            margin: 0 auto !important;
+            margin: 1cm auto !important;
+            border: 1px solid #000000 !important;
+            padding: 1cm !important;
+            box-sizing: border-box !important;
             display: block !important;
           }
           .invoice-page-sheet {

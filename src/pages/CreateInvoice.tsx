@@ -47,6 +47,16 @@ interface InvoiceItem {
 
 import { dbService, findLinkedPayments } from '../services/dbService';
 
+const BILL_TYPE_TITLES: Record<string, string> = {
+  'INVOICE': 'TAX INVOICE',
+  'BILL OF SUPPLY': 'BILL OF SUPPLY',
+  'CASH BILL': 'CASH BILL',
+  'QUOTATION': 'QUOTATION',
+  'ESTIMATE': 'QUOTATION',
+  'DELIVERY CHALLAN': 'DELIVERY CHALLAN',
+  'PROFORMA': 'PROFORMA INVOICE',
+};
+
 export default function CreateInvoicePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -607,7 +617,22 @@ export default function CreateInvoicePage() {
                hsn_summary: false,
                footer: false
              },
-             items: data.items || [{ description: "", quantity: 1, price: 0, size: "", hsn: "", mrp: 0, discount: 0, gstPercent: 0 }],
+              items: (Array.isArray(data.items) && data.items.length > 0)
+                ? data.items.map((it: any) => ({
+                    description: it.description || it.name || '',
+                    quantity: Number(it.quantity) || 1,
+                    price: Number(it.price || it.mrp) || 0,
+                    size: it.size || '',
+                    hsn: it.hsn || it.hsn_code || '',
+                    mrp: Number(it.mrp) || 0,
+                    discount: Number(it.discount) || 0,
+                    gstPercent: Number(it.gstPercent || it.gst_rate) || 0,
+                    custom_box: it.custom_box || '',
+                    serialNumber: it.serialNumber || it.serial_number || '',
+                    brand: it.brand || '',
+                    category: it.category || ''
+                  }))
+                : [{ description: "", quantity: 1, price: 0, size: "", hsn: "", mrp: 0, discount: 0, gstPercent: 0, custom_box: '', serialNumber: '', brand: '', category: '' }],
              columnVisibility: data.columnVisibility || {
                size: true,
                hsn: true,
@@ -949,8 +974,8 @@ export default function CreateInvoicePage() {
     e.preventDefault();
     if (!user) return; 
 
-    // Strict stock check before generating invoice
-    if (appMode !== 'freelancer') {
+    // Strict stock check before generating final new invoice (bypassed on draft, quotation, and edit)
+    if (appMode !== 'freelancer' && status !== 'draft' && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE' && formData.bill_type !== 'PROFORMA') {
       for (const item of formData.items) {
         if (!item.description || item.quantity <= 0) continue;
         const inventoryItem = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
@@ -1381,14 +1406,22 @@ export default function CreateInvoicePage() {
               <label className="label block">Bill Type</label>
               <select 
                 className="input-field"
-                value={formData.bill_type}
-                onChange={(e) => setFormData(prev => ({ ...prev, bill_type: e.target.value }))}
+                value={formData.bill_type === 'ESTIMATE' ? 'QUOTATION' : formData.bill_type}
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  const autoTitle = BILL_TYPE_TITLES[newType] || newType;
+                  setFormData(prev => ({
+                    ...prev,
+                    bill_type: newType,
+                    invoice_title: autoTitle
+                  }));
+                }}
                 required
               >
                 <option value="INVOICE">Invoice</option>
                 <option value="BILL OF SUPPLY">Bill of Supply</option>
                 <option value="CASH BILL">Cash Bill</option>
-                <option value="ESTIMATE">Estimate</option>
+                <option value="QUOTATION">Quotation</option>
               </select>
             </div>
           </div>
@@ -1425,18 +1458,11 @@ export default function CreateInvoicePage() {
                 value={formData.invoice_template || 'template_01'}
                 onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
               >
-                <option value="template_01">Template 01 — Blue Bordered Classic (A4)</option>
-                <option value="template_02">Template 02 — Blue Bordered + IGST Columns (A4)</option>
-                <option value="template_03">Template 03 — Blue Line Top / Company Left (A4)</option>
-                <option value="template_04">Template 04 — Blue Line Top + IGST Columns (A4)</option>
-                <option value="template_07">Template 07 — Full Bordered CGST/SGST (A4)</option>
-                <option value="template_08">Template 08 — Company Right / Bill of Supply (A4)</option>
-                <option value="template_09">Template 09 — Compact Border + Summary (A4)</option>
-                <option value="template_10">Template 10 — Centered Header + Table Meta (A4)</option>
-                <option value="template_12">Template 12 — Black Frame / All Table (A4)</option>
-                <option value="template_14">Template 14 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
-                <option value="template_15">Template 15 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
-                <option value="template_16">Template 16 — Supplier B2B (Dedicated Serial / Batch Column)</option>
+                <option value="template_01">Template 01 — Blue Bordered + IGST Columns (A4)</option>
+                <option value="template_02">Template 02 — Blue Line Top + IGST Columns (A4)</option>
+                <option value="template_03">Template 03 — Supplier B2B (Dedicated Serial / Batch Column)</option>
+                <option value="template_04">Template 04 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
+                <option value="template_05">Template 05 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
               </select>
               <p className="text-[11px] text-slate-500 italic">
                 Applies instant layout formatting to preview &amp; printouts.
@@ -1662,10 +1688,9 @@ export default function CreateInvoicePage() {
                                   key={invItem.id}
                                   type="button"
                                   onMouseDown={() => {
-                                    if (appMode !== 'freelancer' && isOutOfStock) {
+                                    if (appMode !== 'freelancer' && isOutOfStock && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE') {
                                       playErrorBeepSound(soundEnabled);
-                                      alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nCannot add to invoice.`);
-                                      return;
+                                      alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nPlease update item stock in inventory.`);
                                     }
 
                                     const newVisibility = { ...formData.columnVisibility };
@@ -1821,7 +1846,7 @@ export default function CreateInvoicePage() {
                             const cleaned = val.replace(/^0+(?=\d)/, '');
                             e.target.value = cleaned;
                             const newQty = Number(cleaned);
-                            if (appMode !== 'freelancer' && item.description) {
+                            if (appMode !== 'freelancer' && item.description && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE') {
                               const selected = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
                               if (selected) {
                                 const itemStock = typeof selected.stock === 'number' ? selected.stock : 0;
@@ -1841,7 +1866,7 @@ export default function CreateInvoicePage() {
                           onClick={() => {
                             const current = item.quantity || 0;
                             const newQty = current + 1;
-                            if (appMode !== 'freelancer' && item.description) {
+                            if (appMode !== 'freelancer' && item.description && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE') {
                               const selected = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
                               if (selected) {
                                 const itemStock = typeof selected.stock === 'number' ? selected.stock : 0;
@@ -2086,10 +2111,9 @@ export default function CreateInvoicePage() {
                                   key={invItem.id}
                                   type="button"
                                   onMouseDown={() => {
-                                    if (appMode !== 'freelancer' && isOutOfStock) {
+                                    if (appMode !== 'freelancer' && isOutOfStock && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE') {
                                       playErrorBeepSound(soundEnabled);
-                                      alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nCannot add to invoice.`);
-                                      return;
+                                      alert(`⚠️ OUT OF STOCK!\n\nItem "${invItem.name}" is out of stock (Stock: 0).\n\nPlease update item stock in inventory.`);
                                     }
 
                                     const newVisibility = { ...formData.columnVisibility };
@@ -2404,7 +2428,7 @@ export default function CreateInvoicePage() {
                           e.target.value = cleaned;
                           const newQty = Number(cleaned);
 
-                          if (appMode !== 'freelancer' && item.description) {
+                          if (appMode !== 'freelancer' && item.description && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE') {
                             const selected = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
                             if (selected) {
                               const itemStock = typeof selected.stock === 'number' ? selected.stock : 0;

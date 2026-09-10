@@ -786,18 +786,11 @@ export default function SettingsPage() {
                 value={formData.invoice_template || 'template_01'}
                 onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
               >
-                <option value="template_01">Template 01 — Blue Bordered Classic (A4)</option>
-                <option value="template_02">Template 02 — Blue Bordered + IGST Columns (A4)</option>
-                <option value="template_03">Template 03 — Blue Line Top / Company Left (A4)</option>
-                <option value="template_04">Template 04 — Blue Line Top + IGST Columns (A4)</option>
-                <option value="template_07">Template 07 — Full Bordered CGST/SGST (A4)</option>
-                <option value="template_08">Template 08 — Company Right / Bill of Supply (A4)</option>
-                <option value="template_09">Template 09 — Compact Border + Summary (A4)</option>
-                <option value="template_10">Template 10 — Centered Header + Table Meta (A4)</option>
-                <option value="template_12">Template 12 — Black Frame / All Table (A4)</option>
-                <option value="template_14">Template 14 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
-                <option value="template_15">Template 15 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
-                <option value="template_16">Template 16 — Supplier B2B (Dedicated Serial / Batch Column)</option>
+                <option value="template_01">Template 01 — Blue Bordered + IGST Columns (A4)</option>
+                <option value="template_02">Template 02 — Blue Line Top + IGST Columns (A4)</option>
+                <option value="template_03">Template 03 — Supplier B2B (Dedicated Serial / Batch Column)</option>
+                <option value="template_04">Template 04 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
+                <option value="template_05">Template 05 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
               </select>
             </div>
           </div>
