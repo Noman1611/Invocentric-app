@@ -454,6 +454,12 @@ export default function InvoiceViewPage() {
   };
   const QRNode = (showSec.upi_qr && upiUrl) ? <QRCodeSVG value={upiUrl} size={isA5 ? 46 : 75} level="H" /> : <div style={{ width: isA5 ? 46 : 75, height: isA5 ? 46 : 75, border: '1px dashed #999' }} />;
   const termsText = (invoice.terms || sellerInfo?.default_terms || '').split('\n').filter(Boolean);
+  const isQuotation = invoice?.bill_type === 'QUOTATION' || invoice?.bill_type === 'ESTIMATE' || invoice?.status === 'quotation';
+  const defaultTitle = isQuotation 
+    ? 'QUOTATION' 
+    : (invoice?.bill_type === 'BILL OF SUPPLY' ? 'BILL OF SUPPLY' : (invoice?.bill_type === 'CASH BILL' ? 'CASH BILL' : 'TAX INVOICE'));
+  const docTitle = invoice?.invoice_title || defaultTitle;
+  const docSubtitle = invoice?.copy_subtitle !== undefined ? invoice.copy_subtitle : (isQuotation ? '' : 'ORIGINAL FOR RECIPIENT');
 
   // Dynamic column calculations
   const dynamicColCount = 1 + 1 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0) + 1 + (colVis.mrp ? 1 : 0) + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0) + 1;
@@ -489,7 +495,7 @@ export default function InvoiceViewPage() {
           </div>
 
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',border:b,borderBottom:'none',padding:'2px 6px',fontWeight:'bold',fontSize: isA5 ? 9 : 11.5}}>
-            <div>GSTIN : {co.gstin}</div><div style={{fontSize: isA5 ? 10.5 : 13, color:dark}}>TAX INVOICE</div><div>ORIGINAL FOR RECIPIENT</div>
+            <div>GSTIN : {co.gstin}</div><div style={{fontSize: isA5 ? 10.5 : 13, color:dark, textTransform:'uppercase'}}>{docTitle}</div><div>{docSubtitle}</div>
           </div>
 
           {/* Clean 2-column Buyer & Meta Grid */}
@@ -506,8 +512,8 @@ export default function InvoiceViewPage() {
               ].filter(Boolean).map(([l,v]: any)=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 70 : 90,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{v}</div></div>))}
             </div>
             <div style={{padding:'2px 6px'}}>
-              <div style={{fontWeight:'bold',textAlign:'center',background:lb,margin:'-2px -6px 2px',padding:1,borderBottom:b}}>Invoice Details :</div>
-              {[['Invoice No.',im.invoiceNo],['Invoice Date',im.invoiceDate],['Due Date',im.dueDate],['P.O. No.',im.poNo],['P.O. Date',im.poDate],['E-Way No.',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 65 : 80,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1}}>{v}</div></div>))}
+              <div style={{fontWeight:'bold',textAlign:'center',background:lb,margin:'-2px -6px 2px',padding:1,borderBottom:b}}>{isQuotation ? 'Quotation Details :' : 'Invoice Details :'}</div>
+              {[[isQuotation ? 'Quotation No.' : 'Invoice No.',im.invoiceNo],[isQuotation ? 'Quote Date' : 'Invoice Date',im.invoiceDate],['Due Date',im.dueDate],['P.O. No.',im.poNo],['P.O. Date',im.poDate],['E-Way No.',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 65 : 80,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1}}>{v}</div></div>))}
             </div>
           </div>
 
@@ -713,13 +719,13 @@ export default function InvoiceViewPage() {
       <div className="flex flex-col h-full justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
-            <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue}}>TAX INVOICE</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
-            <div style={{textAlign:'right'}}><div style={{fontSize:8.5,fontWeight:'bold'}}>ORIGINAL FOR RECIPIENT</div>{co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52,height: isA5 ? 32 : 52}}/>}<div style={{fontSize:8.5,color:'#666',marginTop:1}}>Page {pageIdx + 1} of {totalPages}</div></div>
+            <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue, textTransform:'uppercase'}}>{docTitle}</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
+            <div style={{textAlign:'right'}}><div style={{fontSize:8.5,fontWeight:'bold'}}>{docSubtitle}</div>{co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52,height: isA5 ? 32 : 52}}/>}<div style={{fontSize:8.5,color:'#666',marginTop:1}}>Page {pageIdx + 1} of {totalPages}</div></div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1.2fr 1.2fr 1fr',gap:5,borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3,fontSize: isA5 ? 8.5 : 10.5}}>
             <div><b style={{display:'block',marginBottom:0.5}}>Customer Details:</b><div style={{fontWeight:'bold'}}>{bu.name}</div><div>{bu.address}</div>{showSec.customer_gstin && <div><b>GSTIN:</b> {bu.gstin}</div>}<div><b>State:</b> {bu.state}</div></div>
             <div><b style={{display:'block',marginBottom:0.5}}>Shipping address:</b><div style={{fontWeight:'bold'}}>{sh.name}</div><div>{sh.address}</div><div><b>State:</b> {sh.state}</div></div>
-            <div>{[['Invoice #:',im.invoiceNo],['Invoice Date:',im.invoiceDate],['P.O. No.:',im.poNo],['E-Way No.:',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
+            <div>{[[isQuotation ? 'Quote #:' : 'Invoice #:',im.invoiceNo],[isQuotation ? 'Quote Date:' : 'Invoice Date:',im.invoiceDate],['P.O. No.:',im.poNo],['E-Way No.:',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
           </div>
           <table style={{width:'100%',flex:1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
@@ -858,7 +864,7 @@ export default function InvoiceViewPage() {
     const grandTotalSize = is3Inch ? '12.5px' : '10.5px';
     const qrSize = is3Inch ? 100 : 70;
 
-    const invoiceTitle = invoice?.invoice_title || 'TAX INVOICE';
+    const invoiceTitle = docTitle;
     const subtotal = itemRows.reduce((a: number, i: any) => a + (i.qty * i.price), 0);
     const globalDiscount = Number(invoice?.discount) || 0;
     const shippingCharges = Number(invoice?.shipping_charges) || 0;
@@ -1066,13 +1072,13 @@ export default function InvoiceViewPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `2px solid ${headerBlue}`, paddingBottom: 10, marginBottom: 12 }}>
             <div>
               <h1 style={{ fontSize: isA5 ? 18 : 24, fontWeight: 900, color: headerBlue, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>
-                {sellerInfo?.business_name ? 'SUPPLIER INVOICE' : 'TAX INVOICE'}
+                {docTitle}
               </h1>
             </div>
 
             <div style={{ textAlign: 'right', fontSize: isA5 ? 9 : 11, lineHeight: 1.4 }}>
-              <div><span style={{ fontWeight: 700 }}>Invoice No:</span> <span style={{ fontWeight: 800 }}>{im.invoiceNo}</span></div>
-              <div><span style={{ fontWeight: 700 }}>Date:</span> {im.invoiceDate}</div>
+              <div><span style={{ fontWeight: 700 }}>{isQuotation ? 'Quotation No:' : 'Invoice No:'}</span> <span style={{ fontWeight: 800 }}>{im.invoiceNo}</span></div>
+              <div><span style={{ fontWeight: 700 }}>{isQuotation ? 'Quote Date:' : 'Date:'}</span> {im.invoiceDate}</div>
               {im.poNo && <div><span style={{ fontWeight: 700 }}>PO Number:</span> {im.poNo}</div>}
               {im.dueDate && <div><span style={{ fontWeight: 700 }}>Due Date:</span> {im.dueDate}</div>}
               <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>Page {pageIdx + 1} of {totalPages}</div>
