@@ -13,7 +13,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
-import { useItems } from '../hooks/useData';
+import { useItems, useCustomers } from '../hooks/useData';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Package, Edit2, Trash2, X, LayoutGrid, List as ListIcon, Tag, IndianRupee, Barcode, ScanLine, Camera, Loader2, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Phone, CheckCircle2, HelpCircle, BarChart3, ArrowRight, Database, TrendingDown, AlertCircle, FileText, ArrowUpDown, Truck, History, Calendar, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
