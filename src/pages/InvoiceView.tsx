@@ -6,11 +6,12 @@ import { getSecureStorage } from '../utils/cryptoUtils';
 import { formatCurrency, cn, normalizePhoneNumber } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { toWords } from 'number-to-words';
-import { ArrowLeft, Edit3, Printer, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Edit3, Printer, Download, Loader2, X, Sliders, Settings2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
 import { WhatsAppShareModal } from '../components/WhatsAppShareModal';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
+import { dbService } from '../services/dbService';
 
 const safeToWords = (value: number, currency: string = 'INR'): string => {
   try {
@@ -148,6 +149,59 @@ export default function InvoiceViewPage() {
     }
     fetchData();
   }, [id, user, isOfflineMode]);
+
+  // Letterhead State & Alignment Sliders
+  const [useLetterhead, setUseLetterhead] = useState<boolean>(false);
+  const [letterheadTop, setLetterheadTop] = useState<number>(45);
+  const [letterheadBottom, setLetterheadBottom] = useState<number>(20);
+  const [letterheadHideHeader, setLetterheadHideHeader] = useState<boolean>(true);
+  const [showLetterheadSlider, setShowLetterheadSlider] = useState<boolean>(false);
+  const [isSavingLetterhead, setIsSavingLetterhead] = useState<boolean>(false);
+
+  // Sync letterhead settings from invoice or seller profile
+  useEffect(() => {
+    if (invoice || sellerInfo) {
+      const isEnabled = invoice?.letterhead_enabled !== undefined 
+        ? Boolean(invoice.letterhead_enabled) 
+        : Boolean(sellerInfo?.letterhead_enabled);
+      const top = invoice?.letterhead_top_margin !== undefined 
+        ? Number(invoice.letterhead_top_margin) 
+        : (sellerInfo?.letterhead_top_margin !== undefined ? Number(sellerInfo.letterhead_top_margin) : 45);
+      const bottom = invoice?.letterhead_bottom_margin !== undefined 
+        ? Number(invoice.letterhead_bottom_margin) 
+        : (sellerInfo?.letterhead_bottom_margin !== undefined ? Number(sellerInfo.letterhead_bottom_margin) : 20);
+      const hideHeader = invoice?.letterhead_hide_header !== undefined 
+        ? Boolean(invoice.letterhead_hide_header) 
+        : (sellerInfo?.letterhead_hide_header !== undefined ? Boolean(sellerInfo.letterhead_hide_header) : true);
+
+      setUseLetterhead(isEnabled);
+      setLetterheadTop(top);
+      setLetterheadBottom(bottom);
+      setLetterheadHideHeader(hideHeader);
+    }
+  }, [invoice, sellerInfo]);
+
+  const letterheadUrl = invoice?.letterhead_url || sellerInfo?.letterhead_url || '';
+
+  const handleSaveLetterheadOffset = async () => {
+    if (!invoice?.id) return;
+    setIsSavingLetterhead(true);
+    try {
+      await dbService.update('invoices', invoice.id, {
+        letterhead_enabled: useLetterhead,
+        letterhead_top_margin: letterheadTop,
+        letterhead_bottom_margin: letterheadBottom,
+        letterhead_hide_header: letterheadHideHeader,
+        letterhead_url: letterheadUrl,
+      }, { offlineMode: isOfflineMode, userId: user?.uid || 'guest' });
+      alert("Letterhead alignment & position saved successfully!");
+    } catch (err) {
+      console.error("Failed to save letterhead offset:", err);
+      alert("Failed to save letterhead offset.");
+    } finally {
+      setIsSavingLetterhead(false);
+    }
+  };
 
   // Trigger Auto-Print when navigating with ?print=true or ?pos=true
   useEffect(() => {
@@ -480,19 +534,25 @@ export default function InvoiceViewPage() {
     return (
       <div className="flex flex-col h-full justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12, color:'#1a1a1a' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom: isA5 ? 2 : 6}}>
-            <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
-              {co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52, height: isA5 ? 32 : 52, objectFit:'contain'}}/>}
-              <div><p style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:dark,margin:'0 0 1px'}}>{co.name}</p>
-                {showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11, lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}
+          {(!useLetterhead || !letterheadHideHeader) ? (
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom: isA5 ? 2 : 6}}>
+              <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+                {co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52, height: isA5 ? 32 : 52, objectFit:'contain'}}/>}
+                <div><p style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:dark,margin:'0 0 1px'}}>{co.name}</p>
+                  {showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11, lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}
+                </div>
+              </div>
+              <div style={{textAlign:'right',fontSize: isA5 ? 8.5 : 11}}>
+                <div><b>Name</b> : {bu.name}</div>
+                <div><b>Phone</b> : {bu.phone}</div>
+                <div style={{fontSize: 8.5, color: '#666', marginTop: 1}}>Page {pageIdx + 1} of {totalPages}</div>
               </div>
             </div>
-            <div style={{textAlign:'right',fontSize: isA5 ? 8.5 : 11}}>
-              <div><b>Name</b> : {bu.name}</div>
-              <div><b>Phone</b> : {bu.phone}</div>
-              <div style={{fontSize: 8.5, color: '#666', marginTop: 1}}>Page {pageIdx + 1} of {totalPages}</div>
+          ) : (
+            <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',marginBottom: isA5 ? 2 : 4}}>
+              <div style={{fontSize: 8.5, color: '#666'}}>Page {pageIdx + 1} of {totalPages}</div>
             </div>
-          </div>
+          )}
 
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',border:b,borderBottom:'none',padding:'2px 6px',fontWeight:'bold',fontSize: isA5 ? 9 : 11.5}}>
             <div>GSTIN : {co.gstin}</div><div style={{fontSize: isA5 ? 10.5 : 13, color:dark, textTransform:'uppercase'}}>{docTitle}</div><div>{docSubtitle}</div>
@@ -1086,21 +1146,22 @@ export default function InvoiceViewPage() {
           </div>
 
           {/* 2-Column Party Details Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14, fontSize: isA5 ? 8.5 : 10.5 }}>
-            {/* FROM (SUPPLIER) */}
-            <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: `1px solid ${borderGray}` }}>
-              <div style={{ fontWeight: 800, fontSize: isA5 ? 9 : 11, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
-                FROM (SUPPLIER):
+          <div style={{ display: 'grid', gridTemplateColumns: (useLetterhead && letterheadHideHeader) ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 14, fontSize: isA5 ? 8.5 : 10.5 }}>
+            {(!useLetterhead || !letterheadHideHeader) && (
+              <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: `1px solid ${borderGray}` }}>
+                <div style={{ fontWeight: 800, fontSize: isA5 ? 9 : 11, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+                  FROM (SUPPLIER):
+                </div>
+                <div style={{ fontWeight: 800, fontSize: isA5 ? 10.5 : 13, color: '#0f172a', marginBottom: 2 }}>
+                  {co.name}
+                </div>
+                {showSec.seller_address && (
+                  <div style={{ color: '#475569', lineHeight: 1.3, marginBottom: 2 }} dangerouslySetInnerHTML={{ __html: co.address.replace(/\n/g, '<br>') }} />
+                )}
+                {co.email && <div style={{ color: '#475569' }}><span style={{ fontWeight: 600 }}>Email:</span> {co.email}</div>}
+                {co.gstin && <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 2 }}>GSTIN: {co.gstin}</div>}
               </div>
-              <div style={{ fontWeight: 800, fontSize: isA5 ? 10.5 : 13, color: '#0f172a', marginBottom: 2 }}>
-                {co.name}
-              </div>
-              {showSec.seller_address && (
-                <div style={{ color: '#475569', lineHeight: 1.3, marginBottom: 2 }} dangerouslySetInnerHTML={{ __html: co.address.replace(/\n/g, '<br>') }} />
-              )}
-              {co.email && <div style={{ color: '#475569' }}><span style={{ fontWeight: 600 }}>Email:</span> {co.email}</div>}
-              {co.gstin && <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 2 }}>GSTIN: {co.gstin}</div>}
-            </div>
+            )}
 
             {/* BILL TO (CUSTOMER) */}
             <div style={{ padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: `1px solid ${borderGray}` }}>

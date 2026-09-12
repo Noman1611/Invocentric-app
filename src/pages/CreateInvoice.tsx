@@ -1592,11 +1592,14 @@ export default function CreateInvoicePage() {
             </div>
 
             {/* Items List (Internal scroll container on PC, normal on mobile) */}
-            <div className="space-y-3 pt-3 flex-1 lg:overflow-y-auto lg:pr-1.5">
+            <div className="space-y-3 pt-3 flex-1 lg:overflow-y-auto lg:pr-1.5 pb-44">
             {formData.items.map((item, index) => (
               <React.Fragment key={index}>
                 {/* ── Mobile View: Dedicated Responsive Item Card (< 768px) ── */}
-                <div className={cn("block md:hidden bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 relative transition-all", focusedItemIndex === index ? "z-40 ring-2 ring-emerald-500/20" : "z-0")}>
+                <div className={cn(
+                  "block md:hidden bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 relative overflow-visible transition-all",
+                  (focusedItemIndex === index || focusedRowField?.index === index) ? "z-50 ring-2 ring-emerald-500/20 shadow-md" : "z-10"
+                )}>
                   {/* Card Top: Index Badge + Description Input + Remove Button */}
                   <div className="flex items-start gap-2">
                     <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 mt-6">
@@ -1978,8 +1981,11 @@ export default function CreateInvoicePage() {
                 </div>
 
                 {/* ── Desktop View: High-Density Inline Row (>= 768px) ── */}
-                <div className="hidden md:flex flex-col md:flex-row gap-3 items-start md:items-end bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs relative w-full overflow-x-auto">
-                  <div className="flex-1 w-full min-w-[240px] space-y-2">
+                <div className={cn(
+                  "hidden md:flex flex-col md:flex-row gap-2.5 items-start md:items-end bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs relative w-full overflow-visible transition-all",
+                  (focusedItemIndex === index || focusedRowField?.index === index) ? "z-50 ring-2 ring-emerald-500/20 shadow-md" : "z-10"
+                )}>
+                  <div className="flex-1 w-full min-w-[200px] space-y-1.5">
                     <label className="label block">{appMode === 'freelancer' ? 'Service / Deliverable' : 'Description / Item'}</label>
                     <div className="flex flex-col gap-2 relative">
                       <input 
@@ -2000,7 +2006,7 @@ export default function CreateInvoicePage() {
                         </div>
                       )}
                       {focusedItemIndex === index && (
-                        <div className="absolute -left-9 -right-12 sm:left-0 sm:right-auto top-full z-[150] mt-1 sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
+                        <div className="absolute left-0 top-full z-[150] mt-1.5 min-w-[380px] w-full sm:min-w-[460px] sm:max-w-[560px] max-h-80 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
                           {inventoryItems
                             .filter(invItem => {
                               const term = (item.description || '').toLowerCase();
@@ -2252,9 +2258,9 @@ export default function CreateInvoicePage() {
                       </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:flex md:flex-row gap-2.5 w-full md:w-auto items-end pt-3 md:pt-0 border-t border-slate-100 md:border-none shrink-0">
+                  <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:flex md:flex-row gap-2 w-full md:w-auto items-end pt-3 md:pt-0 border-t border-slate-100 md:border-none shrink-0">
                     {formData.columnVisibility.size && (
-                      <div className="w-full md:w-20">
+                      <div className="w-full md:w-16">
                         <label className="label block">Size</label>
                         <input 
                           type="text" 
@@ -2266,7 +2272,7 @@ export default function CreateInvoicePage() {
                       </div>
                     )}
                     {formData.columnVisibility.hsn && (
-                      <div className="w-full md:w-20">
+                      <div className="w-full md:w-16">
                         <label className="label block">HSN</label>
                         <input 
                           type="text" 
@@ -2277,7 +2283,7 @@ export default function CreateInvoicePage() {
                         />
                       </div>
                     )}
-                    <div className="w-full md:w-20">
+                    <div className="w-full md:w-16">
                       <label className="label block">{appMode === 'freelancer' ? 'Hours / Qty' : 'Qty'}</label>
                       <input 
                         type="number" 
@@ -2307,7 +2313,7 @@ export default function CreateInvoicePage() {
                       />
                     </div>
                     {formData.columnVisibility.mrp && (
-                      <div className="w-full md:w-24">
+                      <div className="w-full md:w-20">
                         <label className="label block">MRP</label>
                         <input 
                           type="number" 
@@ -2330,7 +2336,7 @@ export default function CreateInvoicePage() {
                       </div>
                     )}
                     {formData.columnVisibility.discount && (
-                      <div className="w-full md:w-20">
+                      <div className="w-full md:w-16">
                         <label className="label block">Disc%</label>
                         <input 
                           type="number" 
@@ -2354,7 +2360,7 @@ export default function CreateInvoicePage() {
                       </div>
                     )}
                     {formData.columnVisibility.gstPercent && (
-                      <div className="w-full md:w-20">
+                      <div className="w-full md:w-16">
                         <label className="label block">GST%</label>
                         <input 
                           type="number" 
@@ -2370,7 +2376,7 @@ export default function CreateInvoicePage() {
                         />
                       </div>
                     )}
-                    <div className="w-full md:w-32 text-right relative">
+                    <div className="w-full md:w-24 text-right relative">
                       <label className="label block">{appMode === 'freelancer' ? 'Hourly / Fee' : 'Net Rate'}</label>
                       <input 
                         type="number" 

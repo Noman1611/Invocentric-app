@@ -108,3 +108,53 @@ export async function parseContactFromText(text: string): Promise<ParsedContact>
     throw new Error(error instanceof Error ? error.message : "Failed to parse contact data.");
   }
 }
+
+export interface ExtractedProduct {
+  name?: string;
+  brand?: string;
+  category?: string;
+  barcode?: string;
+  mrp?: number;
+  price?: number;
+  costPrice?: number;
+  hsn?: string;
+  unit?: string;
+  size?: string;
+  gstPercent?: number;
+  description?: string;
+}
+
+export async function extractProductFromImage(base64Image: string, mimeType: string): Promise<ExtractedProduct> {
+  try {
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : '';
+
+    const response = await fetch('/api/extract-product', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ base64Image, mimeType }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      let errorMsg = 'Failed to extract product data via AI';
+      try {
+        const errorData = JSON.parse(text);
+        errorMsg = errorData.error || errorData.message || errorMsg;
+      } catch (e) {
+        errorMsg = `Server error (${response.status}): ${text.slice(0, 50)}...`;
+      }
+      throw new Error(errorMsg);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("AI Product Extraction Error client-side:", error);
+    throw new Error(error instanceof Error ? error.message : "Failed to extract product details from image.");
+  }
+}
+

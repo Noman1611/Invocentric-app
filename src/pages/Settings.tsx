@@ -120,7 +120,12 @@ export default function SettingsPage() {
       social_qr_url: '',
       social_qr_label: '@business_handle',
       invoice_template: 'template_01',
-      signature_url: ''
+      signature_url: '',
+      letterhead_enabled: false,
+      letterhead_url: '',
+      letterhead_top_margin: 45,
+      letterhead_bottom_margin: 20,
+      letterhead_hide_header: true
     };
     if (typeof window !== 'undefined' && user?.uid) {
       try {
@@ -179,6 +184,33 @@ export default function SettingsPage() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleLetterheadUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Letterhead image should be under 5MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ 
+          ...prev, 
+          letterhead_url: reader.result as string,
+          letterhead_enabled: true 
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeLetterhead = () => {
+    setFormData(prev => ({ 
+      ...prev, 
+      letterhead_url: '', 
+      letterhead_enabled: false 
+    }));
   };
 
   const backupFileInputRef = useRef<HTMLInputElement>(null);
@@ -965,6 +997,157 @@ export default function SettingsPage() {
                   <input type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
                 </label>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* Custom Letterhead & Page Alignment */}
+        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Custom Letterhead (Print &amp; PDF)</h2>
+                <span className="bg-amber-100 text-amber-800 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  {formData.letterhead_enabled ? 'Active' : 'Disabled'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">
+                Upload your own company letterhead (Image: PNG, JPG, WEBP). The invoice will print directly on top of your letterhead background.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={Boolean(formData.letterhead_enabled)}
+                  onChange={(e) => setFormData(p => ({ ...p, letterhead_enabled: e.target.checked }))}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                />
+                <span className="text-xs font-bold text-gray-800">Enable Letterhead</span>
+              </label>
+
+              {formData.letterhead_url && (
+                <button
+                  type="button"
+                  onClick={removeLetterhead}
+                  className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-bold flex items-center gap-1"
+                  title="Remove Letterhead"
+                >
+                  <Trash2 size={14} />
+                  <span>Remove</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Letterhead Preview & Upload */}
+            <div className="lg:col-span-4 flex flex-col items-center gap-3 p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
+              <div className="relative w-40 h-56 bg-white border border-slate-300 rounded-xl shadow-xs overflow-hidden flex flex-col items-center justify-center group">
+                {formData.letterhead_url ? (
+                  <>
+                    <img
+                      src={formData.letterhead_url}
+                      alt="Letterhead Preview"
+                      className="w-full h-full object-contain"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <label className="cursor-pointer bg-white text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg shadow-md hover:bg-slate-100">
+                        Change Image
+                        <input type="file" accept="image/*" className="hidden" onChange={handleLetterheadUpload} />
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-3 text-slate-400">
+                    <Upload size={24} className="mb-2 text-slate-300" />
+                    <span className="text-[11px] font-bold">No Letterhead Uploaded</span>
+                    <span className="text-[9px] text-slate-400 mt-0.5">Upload your A4 sheet image</span>
+                  </div>
+                )}
+              </div>
+
+              <label className="cursor-pointer bg-white hover:bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 transition-all flex items-center gap-2 shadow-xs">
+                <Upload size={14} className="text-emerald-600" />
+                <span>{formData.letterhead_url ? 'Change Letterhead' : 'Upload Letterhead'}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handleLetterheadUpload} />
+              </label>
+              <span className="text-[10px] text-slate-400 text-center">Supports high-res PNG, JPG up to 5MB</span>
+            </div>
+
+            {/* Accessible Margin Sliders & Controls */}
+            <div className="lg:col-span-8 space-y-5">
+              {/* Vertical Position Slider (Upar-Niche karne ka accessible slider) */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    Header Offset / Top Margin (Upar se Jagah)
+                  </label>
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-900 rounded-lg text-xs font-extrabold tabular-nums">
+                    {formData.letterhead_top_margin || 45} mm
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Adjust this slider to move the invoice content down so it does not overlap your printed letterhead header or logo.
+                </p>
+                <div className="flex items-center gap-3 pt-1">
+                  <span className="text-[10px] font-bold text-slate-400">0 mm</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="120"
+                    step="1"
+                    value={formData.letterhead_top_margin || 45}
+                    onChange={(e) => setFormData(p => ({ ...p, letterhead_top_margin: Number(e.target.value) }))}
+                    className="flex-1 accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+                  />
+                  <span className="text-[10px] font-bold text-slate-400">120 mm</span>
+                </div>
+              </div>
+
+              {/* Bottom Margin Slider */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    Footer Offset / Bottom Margin (Niche se Jagah)
+                  </label>
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-900 rounded-lg text-xs font-extrabold tabular-nums">
+                    {formData.letterhead_bottom_margin || 20} mm
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Adjust this slider to give clearance for pre-printed footers, terms, or bank accounts at the bottom.
+                </p>
+                <div className="flex items-center gap-3 pt-1">
+                  <span className="text-[10px] font-bold text-slate-400">0 mm</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="80"
+                    step="1"
+                    value={formData.letterhead_bottom_margin || 20}
+                    onChange={(e) => setFormData(p => ({ ...p, letterhead_bottom_margin: Number(e.target.value) }))}
+                    className="flex-1 accent-emerald-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+                  />
+                  <span className="text-[10px] font-bold text-slate-400">80 mm</span>
+                </div>
+              </div>
+
+              {/* Hide Default Header Checkbox */}
+              <div className="flex items-start gap-3 p-3.5 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                <input
+                  type="checkbox"
+                  id="hide_header_check"
+                  checked={formData.letterhead_hide_header !== false}
+                  onChange={(e) => setFormData(p => ({ ...p, letterhead_hide_header: e.target.checked }))}
+                  className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 border-emerald-300"
+                />
+                <label htmlFor="hide_header_check" className="text-xs text-slate-700 cursor-pointer leading-relaxed">
+                  <strong className="font-bold text-slate-900 block">Hide standard digital company header</strong>
+                  Hides your business name and logo on the invoice so it doesn't double-print over your physical/uploaded letterhead.
+                </label>
+              </div>
             </div>
           </div>
         </section>

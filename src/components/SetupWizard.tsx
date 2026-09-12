@@ -46,6 +46,7 @@ interface SetupWizardProps {
   logout: () => void;
   setShowProfileSuccessToast?: React.Dispatch<React.SetStateAction<boolean>>;
   onComplete?: (updatedData: any) => void;
+  onDismiss?: () => void;
 }
 
 // Modern Outlined Floating Label Input Component matching reference screenshot
@@ -147,7 +148,8 @@ export default function SetupWizard({
   user,
   logout,
   setShowProfileSuccessToast,
-  onComplete
+  onComplete,
+  onDismiss
 }: SetupWizardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -195,34 +197,72 @@ export default function SetupWizard({
     }
   };
 
-  const handleCompleteSetup = async (e?: React.FormEvent) => {
+  const handleSkipSetup = () => {
+    try {
+      if (user?.uid) {
+        localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
+        setSecureStorage(`wizard_completed_${user.uid}`, true);
+      }
+      localStorage.setItem('wizard_completed_global', 'true');
+    } catch (err) {
+      console.error("Localstorage skip error:", err);
+    }
+
+    if (onDismiss) {
+      onDismiss();
+    }
+    if (onComplete) {
+      onComplete({ wizard_completed: true });
+    }
+
+    // Background sync to Firestore without blocking user or UI
+    if (user?.uid && !isOfflineMode && navigator.onLine) {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        setDoc(userDocRef, {
+          wizard_completed: true,
+          updated_at: serverTimestamp()
+        }, { merge: true }).catch(err => console.warn("Background skip sync error:", err));
+      } catch (err) {
+        console.warn("Background skip error:", err);
+      }
+    }
+  };
+
+  const handleCompleteSetup = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!user) return;
 
     setSavingWizard(true);
-    const existingProfile = getSecureStorage(`user_profile_${user.uid}`, null) || {};
+    const existingProfile = (user?.uid ? getSecureStorage(`user_profile_${user.uid}`, null) : null) || {};
     const updatedData = {
       ...existingProfile,
       ...wizardForm,
-      business_name: wizardForm.business_name?.trim() || existingProfile.business_name || user.displayName || 'My Business',
-      owner_name: wizardForm.owner_name || existingProfile.owner_name || user.displayName || 'Owner',
-      display_name: wizardForm.owner_name || existingProfile.display_name || user.displayName || 'Owner',
-      email: wizardForm.email || existingProfile.email || user.email || '',
+      business_name: wizardForm.business_name?.trim() || existingProfile.business_name || user?.displayName || 'My Business',
+      owner_name: wizardForm.owner_name || existingProfile.owner_name || user?.displayName || 'Owner',
+      display_name: wizardForm.owner_name || existingProfile.display_name || user?.displayName || 'Owner',
+      email: wizardForm.email || existingProfile.email || user?.email || '',
       wizard_completed: true,
       updated_at: new Date().toISOString()
     };
 
     // 1. Instantly cache locally & notify parent callback so UI unlocks immediately
     try {
-      localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
-      localStorage.setItem(`user_profile_${user.uid}`, JSON.stringify(updatedData));
-      localStorage.removeItem(`wizard_draft_${user.uid}`);
-      setSecureStorage(`wizard_completed_${user.uid}`, true);
-      setSecureStorage(`user_profile_${user.uid}`, updatedData);
+      if (user?.uid) {
+        localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
+        localStorage.setItem(`user_profile_${user.uid}`, JSON.stringify(updatedData));
+        localStorage.removeItem(`wizard_draft_${user.uid}`);
+        setSecureStorage(`wizard_completed_${user.uid}`, true);
+        setSecureStorage(`user_profile_${user.uid}`, updatedData);
+      }
+      localStorage.setItem('wizard_completed_global', 'true');
     } catch (err) {
       console.error("Localstorage cache error:", err);
     }
 
+    // 2. Instantly unlock UI via onDismiss and onComplete
+    if (onDismiss) {
+      onDismiss();
+    }
     if (onComplete) {
       onComplete(updatedData);
     }
@@ -230,21 +270,19 @@ export default function SetupWizard({
       setShowProfileSuccessToast(true);
     }
 
-    // 2. Persist to DB and Firestore asynchronously
-    try {
-      await dbService.update('users', user.uid, updatedData, { offlineMode: isOfflineMode, userId: user.uid }).catch(err => console.warn(err));
-
-      if (!isOfflineMode && navigator.onLine) {
-        const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, {
-          ...updatedData,
-          updated_at: serverTimestamp()
-        }, { merge: true }).catch(err => console.warn(err));
-      }
-    } catch (err) {
-      console.error("Error setting up billing profile wizard:", err);
-    } finally {
+    setTimeout(() => {
       setSavingWizard(false);
+    }, 300);
+
+    // 3. Persist to DB and Firestore asynchronously in background (fire-and-forget)
+    if (user?.uid && !isOfflineMode && navigator.onLine) {
+      const userDocRef = doc(db, 'users', user.uid);
+      setDoc(userDocRef, {
+        ...updatedData,
+        updated_at: serverTimestamp()
+      }, { merge: true })
+      .then(() => dbService.update('users', user.uid, updatedData, { offlineMode: isOfflineMode, userId: user.uid }))
+      .catch(err => console.warn("Remote billing profile save warning:", err));
     }
   };
 
@@ -384,7 +422,7 @@ export default function SetupWizard({
             <div className="flex items-center gap-3">
               <button 
                 type="button"
-                onClick={() => handleCompleteSetup()}
+                onClick={handleSkipSetup}
                 className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs md:text-sm transition-all flex items-center gap-1.5 cursor-pointer border border-slate-300/80 shadow-xs"
               >
                 Skip & Go to Dashboard
@@ -686,7 +724,7 @@ export default function SetupWizard({
               )}
               <button
                 type="button"
-                onClick={() => handleCompleteSetup()}
+                onClick={handleSkipSetup}
                 className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold rounded-lg text-xs sm:text-sm transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 Skip & Go to Dashboard

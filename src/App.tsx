@@ -408,7 +408,27 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     }
   }, [wizardForm, user?.uid]);
 
+  const [wizardDismissed, setWizardDismissed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      if (localStorage.getItem('wizard_completed_global') === 'true') return true;
+      if (user?.uid && localStorage.getItem(`wizard_completed_${user.uid}`) === 'true') return true;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (user?.uid) {
+      const isCompleted = localStorage.getItem(`wizard_completed_${user.uid}`) === 'true' ||
+                          localStorage.getItem('wizard_completed_global') === 'true';
+      if (isCompleted) {
+        setWizardDismissed(true);
+      }
+    }
+  }, [user?.uid]);
+
   const isProfileIncomplete = useMemo(() => {
+    if (wizardDismissed) return false;
+    if (localStorage.getItem('wizard_completed_global') === 'true') return false;
     if (user?.uid && localStorage.getItem(`wizard_completed_${user.uid}`) === 'true') {
       return false;
     }
@@ -433,7 +453,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     }
 
     return !hasBusinessName || !hasPhone || !hasPayment;
-  }, [settings, settingsLoading, user?.uid]);
+  }, [wizardDismissed, settings, settingsLoading, user?.uid]);
 
   // Onboarding Guide & Walkthrough States
   const [isGuideOpen, setIsGuideOpen] = useState(false);
@@ -774,7 +794,19 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
           user={user}
           logout={logout}
           setShowProfileSuccessToast={setShowProfileSuccessToast}
+          onDismiss={() => {
+            setWizardDismissed(true);
+            localStorage.setItem('wizard_completed_global', 'true');
+            if (user?.uid) {
+              localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
+            }
+          }}
           onComplete={(updatedData) => {
+            setWizardDismissed(true);
+            localStorage.setItem('wizard_completed_global', 'true');
+            if (user?.uid) {
+              localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
+            }
             if (setSettings) {
               setSettings((prev: any) => ({
                 ...(prev || {}),

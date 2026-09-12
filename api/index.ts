@@ -728,6 +728,101 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
   }
 });
 
+app.post("/api/extract-product", checkAuth, async (req, res) => {
+  const { base64Image, mimeType } = req.body;
+
+  // --- STRICT INPUT VALIDATION & SANITIZATION ---
+  if (!base64Image || !mimeType) {
+    return res.status(400).json({ error: "Missing base64Image or mimeType in request body." });
+  }
+  if (typeof base64Image !== "string" || typeof mimeType !== "string") {
+    return res.status(400).json({ error: "INVALID_INPUT", message: "base64Image and mimeType must be valid strings." });
+  }
+  const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (!allowedMimeTypes.includes(mimeType.toLowerCase())) {
+    return res.status(400).json({ error: "INVALID_INPUT", message: "Unsupported file type. Only JPEG, PNG, WEBP, and GIF are supported." });
+  }
+  if (base64Image.length > 20000000) {
+    return res.status(413).json({ error: "INVALID_INPUT", message: "File payload exceeds size limit (max 15MB)." });
+  }
+
+  try {
+    const aiInstance = getAI();
+    const prompt = `Analyze this product packaging or product image and extract all product catalog details accurately.
+Extract:
+1. name: Exact product title and name
+2. brand: Brand/Manufacturer name
+3. category: Product category (e.g. Grocery, Snacks, Electronics, Personal Care, Dairy, Stationery, Hardware, etc.)
+4. barcode: Barcode or UPC/EAN digits if visible printed on packaging or next to the barcode stripes. If not found, return empty string.
+5. mrp: Maximum Retail Price (₹) number only.
+6. price: Selling price/retail rate (₹) if stated or reasonable price.
+7. costPrice: Wholesale or cost price if stated, otherwise 0.
+8. hsn: HSN or SAC code if printed on package or standard HSN for this category.
+9. unit: Standard unit (Pcs, Kg, Gm, Ltr, Ml, Box, Pack, etc.).
+10. size: Net quantity, net weight, or volume (e.g. "500 g", "1 L", "100 ml", "Pack of 2").
+11. gstPercent: Standard Indian GST tax percentage (0, 5, 12, 18, or 28).
+12. description: Short, clear description of the product and its features.
+Ensure the response is valid JSON matching the schema.`;
+
+    const response = await generateContentWithRetry(aiInstance, {
+      model: "gemini-3.6-flash",
+      contents: [{
+        role: "user",
+        parts: [
+          { inlineData: { data: base64Image, mimeType } },
+          { text: prompt }
+        ]
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            name: { type: Type.STRING },
+            brand: { type: Type.STRING },
+            category: { type: Type.STRING },
+            barcode: { type: Type.STRING },
+            mrp: { type: Type.NUMBER },
+            price: { type: Type.NUMBER },
+            costPrice: { type: Type.NUMBER },
+            hsn: { type: Type.STRING },
+            unit: { type: Type.STRING },
+            size: { type: Type.STRING },
+            gstPercent: { type: Type.NUMBER },
+            description: { type: Type.STRING }
+          },
+          required: ["name"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("No data returned from AI");
+    }
+
+    const data = JSON.parse(text);
+    res.status(200).json(data);
+  } catch (error: any) {
+    const correlationId = generateCorrelationId();
+    console.error(`[${correlationId}] AI Product Extraction Error server-side:`, error);
+    if (isQuotaOrRateLimitError(error)) {
+      return res.status(429).json({
+        success: false,
+        error: "QUOTA_EXCEEDED",
+        message: "Gemini API rate limit reached. Please try again in a moment.",
+        correlationId: correlationId
+      });
+    }
+    res.status(500).json({ 
+      success: false, 
+      error: "EXTRACTION_FAILED", 
+      message: "Failed to extract product data from image.",
+      correlationId: correlationId
+    });
+  }
+});
+
 app.post("/api/parse-contact", checkAuth, async (req, res) => {
   const { text } = req.body;
   

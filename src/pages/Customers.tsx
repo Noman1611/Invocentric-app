@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Mail, Phone, MapPin, UserPlus, X, Trash2, Edit2, Mic, Contact, Tag, Sliders } from 'lucide-react';
+import { Plus, Search, Mail, Phone, MapPin, UserPlus, X, Trash2, Edit2, Mic, Contact, Tag, Sliders, Camera, Upload, User } from 'lucide-react';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { useCustomers } from '../hooks/useData';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +20,7 @@ export default function CustomersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     company_name: '',
@@ -27,7 +28,31 @@ export default function CustomersPage() {
     email: '',
     phone: '',
     address: '',
+    photo_url: '',
   });
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Image size should be under 5MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setFormData(prev => ({ ...prev, photo_url: result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setFormData(prev => ({ ...prev, photo_url: '' }));
+    if (photoInputRef.current) {
+      photoInputRef.current.value = '';
+    }
+  };
 
   const [customFields, setCustomFields] = useState<Array<{ id: string; label: string; value: string }>>([]);
 
@@ -190,6 +215,7 @@ export default function CustomersPage() {
         email: formData.email,
         phone: formData.phone,
         address: formData.address,
+        photo_url: formData.photo_url || '',
         custom_fields: cleanCustomFields,
       };
 
@@ -200,7 +226,7 @@ export default function CustomersPage() {
       }
       setShowAddModal(false);
       setEditingCustomer(null);
-      setFormData({ name: '', company_name: '', gst_number: '', email: '', phone: '', address: '' });
+      setFormData({ name: '', company_name: '', gst_number: '', email: '', phone: '', address: '', photo_url: '' });
       setCustomFields([]);
     } catch (error) {
       console.error("Error saving customer:", error);
@@ -218,6 +244,7 @@ export default function CustomersPage() {
       email: customer.email || '',
       phone: customer.phone || '',
       address: customer.address || '',
+      photo_url: customer.photo_url || '',
     });
     setCustomFields(customer.custom_fields || []);
     setShowAddModal(true);
@@ -266,7 +293,7 @@ export default function CustomersPage() {
               return;
             }
             setEditingCustomer(null);
-            setFormData({ name: '', company_name: '', gst_number: '', email: '', phone: '', address: '' });
+            setFormData({ name: '', company_name: '', gst_number: '', email: '', phone: '', address: '', photo_url: '' });
             setCustomFields([]);
             setShowAddModal(true);
           }}
@@ -321,8 +348,12 @@ export default function CustomersPage() {
               className="card-base p-6 group hover:ring-2 hover:ring-green-500/20 transition-all flex flex-col h-full bg-white"
             >
               <div className="flex items-start justify-between mb-5">
-                <div className="w-11 h-11 rounded-xl bg-slate-50 flex items-center justify-center text-sm font-bold text-slate-700 ring-1 ring-slate-100">
-                  {customer.name.charAt(0)}
+                <div className="w-11 h-11 rounded-xl bg-slate-50 flex items-center justify-center text-sm font-bold text-slate-700 ring-1 ring-slate-100 overflow-hidden shrink-0">
+                  {customer.photo_url ? (
+                    <img src={customer.photo_url} alt={customer.name} className="w-full h-full object-cover" />
+                  ) : (
+                    customer.name.charAt(0)
+                  )}
                 </div>
                 <div className="flex items-center gap-1 opacity-100 transition-opacity">
                   <button 
@@ -438,6 +469,59 @@ export default function CustomersPage() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Customer Profile Photo */}
+                  <div className="flex items-center gap-4 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                    <div className="relative w-16 h-16 rounded-2xl border border-slate-200 bg-white overflow-hidden shrink-0 flex items-center justify-center group shadow-xs">
+                      {formData.photo_url ? (
+                        <>
+                          <img src={formData.photo_url} alt="Profile" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={removePhoto}
+                            className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove photo"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="text-slate-400 flex flex-col items-center justify-center">
+                          <User size={26} />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <input
+                        ref={photoInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                        id="customer-photo-upload"
+                      />
+                      <div className="flex items-center gap-2">
+                        <label
+                          htmlFor="customer-photo-upload"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors shadow-xs touch-manipulation active:scale-95"
+                        >
+                          <Camera size={13} className="text-green-600" />
+                          <span>{formData.photo_url ? 'Change Photo' : 'Upload Profile Photo'}</span>
+                        </label>
+                        {formData.photo_url && (
+                          <button
+                            type="button"
+                            onClick={removePhoto}
+                            className="text-xs text-rose-600 hover:text-rose-700 font-semibold px-2 py-1"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1">Customer/Client photo or company logo (PNG, JPG up to 5MB)</p>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between ml-1">

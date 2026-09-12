@@ -17,11 +17,13 @@ import {
   CheckCircle2,
   Sparkles,
   ChevronDown,
-  HelpCircle
+  HelpCircle,
+  Loader2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useItems } from '../hooks/useData';
 import SerialNumberInput from './SerialNumberInput';
+import { extractProductFromImage } from '../services/aiService';
 
 export interface CatalogItemData {
   id?: string;
@@ -106,6 +108,48 @@ export default function UpdateCatalogEntryModal({
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showMismatchModal, setShowMismatchModal] = useState<boolean>(false);
+  const [isExtractingAI, setIsExtractingAI] = useState<boolean>(false);
+  const [aiSuccessMessage, setAiSuccessMessage] = useState<string>('');
+
+  const triggerAIExtraction = async (base64Data: string) => {
+    if (!base64Data) return;
+    setIsExtractingAI(true);
+    setAiSuccessMessage('');
+    try {
+      let mimeType = 'image/jpeg';
+      let rawBase64 = base64Data;
+      if (base64Data.startsWith('data:')) {
+        const parts = base64Data.split(';base64,');
+        mimeType = parts[0].replace('data:', '') || 'image/jpeg';
+        rawBase64 = parts[1] || '';
+      }
+
+      const extracted = await extractProductFromImage(rawBase64, mimeType);
+      
+      setFormData(prev => ({
+        ...prev,
+        name: extracted.name || prev.name,
+        brand: extracted.brand || prev.brand,
+        category: extracted.category || prev.category,
+        barcode: extracted.barcode || prev.barcode,
+        mrp: extracted.mrp !== undefined && extracted.mrp !== null ? String(extracted.mrp) : prev.mrp,
+        price: extracted.price !== undefined && extracted.price !== null ? String(extracted.price) : (extracted.mrp !== undefined && extracted.mrp !== null ? String(extracted.mrp) : prev.price),
+        costPrice: extracted.costPrice !== undefined && extracted.costPrice !== null ? String(extracted.costPrice) : prev.costPrice,
+        hsn: extracted.hsn || prev.hsn,
+        unit: extracted.unit || prev.unit,
+        size: extracted.size || prev.size,
+        gstPercent: extracted.gstPercent !== undefined && extracted.gstPercent !== null ? String(extracted.gstPercent) : prev.gstPercent,
+        description: extracted.description || prev.description
+      }));
+
+      setAiSuccessMessage('✨ AI auto-filled product details and barcode successfully!');
+      setTimeout(() => setAiSuccessMessage(''), 6000);
+    } catch (err: any) {
+      console.error('AI extraction error:', err);
+    } finally {
+      setIsExtractingAI(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -198,6 +242,7 @@ export default function UpdateCatalogEntryModal({
         const result = reader.result as string;
         setImagePreview(result);
         setFormData(prev => ({ ...prev, image: result }));
+        triggerAIExtraction(result);
       };
       reader.readAsDataURL(file);
     }
@@ -485,7 +530,7 @@ export default function UpdateCatalogEntryModal({
                       </div>
                     )}
 
-                    <div className="flex-1 flex flex-col gap-1">
+                    <div className="flex-1 flex flex-col gap-1.5">
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -494,14 +539,53 @@ export default function UpdateCatalogEntryModal({
                         className="hidden"
                         id="catalog-image-upload"
                       />
-                      <label
-                        htmlFor="catalog-image-upload"
-                        className="inline-flex items-center gap-2 px-3.5 py-2.5 sm:py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer transition-colors w-fit touch-manipulation active:scale-95"
-                      >
-                        <Upload size={14} className="text-[#166534] dark:text-green-400" />
-                        <span>{imagePreview ? 'Change Photo' : 'Upload Image'}</span>
-                      </label>
-                      <span className="text-[10px] text-slate-400">PNG, JPG, WEBP up to 5MB</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label
+                          htmlFor="catalog-image-upload"
+                          className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer transition-colors touch-manipulation active:scale-95"
+                        >
+                          <Upload size={14} className="text-[#166534] dark:text-green-400" />
+                          <span>{imagePreview ? 'Change Photo' : 'Upload Image'}</span>
+                        </label>
+
+                        {imagePreview && (
+                          <button
+                            type="button"
+                            onClick={() => triggerAIExtraction(imagePreview)}
+                            disabled={isExtractingAI}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors shadow-sm active:scale-95 disabled:opacity-50"
+                            title="Auto-extract product name, brand, category, barcode, price and details using Gemini AI"
+                          >
+                            {isExtractingAI ? (
+                              <>
+                                <Loader2 size={13} className="animate-spin text-emerald-600" />
+                                <span>Scanning...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles size={13} className="text-emerald-600 dark:text-emerald-400" />
+                                <span>AI Auto-Fill</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+
+                      {isExtractingAI && (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 animate-pulse">
+                          <Loader2 size={13} className="animate-spin" />
+                          <span>AI reading barcode, MRP, prices & product details...</span>
+                        </div>
+                      )}
+
+                      {aiSuccessMessage && !isExtractingAI && (
+                        <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5 w-fit">
+                          <CheckCircle2 size={13} className="text-emerald-600" />
+                          <span>{aiSuccessMessage}</span>
+                        </div>
+                      )}
+
+                      <span className="text-[10px] text-slate-400">Upload package photo for automatic AI detail &amp; barcode detection</span>
                     </div>
                   </div>
                 </div>
