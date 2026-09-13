@@ -152,8 +152,8 @@ export default function InvoiceViewPage() {
 
   // Letterhead State & Alignment Sliders
   const [useLetterhead, setUseLetterhead] = useState<boolean>(false);
-  const [letterheadTop, setLetterheadTop] = useState<number>(50.8); // Default 2 inches = 50.8mm
-  const [letterheadBottom, setLetterheadBottom] = useState<number>(12.7); // Default 0.5 inches = 12.7mm
+  const [letterheadTop, setLetterheadTop] = useState<number>(55); // Default 55mm (~2.16 in) to clear top letterhead graphics
+  const [letterheadBottom, setLetterheadBottom] = useState<number>(35); // Default 35mm (~1.38 in) to clear bottom letterhead footer
   const [letterheadHideHeader, setLetterheadHideHeader] = useState<boolean>(true);
   const [showLetterheadSlider, setShowLetterheadSlider] = useState<boolean>(false);
   const [isSavingLetterhead, setIsSavingLetterhead] = useState<boolean>(false);
@@ -166,20 +166,21 @@ export default function InvoiceViewPage() {
       const isEnabled = invoice?.letterhead_enabled !== undefined 
         ? Boolean(invoice.letterhead_enabled) 
         : Boolean(sellerInfo?.letterhead_enabled);
-      const top = invoice?.letterhead_top_margin !== undefined 
+      const rawTop = invoice?.letterhead_top_margin !== undefined 
         ? Number(invoice.letterhead_top_margin) 
-        : (sellerInfo?.letterhead_top_margin !== undefined ? Number(sellerInfo.letterhead_top_margin) : 50.8);
-      const bottom = invoice?.letterhead_bottom_margin !== undefined 
+        : (sellerInfo?.letterhead_top_margin !== undefined ? Number(sellerInfo.letterhead_top_margin) : 55);
+      const rawBottom = invoice?.letterhead_bottom_margin !== undefined 
         ? Number(invoice.letterhead_bottom_margin) 
-        : (sellerInfo?.letterhead_bottom_margin !== undefined ? Number(sellerInfo.letterhead_bottom_margin) : 12.7);
+        : (sellerInfo?.letterhead_bottom_margin !== undefined ? Number(sellerInfo.letterhead_bottom_margin) : 35);
       const hideHeader = invoice?.letterhead_hide_header !== undefined 
         ? Boolean(invoice.letterhead_hide_header) 
         : (sellerInfo?.letterhead_hide_header !== undefined ? Boolean(sellerInfo.letterhead_hide_header) : true);
       const url = invoice?.letterhead_url || sellerInfo?.letterhead_url || '';
 
       setUseLetterhead(isEnabled);
-      setLetterheadTop(top);
-      setLetterheadBottom(bottom);
+      // Ensure positive margins when letterhead is active
+      setLetterheadTop(rawTop > 0 ? rawTop : 55);
+      setLetterheadBottom(rawBottom > 0 ? rawBottom : 35);
       setLetterheadHideHeader(hideHeader);
       setLetterheadUrl(url);
     }
@@ -585,8 +586,8 @@ export default function InvoiceViewPage() {
   const renderTemplate01Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const blue='#2f6fb0', dark='#1c4a75', lb='#eaf2fb', b=`1px solid ${blue}`;
     return (
-      <div className="flex flex-col h-full justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12, color:'#1a1a1a' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col h-full justify-between" style={{ minHeight: useLetterhead ? 'auto' : (isA5 ? '138mm' : '281mm'), height: useLetterhead ? '100%' : undefined, maxHeight: useLetterhead ? '100%' : undefined, boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12, color:'#1a1a1a' }}>
+        <div style={{ flex: useLetterhead ? 'none' : 1, display: 'flex', flexDirection: 'column' }}>
           {(!useLetterhead || !letterheadHideHeader) ? (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom: isA5 ? 2 : 6}}>
               <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
@@ -631,7 +632,7 @@ export default function InvoiceViewPage() {
           </div>
 
           {/* Dynamic Items Table - Clean uninterrupted vertical lines without row dividers */}
-          <table style={{width:'100%',flex:1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
+          <table style={{width:'100%',flex: useLetterhead ? 'none' : 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>
                 <th style={{background:lb,borderLeft:b,borderRight:b,borderBottom:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5, width: 30}}>Sr. No.</th>
@@ -668,26 +669,28 @@ export default function InvoiceViewPage() {
                   <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{fc(it.taxable,cur)}</td>
                 </tr>
               ))}
-              {/* Spacer row to let vertical column lines extend continuously */}
-              <tr>
-                <td style={{borderLeft:b,borderRight:b,height:'100%'}}></td>
-                <td style={{borderLeft:b,borderRight:b}}></td>
-                {colVis.size && <td style={{borderLeft:b,borderRight:b}}></td>}
-                {colVis.hsn && <td style={{borderLeft:b,borderRight:b}}></td>}
-                <td style={{borderLeft:b,borderRight:b}}></td>
-                {colVis.mrp && <td style={{borderLeft:b,borderRight:b}}></td>}
-                <td style={{borderLeft:b,borderRight:b}}></td>
-                {colVis.discount && <td style={{borderLeft:b,borderRight:b}}></td>}
-                {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
-                <td style={{borderLeft:b,borderRight:b}}></td>
-              </tr>
+              {/* Spacer row to let vertical column lines extend continuously only when not using letterhead */}
+              {!useLetterhead && (
+                <tr>
+                  <td style={{borderLeft:b,borderRight:b,height:'100%'}}></td>
+                  <td style={{borderLeft:b,borderRight:b}}></td>
+                  {colVis.size && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  {colVis.hsn && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  <td style={{borderLeft:b,borderRight:b}}></td>
+                  {colVis.mrp && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  <td style={{borderLeft:b,borderRight:b}}></td>
+                  {colVis.discount && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  <td style={{borderLeft:b,borderRight:b}}></td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Structured Bottom Section - Total / CGST / SGST exactly on top of Total in Words */}
         {isLastPage ? (
-          <div style={{ marginTop: 'auto' }}>
+          <div style={{ marginTop: useLetterhead ? 'auto' : 0, paddingTop: useLetterhead ? 8 : 0 }}>
             <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8.5 : 10.5}}>
               <tbody>
                 {isIgst ? (
@@ -829,8 +832,8 @@ export default function InvoiceViewPage() {
   const renderTemplate03Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const blue='#1a73c7', lb='#e9f2fb', b=`1px solid ${blue}`;
     return (
-      <div className="flex flex-col h-full justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col h-full justify-between" style={{ minHeight: useLetterhead ? 'auto' : (isA5 ? '138mm' : '281mm'), height: useLetterhead ? '100%' : undefined, maxHeight: useLetterhead ? '100%' : undefined, boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
+        <div style={{ flex: useLetterhead ? 'none' : 1, display: 'flex', flexDirection: 'column' }}>
           {(!useLetterhead || !letterheadHideHeader) ? (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
               <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue, textTransform:'uppercase'}}>{docTitle}</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
@@ -846,7 +849,7 @@ export default function InvoiceViewPage() {
             <div><b style={{display:'block',marginBottom:0.5}}>Shipping address:</b><div style={{fontWeight:'bold'}}>{sh.name}</div><div>{sh.address}</div><div><b>State:</b> {sh.state}</div></div>
             <div>{[[isQuotation ? 'Quote #:' : 'Invoice #:',im.invoiceNo],[isQuotation ? 'Quote Date:' : 'Invoice Date:',im.invoiceDate],['P.O. No.:',im.poNo],['E-Way No.:',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
           </div>
-          <table style={{width:'100%',flex:1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
+          <table style={{width:'100%',flex: useLetterhead ? 'none' : 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>
                 <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left', width: 30}}>Sr.No.</th>
@@ -883,18 +886,21 @@ export default function InvoiceViewPage() {
                   <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,textAlign:'right',verticalAlign:'top'}}>{fc(it.taxable,cur)}</td>
                 </tr>
               ))}
-              <tr>
-                <td style={{borderLeft:b,borderRight:b,height:'100%'}}></td>
-                <td style={{borderLeft:b,borderRight:b}}></td>
-                {colVis.size && <td style={{borderLeft:b,borderRight:b}}></td>}
-                {colVis.hsn && <td style={{borderLeft:b,borderRight:b}}></td>}
-                <td style={{borderLeft:b,borderRight:b}}></td>
-                {colVis.mrp && <td style={{borderLeft:b,borderRight:b}}></td>}
-                <td style={{borderLeft:b,borderRight:b}}></td>
-                {colVis.discount && <td style={{borderLeft:b,borderRight:b}}></td>}
-                {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
-                <td style={{borderLeft:b,borderRight:b}}></td>
-              </tr>
+              {/* Spacer row only when not using letterhead */}
+              {!useLetterhead && (
+                <tr>
+                  <td style={{borderLeft:b,borderRight:b,height:'100%'}}></td>
+                  <td style={{borderLeft:b,borderRight:b}}></td>
+                  {colVis.size && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  {colVis.hsn && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  <td style={{borderLeft:b,borderRight:b}}></td>
+                  {colVis.mrp && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  <td style={{borderLeft:b,borderRight:b}}></td>
+                  {colVis.discount && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
+                  <td style={{borderLeft:b,borderRight:b}}></td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -1184,8 +1190,8 @@ export default function InvoiceViewPage() {
     const borderGray = '#e2e8f0';
 
     return (
-      <div className="flex flex-col h-full justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily: 'Inter, Arial, sans-serif', fontSize: isA5 ? 9 : 11.5, color: '#0f172a' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col h-full justify-between" style={{ minHeight: useLetterhead ? 'auto' : (isA5 ? '138mm' : '281mm'), height: useLetterhead ? '100%' : undefined, maxHeight: useLetterhead ? '100%' : undefined, boxSizing: 'border-box', fontFamily: 'Inter, Arial, sans-serif', fontSize: isA5 ? 9 : 11.5, color: '#0f172a' }}>
+        <div style={{ flex: useLetterhead ? 'none' : 1, display: 'flex', flexDirection: 'column' }}>
           
           {/* Header Bar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `2px solid ${headerBlue}`, paddingBottom: 10, marginBottom: 12 }}>
@@ -1237,7 +1243,7 @@ export default function InvoiceViewPage() {
           </div>
 
           {/* Items Table with Dedicated Serial/Batch Column */}
-          <table style={{ width: '100%', flex: 1, borderCollapse: 'collapse', border: `1px solid ${borderGray}`, fontSize: isA5 ? 8.5 : 10.5 }}>
+          <table style={{ width: '100%', flex: useLetterhead ? 'none' : 1, borderCollapse: 'collapse', border: `1px solid ${borderGray}`, fontSize: isA5 ? 8.5 : 10.5 }}>
             <thead>
               <tr style={{ background: headerBlue, color: '#ffffff' }}>
                 <th style={{ padding: '6px 4px', textAlign: 'center', width: '30px', fontWeight: 700 }}>S.No.</th>
@@ -1274,10 +1280,12 @@ export default function InvoiceViewPage() {
                   </tr>
                 );
               })}
-              {/* Flexible spacer row */}
-              <tr>
-                <td colSpan={8} style={{ height: '100%' }}></td>
-              </tr>
+              {/* Flexible spacer row only when not using letterhead */}
+              {!useLetterhead && (
+                <tr>
+                  <td colSpan={8} style={{ height: '100%' }}></td>
+                </tr>
+              )}
             </tbody>
           </table>
 
@@ -1285,7 +1293,7 @@ export default function InvoiceViewPage() {
 
         {/* Bottom Section */}
         {isLastPage ? (
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: useLetterhead ? 'auto' : 10, paddingTop: useLetterhead ? 6 : 0 }}>
             {/* Grid for Bank Details and Summary */}
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, marginBottom: 10, alignItems: 'flex-start' }}>
               
@@ -1766,13 +1774,13 @@ export default function InvoiceViewPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between text-[11px] text-slate-500">
-                <span>Standard: 2 inches = 50.8 mm</span>
+                <span>Recommended: 2.16 in = 55 mm</span>
                 <button
                   type="button"
-                  onClick={() => setLetterheadTop(50.8)}
+                  onClick={() => setLetterheadTop(55)}
                   className="text-[10px] text-emerald-700 font-bold hover:underline cursor-pointer"
                 >
-                  Set 2 in (50.8 mm)
+                  Set 2.16 in (55 mm)
                 </button>
               </div>
               <div className="flex items-center gap-3 pt-1">
@@ -1790,7 +1798,7 @@ export default function InvoiceViewPage() {
               </div>
             </div>
 
-            {/* Slider 2: Bottom Margin / Footer Offset (0.5 in / 12.7 mm) */}
+            {/* Slider 2: Bottom Margin / Footer Offset (35 mm) */}
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-black uppercase tracking-wider text-slate-800">
@@ -1819,13 +1827,13 @@ export default function InvoiceViewPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between text-[11px] text-slate-500">
-                <span>Standard: 0.5 inches = 12.7 mm</span>
+                <span>Recommended: 1.38 in = 35 mm</span>
                 <button
                   type="button"
-                  onClick={() => setLetterheadBottom(12.7)}
+                  onClick={() => setLetterheadBottom(35)}
                   className="text-[10px] text-emerald-700 font-bold hover:underline cursor-pointer"
                 >
-                  Set 0.5 in (12.7 mm)
+                  Set 1.38 in (35 mm)
                 </button>
               </div>
               <div className="flex items-center gap-3 pt-1">
@@ -1850,7 +1858,7 @@ export default function InvoiceViewPage() {
                 <div className="text-[11px] text-slate-500">Fixed standard padding on left and right</div>
               </div>
               <span className="px-2.5 py-1 bg-white border border-green-200 text-emerald-800 rounded-lg text-xs font-extrabold">
-                10 mm (1 cm)
+                14 mm (1.4 cm)
               </span>
             </div>
 

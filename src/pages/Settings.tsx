@@ -30,6 +30,21 @@ import {
 } from '../utils/googleDriveSync';
 
 export default function SettingsPage() {
+  const { 
+    user, 
+    logout, 
+    isOfflineMode: isOfflineModeReal, 
+    setOfflineMode, 
+    planTier,
+    isPcDriveEnabled,
+    isPcFileConnected,
+    pcFileName,
+    enablePcDriveMode,
+    disablePcDriveMode,
+    unlockPcDriveFile
+  } = useAuth();
+  const isOfflineMode = false; // Always keep UI input fields enabled and active
+  const isCloudDataImported = user ? getSecureStorage(`cloud_data_imported_${user.uid}`, false) : false;
 
   // Google Drive & PC Directory Sync States
   const [gdriveConnected, setGdriveConnected] = useState<boolean>(() => isGoogleDriveConnected());
@@ -71,13 +86,15 @@ export default function SettingsPage() {
         const res = await syncDataToGoogleDrive(user.uid);
         if (res.success) {
           alert("🎉 Google Drive connected successfully! Master backup file and daily_backups folder created in your Google Drive.");
+          setGdriveConnected(true);
+          setGdriveLastBackup(new Date().toISOString());
+        } else {
+          alert(`Google Drive connected, but initial sync had an issue: ${res.error || 'Please retry sync.'}`);
         }
       }
-      setGdriveConnected(true);
-      setGdriveLastBackup(getGoogleDriveLastBackupTime());
     } catch (err: any) {
-      console.error(err);
-      alert("Google Drive connection failed: " + (err.message || String(err)));
+      console.error("Google Drive connection error:", err);
+      alert(`Google Drive connection failed: ${err.message || 'Please check popup permissions.'}`);
     } finally {
       setGdriveSyncing(false);
     }
@@ -89,20 +106,21 @@ export default function SettingsPage() {
       setGdriveSyncing(true);
       const res = await syncDataToGoogleDrive(user.uid);
       if (res.success) {
-        setGdriveLastBackup(getGoogleDriveLastBackupTime());
-        alert("✅ Google Drive synced successfully! Master file and today's dated backup updated.");
+        alert("✅ Synced to Google Drive successfully!\n• Master backup updated\n• Today's daily backup created in daily_backups/");
+        setGdriveLastBackup(new Date().toISOString());
       } else {
-        alert("Sync failed: " + res.error);
+        alert(`Sync failed: ${res.error || 'Please re-connect Google Drive'}`);
       }
     } catch (err: any) {
-      alert("Error syncing to Google Drive: " + err.message);
+      console.error("Sync error:", err);
+      alert(`Sync failed: ${err.message}`);
     } finally {
       setGdriveSyncing(false);
     }
   };
 
   const handleDisconnectGoogleDrive = () => {
-    if (window.confirm("Are you sure you want to disconnect Google Drive auto-backup?")) {
+    if (window.confirm("Disconnect Google Drive backup? Automatic 24h sync to Drive will be paused.")) {
       disconnectGoogleDrive();
       setGdriveConnected(false);
       setGdriveLastBackup(null);
@@ -110,27 +128,30 @@ export default function SettingsPage() {
   };
 
   const handleSelectPcDirectory = async () => {
-    if (!user) return;
     if (!isDirectoryPickerSupported()) {
-      alert("Your browser does not support folder picker. Please use Google Chrome or Microsoft Edge on PC.");
+      alert("Folder selection is supported in Google Chrome, Microsoft Edge, and modern desktop browsers.");
       return;
     }
+    if (!user) return;
+
     try {
       setPcDirSyncing(true);
       const dirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+      if (!dirHandle) return;
+
       await saveDirectoryHandleToIndexedDB(user.uid, dirHandle);
       setPcDirConnected(true);
       setPcDirName(dirHandle.name);
 
-      // Perform immediate sync to save master and daily folder
-      await writeAllDataToPcDirectory(user.uid, dirHandle);
-      const timestamp = new Date().toISOString();
-      setPcDirLastBackup(timestamp);
-      alert(`🎉 PC Folder '${dirHandle.name}' connected! Saved 'invocentric_master_backup.json' and 'daily_backups' folder.`);
+      const res = await writeAllDataToPcDirectory(user.uid, dirHandle);
+      if (res.success) {
+        setPcDirLastBackup(new Date().toISOString());
+        alert(`🎉 PC Folder connected successfully!\nBackup saved to: ${dirHandle.name}/invocentric_master_backup.json and daily_backups/`);
+      }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
-        console.error("PC directory selection error:", err);
-        alert("Failed to connect PC directory: " + (err.message || String(err)));
+        console.error("Directory picker error:", err);
+        alert(`Failed to select directory: ${err.message}`);
       }
     } finally {
       setPcDirSyncing(false);
@@ -143,16 +164,19 @@ export default function SettingsPage() {
       setPcDirSyncing(true);
       const dirHandle = await getDirectoryHandleFromIndexedDB(user.uid);
       if (!dirHandle) {
-        alert("No PC folder connected. Please choose a folder first.");
+        alert("Please connect a backup folder first.");
         return;
       }
-      await writeAllDataToPcDirectory(user.uid, dirHandle);
-      const timestamp = new Date().toISOString();
-      setPcDirLastBackup(timestamp);
-      alert("✅ PC Folder synced successfully! Master file and today's dated backup updated.");
+      const res = await writeAllDataToPcDirectory(user.uid, dirHandle);
+      if (res.success) {
+        setPcDirLastBackup(new Date().toISOString());
+        alert(`✅ Backup saved to PC folder (${dirHandle.name}) successfully!`);
+      } else {
+        alert(`Backup failed: ${res.error}`);
+      }
     } catch (err: any) {
-      console.error(err);
-      alert("PC Folder sync error: " + (err.message || String(err)));
+      console.error("PC directory sync error:", err);
+      alert(`PC directory sync failed: ${err.message}`);
     } finally {
       setPcDirSyncing(false);
     }
@@ -167,22 +191,6 @@ export default function SettingsPage() {
       setPcDirLastBackup(null);
     }
   };
-
-  const { 
-    user, 
-    logout, 
-    isOfflineMode: isOfflineModeReal, 
-    setOfflineMode, 
-    planTier,
-    isPcDriveEnabled,
-    isPcFileConnected,
-    pcFileName,
-    enablePcDriveMode,
-    disablePcDriveMode,
-    unlockPcDriveFile
-  } = useAuth();
-  const isOfflineMode = false; // Always keep UI input fields enabled and active
-  const isCloudDataImported = user ? getSecureStorage(`cloud_data_imported_${user.uid}`, false) : false;
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
