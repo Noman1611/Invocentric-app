@@ -116,10 +116,15 @@ export interface ExtractedProduct {
   barcode?: string;
   mrp?: number;
   price?: number;
+  wholesalePrice?: number;
   costPrice?: number;
+  discount?: number;
   hsn?: string;
   unit?: string;
   size?: string;
+  stock?: number;
+  serialNumber?: string;
+  custom_box?: string;
   gstPercent?: number;
   description?: string;
 }

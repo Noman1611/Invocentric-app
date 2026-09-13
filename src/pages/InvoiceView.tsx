@@ -6,7 +6,7 @@ import { getSecureStorage } from '../utils/cryptoUtils';
 import { formatCurrency, cn, normalizePhoneNumber } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { toWords } from 'number-to-words';
-import { ArrowLeft, Edit3, Printer, Download, Loader2, X, Sliders, Settings2 } from 'lucide-react';
+import { ArrowLeft, Edit3, Printer, Download, Loader2, X, Sliders, Settings2, Upload, Trash2, Check, FileSpreadsheet } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
 import { WhatsAppShareModal } from '../components/WhatsAppShareModal';
@@ -157,6 +157,8 @@ export default function InvoiceViewPage() {
   const [letterheadHideHeader, setLetterheadHideHeader] = useState<boolean>(true);
   const [showLetterheadSlider, setShowLetterheadSlider] = useState<boolean>(false);
   const [isSavingLetterhead, setIsSavingLetterhead] = useState<boolean>(false);
+  const [letterheadUrl, setLetterheadUrl] = useState<string>('');
+  const letterheadFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Sync letterhead settings from invoice or seller profile
   useEffect(() => {
@@ -173,31 +175,82 @@ export default function InvoiceViewPage() {
       const hideHeader = invoice?.letterhead_hide_header !== undefined 
         ? Boolean(invoice.letterhead_hide_header) 
         : (sellerInfo?.letterhead_hide_header !== undefined ? Boolean(sellerInfo.letterhead_hide_header) : true);
+      const url = invoice?.letterhead_url || sellerInfo?.letterhead_url || '';
 
       setUseLetterhead(isEnabled);
       setLetterheadTop(top);
       setLetterheadBottom(bottom);
       setLetterheadHideHeader(hideHeader);
+      setLetterheadUrl(url);
     }
   }, [invoice, sellerInfo]);
 
-  const letterheadUrl = invoice?.letterhead_url || sellerInfo?.letterhead_url || '';
+  const handleLetterheadUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      alert("Letterhead image should be under 15MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const raw = ev.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const targetWidth = 1400;
+        const targetHeight = Math.round((img.height / img.width) * 1400);
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          setLetterheadUrl(compressed);
+          setUseLetterhead(true);
+        } else {
+          setLetterheadUrl(raw);
+          setUseLetterhead(true);
+        }
+      };
+      img.onerror = () => {
+        setLetterheadUrl(raw);
+        setUseLetterhead(true);
+      };
+      img.src = raw;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLetterhead = () => {
+    setLetterheadUrl('');
+    setUseLetterhead(false);
+    if (letterheadFileInputRef.current) {
+      letterheadFileInputRef.current.value = '';
+    }
+  };
 
   const handleSaveLetterheadOffset = async () => {
-    if (!invoice?.id) return;
     setIsSavingLetterhead(true);
     try {
-      await dbService.update('invoices', invoice.id, {
+      const payload = {
         letterhead_enabled: useLetterhead,
         letterhead_top_margin: letterheadTop,
         letterhead_bottom_margin: letterheadBottom,
         letterhead_hide_header: letterheadHideHeader,
         letterhead_url: letterheadUrl,
-      }, { offlineMode: isOfflineMode, userId: user?.uid || 'guest' });
-      alert("Letterhead alignment & position saved successfully!");
+      };
+      if (invoice?.id) {
+        await dbService.update('invoices', invoice.id, payload, { offlineMode: isOfflineMode, userId: user?.uid || 'guest' });
+      }
+      if (user?.uid) {
+        await dbService.update('users', user.uid, payload, { offlineMode: isOfflineMode, userId: user.uid });
+      }
+      alert("✅ Letterhead and alignment settings saved as default!");
+      setShowLetterheadSlider(false);
     } catch (err) {
       console.error("Failed to save letterhead offset:", err);
-      alert("Failed to save letterhead offset.");
+      alert("Failed to save letterhead settings.");
     } finally {
       setIsSavingLetterhead(false);
     }
@@ -778,10 +831,16 @@ export default function InvoiceViewPage() {
     return (
       <div className="flex flex-col h-full justify-between" style={{ minHeight: isA5 ? '138mm' : '281mm', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
-            <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue, textTransform:'uppercase'}}>{docTitle}</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
-            <div style={{textAlign:'right'}}><div style={{fontSize:8.5,fontWeight:'bold'}}>{docSubtitle}</div>{co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52,height: isA5 ? 32 : 52}}/>}<div style={{fontSize:8.5,color:'#666',marginTop:1}}>Page {pageIdx + 1} of {totalPages}</div></div>
-          </div>
+          {(!useLetterhead || !letterheadHideHeader) ? (
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
+              <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue, textTransform:'uppercase'}}>{docTitle}</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
+              <div style={{textAlign:'right'}}><div style={{fontSize:8.5,fontWeight:'bold'}}>{docSubtitle}</div>{co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52,height: isA5 ? 32 : 52}}/>}<div style={{fontSize:8.5,color:'#666',marginTop:1}}>Page {pageIdx + 1} of {totalPages}</div></div>
+            </div>
+          ) : (
+            <div style={{display:'flex',justifyContent:'flex-end',paddingBottom:2,marginBottom:2}}>
+              <div style={{fontSize:8.5,color:'#666'}}>Page {pageIdx + 1} of {totalPages}</div>
+            </div>
+          )}
           <div style={{display:'grid',gridTemplateColumns:'1.2fr 1.2fr 1fr',gap:5,borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3,fontSize: isA5 ? 8.5 : 10.5}}>
             <div><b style={{display:'block',marginBottom:0.5}}>Customer Details:</b><div style={{fontWeight:'bold'}}>{bu.name}</div><div>{bu.address}</div>{showSec.customer_gstin && <div><b>GSTIN:</b> {bu.gstin}</div>}<div><b>State:</b> {bu.state}</div></div>
             <div><b style={{display:'block',marginBottom:0.5}}>Shipping address:</b><div style={{fontWeight:'bold'}}>{sh.name}</div><div>{sh.address}</div><div><b>State:</b> {sh.state}</div></div>
@@ -1429,6 +1488,26 @@ export default function InvoiceViewPage() {
               </>
             )}
 
+            {/* Letterhead Configuration Button */}
+            {!isPOS && (
+              <button
+                onClick={() => setShowLetterheadSlider(!showLetterheadSlider)}
+                className={cn(
+                  "inline-flex items-center justify-center gap-1 h-8 px-2 sm:px-2.5 font-bold rounded-xl text-xs transition-colors cursor-pointer active:scale-95 border",
+                  useLetterhead && letterheadUrl
+                    ? "bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                )}
+                title="Letterhead Settings & Alignment"
+              >
+                <FileSpreadsheet size={14} className={useLetterhead && letterheadUrl ? "text-purple-600" : "text-slate-500"} />
+                <span className="hidden xs:inline text-[11px]">Letterhead</span>
+                {useLetterhead && letterheadUrl && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse" />
+                )}
+              </button>
+            )}
+
             {/* Action Buttons: Edit, WhatsApp Share, PDF, Print (ALWAYS VISIBLE) */}
             <button 
               onClick={() => navigate(`/invoices/edit/${invoice.id}`)} 
@@ -1506,7 +1585,7 @@ export default function InvoiceViewPage() {
                           height: sheetHeightStyle,
                           minHeight: sheetMinHeight,
                           maxHeight: isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : undefined),
-                          padding: sheetPadding,
+                          padding: useLetterhead ? 0 : sheetPadding,
                           background: '#fff',
                           boxSizing: 'border-box',
                           margin: '0 auto 16px auto',
@@ -1516,7 +1595,43 @@ export default function InvoiceViewPage() {
                           overflow: 'hidden'
                         }}
                       >
-                        {renderPage(pItems, idx, idx === totalPages - 1)}
+                        {/* Letterhead Background Layer */}
+                        {useLetterhead && letterheadUrl && (
+                          <img
+                            src={letterheadUrl}
+                            alt="Letterhead Background"
+                            className="absolute inset-0 w-full h-full object-fill pointer-events-none z-0 print:block"
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'fill',
+                              zIndex: 0,
+                              pointerEvents: 'none',
+                              display: 'block'
+                            }}
+                          />
+                        )}
+
+                        <div
+                          style={{
+                            position: 'relative',
+                            zIndex: 10,
+                            width: '100%',
+                            height: '100%',
+                            boxSizing: 'border-box',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            paddingTop: useLetterhead ? `${letterheadTop}mm` : 0,
+                            paddingBottom: useLetterhead ? `${letterheadBottom}mm` : 0,
+                            paddingLeft: useLetterhead ? (isA5 ? '6mm' : '8mm') : 0,
+                            paddingRight: useLetterhead ? (isA5 ? '6mm' : '8mm') : 0,
+                          }}
+                        >
+                          {renderPage(pItems, idx, idx === totalPages - 1)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1526,6 +1641,233 @@ export default function InvoiceViewPage() {
           </div>
         </div>
       </main>
+
+      {/* Accessible Letterhead Settings & Alignment Modal */}
+      {showLetterheadSlider && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 print:hidden animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                  <FileSpreadsheet size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 leading-tight">Letterhead Settings</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Upload company letterhead & adjust margins live</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLetterheadSlider(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-5 overflow-y-auto">
+              {/* Enable Switch */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
+                <div>
+                  <div className="text-xs font-black text-slate-800 uppercase tracking-wider">Enable Letterhead Background</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">Prints invoice content directly over your letterhead</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useLetterhead}
+                    onChange={(e) => setUseLetterhead(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+              </div>
+
+              {/* Letterhead Upload Section */}
+              <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-2xl space-y-3">
+                <div className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                  <span>Letterhead Image (PNG, JPG, WEBP)</span>
+                  {letterheadUrl && (
+                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">Uploaded</span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {letterheadUrl ? (
+                    <div className="relative w-16 h-22 bg-white border border-purple-200 rounded-xl overflow-hidden shrink-0 shadow-xs">
+                      <img src={letterheadUrl} alt="Letterhead Thumbnail" className="w-full h-full object-contain" />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-22 bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-400 shrink-0">
+                      <Upload size={18} />
+                      <span className="text-[9px] mt-1 font-bold">No Image</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">
+                        <Upload size={13} />
+                        <span>{letterheadUrl ? 'Change Letterhead' : 'Upload Letterhead'}</span>
+                        <input
+                          ref={letterheadFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleLetterheadUpload}
+                        />
+                      </label>
+                      {letterheadUrl && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveLetterhead}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 cursor-pointer"
+                          title="Remove Letterhead"
+                        >
+                          <Trash2 size={14} />
+                          <span className="text-xs">Remove</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500">
+                      Upload your printed A4 sheet scan or design. Content prints crisp over this image.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Slider 1: Top Margin / Header Offset */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    Header Offset / Top Margin (Upar Se Jagah)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setLetterheadTop(Math.max(0, letterheadTop - 5))}
+                      className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                      title="-5mm"
+                    >
+                      -
+                    </button>
+                    <span className="px-2.5 py-1 bg-purple-100 text-purple-900 rounded-lg text-xs font-extrabold tabular-nums min-w-[55px] text-center">
+                      {letterheadTop} mm
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLetterheadTop(Math.min(120, letterheadTop + 5))}
+                      className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                      title="+5mm"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Sliding this moves the invoice content down so it does not overlap your printed letterhead header or logo.
+                </p>
+                <div className="flex items-center gap-3 pt-1">
+                  <span className="text-[10px] font-bold text-slate-400">0 mm</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="120"
+                    step="1"
+                    value={letterheadTop}
+                    onChange={(e) => setLetterheadTop(Number(e.target.value))}
+                    className="flex-1 accent-purple-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+                  />
+                  <span className="text-[10px] font-bold text-slate-400">120 mm</span>
+                </div>
+              </div>
+
+              {/* Slider 2: Bottom Margin / Footer Offset */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black uppercase tracking-wider text-slate-800">
+                    Footer Offset / Bottom Margin (Niche Se Jagah)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setLetterheadBottom(Math.max(0, letterheadBottom - 5))}
+                      className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                      title="-5mm"
+                    >
+                      -
+                    </button>
+                    <span className="px-2.5 py-1 bg-purple-100 text-purple-900 rounded-lg text-xs font-extrabold tabular-nums min-w-[55px] text-center">
+                      {letterheadBottom} mm
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setLetterheadBottom(Math.min(80, letterheadBottom + 5))}
+                      className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                      title="+5mm"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Gives clearance for pre-printed footers, terms, or bank accounts at the bottom of your letterhead.
+                </p>
+                <div className="flex items-center gap-3 pt-1">
+                  <span className="text-[10px] font-bold text-slate-400">0 mm</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="80"
+                    step="1"
+                    value={letterheadBottom}
+                    onChange={(e) => setLetterheadBottom(Number(e.target.value))}
+                    className="flex-1 accent-purple-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+                  />
+                  <span className="text-[10px] font-bold text-slate-400">80 mm</span>
+                </div>
+              </div>
+
+              {/* Hide Default Header Checkbox */}
+              <div className="flex items-start gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                <input
+                  type="checkbox"
+                  id="lh_hide_hdr"
+                  checked={letterheadHideHeader}
+                  onChange={(e) => setLetterheadHideHeader(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="lh_hide_hdr" className="text-xs text-slate-700 cursor-pointer leading-relaxed">
+                  <strong className="font-bold text-slate-900 block">Hide standard digital company header</strong>
+                  Hides business name, logo, and address so it doesn't double-print over your letterhead branding.
+                </label>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setShowLetterheadSlider(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                disabled={isSavingLetterhead}
+                onClick={handleSaveLetterheadOffset}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isSavingLetterhead ? <Loader2 size={14} className="animate-spin" /> : null}
+                <span>Save as Default</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <WhatsAppShareModal isOpen={showWhatsAppModal} onClose={() => setShowWhatsAppModal(false)} whatsAppUrl={whatsAppUrlState} whatsAppWebUrl={whatsAppWebUrlState} whatsAppAppUrl={whatsAppAppUrlState} documentTitle="Invoice" copiedToClipboard={copiedToClipboard} fileName={`Invoice_${invoice?.invoice_number || 'bill'}.pdf`} />
       <style>{`
@@ -1564,6 +1906,7 @@ export default function InvoiceViewPage() {
             box-shadow: none !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            position: relative !important;
             overflow: hidden !important;
           }
           .invoice-page-sheet:last-child {

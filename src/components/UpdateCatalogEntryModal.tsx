@@ -126,24 +126,35 @@ export default function UpdateCatalogEntryModal({
 
       const extracted = await extractProductFromImage(rawBase64, mimeType);
       
-      setFormData(prev => ({
-        ...prev,
-        name: extracted.name || prev.name,
-        brand: extracted.brand || prev.brand,
-        category: extracted.category || prev.category,
-        barcode: extracted.barcode || prev.barcode,
-        mrp: extracted.mrp !== undefined && extracted.mrp !== null ? String(extracted.mrp) : prev.mrp,
-        price: extracted.price !== undefined && extracted.price !== null ? String(extracted.price) : (extracted.mrp !== undefined && extracted.mrp !== null ? String(extracted.mrp) : prev.price),
-        costPrice: extracted.costPrice !== undefined && extracted.costPrice !== null ? String(extracted.costPrice) : prev.costPrice,
-        hsn: extracted.hsn || prev.hsn,
-        unit: extracted.unit || prev.unit,
-        size: extracted.size || prev.size,
-        gstPercent: extracted.gstPercent !== undefined && extracted.gstPercent !== null ? String(extracted.gstPercent) : prev.gstPercent,
-        description: extracted.description || prev.description
-      }));
+      setFormData(prev => {
+        const nextSerials = extracted.serialNumber ? [extracted.serialNumber] : (prev.serials || []);
+        return {
+          ...prev,
+          name: extracted.name || prev.name,
+          brand: extracted.brand || prev.brand,
+          category: extracted.category || prev.category,
+          barcode: extracted.barcode || prev.barcode,
+          mrp: extracted.mrp !== undefined && extracted.mrp !== null ? String(extracted.mrp) : prev.mrp,
+          price: extracted.price !== undefined && extracted.price !== null 
+            ? String(extracted.price) 
+            : (extracted.mrp !== undefined && extracted.mrp !== null ? String(extracted.mrp) : prev.price),
+          wholesalePrice: extracted.wholesalePrice !== undefined && extracted.wholesalePrice !== null ? String(extracted.wholesalePrice) : prev.wholesalePrice,
+          costPrice: extracted.costPrice !== undefined && extracted.costPrice !== null ? String(extracted.costPrice) : prev.costPrice,
+          discount: extracted.discount !== undefined && extracted.discount !== null ? String(extracted.discount) : prev.discount,
+          hsn: extracted.hsn || prev.hsn,
+          unit: extracted.unit || prev.unit,
+          size: extracted.size || prev.size,
+          stock: extracted.stock !== undefined && extracted.stock !== null ? String(extracted.stock) : prev.stock,
+          serialNumber: extracted.serialNumber || prev.serialNumber,
+          serials: nextSerials,
+          custom_box: extracted.custom_box || prev.custom_box,
+          gstPercent: extracted.gstPercent !== undefined && extracted.gstPercent !== null ? String(extracted.gstPercent) : prev.gstPercent,
+          description: extracted.description || prev.description
+        };
+      });
 
-      setAiSuccessMessage('✨ AI auto-filled product details and barcode successfully!');
-      setTimeout(() => setAiSuccessMessage(''), 6000);
+      setAiSuccessMessage('✨ AI auto-filled product details, barcode, pricing & specs!');
+      setTimeout(() => setAiSuccessMessage(''), 7000);
     } catch (err: any) {
       console.error('AI extraction error:', err);
     } finally {
@@ -233,16 +244,49 @@ export default function UpdateCatalogEntryModal({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image size should be under 5MB");
+      if (file.size > 15 * 1024 * 1024) {
+        alert("Image size should be under 15MB");
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        const result = reader.result as string;
-        setImagePreview(result);
-        setFormData(prev => ({ ...prev, image: result }));
-        triggerAIExtraction(result);
+        const rawResult = reader.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1280;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', 0.85);
+            setImagePreview(compressed);
+            setFormData(prev => ({ ...prev, image: compressed }));
+            triggerAIExtraction(compressed);
+            return;
+          }
+          setImagePreview(rawResult);
+          setFormData(prev => ({ ...prev, image: rawResult }));
+          triggerAIExtraction(rawResult);
+        };
+        img.onerror = () => {
+          setImagePreview(rawResult);
+          setFormData(prev => ({ ...prev, image: rawResult }));
+          triggerAIExtraction(rawResult);
+        };
+        img.src = rawResult;
       };
       reader.readAsDataURL(file);
     }

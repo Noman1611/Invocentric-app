@@ -34,14 +34,43 @@ export default function CustomersPage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Image size should be under 5MB");
+      if (file.size > 10 * 1024 * 1024) {
+        alert("Image size should be under 10MB");
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        const result = reader.result as string;
-        setFormData(prev => ({ ...prev, photo_url: result }));
+        const rawResult = reader.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 256;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+            setFormData(prev => ({ ...prev, photo_url: compressed }));
+            return;
+          }
+          setFormData(prev => ({ ...prev, photo_url: rawResult }));
+        };
+        img.onerror = () => {
+          setFormData(prev => ({ ...prev, photo_url: rawResult }));
+        };
+        img.src = rawResult;
       };
       reader.readAsDataURL(file);
     }

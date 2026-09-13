@@ -1,7 +1,7 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Plus, Minus, Trash2, Save, Send, Camera, Loader2, Sparkles, X, Barcode, ScanLine, Printer, Mic, Contact, CheckCircle2, AlertCircle, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Tag, Palette, EyeOff, Phone, HelpCircle, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Trash2, Save, Send, Camera, Loader2, Sparkles, X, Barcode, ScanLine, Printer, Mic, Contact, CheckCircle2, AlertCircle, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Tag, Palette, EyeOff, Phone, HelpCircle, ChevronDown, User, Upload } from 'lucide-react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCustomers, useItems, useInvoices, useSettings } from '../hooks/useData';
 import { useAuth } from '../contexts/AuthContext';
@@ -90,7 +90,54 @@ export default function CreateInvoicePage() {
     email: '',
     phone: '',
     address: '',
+    photo_url: '',
   });
+  const customerPhotoInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleQuickCustomerPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert("Image size should be under 10MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const rawResult = reader.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 256;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+            setNewCustomer(prev => ({ ...prev, photo_url: compressed }));
+            return;
+          }
+          setNewCustomer(prev => ({ ...prev, photo_url: rawResult }));
+        };
+        img.onerror = () => {
+          setNewCustomer(prev => ({ ...prev, photo_url: rawResult }));
+        };
+        img.src = rawResult;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   const [quickCustomFields, setQuickCustomFields] = useState<Array<{ id: string; label: string; value: string }>>([]);
 
   const PRESET_CUSTOM_LABELS = [
@@ -988,13 +1035,15 @@ export default function CreateInvoicePage() {
         email: newCustomer.email,
         phone: newCustomer.phone,
         address: newCustomer.address,
+        photo_url: newCustomer.photo_url || '',
         custom_fields: cleanCustomFields,
       }, { offlineMode: isOfflineMode, userId: user.uid });
       
       // Auto select the new customer
       setFormData(prev => ({ ...prev, customer_id: res.id }));
       setShowAddCustomerModal(false);
-      setNewCustomer({ name: '', company_name: '', gst_number: '', email: '', phone: '', address: '' });
+      setNewCustomer({ name: '', company_name: '', gst_number: '', email: '', phone: '', address: '', photo_url: '' });
+      if (customerPhotoInputRef.current) customerPhotoInputRef.current.value = '';
       setQuickCustomFields([]);
     } catch (error) {
       console.error("Error adding customer:", error);
@@ -1404,16 +1453,25 @@ export default function CreateInvoicePage() {
                   <span>New</span>
                 </button>
               </div>
-              <select
-                className="input-field text-xs py-1.5 px-2 font-medium"
-                value={formData.customer_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, customer_id: e.target.value }))}
-              >
-                <option value="">{appMode === 'freelancer' ? 'Direct Client' : 'Cash Sale (No Customer)'}</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-1.5">
+                {formData.customer_id && customers.find(c => c.id === formData.customer_id)?.photo_url && (
+                  <img
+                    src={customers.find(c => c.id === formData.customer_id)!.photo_url}
+                    alt="Customer"
+                    className="w-7 h-7 rounded-full object-cover border border-slate-300 shrink-0 shadow-2xs"
+                  />
+                )}
+                <select
+                  className="input-field text-xs py-1.5 px-2 font-medium flex-1"
+                  value={formData.customer_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customer_id: e.target.value }))}
+                >
+                  <option value="">{appMode === 'freelancer' ? 'Direct Client' : 'Cash Sale (No Customer)'}</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Invoice Number */}
@@ -3221,6 +3279,63 @@ export default function CreateInvoicePage() {
 
                 <form onSubmit={handleAddCustomer} className="space-y-6">
                   <div className="space-y-4">
+                    {/* Customer Profile Photo / Avatar */}
+                    <div className="flex items-center gap-4 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl">
+                      <div className="relative w-14 h-14 rounded-full bg-white border border-slate-300 overflow-hidden flex items-center justify-center shrink-0 shadow-xs group">
+                        {newCustomer.photo_url ? (
+                          <>
+                            <img src={newCustomer.photo_url} alt="Customer Avatar" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setNewCustomer(prev => ({ ...prev, photo_url: '' }));
+                                if (customerPhotoInputRef.current) customerPhotoInputRef.current.value = '';
+                              }}
+                              className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                              title="Remove Photo"
+                            >
+                              <X size={16} />
+                            </button>
+                          </>
+                        ) : (
+                          <User size={26} className="text-slate-400" />
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1.5 flex-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-800">Profile Picture / Logo</label>
+                          {newCustomer.photo_url && (
+                            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">Photo Attached</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl shadow-2xs transition-colors">
+                            <Upload size={13} className="text-emerald-600" />
+                            <span>{newCustomer.photo_url ? 'Change Photo' : 'Upload Photo'}</span>
+                            <input
+                              ref={customerPhotoInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleQuickCustomerPhotoChange}
+                            />
+                          </label>
+                          {newCustomer.photo_url && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setNewCustomer(prev => ({ ...prev, photo_url: '' }));
+                                if (customerPhotoInputRef.current) customerPhotoInputRef.current.value = '';
+                              }}
+                              className="text-xs text-rose-600 hover:text-rose-700 font-bold px-2 py-1 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <div className="flex items-center justify-between mb-1">

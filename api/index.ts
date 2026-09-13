@@ -748,20 +748,25 @@ app.post("/api/extract-product", checkAuth, async (req, res) => {
 
   try {
     const aiInstance = getAI();
-    const prompt = `Analyze this product packaging or product image and extract all product catalog details accurately.
+    const prompt = `Analyze this product packaging, label, or product image and extract ALL product catalog details accurately. Inspect all visible text, price marks, nutrition/spec tables, batch codes, and barcode stripes.
 Extract:
-1. name: Exact product title and name
-2. brand: Brand/Manufacturer name
-3. category: Product category (e.g. Grocery, Snacks, Electronics, Personal Care, Dairy, Stationery, Hardware, etc.)
-4. barcode: Barcode or UPC/EAN digits if visible printed on packaging or next to the barcode stripes. If not found, return empty string.
-5. mrp: Maximum Retail Price (₹) number only.
-6. price: Selling price/retail rate (₹) if stated or reasonable price.
-7. costPrice: Wholesale or cost price if stated, otherwise 0.
-8. hsn: HSN or SAC code if printed on package or standard HSN for this category.
-9. unit: Standard unit (Pcs, Kg, Gm, Ltr, Ml, Box, Pack, etc.).
-10. size: Net quantity, net weight, or volume (e.g. "500 g", "1 L", "100 ml", "Pack of 2").
-11. gstPercent: Standard Indian GST tax percentage (0, 5, 12, 18, or 28).
-12. description: Short, clear description of the product and its features.
+1. name: Exact product title and name.
+2. brand: Brand or manufacturer name.
+3. category: Product category (e.g. Grocery, Snacks, Electronics, Personal Care, Dairy, Stationery, Hardware, Beverages, Medicine, Fashion, etc.).
+4. barcode: Barcode or UPC / EAN-13 / GTIN digits. Look carefully at any barcode stripes on the packaging and extract the complete digits printed directly under or beside the barcode lines. If not visible, return empty string.
+5. mrp: Maximum Retail Price (₹ / MRP) printed on packaging or label. Number only.
+6. price: Selling price / retail price (₹) if stated or reasonable price (default to MRP if only MRP is present).
+7. wholesalePrice: Wholesale / bulk price if stated, otherwise 0.
+8. costPrice: Purchase or cost price if stated, otherwise 0.
+9. discount: Discount percentage (%) if stated on packaging (e.g. '20% OFF' -> 20), otherwise 0.
+10. gstPercent: Standard Indian GST tax percentage (0, 5, 12, 18, or 28) for this product category.
+11. hsn: HSN or SAC code if printed on packaging, or the standard HSN code for this category.
+12. unit: Standard unit (Pcs, Kg, Gm, Ltr, Ml, Box, Pack, Bottle, Can, Meter, etc.).
+13. size: Net quantity, net weight, or volume (e.g. "500 g", "1 L", "100 ml", "Pack of 10", "Size XL").
+14. stock: Quantity per pack or stated count (e.g. 1, 6, 10, 24).
+15. serialNumber: Serial Number, S/N, IMEI, or unique device identifier if visible on electronics/devices.
+16. custom_box: Batch Number, Expiry Date, or Manufacturing Date if printed (e.g. 'Batch: B102 | Exp: 12/2026').
+17. description: Short, clear description of the product and its features.
 Ensure the response is valid JSON matching the schema.`;
 
     const response = await generateContentWithRetry(aiInstance, {
@@ -784,10 +789,15 @@ Ensure the response is valid JSON matching the schema.`;
             barcode: { type: Type.STRING },
             mrp: { type: Type.NUMBER },
             price: { type: Type.NUMBER },
+            wholesalePrice: { type: Type.NUMBER },
             costPrice: { type: Type.NUMBER },
+            discount: { type: Type.NUMBER },
             hsn: { type: Type.STRING },
             unit: { type: Type.STRING },
             size: { type: Type.STRING },
+            stock: { type: Type.NUMBER },
+            serialNumber: { type: Type.STRING },
+            custom_box: { type: Type.STRING },
             gstPercent: { type: Type.NUMBER },
             description: { type: Type.STRING }
           },
