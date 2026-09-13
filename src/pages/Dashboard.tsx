@@ -594,21 +594,21 @@ export default function DashboardPage() {
       </div>
 
       {/* Recycle Bin Card (At the bottom of Dashboard) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 text-slate-900 dark:text-white shadow-xs hover:shadow-md transition-all relative overflow-hidden mt-6">
-        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-green-500/5 dark:bg-green-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-slate-900 shadow-xs hover:shadow-md transition-all relative overflow-hidden mt-6">
+        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-green-500/5 rounded-full blur-2xl pointer-events-none"></div>
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
           <div className="flex items-start gap-4">
-            <div className="p-3.5 bg-green-50 dark:bg-green-950/60 border border-green-100 dark:border-green-900/60 rounded-2xl text-green-600 dark:text-green-400 shrink-0 shadow-xs">
+            <div className="p-3.5 bg-green-50 border border-green-100 rounded-2xl text-green-600 shrink-0 shadow-xs">
               <RotateCcw size={24} />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Recycle Bin & Data Protection</h3>
-                <span className="px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-green-50 text-green-700 dark:bg-green-950/80 dark:text-green-300 border border-green-200 dark:border-green-800">
+                <h3 className="text-base font-bold text-slate-900">Recycle Bin & Data Protection</h3>
+                <span className="px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-green-50 text-green-700 border border-green-200">
                   {recycleBinItems.length} {recycleBinItems.length === 1 ? 'item' : 'items'}
                 </span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-2xl leading-relaxed">
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl leading-relaxed">
                 Deleted invoices, clients, inventory products, and payments stay safely stored here for 30 days before automatic removal. Recovering items restores accounting entries seamlessly.
               </p>
             </div>
@@ -622,14 +622,14 @@ export default function DashboardPage() {
                     await dbService.emptyRecycleBin({ offlineMode: isOfflineMode, userId: user.uid });
                   }
                 }}
-                className="px-3.5 py-2.5 text-xs font-bold text-rose-700 dark:text-rose-300 hover:text-rose-800 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800/80 rounded-xl transition-all cursor-pointer"
+                className="px-3.5 py-2.5 text-xs font-bold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer"
               >
                 Clear Bin
               </button>
             )}
             <button
               onClick={() => setIsRecycleBinOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500 rounded-xl transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all cursor-pointer shadow-xs"
             >
               <RotateCcw size={14} className="text-green-100" />
               <span>Open Recycle Bin</span>

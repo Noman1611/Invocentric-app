@@ -1487,34 +1487,34 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden p-6 space-y-4 text-slate-900 dark:text-white"
+            className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-6 space-y-4 text-slate-900"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-green-100 dark:bg-green-950/60 flex items-center justify-center text-green-700 dark:text-green-400">
+                <div className="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center text-green-700">
                   <QrCode size={20} />
                 </div>
                 <div>
                   <h3 className="text-sm font-black">Global Phone Barcode Scanner</h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Scan once, works across all sections automatically!</p>
+                  <p className="text-[11px] text-slate-500">Scan once, works across all sections automatically!</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsGlobalScannerModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+            <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
               <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
                 <QRCodeSVG value={`${window.location.origin}/mobile-scan?sessionId=${getScannerSessionId()}`} size={140} level="H" />
               </div>
               <div className="text-center space-y-1">
                 <p className="text-xs font-bold">Scan with your smartphone camera</p>
-                <p className="text-[11px] text-slate-500 font-mono select-all bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 break-all">
+                <p className="text-[11px] text-slate-500 font-mono select-all bg-white px-2.5 py-1 rounded-lg border border-slate-200 break-all">
                   {`${window.location.origin}/mobile-scan?sessionId=${getScannerSessionId()}`}
                 </p>
               </div>

@@ -265,7 +265,7 @@ export default function SerialNumberInput({
       {/* Top Header Row: Label & Controls */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-[#166534] dark:text-green-400 flex items-center gap-1.5">
+          <label className="text-[11px] font-bold uppercase tracking-wider text-[#166534] flex items-center gap-1.5">
             <Barcode size={15} />
             <span>Serial Numbers (S/N)</span>
           </label>
@@ -275,17 +275,17 @@ export default function SerialNumberInput({
             className={cn(
               "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold font-mono border transition-all duration-200 shadow-xs",
               isCountMatched
-                ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                 : isCountOver
-                ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                ? "bg-amber-50 text-amber-700 border-amber-300"
+                : "bg-slate-100 text-slate-600 border-slate-200"
             )}
             title={`Scanned: ${serials.length} | Expected Stock: ${expectedCount}`}
           >
             {isCountMatched ? (
-              <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
             ) : isCountOver ? (
-              <AlertCircle size={13} className="text-amber-600 dark:text-amber-400 shrink-0" />
+              <AlertCircle size={13} className="text-amber-600 shrink-0" />
             ) : null}
             <span>
               {serials.length} / {expectedCount} scanned
@@ -304,7 +304,7 @@ export default function SerialNumberInput({
               "min-h-[44px] px-3 py-2 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 select-none active:scale-95 cursor-pointer",
               scanMode
                 ? "bg-emerald-600 text-white border-emerald-700 shadow-sm shadow-emerald-600/30 ring-2 ring-emerald-500/20 animate-pulse"
-                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60"
+                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
             )}
             title="Scan Mode: Keeps input focused for continuous USB / Bluetooth HID scanner entry"
           >
@@ -320,10 +320,10 @@ export default function SerialNumberInput({
             type="button"
             onClick={() => setShowCameraScanner(true)}
             disabled={disabled}
-            className="min-h-[44px] px-3 py-2 text-xs font-bold rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-colors flex items-center gap-1.5 active:scale-95 shadow-xs cursor-pointer"
+            className="min-h-[44px] px-3 py-2 text-xs font-bold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center gap-1.5 active:scale-95 shadow-xs cursor-pointer"
             title="Open camera barcode scanner"
           >
-            <ScanLine size={14} className="text-emerald-600 dark:text-emerald-400" />
+            <ScanLine size={14} className="text-emerald-600" />
             <span>Scan</span>
           </button>
 
@@ -332,10 +332,10 @@ export default function SerialNumberInput({
             type="button"
             onClick={() => setShowPasteModal(true)}
             disabled={disabled}
-            className="min-h-[44px] px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors flex items-center gap-1.5 active:scale-95 cursor-pointer"
+            className="min-h-[44px] px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5 active:scale-95 cursor-pointer"
             title="Paste multiple serial numbers from spreadsheet / text"
           >
-            <Clipboard size={14} className="text-slate-500 dark:text-slate-400" />
+            <Clipboard size={14} className="text-slate-500" />
             <span className="hidden sm:inline">Paste Multiple</span>
           </button>
         </div>
@@ -363,8 +363,8 @@ export default function SerialNumberInput({
             className={cn(
               "w-full pl-3.5 pr-20 py-2.5 min-h-[44px] text-sm font-mono font-bold rounded-xl border transition-all",
               scanMode
-                ? "border-emerald-500 bg-emerald-50/20 dark:bg-emerald-950/20 text-slate-900 dark:text-white ring-2 ring-emerald-500/20 focus:border-emerald-600 focus:outline-none"
-                : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534]"
+                ? "border-emerald-500 bg-emerald-50/20 text-slate-900 ring-2 ring-emerald-500/20 focus:border-emerald-600 focus:outline-none"
+                : "border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534]"
             )}
           />
 
@@ -394,7 +394,7 @@ export default function SerialNumberInput({
 
         {/* Scan Mode Active Hint */}
         {scanMode && (
-          <div className="mt-1 flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400 font-medium px-1">
+          <div className="mt-1 flex items-center justify-between text-[11px] text-emerald-700 font-medium px-1">
             <span className="flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -405,7 +405,7 @@ export default function SerialNumberInput({
             <button
               type="button"
               onClick={() => setScanMode(false)}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 underline text-[10px]"
+              className="text-slate-400 hover:text-slate-600 underline text-[10px]"
             >
               Turn off
             </button>
@@ -419,9 +419,9 @@ export default function SerialNumberInput({
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="mt-1.5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold"
+              className="mt-1.5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold"
             >
-              <AlertCircle size={14} className="shrink-0 text-rose-600 dark:text-rose-400" />
+              <AlertCircle size={14} className="shrink-0 text-rose-600" />
               <span>{duplicateError}</span>
             </motion.div>
           )}
@@ -430,10 +430,10 @@ export default function SerialNumberInput({
 
       {/* Chips Area */}
       {serials.length > 0 && (
-        <div className="p-3 bg-slate-50/70 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+        <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-100 space-y-2">
           {/* Chip List Controls */}
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pb-1 border-b border-slate-100 dark:border-slate-800/80">
-            <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px] uppercase tracking-wider">
+          <div className="flex items-center justify-between text-xs text-slate-500 pb-1 border-b border-slate-100">
+            <span className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider">
               Scanned Chips ({serials.length})
             </span>
 
@@ -445,7 +445,7 @@ export default function SerialNumberInput({
                     placeholder="Filter..."
                     value={filterQuery}
                     onChange={(e) => setFilterQuery(e.target.value)}
-                    className="px-2.5 py-1 text-[11px] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none w-24 sm:w-32"
+                    className="px-2.5 py-1 text-[11px] rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none w-24 sm:w-32"
                   />
                   {filterQuery && (
                     <button
@@ -463,7 +463,7 @@ export default function SerialNumberInput({
                 type="button"
                 onClick={clearAll}
                 disabled={disabled}
-                className="text-[11px] text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:underline flex items-center gap-1 font-medium transition-colors py-1 cursor-pointer"
+                className="text-[11px] text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 font-medium transition-colors py-1 cursor-pointer"
               >
                 <Trash2 size={12} />
                 <span>Clear All</span>
@@ -479,7 +479,7 @@ export default function SerialNumberInput({
               return (
                 <span
                   key={`${sn}-${idx}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-green-200 dark:border-green-800/80 shadow-2xs group hover:border-green-400 dark:hover:border-green-600 transition-colors break-all"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-white text-slate-800 border border-green-200 shadow-2xs group hover:border-green-400 transition-colors break-all"
                 >
                   <span className="text-[10px] text-slate-400 select-none">#{actualIndex + 1}</span>
                   <span className="select-all tracking-tight break-all">{sn}</span>
@@ -487,7 +487,7 @@ export default function SerialNumberInput({
                     <button
                       type="button"
                       onClick={() => removeSerial(actualIndex >= 0 ? actualIndex : idx)}
-                      className="min-w-[28px] min-h-[28px] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/60 p-1.5 rounded-lg transition-colors flex items-center justify-center cursor-pointer active:scale-90"
+                      className="min-w-[28px] min-h-[28px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg transition-colors flex items-center justify-center cursor-pointer active:scale-90"
                       title="Remove serial"
                     >
                       <X size={13} />
@@ -515,17 +515,17 @@ export default function SerialNumberInput({
               initial={{ y: '100%', sm: { scale: 0.95, y: 15 } }}
               animate={{ y: 0, sm: { scale: 1, y: 0 } }}
               exit={{ y: '100%', sm: { scale: 0.95, y: 15 } }}
-              className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 md:p-6 space-y-4 z-10 text-slate-900 dark:text-white max-h-[90vh] overflow-y-auto pb-safe sm:pb-6"
+              className="relative w-full max-w-lg bg-white border border-slate-200 rounded-t-3xl sm:rounded-2xl shadow-2xl p-5 md:p-6 space-y-4 z-10 text-slate-900 max-h-[90vh] overflow-y-auto pb-safe sm:pb-6"
             >
               <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto sm:hidden -mt-1 mb-2" />
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-950/60 border border-green-200 dark:border-green-800 flex items-center justify-center text-[#166534] dark:text-green-400">
+                  <div className="w-8 h-8 rounded-lg bg-green-50 border border-green-200 flex items-center justify-center text-[#166534]">
                     <Clipboard size={16} />
                   </div>
                   <div>
                     <h4 className="text-sm font-bold">Paste Multiple Serial Numbers</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-[11px] text-slate-500">
                       Separate codes with commas, newlines, semicolons, or spaces.
                     </p>
                   </div>
@@ -533,7 +533,7 @@ export default function SerialNumberInput({
                 <button
                   type="button"
                   onClick={() => setShowPasteModal(false)}
-                  className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all cursor-pointer"
+                  className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 active:scale-90 transition-all cursor-pointer"
                 >
                   <X size={16} />
                 </button>
@@ -545,18 +545,18 @@ export default function SerialNumberInput({
                   placeholder={`SN-92810X\nSN-92811X\nSN-92812X\nSN-92813X`}
                   value={pasteText}
                   onChange={(e) => setPasteText(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534]"
+                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534]"
                 />
                 
                 {pasteFeedback && (
-                  <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <div className="text-xs font-semibold text-emerald-600 flex items-center gap-1.5">
                     <Check size={14} />
                     <span>{pasteFeedback}</span>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -564,7 +564,7 @@ export default function SerialNumberInput({
                     setPasteText('');
                     setPasteFeedback(null);
                   }}
-                  className="min-h-[44px] px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                  className="min-h-[44px] px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -588,23 +588,23 @@ export default function SerialNumberInput({
               initial={{ y: '100%', sm: { scale: 0.95 } }}
               animate={{ y: 0, sm: { scale: 1 } }}
               exit={{ y: '100%', sm: { scale: 0.95 } }}
-              className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden p-5 sm:p-6 space-y-4 max-h-[90vh] pb-safe sm:pb-6"
+              className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden p-5 sm:p-6 space-y-4 max-h-[90vh] pb-safe sm:pb-6"
             >
               <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto sm:hidden -mt-1 mb-2" />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
                     <ScanLine size={18} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white">Scan Barcode / Serial</h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Point camera at barcode or QR code</p>
+                    <h3 className="text-sm font-black text-slate-900">Scan Barcode / Serial</h3>
+                    <p className="text-[11px] text-slate-500">Point camera at barcode or QR code</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowCameraScanner(false)}
-                  className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all cursor-pointer"
+                  className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 active:scale-90 transition-all cursor-pointer"
                 >
                   <X size={18} />
                 </button>
@@ -618,7 +618,7 @@ export default function SerialNumberInput({
                 <button
                   type="button"
                   onClick={() => setShowCameraScanner(false)}
-                  className="min-h-[44px] px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
+                  className="min-h-[44px] px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 active:scale-95 transition-all cursor-pointer"
                 >
                   Close Camera
                 </button>

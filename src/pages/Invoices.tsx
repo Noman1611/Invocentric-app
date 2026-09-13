@@ -459,7 +459,7 @@ export default function InvoicesPage() {
                   <td className="px-6 py-5 font-bold text-slate-900 tabular-nums">
                     <div>{formatCurrency(invoice.amount, invoice.currency)}</div>
                     {((invoice.advance_amount || invoice.advanceAmount) > 0) && (
-                      <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <div className="text-[10px] font-semibold text-emerald-600">
                         Adv: {formatCurrency(invoice.advance_amount || invoice.advanceAmount, invoice.currency)}
                       </div>
                     )}

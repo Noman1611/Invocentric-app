@@ -360,22 +360,22 @@ export default function UpdateCatalogEntryModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 30 }}
           transition={{ type: "spring", damping: 26, stiffness: 340 }}
-          className="relative w-full max-w-3xl lg:max-w-4xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col my-0 sm:my-auto max-h-[94vh] sm:max-h-[90vh] z-10 text-slate-900 dark:text-slate-100"
+          className="relative w-full max-w-3xl lg:max-w-4xl bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col my-0 sm:my-auto max-h-[94vh] sm:max-h-[90vh] z-10 text-slate-900"
         >
           {/* Mobile Handle Indicator */}
-          <div className="sm:hidden w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2 shrink-0" />
+          <div className="sm:hidden w-12 h-1.5 bg-slate-300 rounded-full mx-auto my-2 shrink-0" />
 
           {/* Sticky Header */}
-          <div className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5 border-b border-slate-100 dark:border-slate-800/90 flex items-center justify-between bg-white/95 dark:bg-slate-900/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
+          <div className="px-4 sm:px-6 md:px-8 py-3.5 sm:py-5 border-b border-slate-100 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-20 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-green-50 dark:bg-green-950/60 border border-green-200 dark:border-green-800 flex items-center justify-center text-[#166534] dark:text-green-400 shrink-0 shadow-xs">
+              <div className="w-10 h-10 rounded-2xl bg-green-50 border border-green-200 flex items-center justify-center text-[#166534] shrink-0 shadow-xs">
                 <Package className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-base sm:text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 className="text-base sm:text-xl md:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
                   <span>{title}</span>
                 </h2>
-                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                <p className="text-[11px] sm:text-xs text-slate-500 line-clamp-1">
                   Manage specifications, pricing, inventory stock &amp; barcode scanning.
                 </p>
               </div>
@@ -384,7 +384,7 @@ export default function UpdateCatalogEntryModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 sm:p-2.5 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+              className="p-2 sm:p-2.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
               title="Close modal (Esc)"
             >
               <X className="w-5 h-5" />
@@ -395,9 +395,9 @@ export default function UpdateCatalogEntryModal({
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pt-5 sm:pt-6 pb-28 sm:pb-12 space-y-6">
             
             {/* SECTION 1: BASIC INFO */}
-            <div className="border-b border-slate-100 dark:border-slate-800/80 pb-6 space-y-4">
+            <div className="border-b border-slate-100 pb-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] dark:text-green-400 flex items-center gap-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] flex items-center gap-1.5">
                   <Tag size={15} /> Basic Info
                 </h3>
                 <span className="text-[10px] text-slate-400 font-medium hidden xs:inline">Core Item Details</span>
@@ -406,7 +406,7 @@ export default function UpdateCatalogEntryModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 sm:gap-5">
                 {/* Item Name */}
                 <div className="lg:col-span-8 space-y-1.5 relative">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Item Name <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
@@ -419,14 +419,14 @@ export default function UpdateCatalogEntryModal({
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       onFocus={() => setShowNameDropdown(true)}
                       onBlur={() => setTimeout(() => setShowNameDropdown(false), 200)}
-                      className="w-full pl-3.5 pr-10 py-2.5 sm:py-3 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all animate-none"
+                      className="w-full pl-3.5 pr-10 py-2.5 sm:py-3 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all animate-none"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer pointer-events-none">
                       <ChevronDown size={16} />
                     </div>
                   </div>
                   {showNameDropdown && (
-                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-100 dark:border-slate-850 bg-white dark:bg-slate-900 shadow-xl py-1">
+                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-100 bg-white shadow-xl py-1">
                       {uniqueNames
                         .filter(n => n.toLowerCase().includes((formData.name || '').toLowerCase()))
                         .map((name, index) => (
@@ -437,7 +437,7 @@ export default function UpdateCatalogEntryModal({
                               setFormData({ ...formData, name });
                               setShowNameDropdown(false);
                             }}
-                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-[#166534]/10 dark:hover:bg-green-950/40 hover:text-[#166534] dark:hover:text-green-400 transition-colors font-semibold"
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-[#166534]/10 hover:text-[#166534] transition-colors font-semibold"
                           >
                             {name}
                           </button>
@@ -454,7 +454,7 @@ export default function UpdateCatalogEntryModal({
 
                 {/* Brand */}
                 <div className="lg:col-span-4 space-y-1.5 relative">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#166534] dark:text-green-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#166534]">
                     Brand
                   </label>
                   <div className="relative">
@@ -466,14 +466,14 @@ export default function UpdateCatalogEntryModal({
                       onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                       onFocus={() => setShowBrandDropdown(true)}
                       onBlur={() => setTimeout(() => setShowBrandDropdown(false), 200)}
-                      className="w-full pl-3.5 pr-10 py-2.5 sm:py-3 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all animate-none"
+                      className="w-full pl-3.5 pr-10 py-2.5 sm:py-3 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all animate-none"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer pointer-events-none">
                       <ChevronDown size={16} />
                     </div>
                   </div>
                   {showBrandDropdown && (
-                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-100 dark:border-slate-850 bg-white dark:bg-slate-900 shadow-xl py-1">
+                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-100 bg-white shadow-xl py-1">
                       {uniqueBrands
                         .filter(b => b.toLowerCase().includes((formData.brand || '').toLowerCase()))
                         .map((brand, index) => (
@@ -484,7 +484,7 @@ export default function UpdateCatalogEntryModal({
                               setFormData({ ...formData, brand });
                               setShowBrandDropdown(false);
                             }}
-                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-[#166534]/10 dark:hover:bg-green-950/40 hover:text-[#166534] dark:hover:text-green-400 transition-colors font-semibold"
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-[#166534]/10 hover:text-[#166534] transition-colors font-semibold"
                           >
                             {brand}
                           </button>
@@ -501,7 +501,7 @@ export default function UpdateCatalogEntryModal({
 
                 {/* Group Category */}
                 <div className="lg:col-span-6 space-y-1.5 relative">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#166534] dark:text-green-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#166534]">
                     Group Category
                   </label>
                   <div className="relative">
@@ -513,14 +513,14 @@ export default function UpdateCatalogEntryModal({
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       onFocus={() => setShowCategoryDropdown(true)}
                       onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 200)}
-                      className="w-full pl-3.5 pr-10 py-2.5 sm:py-3 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                      className="w-full pl-3.5 pr-10 py-2.5 sm:py-3 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer pointer-events-none">
                       <ChevronDown size={16} />
                     </div>
                   </div>
                   {showCategoryDropdown && (
-                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-100 dark:border-slate-850 bg-white dark:bg-slate-900 shadow-xl py-1">
+                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-100 bg-white shadow-xl py-1">
                       {uniqueCategories
                         .filter(c => c.toLowerCase().includes((formData.category || '').toLowerCase()))
                         .map((cat, index) => (
@@ -531,7 +531,7 @@ export default function UpdateCatalogEntryModal({
                               setFormData({ ...formData, category: cat });
                               setShowCategoryDropdown(false);
                             }}
-                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-[#166534]/10 dark:hover:bg-green-950/40 hover:text-[#166534] dark:hover:text-green-400 transition-colors font-semibold"
+                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-[#166534]/10 hover:text-[#166534] transition-colors font-semibold"
                           >
                             {cat}
                           </button>
@@ -548,12 +548,12 @@ export default function UpdateCatalogEntryModal({
 
                 {/* Item Image Upload */}
                 <div className="lg:col-span-6 space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Item Image
                   </label>
                   <div className="flex items-center gap-3">
                     {imagePreview ? (
-                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 bg-slate-50 dark:bg-slate-800 group">
+                      <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-slate-200 overflow-hidden shrink-0 bg-slate-50 group">
                         <img
                           src={imagePreview}
                           alt="Preview"
@@ -569,7 +569,7 @@ export default function UpdateCatalogEntryModal({
                         </button>
                       </div>
                     ) : (
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center text-slate-400 shrink-0">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl border border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center text-slate-400 shrink-0">
                         <ImageIcon size={20} />
                       </div>
                     )}
@@ -586,9 +586,9 @@ export default function UpdateCatalogEntryModal({
                       <div className="flex flex-wrap items-center gap-2">
                         <label
                           htmlFor="catalog-image-upload"
-                          className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer transition-colors touch-manipulation active:scale-95"
+                          className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 cursor-pointer transition-colors touch-manipulation active:scale-95"
                         >
-                          <Upload size={14} className="text-[#166534] dark:text-green-400" />
+                          <Upload size={14} className="text-[#166534]" />
                           <span>{imagePreview ? 'Change Photo' : 'Upload Image'}</span>
                         </label>
 
@@ -597,7 +597,7 @@ export default function UpdateCatalogEntryModal({
                             type="button"
                             onClick={() => triggerAIExtraction(imagePreview)}
                             disabled={isExtractingAI}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors shadow-sm active:scale-95 disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors shadow-sm active:scale-95 disabled:opacity-50"
                             title="Auto-extract product name, brand, category, barcode, price and details using Gemini AI"
                           >
                             {isExtractingAI ? (
@@ -607,7 +607,7 @@ export default function UpdateCatalogEntryModal({
                               </>
                             ) : (
                               <>
-                                <Sparkles size={13} className="text-emerald-600 dark:text-emerald-400" />
+                                <Sparkles size={13} className="text-emerald-600" />
                                 <span>AI Auto-Fill</span>
                               </>
                             )}
@@ -616,14 +616,14 @@ export default function UpdateCatalogEntryModal({
                       </div>
 
                       {isExtractingAI && (
-                        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 animate-pulse">
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 animate-pulse">
                           <Loader2 size={13} className="animate-spin" />
                           <span>AI reading barcode, MRP, prices & product details...</span>
                         </div>
                       )}
 
                       {aiSuccessMessage && !isExtractingAI && (
-                        <div className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5 w-fit">
+                        <div className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1.5 w-fit">
                           <CheckCircle2 size={13} className="text-emerald-600" />
                           <span>{aiSuccessMessage}</span>
                         </div>
@@ -637,9 +637,9 @@ export default function UpdateCatalogEntryModal({
             </div>
 
             {/* SECTION 2: IDENTIFICATION */}
-            <div className="border-b border-slate-100 dark:border-slate-800/80 pb-6 space-y-4">
+            <div className="border-b border-slate-100 pb-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] dark:text-green-400 flex items-center gap-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] flex items-center gap-1.5">
                   <Barcode size={15} /> Identification &amp; Serial Number
                 </h3>
                 <span className="text-[10px] text-slate-400 font-medium hidden xs:inline">SKU, HSN Code &amp; S/N Details</span>
@@ -648,7 +648,7 @@ export default function UpdateCatalogEntryModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {/* Unique SKU / Barcode */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Unique SKU / Barcode
                   </label>
                   <div className="flex items-center gap-2">
@@ -657,7 +657,7 @@ export default function UpdateCatalogEntryModal({
                       placeholder="e.g. 8901234567890"
                       value={formData.barcode}
                       onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                      className="flex-1 px-3.5 py-2.5 sm:py-3 text-sm font-mono font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                      className="flex-1 px-3.5 py-2.5 sm:py-3 text-sm font-mono font-medium rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
                     />
                     <button
                       type="button"
@@ -669,7 +669,7 @@ export default function UpdateCatalogEntryModal({
                           setFormData(prev => ({ ...prev, barcode: randomCode }));
                         }
                       }}
-                      className="px-3.5 py-2.5 sm:py-3 rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 text-[#166534] dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60 transition-colors flex items-center gap-1.5 shrink-0 active:scale-95 touch-manipulation"
+                      className="px-3.5 py-2.5 sm:py-3 rounded-xl border border-green-200 bg-green-50 text-[#166534] hover:bg-green-100 transition-colors flex items-center gap-1.5 shrink-0 active:scale-95 touch-manipulation"
                       title="Open Barcode Scanner Camera"
                     >
                       <ScanLine size={18} />
@@ -680,7 +680,7 @@ export default function UpdateCatalogEntryModal({
 
                 {/* HSN / SAC Code */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     HSN / SAC Code
                   </label>
                   <input
@@ -688,7 +688,7 @@ export default function UpdateCatalogEntryModal({
                     placeholder="e.g. 8471 (Goods) or 9983 (Services)"
                     value={formData.hsn}
                     onChange={(e) => setFormData({ ...formData, hsn: e.target.value })}
-                    className="w-full px-3.5 py-2.5 sm:py-3 text-sm font-mono font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                    className="w-full px-3.5 py-2.5 sm:py-3 text-sm font-mono font-medium rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
                   />
                 </div>
 
@@ -711,9 +711,9 @@ export default function UpdateCatalogEntryModal({
             </div>
 
             {/* SECTION 3: PRICING */}
-            <div className="border-b border-slate-100 dark:border-slate-800/80 pb-6 space-y-4">
+            <div className="border-b border-slate-100 pb-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] dark:text-green-400 flex items-center gap-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] flex items-center gap-1.5">
                   <IndianRupee size={15} /> Pricing
                 </h3>
                 <span className="text-[10px] text-slate-400 font-medium hidden xs:inline">Cost, MRP, Selling &amp; Taxes</span>
@@ -722,7 +722,7 @@ export default function UpdateCatalogEntryModal({
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
                 {/* MRP ₹ */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     MRP (₹)
                   </label>
                   <input
@@ -731,13 +731,13 @@ export default function UpdateCatalogEntryModal({
                     placeholder="0.00"
                     value={formData.mrp}
                     onChange={(e) => setFormData({ ...formData, mrp: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
+                    className="w-full px-3 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
                   />
                 </div>
 
                 {/* Purchase/Cost Price ₹ */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Cost Price (₹)
                   </label>
                   <input
@@ -746,13 +746,13 @@ export default function UpdateCatalogEntryModal({
                     placeholder="0.00"
                     value={formData.costPrice}
                     onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
+                    className="w-full px-3 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
                   />
                 </div>
 
                 {/* Selling Price ₹ (Retail) */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#166534] dark:text-green-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#166534]">
                     Retail Price (₹) <span className="text-rose-500">*</span>
                   </label>
                   <input
@@ -762,13 +762,13 @@ export default function UpdateCatalogEntryModal({
                     placeholder="0.00"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm font-bold rounded-xl border border-green-300 dark:border-green-700 bg-green-50/40 dark:bg-green-950/30 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
+                    className="w-full px-3 py-2.5 text-sm font-bold rounded-xl border border-green-300 bg-green-50/40 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
                   />
                 </div>
 
                 {/* Wholesale Price ₹ (B2B) */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-blue-700">
                     Wholesale Price (₹)
                   </label>
                   <input
@@ -777,13 +777,13 @@ export default function UpdateCatalogEntryModal({
                     placeholder="0.00"
                     value={formData.wholesalePrice}
                     onChange={(e) => setFormData({ ...formData, wholesalePrice: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm font-bold rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/40 dark:bg-blue-950/30 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all tabular-nums"
+                    className="w-full px-3 py-2.5 text-sm font-bold rounded-xl border border-blue-200 bg-blue-50/40 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all tabular-nums"
                   />
                 </div>
 
                 {/* Default Discount % */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Discount (%)
                   </label>
                   <input
@@ -792,19 +792,19 @@ export default function UpdateCatalogEntryModal({
                     placeholder="0"
                     value={formData.discount}
                     onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
+                    className="w-full px-3 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
                   />
                 </div>
 
                 {/* GST Rate % */}
                 <div className="col-span-2 sm:col-span-1 space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     GST Rate (%)
                   </label>
                   <select
                     value={formData.gstPercent}
                     onChange={(e) => setFormData({ ...formData, gstPercent: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                    className="w-full px-3 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
                   >
                     <option value="0">0% (Nil)</option>
                     <option value="5">5% GST</option>
@@ -817,9 +817,9 @@ export default function UpdateCatalogEntryModal({
             </div>
 
             {/* SECTION 4: INVENTORY */}
-            <div className="border-b border-slate-100 dark:border-slate-800/80 pb-6 space-y-4">
+            <div className="border-b border-slate-100 pb-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] dark:text-green-400 flex items-center gap-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] flex items-center gap-1.5">
                   <Layers size={15} /> Inventory
                 </h3>
                 <span className="text-[10px] text-slate-400 font-medium hidden xs:inline">Stock Levels &amp; Alert Limits</span>
@@ -828,7 +828,7 @@ export default function UpdateCatalogEntryModal({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                 {/* Current Stock */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Current Stock
                   </label>
                   <input
@@ -836,13 +836,13 @@ export default function UpdateCatalogEntryModal({
                     placeholder="0"
                     value={formData.stock}
                     onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
+                    className="w-full px-3.5 py-2.5 text-sm font-bold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
                   />
                 </div>
 
                 {/* Alert Threshold (Red Text) */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-rose-600 flex items-center gap-1">
                     <AlertCircle size={12} /> Alert Threshold
                   </label>
                   <input
@@ -850,19 +850,19 @@ export default function UpdateCatalogEntryModal({
                     placeholder="5"
                     value={formData.low_stock_threshold}
                     onChange={(e) => setFormData({ ...formData, low_stock_threshold: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm font-bold rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all tabular-nums"
+                    className="w-full px-3.5 py-2.5 text-sm font-bold rounded-xl border border-rose-200 bg-rose-50/40 text-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all tabular-nums"
                   />
                 </div>
 
                 {/* Unit of Measurement */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Unit of Measurement
                   </label>
                   <select
                     value={formData.unit}
                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                    className="w-full px-3.5 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
                   >
                     <option value="Pcs">Pcs (Pieces)</option>
                     <option value="Kg">Kg (Kilograms)</option>
@@ -878,16 +878,16 @@ export default function UpdateCatalogEntryModal({
             </div>
 
             {/* SECTION 5: VARIANTS */}
-            <div className="border-b border-slate-100 dark:border-slate-800/80 pb-6 space-y-4">
+            <div className="border-b border-slate-100 pb-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] dark:text-green-400 flex items-center gap-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] flex items-center gap-1.5">
                   <Package size={15} /> Variants
                 </h3>
                 <span className="text-[10px] text-slate-400 font-medium hidden xs:inline">Dimension, Color or Size Attributes</span>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   Size / Variant
                 </label>
                 <input
@@ -895,7 +895,7 @@ export default function UpdateCatalogEntryModal({
                   placeholder="e.g. XL, 500ml, Black Color, Pack of 6"
                   value={formData.size}
                   onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                  className="w-full px-3.5 py-2.5 sm:py-3 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                  className="w-full px-3.5 py-2.5 sm:py-3 text-sm font-medium rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
                 />
               </div>
             </div>
@@ -903,7 +903,7 @@ export default function UpdateCatalogEntryModal({
             {/* SECTION 6: EXTRA DETAILS & STATUS */}
             <div className="space-y-4 pb-2">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] dark:text-green-400 flex items-center gap-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#166534] flex items-center gap-1.5">
                   <Info size={15} /> Extra Details &amp; Status
                 </h3>
                 <span className="text-[10px] text-slate-400 font-medium hidden xs:inline">Invoice Notes &amp; Catalog Visibility</span>
@@ -912,7 +912,7 @@ export default function UpdateCatalogEntryModal({
               {/* Custom Box / Item Details */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Custom Box / Item Details
                   </label>
                   <span className="text-[10px] text-slate-400 italic">
@@ -924,27 +924,27 @@ export default function UpdateCatalogEntryModal({
                   placeholder="e.g. Serial No: SN-82910, Batch Code: B-32, Expiry: 12/28..."
                   value={formData.custom_box}
                   onChange={(e) => setFormData({ ...formData, custom_box: e.target.value })}
-                  className="w-full px-3.5 py-2.5 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all resize-none"
+                  className="w-full px-3.5 py-2.5 text-xs font-medium rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all resize-none"
                 />
               </div>
 
               {/* Active / Inactive Toggle */}
-              <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+              <div className="p-3.5 sm:p-4 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
                       Catalog Status
                     </span>
                     <span className={cn(
                       "text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border",
                       formData.active
-                        ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
-                        : "bg-slate-200 text-slate-600 border-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600"
+                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                        : "bg-slate-200 text-slate-600 border-slate-300"
                     )}>
                       {formData.active ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-slate-500 mt-0.5">
                     {formData.active ? 'Visible in POS billing & search selection' : 'Hidden from active billing dropdowns'}
                   </p>
                 </div>
@@ -954,7 +954,7 @@ export default function UpdateCatalogEntryModal({
                   onClick={() => setFormData(prev => ({ ...prev, active: !prev.active }))}
                   className={cn(
                     "relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#166534] focus:ring-offset-2 touch-manipulation",
-                    formData.active ? "bg-[#166534]" : "bg-slate-300 dark:bg-slate-600"
+                    formData.active ? "bg-[#166534]" : "bg-slate-300"
                   )}
                 >
                   <span
@@ -968,11 +968,11 @@ export default function UpdateCatalogEntryModal({
             </div>
 
             {/* Footer Buttons (Aligned Right, Sticky at Bottom) */}
-            <div className="pt-3 pb-2 sm:py-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3 sticky bottom-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 mt-6 z-20">
+            <div className="pt-3 pb-2 sm:py-3.5 border-t border-slate-100 flex items-center justify-end gap-3 sticky bottom-0 bg-white/95 backdrop-blur-md -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 mt-6 z-20">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 sm:py-3 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs uppercase tracking-wider transition-colors active:scale-95 touch-manipulation min-h-[44px]"
+                className="px-5 py-2.5 sm:py-3 rounded-xl border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs uppercase tracking-wider transition-colors active:scale-95 touch-manipulation min-h-[44px]"
               >
                 Dismiss
               </button>
@@ -1004,30 +1004,30 @@ export default function UpdateCatalogEntryModal({
                 initial={{ opacity: 0, scale: 0.94, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.94, y: 10 }}
-                className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-amber-200 dark:border-amber-900/60 p-5 sm:p-6 space-y-4 z-20 text-slate-900 dark:text-white"
+                className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-amber-200 p-5 sm:p-6 space-y-4 z-20 text-slate-900"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0">
                     <AlertCircle size={20} />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                    <h4 className="text-base font-bold text-slate-900">
                       Serial Number Count Mismatch
                     </h4>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                      Only <span className="font-bold text-amber-600 dark:text-amber-400 font-mono text-sm">{formData.serials?.length || 0}</span> of <span className="font-bold text-slate-800 dark:text-white font-mono text-sm">{formData.stock || 0}</span> serial numbers were scanned.
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Only <span className="font-bold text-amber-600 font-mono text-sm">{formData.serials?.length || 0}</span> of <span className="font-bold text-slate-800 font-mono text-sm">{formData.stock || 0}</span> serial numbers were scanned.
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-slate-500">
                       Do you want to save anyway or continue scanning serials?
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100 dark:border-slate-800">
+                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setShowMismatchModal(false)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750 text-xs font-bold uppercase tracking-wider transition-colors"
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider transition-colors"
                   >
                     Continue Editing
                   </button>

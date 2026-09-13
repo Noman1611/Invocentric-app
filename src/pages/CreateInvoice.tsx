@@ -1406,13 +1406,13 @@ export default function CreateInvoicePage() {
   return (
     <div className="w-full max-w-5xl lg:max-w-[1680px] mx-auto px-2 sm:px-4 pb-28 lg:pb-3 lg:h-[calc(100vh-4.25rem)] lg:overflow-hidden flex flex-col space-y-3">
       {/* ── Top Header Bar ── */}
-      <header className="flex flex-row items-center justify-between gap-2 sm:gap-4 bg-white dark:bg-slate-900 px-3 py-2 sm:px-5 sm:py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs shrink-0">
+      <header className="flex flex-row items-center justify-between gap-2 sm:gap-4 bg-white px-3 py-2 sm:px-5 sm:py-2.5 rounded-2xl border border-slate-200 shadow-xs shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer text-slate-700 dark:text-slate-200">
+          <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer text-slate-700">
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">{id ? 'Edit' : 'Create'} Invoice</h1>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">{id ? 'Edit' : 'Create'} Invoice</h1>
             <p className="text-[10px] sm:text-xs font-semibold text-slate-400 hidden sm:block">{id ? 'Modify your existing invoice.' : 'Create a new invoice and deliver it instantly.'}</p>
           </div>
         </div>
@@ -1439,7 +1439,7 @@ export default function CreateInvoicePage() {
         <div className="w-full lg:flex-1 flex flex-col lg:min-w-0 lg:h-full lg:overflow-hidden gap-3">
           
           {/* Compact Metadata Row */}
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 shrink-0">
+          <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 shrink-0">
             {/* Customer */}
             <div className="col-span-2 md:col-span-1 lg:col-span-1">
               <div className="flex items-center justify-between mb-1">
@@ -1551,22 +1551,22 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Items Card */}
-          <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex-1 flex flex-col min-h-0 lg:overflow-hidden">
+          <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex-1 flex flex-col min-h-0 lg:overflow-hidden">
             {/* Items Toolbar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-2.5 border-b border-slate-100 dark:border-slate-800 shrink-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 gap-2.5 border-b border-slate-100 shrink-0">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{appMode === 'freelancer' ? 'Services' : 'Items'}</h3>
+                <h3 className="text-sm font-bold text-slate-900">{appMode === 'freelancer' ? 'Services' : 'Items'}</h3>
                 
                 {/* Retail / Wholesale Toggle */}
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                   <button
                     type="button"
                     onClick={() => setFormData(p => ({ ...p, price_tier: 'retail' }))}
                     className={cn(
                       "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                       formData.price_tier !== 'wholesale'
-                        ? "bg-white dark:bg-slate-700 text-emerald-700 dark:text-emerald-400 shadow-xs"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                        ? "bg-white text-emerald-700 shadow-xs"
+                        : "text-slate-500 hover:text-slate-900"
                     )}
                   >
                     Retail
@@ -1578,7 +1578,7 @@ export default function CreateInvoicePage() {
                       "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                       formData.price_tier === 'wholesale'
                         ? "bg-blue-600 text-white shadow-xs"
-                        : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                        : "text-slate-500 hover:text-slate-900"
                     )}
                   >
                     Wholesale
@@ -1608,7 +1608,7 @@ export default function CreateInvoicePage() {
                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all border cursor-pointer",
                         formData.columnVisibility[col.key as keyof typeof formData.columnVisibility]
                           ? "bg-green-50 border-green-200 text-green-700 shadow-2xs"
-                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-slate-300"
+                          : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
                       )}
                     >
                       {col.label}
@@ -1627,13 +1627,13 @@ export default function CreateInvoicePage() {
                     onChange={(e) => setBarcodeInput(e.target.value)}
                     onKeyDown={handleBarcodeScan}
                     placeholder="Scan Barcode / SKU..."
-                    className="input-field pl-8 py-1 text-xs bg-slate-50 dark:bg-slate-800 focus:bg-white"
+                    className="input-field pl-8 py-1 text-xs bg-slate-50 focus:bg-white"
                   />
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowScanner(true)}
-                  className="p-1.5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg cursor-pointer"
+                  className="p-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg cursor-pointer"
                   title="Open Camera Scanner"
                 >
                   <ScanLine size={15} />
@@ -1655,12 +1655,12 @@ export default function CreateInvoicePage() {
               <React.Fragment key={index}>
                 {/* ── Mobile View: Dedicated Responsive Item Card (< 768px) ── */}
                 <div className={cn(
-                  "block md:hidden bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 relative overflow-visible transition-all",
+                  "block md:hidden bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3 relative overflow-visible transition-all",
                   (focusedItemIndex === index || focusedRowField?.index === index) ? "z-50 ring-2 ring-emerald-500/20 shadow-md" : "z-10"
                 )}>
                   {/* Card Top: Index Badge + Description Input + Remove Button */}
                   <div className="flex items-start gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center shrink-0 mt-6">
+                    <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs flex items-center justify-center shrink-0 mt-6">
                       #{index + 1}
                     </span>
                     <div className="flex-1 min-w-0 relative">
@@ -1678,14 +1678,14 @@ export default function CreateInvoicePage() {
                       />
                       {item.serialNumber && (
                         <div className="flex items-center gap-1.5 px-0.5 mt-1">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs break-all">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs break-all">
                             <span className="text-slate-500 font-sans font-medium text-[9px]">S/N:</span>
                             <span>{item.serialNumber}</span>
                           </span>
                         </div>
                       )}
                       {focusedItemIndex === index && (
-                        <div className="absolute -left-9 -right-12 sm:left-0 sm:right-auto top-full z-[150] mt-1 sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800">
+                        <div className="absolute -left-9 -right-12 sm:left-0 sm:right-auto top-full z-[150] mt-1 sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl py-1 divide-y divide-slate-100">
                           {inventoryItems
                             .filter(invItem => {
                               const term = (item.description || '').toLowerCase();
@@ -1712,22 +1712,22 @@ export default function CreateInvoicePage() {
                                     handleSelectInventoryItem(index, invItem);
                                   }}
                                   className={cn(
-                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium text-xs",
+                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 transition-colors font-medium text-xs",
                                     isOutOfStock && appMode !== 'freelancer' ? "opacity-60 bg-gray-50/50" : ""
                                   )}
                                 >
                                   <div className="space-y-0.5">
-                                    <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                                    <div className="font-semibold text-gray-900 text-sm">
                                       {invItem.name}
                                     </div>
                                     <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
                                       {invItem.brand && (
-                                        <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-medium">
+                                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">
                                           {invItem.brand}
                                         </span>
                                       )}
                                       {invItem.category && (
-                                        <span className="bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 font-medium">
+                                        <span className="bg-blue-50 px-1.5 py-0.5 rounded text-blue-600 font-medium">
                                           {invItem.category}
                                         </span>
                                       )}
@@ -1739,7 +1739,7 @@ export default function CreateInvoicePage() {
                                     </div>
                                   </div>
                                   <div className="text-right space-y-0.5 shrink-0 pl-3">
-                                    <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                    <div className="text-sm font-bold text-slate-800">
                                       ₹{invItem.price || 0}
                                     </div>
                                     {invItem.mrp && invItem.mrp > (invItem.price || 0) && (
@@ -1787,13 +1787,13 @@ export default function CreateInvoicePage() {
                   </div>
 
                   {/* Card Middle: Quantity Stepper + Net Rate + Live Total */}
-                  <div className="grid grid-cols-12 gap-2 items-center pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="grid grid-cols-12 gap-2 items-center pt-2 border-t border-slate-100">
                     {/* Quantity Stepper (5 Cols) */}
                     <div className="col-span-5">
                       <label className="label block text-[10px] mb-1">
                         {appMode === 'freelancer' ? 'Hours / Qty' : 'Quantity'}
                       </label>
-                      <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-2xs">
+                      <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-2xs">
                         <button
                           type="button"
                           onClick={() => {
@@ -1802,7 +1802,7 @@ export default function CreateInvoicePage() {
                               updateItem(index, 'quantity', current - 1);
                             }
                           }}
-                          className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 flex items-center justify-center active:scale-90 cursor-pointer shadow-2xs"
+                          className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg bg-white text-slate-700 hover:bg-slate-100 flex items-center justify-center active:scale-90 cursor-pointer shadow-2xs"
                         >
                           <Minus size={14} />
                         </button>
@@ -1848,7 +1848,7 @@ export default function CreateInvoicePage() {
                             }
                             updateItem(index, 'quantity', newQty);
                           }}
-                          className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 flex items-center justify-center active:scale-90 cursor-pointer shadow-2xs"
+                          className="min-w-[36px] min-h-[36px] w-9 h-9 rounded-lg bg-white text-slate-700 hover:bg-slate-100 flex items-center justify-center active:scale-90 cursor-pointer shadow-2xs"
                         >
                           <Plus size={14} />
                         </button>
@@ -1885,7 +1885,7 @@ export default function CreateInvoicePage() {
                     {/* Live Line Total (3 Cols) */}
                     <div className="col-span-3 text-right">
                       <label className="label block text-[10px] mb-1 text-slate-400">Total</label>
-                      <div className="text-xs font-black text-slate-900 dark:text-white truncate pt-2">
+                      <div className="text-xs font-black text-slate-900 truncate pt-2">
                         ₹{((item.quantity || 0) * (item.price || 0)).toFixed(2)}
                       </div>
                     </div>
@@ -1893,7 +1893,7 @@ export default function CreateInvoicePage() {
 
                   {/* Active Toggles Grid (Size, HSN, MRP, Disc%, GST%) */}
                   {(formData.columnVisibility.size || formData.columnVisibility.hsn || formData.columnVisibility.mrp || formData.columnVisibility.discount || formData.columnVisibility.gstPercent) && (
-                    <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-100">
                       {formData.columnVisibility.size && (
                         <div>
                           <label className="label block text-[10px]">Size</label>
@@ -1986,11 +1986,11 @@ export default function CreateInvoicePage() {
                   )}
 
                   {/* Collapsible More Details Accordion (Brand, Category, Serial, Notes) */}
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="pt-2 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setOpenMobileDetails(prev => ({ ...prev, [index]: !prev[index] }))}
-                      className="w-full flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 py-1 cursor-pointer"
+                      className="w-full flex items-center justify-between text-xs font-bold text-slate-600 hover:text-slate-900 py-1 cursor-pointer"
                     >
                       <span className="flex items-center gap-1.5">
                         <Sparkles size={12} className="text-emerald-600" />
@@ -2000,18 +2000,18 @@ export default function CreateInvoicePage() {
                     </button>
 
                     {openMobileDetails[index] && (
-                      <div className="mt-2 space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                      <div className="mt-2 space-y-2 pt-2 border-t border-slate-100 text-xs">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input
                             type="text"
-                            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+                            className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"
                             placeholder="Brand (e.g. Sony)"
                             value={item.brand || ''}
                             onChange={(e) => updateItem(index, 'brand', e.target.value)}
                           />
                           <input
                             type="text"
-                            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+                            className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"
                             placeholder="Category (e.g. Battery)"
                             value={item.category || ''}
                             onChange={(e) => updateItem(index, 'category', e.target.value)}
@@ -2020,14 +2020,14 @@ export default function CreateInvoicePage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <input
                             type="text"
-                            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono font-semibold"
+                            className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-semibold"
                             placeholder="Serial Number (S/N)"
                             value={item.serialNumber || ''}
                             onChange={(e) => updateItem(index, 'serialNumber', e.target.value)}
                           />
                           <input
                             type="text"
-                            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-normal"
+                            className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-normal"
                             placeholder="Batch / Expiry / Notes"
                             value={item.custom_box || ''}
                             onChange={(e) => updateItem(index, 'custom_box', e.target.value)}
@@ -2040,7 +2040,7 @@ export default function CreateInvoicePage() {
 
                 {/* ── Desktop View: High-Density Inline Row (>= 768px) ── */}
                 <div className={cn(
-                  "hidden md:flex flex-col md:flex-row gap-2.5 items-start md:items-end bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs relative w-full overflow-visible transition-all",
+                  "hidden md:flex flex-col md:flex-row gap-2.5 items-start md:items-end bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs relative w-full overflow-visible transition-all",
                   (focusedItemIndex === index || focusedRowField?.index === index) ? "z-50 ring-2 ring-emerald-500/20 shadow-md" : "z-10"
                 )}>
                   <div className="flex-1 w-full min-w-[200px] space-y-1.5">
@@ -2057,14 +2057,14 @@ export default function CreateInvoicePage() {
                       />
                       {item.serialNumber && (
                         <div className="flex items-center gap-1.5 px-0.5">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-2xs">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
                             <span className="text-slate-500 font-sans font-medium text-[10px]">SR/No:</span>
                             <span>{item.serialNumber}</span>
                           </span>
                         </div>
                       )}
                       {focusedItemIndex === index && (
-                        <div className="absolute left-0 top-full z-[150] mt-1.5 min-w-[380px] w-full sm:min-w-[460px] sm:max-w-[560px] max-h-80 overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl py-1 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="absolute left-0 top-full z-[150] mt-1.5 min-w-[380px] w-full sm:min-w-[460px] sm:max-w-[560px] max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl py-1 divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
                           {inventoryItems
                             .filter(invItem => {
                               const term = (item.description || '').toLowerCase();
@@ -2091,22 +2091,22 @@ export default function CreateInvoicePage() {
                                     handleSelectInventoryItem(index, invItem);
                                   }}
                                   className={cn(
-                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium text-xs",
+                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 transition-colors font-medium text-xs",
                                     isOutOfStock && appMode !== 'freelancer' ? "opacity-60 bg-gray-50/50" : ""
                                   )}
                                 >
                                   <div className="space-y-0.5">
-                                    <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                                    <div className="font-semibold text-gray-900 text-sm">
                                       {invItem.name}
                                     </div>
                                     <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
                                       {invItem.brand && (
-                                        <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-medium">
+                                        <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">
                                           {invItem.brand}
                                         </span>
                                       )}
                                       {invItem.category && (
-                                        <span className="bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 font-medium">
+                                        <span className="bg-blue-50 px-1.5 py-0.5 rounded text-blue-600 font-medium">
                                           {invItem.category}
                                         </span>
                                       )}
@@ -2118,7 +2118,7 @@ export default function CreateInvoicePage() {
                                     </div>
                                   </div>
                                   <div className="text-right space-y-0.5 shrink-0 pl-3">
-                                    <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                    <div className="text-sm font-bold text-slate-800">
                                       ₹{invItem.price || 0}
                                     </div>
                                     {invItem.mrp && invItem.mrp > (invItem.price || 0) && (
@@ -2169,7 +2169,7 @@ export default function CreateInvoicePage() {
                           onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
                         />
                         {focusedRowField?.index === index && focusedRowField?.field === 'brand' && (
-                          <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white dark:bg-slate-900 shadow-xl py-1 text-[11px]">
+                          <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white shadow-xl py-1 text-[11px]">
                             {uniqueBrands
                               .filter(b => b.toLowerCase().includes((item.brand || '').toLowerCase()))
                               .map((bName, bIdx) => (
@@ -2180,7 +2180,7 @@ export default function CreateInvoicePage() {
                                     updateItem(index, 'brand', bName);
                                     setFocusedRowField(null);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+                                  className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50 transition-colors font-medium"
                                 >
                                   {bName}
                                 </button>
@@ -2206,7 +2206,7 @@ export default function CreateInvoicePage() {
                           onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
                         />
                         {focusedRowField?.index === index && focusedRowField?.field === 'category' && (
-                          <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white dark:bg-slate-900 shadow-xl py-1 text-[11px]">
+                          <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white shadow-xl py-1 text-[11px]">
                             {uniqueCategories
                               .filter(c => c.toLowerCase().includes((item.category || '').toLowerCase()))
                               .map((cName, cIdx) => (
@@ -2217,7 +2217,7 @@ export default function CreateInvoicePage() {
                                     updateItem(index, 'category', cName);
                                     setFocusedRowField(null);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+                                  className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50 transition-colors font-medium"
                                 >
                                   {cName}
                                 </button>
@@ -2238,8 +2238,8 @@ export default function CreateInvoicePage() {
                           className={cn(
                             "w-full text-[11px] px-3 py-1.5 rounded-lg focus:outline-none transition-all font-semibold font-mono",
                             item.serialNumber 
-                              ? "bg-emerald-50/70 border border-emerald-300 text-emerald-800 focus:border-emerald-500 dark:bg-emerald-950/40 dark:border-emerald-700 dark:text-emerald-200" 
-                              : "bg-slate-50/70 border border-gray-200 text-gray-800 focus:border-[#1e5eb8] focus:bg-white placeholder:text-gray-400 font-sans dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+                              ? "bg-emerald-50/70 border border-emerald-300 text-emerald-800 focus:border-emerald-500" 
+                              : "bg-slate-50/70 border border-gray-200 text-gray-800 focus:border-[#1e5eb8] focus:bg-white placeholder:text-gray-400 font-sans"
                           )}
                           placeholder="Serial Number (S/N)"
                           value={item.serialNumber || ''}
@@ -2275,9 +2275,9 @@ export default function CreateInvoicePage() {
                           const filtered = candidateSerials.filter(s => s.toLowerCase().includes((item.serialNumber || '').toLowerCase()));
 
                           return (
-                            <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl py-1 text-[11px]">
+                            <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white shadow-xl py-1 text-[11px]">
                               {availableSerials.length > 0 && (
-                                <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-[10px] font-bold text-emerald-700 dark:text-emerald-300 border-b border-emerald-100 dark:border-emerald-900/50 flex items-center justify-between">
+                                <div className="px-3 py-1 bg-emerald-50 text-[10px] font-bold text-emerald-700 border-b border-emerald-100 flex items-center justify-between">
                                   <span>In-Stock Serials ({availableSerials.length})</span>
                                   <span className="font-normal text-emerald-600">Available</span>
                                 </div>
@@ -2290,10 +2290,10 @@ export default function CreateInvoicePage() {
                                     updateItem(index, 'serialNumber', sn);
                                     setFocusedRowField(null);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:text-emerald-700 transition-colors font-mono font-bold flex items-center justify-between"
+                                  className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors font-mono font-bold flex items-center justify-between"
                                 >
                                   <span>{sn}</span>
-                                  <span className="text-[9px] font-sans font-semibold text-emerald-600 bg-emerald-100/60 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded">in_stock</span>
+                                  <span className="text-[9px] font-sans font-semibold text-emerald-600 bg-emerald-100/60 px-1.5 py-0.5 rounded">in_stock</span>
                                 </button>
                               ))}
                               {filtered.length === 0 && (
@@ -2505,17 +2505,17 @@ export default function CreateInvoicePage() {
         </div>
 
         {/* ── Right Pane: Summary, Notes, Collapsible Template & Actions ── */}
-        <div className="w-full lg:w-84 xl:lg:w-96 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm lg:h-full lg:overflow-hidden shrink-0">
+        <div className="w-full lg:w-84 xl:lg:w-96 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm lg:h-full lg:overflow-hidden shrink-0">
           
           {/* Scrollable middle container */}
           <div className="p-3.5 sm:p-4 space-y-3.5 lg:flex-1 lg:overflow-y-auto">
             
             {/* Collapsible Template & Box Customization */}
-            <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/60 dark:bg-slate-800/40">
+            <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/60">
               <button
                 type="button"
                 onClick={() => setShowCustomizationPanel(p => !p)}
-                className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="w-full flex items-center justify-between p-2.5 text-xs font-bold text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <Palette size={14} className="text-emerald-600 shrink-0" />
@@ -2530,7 +2530,7 @@ export default function CreateInvoicePage() {
               </button>
 
               {showCustomizationPanel && (
-                <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-3 bg-white dark:bg-slate-900">
+                <div className="p-3 border-t border-slate-200 space-y-3 bg-white">
                   <div>
                     <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Invoice Template Style</label>
                     <select
@@ -2599,13 +2599,13 @@ export default function CreateInvoicePage() {
                             className={cn(
                               "flex items-center justify-between px-2 py-1 rounded-lg text-[10px] font-bold transition-all border cursor-pointer select-none",
                               !isHidden
-                                ? "bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300"
-                                : "bg-slate-50 border-slate-200 text-slate-400 line-through dark:bg-slate-800 dark:border-slate-700"
+                                ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                                : "bg-slate-50 border-slate-200 text-slate-400 line-through"
                             )}
                           >
                             <span className="truncate">{box.label}</span>
                             {!isHidden ? (
-                              <CheckCircle2 size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
+                              <CheckCircle2 size={11} className="text-emerald-600 shrink-0 ml-1" />
                             ) : (
                               <EyeOff size={11} className="text-slate-400 shrink-0 ml-1" />
                             )}
@@ -2634,7 +2634,7 @@ export default function CreateInvoicePage() {
               </div>
               <textarea
                 rows={2}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 resize-y"
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white text-slate-900 placeholder:text-slate-400 resize-y"
                 placeholder="Terms, conditions, or customized notes..."
                 value={formData.notes || ''}
                 onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))}
@@ -2681,7 +2681,7 @@ export default function CreateInvoicePage() {
                   <label className="text-[9px] font-bold uppercase text-blue-600 block mb-0.5">Delivery / Shipping (+)</label>
                   <input
                     type="number"
-                    className="input-field text-xs py-1 px-2 font-bold text-blue-700 dark:text-blue-300"
+                    className="input-field text-xs py-1 px-2 font-bold text-blue-700"
                     value={formData.shipping_charges || ''}
                     placeholder="0"
                     onChange={(e) => {
@@ -2697,7 +2697,7 @@ export default function CreateInvoicePage() {
                   <label className="text-[9px] font-bold uppercase text-emerald-700 block mb-0.5">Advance Paid (-)</label>
                   <input
                     type="number"
-                    className="input-field text-xs py-1 px-2 font-bold text-emerald-800 dark:text-emerald-300"
+                    className="input-field text-xs py-1 px-2 font-bold text-emerald-800"
                     value={formData.advance_amount || ''}
                     placeholder="0"
                     onChange={(e) => {
@@ -2713,20 +2713,20 @@ export default function CreateInvoicePage() {
             </div>
 
             {/* Total Amount Card */}
-            <div className="bg-slate-100 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="bg-slate-100 p-3 rounded-xl border border-slate-200">
               <div className="flex items-baseline justify-between">
                 <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Total Amount:</span>
-                <span className="text-2xl font-black text-slate-900 dark:text-white tabular-nums">
+                <span className="text-2xl font-black text-slate-900 tabular-nums">
                   {CURRENCIES.find(c => c.code === formData.currency)?.symbol || '$'}
                   {(calculateTotal() || 0).toFixed(2)}
                 </span>
               </div>
               {(Number(formData.advance_amount) || 0) > 0 && (
-                <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
-                  <span className="text-emerald-700 dark:text-emerald-400 font-bold">
+                <div className="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-xs">
+                  <span className="text-emerald-700 font-bold">
                     Advance: {CURRENCIES.find(c => c.code === formData.currency)?.symbol || '₹'}{(Number(formData.advance_amount) || 0).toFixed(2)}
                   </span>
-                  <span className="font-black text-slate-900 dark:text-slate-100">
+                  <span className="font-black text-slate-900">
                     Due: {CURRENCIES.find(c => c.code === formData.currency)?.symbol || '₹'}{Math.max(0, calculateTotal() - (Number(formData.advance_amount) || 0)).toFixed(2)}
                   </span>
                 </div>
@@ -2735,7 +2735,7 @@ export default function CreateInvoicePage() {
           </div>
 
           {/* Bottom Actions Bar (Desktop & Mobile) */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-700 shrink-0">
+          <div className="p-3 bg-slate-50 border-t border-slate-200 shrink-0">
             {/* Desktop Actions (>= lg) */}
             <div className="hidden lg:flex flex-col gap-2">
               <div className="grid grid-cols-2 gap-2">
@@ -2743,7 +2743,7 @@ export default function CreateInvoicePage() {
                   type="button"
                   disabled={loading}
                   onClick={(e) => handleSubmit(e, 'paid', false, true)}
-                  className="bg-neutral-950 dark:bg-zinc-800 hover:bg-neutral-900 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+                  className="bg-neutral-950 hover:bg-neutral-900 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
                   id="save-and-print-btn"
                 >
                   <Printer size={15} />
@@ -2774,7 +2774,7 @@ export default function CreateInvoicePage() {
                   type="button"
                   disabled={loading}
                   onClick={(e) => handleSubmit(e, 'sent')}
-                  className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                  className="bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <AlertCircle size={13} />
                   <span>Unpaid</span>
@@ -2783,7 +2783,7 @@ export default function CreateInvoicePage() {
                   type="button"
                   disabled={loading}
                   onClick={(e) => handleSubmit(e, 'paid', true)}
-                  className="bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 hover:bg-green-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                  className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Plus size={13} />
                   <span>POS</span>
@@ -2807,7 +2807,7 @@ export default function CreateInvoicePage() {
                   type="button"
                   disabled={loading}
                   onClick={(e) => handleSubmit(e, 'paid', false, true)}
-                  className="bg-neutral-950 dark:bg-zinc-800 text-white font-bold py-3 px-3 rounded-xl active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[46px]"
+                  className="bg-neutral-950 text-white font-bold py-3 px-3 rounded-xl active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[46px]"
                   id="save-and-print-btn-mobile"
                 >
                   <Printer size={16} />
@@ -2837,7 +2837,7 @@ export default function CreateInvoicePage() {
                   type="button"
                   disabled={loading}
                   onClick={(e) => handleSubmit(e, 'sent')}
-                  className="bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                  className="bg-amber-50 text-amber-700 border border-amber-200 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
                 >
                   <AlertCircle size={13} />
                   <span>Unpaid</span>
@@ -2846,7 +2846,7 @@ export default function CreateInvoicePage() {
                   type="button"
                   disabled={loading}
                   onClick={(e) => handleSubmit(e, 'paid', true)}
-                  className="bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                  className="bg-green-50 text-green-700 border border-green-200 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
                 >
                   <Plus size={13} />
                   <span>POS</span>
