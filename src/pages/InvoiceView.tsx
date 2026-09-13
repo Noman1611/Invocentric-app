@@ -152,8 +152,8 @@ export default function InvoiceViewPage() {
 
   // Letterhead State & Alignment Sliders
   const [useLetterhead, setUseLetterhead] = useState<boolean>(false);
-  const [letterheadTop, setLetterheadTop] = useState<number>(45);
-  const [letterheadBottom, setLetterheadBottom] = useState<number>(20);
+  const [letterheadTop, setLetterheadTop] = useState<number>(50.8); // Default 2 inches = 50.8mm
+  const [letterheadBottom, setLetterheadBottom] = useState<number>(12.7); // Default 0.5 inches = 12.7mm
   const [letterheadHideHeader, setLetterheadHideHeader] = useState<boolean>(true);
   const [showLetterheadSlider, setShowLetterheadSlider] = useState<boolean>(false);
   const [isSavingLetterhead, setIsSavingLetterhead] = useState<boolean>(false);
@@ -168,10 +168,10 @@ export default function InvoiceViewPage() {
         : Boolean(sellerInfo?.letterhead_enabled);
       const top = invoice?.letterhead_top_margin !== undefined 
         ? Number(invoice.letterhead_top_margin) 
-        : (sellerInfo?.letterhead_top_margin !== undefined ? Number(sellerInfo.letterhead_top_margin) : 45);
+        : (sellerInfo?.letterhead_top_margin !== undefined ? Number(sellerInfo.letterhead_top_margin) : 50.8);
       const bottom = invoice?.letterhead_bottom_margin !== undefined 
         ? Number(invoice.letterhead_bottom_margin) 
-        : (sellerInfo?.letterhead_bottom_margin !== undefined ? Number(sellerInfo.letterhead_bottom_margin) : 20);
+        : (sellerInfo?.letterhead_bottom_margin !== undefined ? Number(sellerInfo.letterhead_bottom_margin) : 12.7);
       const hideHeader = invoice?.letterhead_hide_header !== undefined 
         ? Boolean(invoice.letterhead_hide_header) 
         : (sellerInfo?.letterhead_hide_header !== undefined ? Boolean(sellerInfo.letterhead_hide_header) : true);
@@ -1494,16 +1494,16 @@ export default function InvoiceViewPage() {
                 onClick={() => setShowLetterheadSlider(!showLetterheadSlider)}
                 className={cn(
                   "inline-flex items-center justify-center gap-1 h-8 px-2 sm:px-2.5 font-bold rounded-xl text-xs transition-colors cursor-pointer active:scale-95 border",
-                  useLetterhead && letterheadUrl
-                    ? "bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                  useLetterhead
+                    ? "bg-green-50 hover:bg-green-100 text-emerald-800 border-green-300 shadow-xs"
                     : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
                 )}
                 title="Letterhead Settings & Alignment"
               >
-                <FileSpreadsheet size={14} className={useLetterhead && letterheadUrl ? "text-purple-600" : "text-slate-500"} />
+                <FileSpreadsheet size={14} className={useLetterhead ? "text-emerald-700" : "text-slate-500"} />
                 <span className="hidden xs:inline text-[11px]">Letterhead</span>
-                {useLetterhead && letterheadUrl && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse" />
+                {useLetterhead && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                 )}
               </button>
             )}
@@ -1626,8 +1626,8 @@ export default function InvoiceViewPage() {
                             flexDirection: 'column',
                             paddingTop: useLetterhead ? `${letterheadTop}mm` : 0,
                             paddingBottom: useLetterhead ? `${letterheadBottom}mm` : 0,
-                            paddingLeft: useLetterhead ? (isA5 ? '6mm' : '8mm') : 0,
-                            paddingRight: useLetterhead ? (isA5 ? '6mm' : '8mm') : 0,
+                            paddingLeft: useLetterhead ? '10mm' : 0,
+                            paddingRight: useLetterhead ? '10mm' : 0,
                           }}
                         >
                           {renderPage(pItems, idx, idx === totalPages - 1)}
@@ -1642,229 +1642,252 @@ export default function InvoiceViewPage() {
         </div>
       </main>
 
-      {/* Accessible Letterhead Settings & Alignment Modal */}
+      {/* Accessible Letterhead Settings & Alignment Live Side Panel */}
       {showLetterheadSlider && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 print:hidden animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                  <FileSpreadsheet size={18} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-slate-900 leading-tight">Letterhead Settings</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">Upload company letterhead & adjust margins live</p>
-                </div>
+        <div className="fixed top-0 right-0 h-full w-full max-w-sm sm:max-w-md bg-white shadow-2xl z-50 border-l border-slate-200 overflow-hidden flex flex-col print:hidden animate-in slide-in-from-right duration-200">
+          {/* Panel Header */}
+          <div className="px-5 py-4 border-b border-green-100 flex items-center justify-between bg-green-50/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-green-100 text-emerald-800 flex items-center justify-center font-bold">
+                <FileSpreadsheet size={18} />
               </div>
-              <button
-                type="button"
-                onClick={() => setShowLetterheadSlider(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-              >
-                <X size={18} />
-              </button>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 leading-tight">Letterhead Settings</h3>
+                <p className="text-[11px] text-slate-500 font-medium">Live side margin & offset controls</p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowLetterheadSlider(false)}
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+          </div>
 
-            {/* Modal Body */}
-            <div className="p-5 space-y-5 overflow-y-auto">
-              {/* Enable Switch */}
-              <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
-                <div>
-                  <div className="text-xs font-black text-slate-800 uppercase tracking-wider">Enable Letterhead Background</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">Prints invoice content directly over your letterhead</div>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={useLetterhead}
-                    onChange={(e) => setUseLetterhead(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
+          {/* Panel Body */}
+          <div className="p-5 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
+            {/* Enable Switch */}
+            <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
+              <div>
+                <div className="text-xs font-black text-slate-800 uppercase tracking-wider">Enable Letterhead</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">Prints invoice content directly over your letterhead</div>
               </div>
-
-              {/* Letterhead Upload Section */}
-              <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-2xl space-y-3">
-                <div className="text-xs font-bold text-slate-800 flex items-center justify-between">
-                  <span>Letterhead Image (PNG, JPG, WEBP)</span>
-                  {letterheadUrl && (
-                    <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">Uploaded</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {letterheadUrl ? (
-                    <div className="relative w-16 h-22 bg-white border border-purple-200 rounded-xl overflow-hidden shrink-0 shadow-xs">
-                      <img src={letterheadUrl} alt="Letterhead Thumbnail" className="w-full h-full object-contain" />
-                    </div>
-                  ) : (
-                    <div className="w-16 h-22 bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-400 shrink-0">
-                      <Upload size={18} />
-                      <span className="text-[9px] mt-1 font-bold">No Image</span>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-2 flex-1">
-                    <div className="flex items-center gap-2">
-                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">
-                        <Upload size={13} />
-                        <span>{letterheadUrl ? 'Change Letterhead' : 'Upload Letterhead'}</span>
-                        <input
-                          ref={letterheadFileInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleLetterheadUpload}
-                        />
-                      </label>
-                      {letterheadUrl && (
-                        <button
-                          type="button"
-                          onClick={handleRemoveLetterhead}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 cursor-pointer"
-                          title="Remove Letterhead"
-                        >
-                          <Trash2 size={14} />
-                          <span className="text-xs">Remove</span>
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-500">
-                      Upload your printed A4 sheet scan or design. Content prints crisp over this image.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Slider 1: Top Margin / Header Offset */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-800">
-                    Header Offset / Top Margin (Upar Se Jagah)
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setLetterheadTop(Math.max(0, letterheadTop - 5))}
-                      className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
-                      title="-5mm"
-                    >
-                      -
-                    </button>
-                    <span className="px-2.5 py-1 bg-purple-100 text-purple-900 rounded-lg text-xs font-extrabold tabular-nums min-w-[55px] text-center">
-                      {letterheadTop} mm
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setLetterheadTop(Math.min(120, letterheadTop + 5))}
-                      className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
-                      title="+5mm"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Sliding this moves the invoice content down so it does not overlap your printed letterhead header or logo.
-                </p>
-                <div className="flex items-center gap-3 pt-1">
-                  <span className="text-[10px] font-bold text-slate-400">0 mm</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="120"
-                    step="1"
-                    value={letterheadTop}
-                    onChange={(e) => setLetterheadTop(Number(e.target.value))}
-                    className="flex-1 accent-purple-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
-                  />
-                  <span className="text-[10px] font-bold text-slate-400">120 mm</span>
-                </div>
-              </div>
-
-              {/* Slider 2: Bottom Margin / Footer Offset */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-800">
-                    Footer Offset / Bottom Margin (Niche Se Jagah)
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setLetterheadBottom(Math.max(0, letterheadBottom - 5))}
-                      className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
-                      title="-5mm"
-                    >
-                      -
-                    </button>
-                    <span className="px-2.5 py-1 bg-purple-100 text-purple-900 rounded-lg text-xs font-extrabold tabular-nums min-w-[55px] text-center">
-                      {letterheadBottom} mm
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setLetterheadBottom(Math.min(80, letterheadBottom + 5))}
-                      className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
-                      title="+5mm"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Gives clearance for pre-printed footers, terms, or bank accounts at the bottom of your letterhead.
-                </p>
-                <div className="flex items-center gap-3 pt-1">
-                  <span className="text-[10px] font-bold text-slate-400">0 mm</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="80"
-                    step="1"
-                    value={letterheadBottom}
-                    onChange={(e) => setLetterheadBottom(Number(e.target.value))}
-                    className="flex-1 accent-purple-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
-                  />
-                  <span className="text-[10px] font-bold text-slate-400">80 mm</span>
-                </div>
-              </div>
-
-              {/* Hide Default Header Checkbox */}
-              <div className="flex items-start gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+              <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  id="lh_hide_hdr"
-                  checked={letterheadHideHeader}
-                  onChange={(e) => setLetterheadHideHeader(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 rounded text-purple-600 focus:ring-purple-500 border-slate-300 cursor-pointer"
+                  checked={useLetterhead}
+                  onChange={(e) => setUseLetterhead(e.target.checked)}
+                  className="sr-only peer"
                 />
-                <label htmlFor="lh_hide_hdr" className="text-xs text-slate-700 cursor-pointer leading-relaxed">
-                  <strong className="font-bold text-slate-900 block">Hide standard digital company header</strong>
-                  Hides business name, logo, and address so it doesn't double-print over your letterhead branding.
-                </label>
+                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#166534]"></div>
+              </label>
+            </div>
+
+            {/* Letterhead Upload Section */}
+            <div className="p-4 bg-green-50/60 border border-green-200 rounded-2xl space-y-3">
+              <div className="text-xs font-bold text-slate-800 flex items-center justify-between">
+                <span>Letterhead Image (PNG, JPG, WEBP)</span>
+                {letterheadUrl && (
+                  <span className="text-[10px] text-emerald-700 font-bold bg-white px-2 py-0.5 rounded-full border border-green-300">Uploaded</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                {letterheadUrl ? (
+                  <div className="relative w-16 h-22 bg-white border border-green-200 rounded-xl overflow-hidden shrink-0 shadow-xs">
+                    <img src={letterheadUrl} alt="Letterhead Thumbnail" className="w-full h-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="w-16 h-22 bg-white border-2 border-dashed border-green-300 rounded-xl flex flex-col items-center justify-center text-slate-400 shrink-0">
+                    <Upload size={18} className="text-emerald-700" />
+                    <span className="text-[9px] mt-1 font-bold text-slate-500">Optional</span>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 flex-1">
+                  <div className="flex items-center gap-2">
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#166534] hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">
+                      <Upload size={13} />
+                      <span>{letterheadUrl ? 'Change Image' : 'Upload Image'}</span>
+                      <input
+                        ref={letterheadFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLetterheadUpload}
+                      />
+                    </label>
+                    {letterheadUrl && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveLetterhead}
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        title="Remove Letterhead Image"
+                      >
+                        <Trash2 size={14} />
+                        <span className="text-xs">Remove</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    If using pre-printed physical paper sheets, simply adjust the margins below without uploading an image!
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setShowLetterheadSlider(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                disabled={isSavingLetterhead}
-                onClick={handleSaveLetterheadOffset}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                {isSavingLetterhead ? <Loader2 size={14} className="animate-spin" /> : null}
-                <span>Save as Default</span>
-              </button>
+            {/* Slider 1: Top Margin / Header Offset (2 in / 50.8 mm) */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-800">
+                  Header Margin / Upar Se Jagah
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setLetterheadTop(Math.max(0, Math.round((letterheadTop - 5) * 10) / 10))}
+                    className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                    title="-5mm"
+                  >
+                    -
+                  </button>
+                  <span className="px-2.5 py-1 bg-green-100 text-emerald-900 border border-green-200 rounded-lg text-xs font-extrabold tabular-nums min-w-[65px] text-center">
+                    {letterheadTop} mm
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setLetterheadTop(Math.min(120, Math.round((letterheadTop + 5) * 10) / 10))}
+                    className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                    title="+5mm"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>Standard: 2 inches = 50.8 mm</span>
+                <button
+                  type="button"
+                  onClick={() => setLetterheadTop(50.8)}
+                  className="text-[10px] text-emerald-700 font-bold hover:underline cursor-pointer"
+                >
+                  Set 2 in (50.8 mm)
+                </button>
+              </div>
+              <div className="flex items-center gap-3 pt-1">
+                <span className="text-[10px] font-bold text-slate-400">0 mm</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="120"
+                  step="0.5"
+                  value={letterheadTop}
+                  onChange={(e) => setLetterheadTop(Number(e.target.value))}
+                  className="flex-1 accent-[#166534] cursor-pointer h-2 bg-slate-200 rounded-lg"
+                />
+                <span className="text-[10px] font-bold text-slate-400">120 mm</span>
+              </div>
             </div>
+
+            {/* Slider 2: Bottom Margin / Footer Offset (0.5 in / 12.7 mm) */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-800">
+                  Footer Margin / Niche Se Jagah
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setLetterheadBottom(Math.max(0, Math.round((letterheadBottom - 5) * 10) / 10))}
+                    className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                    title="-5mm"
+                  >
+                    -
+                  </button>
+                  <span className="px-2.5 py-1 bg-green-100 text-emerald-900 border border-green-200 rounded-lg text-xs font-extrabold tabular-nums min-w-[65px] text-center">
+                    {letterheadBottom} mm
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setLetterheadBottom(Math.min(80, Math.round((letterheadBottom + 5) * 10) / 10))}
+                    className="w-6 h-6 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center justify-center font-bold text-xs cursor-pointer"
+                    title="+5mm"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>Standard: 0.5 inches = 12.7 mm</span>
+                <button
+                  type="button"
+                  onClick={() => setLetterheadBottom(12.7)}
+                  className="text-[10px] text-emerald-700 font-bold hover:underline cursor-pointer"
+                >
+                  Set 0.5 in (12.7 mm)
+                </button>
+              </div>
+              <div className="flex items-center gap-3 pt-1">
+                <span className="text-[10px] font-bold text-slate-400">0 mm</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="80"
+                  step="0.5"
+                  value={letterheadBottom}
+                  onChange={(e) => setLetterheadBottom(Number(e.target.value))}
+                  className="flex-1 accent-[#166534] cursor-pointer h-2 bg-slate-200 rounded-lg"
+                />
+                <span className="text-[10px] font-bold text-slate-400">80 mm</span>
+              </div>
+            </div>
+
+            {/* Margin Info Card: Side margins */}
+            <div className="p-3.5 bg-green-50/50 border border-green-200/80 rounded-2xl flex items-center justify-between">
+              <div>
+                <div className="text-xs font-black text-slate-800">Side Margins (Dono Saido Me Jagah)</div>
+                <div className="text-[11px] text-slate-500">Fixed standard padding on left and right</div>
+              </div>
+              <span className="px-2.5 py-1 bg-white border border-green-200 text-emerald-800 rounded-lg text-xs font-extrabold">
+                10 mm (1 cm)
+              </span>
+            </div>
+
+            {/* Hide Default Header Checkbox */}
+            <div className="flex items-start gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+              <input
+                type="checkbox"
+                id="lh_hide_hdr"
+                checked={letterheadHideHeader}
+                onChange={(e) => setLetterheadHideHeader(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer accent-[#166534]"
+              />
+              <label htmlFor="lh_hide_hdr" className="text-xs text-slate-700 cursor-pointer leading-relaxed">
+                <strong className="font-bold text-slate-900 block">Hide standard digital company header</strong>
+                Hides business name, logo, and address so it doesn't double-print over your letterhead branding.
+              </label>
+            </div>
+          </div>
+
+          {/* Panel Footer */}
+          <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200/80 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setShowLetterheadSlider(false)}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+            >
+              Done
+            </button>
+            <button
+              type="button"
+              disabled={isSavingLetterhead}
+              onClick={handleSaveLetterheadOffset}
+              className="px-4 py-2 bg-[#166534] hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              {isSavingLetterhead ? <Loader2 size={14} className="animate-spin" /> : null}
+              <span>Save as Default</span>
+            </button>
           </div>
         </div>
       )}

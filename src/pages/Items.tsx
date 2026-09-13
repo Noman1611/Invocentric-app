@@ -89,6 +89,53 @@ export default function ItemsPage() {
   const [aiScanError, setAiScanError] = useState<string | null>(null);
   const [aiSuccessMsg, setAiSuccessMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const aiPhotoInputRef = useRef<HTMLInputElement>(null);
+  const [aiPhotoItem, setAiPhotoItem] = useState<string | null>(null);
+
+  const handleAiPhotoUploadDirect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      alert("Please select an image smaller than 15MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+        setEditingItem(null);
+        setAiPhotoItem(compressedBase64);
+        setIsModalOpen(true);
+        if (aiPhotoInputRef.current) aiPhotoInputRef.current.value = '';
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleAiBillUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -537,6 +584,23 @@ export default function ItemsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => aiPhotoInputRef.current?.click()}
+            className="px-4 py-3 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-900/10 flex items-center gap-2 border-none cursor-pointer"
+            title="Snap or upload product image to auto-fill details using Gemini AI"
+          >
+            <Camera size={16} className="text-emerald-100" />
+            <span>📸 AI Photo to Item</span>
+          </button>
+          <input
+            ref={aiPhotoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAiPhotoUploadDirect}
+          />
+
           <button
             onClick={() => {
               if (!isPro) {
@@ -1503,6 +1567,7 @@ export default function ItemsPage() {
         onClose={() => {
           setIsModalOpen(false);
           setEditingItem(null);
+          setAiPhotoItem(null);
         }}
         onSave={async (itemData) => {
           if (!user) return;
@@ -1549,6 +1614,7 @@ export default function ItemsPage() {
 
             setIsModalOpen(false);
             setEditingItem(null);
+            setAiPhotoItem(null);
           } catch (error) {
             console.error("Error saving item:", error);
           }
@@ -1575,7 +1641,7 @@ export default function ItemsPage() {
           size: editingItem.size || '',
           custom_box: editingItem.custom_box || '',
           active: (editingItem as any).active !== undefined ? (editingItem as any).active : true
-        } : null}
+        } : (aiPhotoItem ? { image: aiPhotoItem } : null)}
         onOpenScanner={() => setShowScanner(true)}
         scannedBarcode={formData.barcode}
         title={editingItem ? "Update Catalog Entry" : "Create Catalog Entry"}

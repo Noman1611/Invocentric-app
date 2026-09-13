@@ -10,9 +10,164 @@ import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { doc, getDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 import { dbService } from '../services/dbService';
-import { getFileHandleFromIndexedDB, writeAllDataToPcFile, downloadBackupFile, applyDataToLocalCache } from '../utils/fileSystemDb';
+import { 
+  getFileHandleFromIndexedDB, 
+  writeAllDataToPcFile, 
+  downloadBackupFile, 
+  applyDataToLocalCache,
+  isDirectoryPickerSupported,
+  saveDirectoryHandleToIndexedDB,
+  getDirectoryHandleFromIndexedDB,
+  removeDirectoryHandleFromIndexedDB,
+  writeAllDataToPcDirectory
+} from '../utils/fileSystemDb';
+import { 
+  isGoogleDriveConnected, 
+  connectGoogleDrive, 
+  disconnectGoogleDrive, 
+  syncDataToGoogleDrive, 
+  getGoogleDriveLastBackupTime 
+} from '../utils/googleDriveSync';
 
 export default function SettingsPage() {
+
+  // Google Drive & PC Directory Sync States
+  const [gdriveConnected, setGdriveConnected] = useState<boolean>(() => isGoogleDriveConnected());
+  const [gdriveSyncing, setGdriveSyncing] = useState<boolean>(false);
+  const [gdriveLastBackup, setGdriveLastBackup] = useState<string | null>(() => getGoogleDriveLastBackupTime());
+
+  const [pcDirConnected, setPcDirConnected] = useState<boolean>(false);
+  const [pcDirName, setPcDirName] = useState<string>('');
+  const [pcDirSyncing, setPcDirSyncing] = useState<boolean>(false);
+  const [pcDirLastBackup, setPcDirLastBackup] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    getDirectoryHandleFromIndexedDB(user.uid).then(handle => {
+      if (handle) {
+        setPcDirConnected(true);
+        setPcDirName(handle.name);
+      }
+    });
+    setPcDirLastBackup(localStorage.getItem(`pc_directory_last_backup_${user.uid}`));
+
+    const handleGdriveStatus = () => {
+      setGdriveConnected(isGoogleDriveConnected());
+      setGdriveLastBackup(getGoogleDriveLastBackupTime());
+    };
+    window.addEventListener('gdrive_status_changed', handleGdriveStatus);
+    window.addEventListener('gdrive_backup_success', handleGdriveStatus);
+    return () => {
+      window.removeEventListener('gdrive_status_changed', handleGdriveStatus);
+      window.removeEventListener('gdrive_backup_success', handleGdriveStatus);
+    };
+  }, [user]);
+
+  const handleConnectGoogleDrive = async () => {
+    try {
+      setGdriveSyncing(true);
+      await connectGoogleDrive();
+      if (user) {
+        const res = await syncDataToGoogleDrive(user.uid);
+        if (res.success) {
+          alert("🎉 Google Drive connected successfully! Master backup file and daily_backups folder created in your Google Drive.");
+        }
+      }
+      setGdriveConnected(true);
+      setGdriveLastBackup(getGoogleDriveLastBackupTime());
+    } catch (err: any) {
+      console.error(err);
+      alert("Google Drive connection failed: " + (err.message || String(err)));
+    } finally {
+      setGdriveSyncing(false);
+    }
+  };
+
+  const handleSyncGoogleDriveNow = async () => {
+    if (!user) return;
+    try {
+      setGdriveSyncing(true);
+      const res = await syncDataToGoogleDrive(user.uid);
+      if (res.success) {
+        setGdriveLastBackup(getGoogleDriveLastBackupTime());
+        alert("✅ Google Drive synced successfully! Master file and today's dated backup updated.");
+      } else {
+        alert("Sync failed: " + res.error);
+      }
+    } catch (err: any) {
+      alert("Error syncing to Google Drive: " + err.message);
+    } finally {
+      setGdriveSyncing(false);
+    }
+  };
+
+  const handleDisconnectGoogleDrive = () => {
+    if (window.confirm("Are you sure you want to disconnect Google Drive auto-backup?")) {
+      disconnectGoogleDrive();
+      setGdriveConnected(false);
+      setGdriveLastBackup(null);
+    }
+  };
+
+  const handleSelectPcDirectory = async () => {
+    if (!user) return;
+    if (!isDirectoryPickerSupported()) {
+      alert("Your browser does not support folder picker. Please use Google Chrome or Microsoft Edge on PC.");
+      return;
+    }
+    try {
+      setPcDirSyncing(true);
+      const dirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+      await saveDirectoryHandleToIndexedDB(user.uid, dirHandle);
+      setPcDirConnected(true);
+      setPcDirName(dirHandle.name);
+
+      // Perform immediate sync to save master and daily folder
+      await writeAllDataToPcDirectory(user.uid, dirHandle);
+      const timestamp = new Date().toISOString();
+      setPcDirLastBackup(timestamp);
+      alert(`🎉 PC Folder '${dirHandle.name}' connected! Saved 'invocentric_master_backup.json' and 'daily_backups' folder.`);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error("PC directory selection error:", err);
+        alert("Failed to connect PC directory: " + (err.message || String(err)));
+      }
+    } finally {
+      setPcDirSyncing(false);
+    }
+  };
+
+  const handleSyncPcDirNow = async () => {
+    if (!user) return;
+    try {
+      setPcDirSyncing(true);
+      const dirHandle = await getDirectoryHandleFromIndexedDB(user.uid);
+      if (!dirHandle) {
+        alert("No PC folder connected. Please choose a folder first.");
+        return;
+      }
+      await writeAllDataToPcDirectory(user.uid, dirHandle);
+      const timestamp = new Date().toISOString();
+      setPcDirLastBackup(timestamp);
+      alert("✅ PC Folder synced successfully! Master file and today's dated backup updated.");
+    } catch (err: any) {
+      console.error(err);
+      alert("PC Folder sync error: " + (err.message || String(err)));
+    } finally {
+      setPcDirSyncing(false);
+    }
+  };
+
+  const handleDisconnectPcDir = async () => {
+    if (!user) return;
+    if (window.confirm("Disconnect PC folder backup?")) {
+      await removeDirectoryHandleFromIndexedDB(user.uid);
+      setPcDirConnected(false);
+      setPcDirName('');
+      setPcDirLastBackup(null);
+    }
+  };
+
   const { 
     user, 
     logout, 
@@ -906,6 +1061,79 @@ export default function SettingsPage() {
           
           <div className="space-y-6">
             {/* 1. PC Hard Drive Storage Mode (Premium Local-First Mode) */}
+            
+            {/* PC Hard Drive Directory Folder Mode (Master + Daily Backups) */}
+            <div className="p-6 bg-gradient-to-r from-green-50/80 via-emerald-50/60 to-teal-50/50 border border-green-200 rounded-2xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-black text-[#166534] uppercase tracking-wider flex items-center gap-1.5">
+                      <span>PC Hard Drive Folder Backup</span>
+                      <span className="bg-[#166534] text-[8px] font-black text-white px-2 py-0.5 rounded uppercase tracking-widest">Local Disk</span>
+                    </p>
+                    {pcDirConnected && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                        <CheckCircle2 size={11} /> Folder Connected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-700 font-medium leading-relaxed">
+                    Select a folder on your PC. InvoCentic automatically writes the master database (<span className="font-mono font-bold text-emerald-900">invocentric_master_backup.json</span>) and creates daily dated files inside <span className="font-mono font-bold text-emerald-900">daily_backups/</span> every 24 hours.
+                  </p>
+                  {pcDirConnected && (
+                    <div className="flex flex-wrap items-center gap-3 text-xs pt-1">
+                      <span className="font-bold text-slate-600">Selected PC Folder: <span className="font-mono font-black text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200">{pcDirName}</span></span>
+                      {pcDirLastBackup && (
+                        <span className="text-slate-500 font-medium">Last Saved: {new Date(pcDirLastBackup).toLocaleString()}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {pcDirConnected ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={pcDirSyncing}
+                        onClick={handleSyncPcDirNow}
+                        className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
+                      >
+                        <HardDrive size={13} className={cn(pcDirSyncing && "animate-spin")} />
+                        <span>{pcDirSyncing ? 'Writing...' : 'Save to PC Now'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSelectPcDirectory}
+                        className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        title="Change Folder"
+                      >
+                        Change Folder
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisconnectPcDir}
+                        className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        title="Disconnect Folder"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={pcDirSyncing}
+                      onClick={handleSelectPcDirectory}
+                      className="px-4 py-2.5 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                    >
+                      <FolderOpen size={15} />
+                      <span>{pcDirSyncing ? 'Connecting...' : 'Choose PC Backup Folder'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="p-6 bg-emerald-50/50 border border-emerald-100/80 rounded-[2rem] space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-1">
@@ -1051,9 +1279,70 @@ export default function SettingsPage() {
         <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
           <h2 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Automation & Backups</h2>
           <div className="space-y-4">
+            {/* Google Drive 24-Hour Auto-Backup (Master File + Daily Folder) */}
+            <div className="p-5 bg-gradient-to-r from-emerald-50/70 to-teal-50/50 rounded-2xl border border-emerald-200/80 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-black text-[#166534] uppercase tracking-wider flex items-center gap-1.5">
+                      <span>Google Drive Auto-Backup</span>
+                      <span className="bg-[#166534] text-[9px] font-black text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Cloud 24H</span>
+                    </p>
+                    {gdriveConnected && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
+                        <CheckCircle2 size={11} /> Connected
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    Saves an accumulated master backup (<span className="font-mono font-bold text-emerald-800">invocentric_master_backup.json</span>) and dated daily snapshots inside <span className="font-mono font-bold text-emerald-800">daily_backups/</span> on your Google Drive automatically every 24 hours.
+                  </p>
+                  {gdriveLastBackup && (
+                    <p className="text-[11px] text-slate-500 font-semibold">
+                      Last Google Drive Sync: {new Date(gdriveLastBackup).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {gdriveConnected ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={gdriveSyncing}
+                        onClick={handleSyncGoogleDriveNow}
+                        className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
+                      >
+                        <Upload size={13} className={cn(gdriveSyncing && "animate-spin")} />
+                        <span>{gdriveSyncing ? 'Syncing...' : 'Sync to Drive Now'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisconnectGoogleDrive}
+                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                        title="Disconnect Google Drive"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={gdriveSyncing}
+                      onClick={handleConnectGoogleDrive}
+                      className="px-4 py-2.5 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                    >
+                      <HardDrive size={14} />
+                      <span>{gdriveSyncing ? 'Connecting...' : 'Connect Google Drive'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
               <div className="space-y-1">
-                <p className="text-sm font-bold text-gray-900">Daily Auto-Backup</p>
+                <p className="text-sm font-bold text-gray-900">Email Daily Auto-Backup</p>
                 <p className="text-xs text-gray-500">Automatically send all invoice data to your email every 24 hours.</p>
               </div>
               <button

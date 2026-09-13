@@ -366,3 +366,124 @@ export function triggerPcFileSyncDebounced(userId: string, handle: FileSystemFil
     }
   }, 1000); // 1-second debounce window
 }
+
+// ==========================================
+// PC HARD DRIVE DIRECTORY SYNC (Master + Daily)
+// ==========================================
+
+export function isDirectoryPickerSupported(): boolean {
+  return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+}
+
+export function saveDirectoryHandleToIndexedDB(userId: string, handle: FileSystemDirectoryHandle): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(`InvoCenticFolderStorage_${userId}`, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("dir_handles")) {
+        db.createObjectStore("dir_handles");
+      }
+    };
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction("dir_handles", "readwrite");
+      const store = tx.objectStore("dir_handles");
+      const putReq = store.put(handle, "pc_directory_handle");
+      putReq.onsuccess = () => {
+        localStorage.setItem(`pc_directory_connected_${userId}`, 'true');
+        localStorage.setItem(`pc_directory_name_${userId}`, handle.name);
+        resolve();
+      };
+      putReq.onerror = () => reject(putReq.error);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export function getDirectoryHandleFromIndexedDB(userId: string): Promise<FileSystemDirectoryHandle | null> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(`InvoCenticFolderStorage_${userId}`, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("dir_handles")) {
+        db.createObjectStore("dir_handles");
+      }
+    };
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("dir_handles")) return resolve(null);
+      const tx = db.transaction("dir_handles", "readonly");
+      const store = tx.objectStore("dir_handles");
+      const getReq = store.get("pc_directory_handle");
+      getReq.onsuccess = () => resolve(getReq.result || null);
+      getReq.onerror = () => resolve(null);
+    };
+    request.onerror = () => resolve(null);
+  });
+}
+
+export function removeDirectoryHandleFromIndexedDB(userId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(`InvoCenticFolderStorage_${userId}`, 1);
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("dir_handles")) {
+        localStorage.removeItem(`pc_directory_connected_${userId}`);
+        localStorage.removeItem(`pc_directory_name_${userId}`);
+        return resolve();
+      }
+      const tx = db.transaction("dir_handles", "readwrite");
+      const store = tx.objectStore("dir_handles");
+      const delReq = store.delete("pc_directory_handle");
+      delReq.onsuccess = () => {
+        localStorage.removeItem(`pc_directory_connected_${userId}`);
+        localStorage.removeItem(`pc_directory_name_${userId}`);
+        resolve();
+      };
+      delReq.onerror = () => reject(delReq.error);
+    };
+    request.onerror = () => resolve();
+  });
+}
+
+/**
+ * Saves both:
+ * 1. Master File: invocentric_master_backup.json (continually updated)
+ * 2. Daily Folder: daily_backups/backup_YYYY-MM-DD.json (dated daily snapshots)
+ */
+export async function writeAllDataToPcDirectory(userId: string, dirHandle: FileSystemDirectoryHandle): Promise<{ masterSaved: boolean; dailySaved: boolean }> {
+  try {
+    const isPermitted = await verifyFilePermission(dirHandle as any, true);
+    if (!isPermitted) {
+      throw new Error("Write permission to PC folder was not granted.");
+    }
+
+    const data = packageAllLocalData(userId);
+    const jsonStr = JSON.stringify(data, null, 2);
+    const today = new Date().toISOString().split('T')[0];
+
+    // 1. Write / Update Master File
+    const masterFileHandle = await dirHandle.getFileHandle('invocentric_master_backup.json', { create: true });
+    const masterWritable = await masterFileHandle.createWritable();
+    await masterWritable.write(jsonStr);
+    await masterWritable.close();
+
+    // 2. Create or Open 'daily_backups' Subfolder
+    const dailyDirHandle = await dirHandle.getDirectoryHandle('daily_backups', { create: true });
+    const dailyFileName = `backup_${today}.json`;
+    const dailyFileHandle = await dailyDirHandle.getFileHandle(dailyFileName, { create: true });
+    const dailyWritable = await dailyFileHandle.createWritable();
+    await dailyWritable.write(jsonStr);
+    await dailyWritable.close();
+
+    const timestamp = new Date().toISOString();
+    localStorage.setItem(`pc_directory_last_backup_${userId}`, timestamp);
+    window.dispatchEvent(new CustomEvent('pc_directory_write_success', { detail: { timestamp, folder: dirHandle.name } }));
+
+    console.log(`Successfully saved master and daily backup to PC folder '${dirHandle.name}'`);
+    return { masterSaved: true, dailySaved: true };
+  } catch (error) {
+    console.error("Failed writing data to PC directory:", error);
+    throw error;
+  }
+}

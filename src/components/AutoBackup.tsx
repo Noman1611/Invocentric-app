@@ -1,28 +1,31 @@
 import { useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
+import { getStoredUserProfile, saveStoredUserProfile } from '../utils/settingsStorage';
 import { parseDateSafe } from '../utils/dateUtils';
+import { isGoogleDriveConnected, syncDataToGoogleDrive, getGoogleDriveLastBackupTime } from '../utils/googleDriveSync';
+import { getDirectoryHandleFromIndexedDB, writeAllDataToPcDirectory, packageAllLocalData } from '../utils/fileSystemDb';
 
 export default function AutoBackup() {
   const { user } = useAuth();
 
-  const performBackup = useCallback(async (userData: any) => {
+  const performEmailBackup = useCallback(async (userData: any) => {
+    if (!user) return;
     try {
-      console.log("Starting auto-backup process...");
-      
-      // 1. Fetch all invoices for this user from local storage
-      const invoices = getSecureStorage(`offline_invoices_${user?.uid}`, []);
-      
+      console.log("Starting auto-backup email dispatch...");
+      const fullData = packageAllLocalData(user.uid);
+      const invoices = fullData.invoices || [];
+
       if (invoices.length === 0) {
-        console.log("No invoices found for backup.");
+        console.log("No invoices found for email backup.");
         return;
       }
 
-      // 2. Generate CSV
-      const headers = ['ID', 'Invoice Number', 'Amount', 'Currency', 'Status', 'Date'];
+      // Generate CSV
+      const headers = ['ID', 'Invoice Number', 'Customer', 'Amount', 'Currency', 'Status', 'Date'];
       const rows = invoices.map((inv: any) => [
         inv.id,
         inv.invoice_number || '',
+        inv.customer_name || '',
         inv.amount || 0,
         inv.currency || 'INR',
         inv.status || 'draft',
@@ -31,10 +34,9 @@ export default function AutoBackup() {
 
       const csvContent = [
         headers.join(','),
-        ...rows.map(r => r.join(','))
+        ...rows.map(r => r.map((c: any) => `"${String(c).replace(/"/g, '""')}"`).join(','))
       ].join('\n');
 
-      // 3. Send via API
       const token = user ? await user.getIdToken() : '';
       const response = await fetch('/api/send-email', {
         method: 'POST',
@@ -48,10 +50,10 @@ export default function AutoBackup() {
           html: `
             <div style="font-family: sans-serif; padding: 20px;">
               <h2>Daily Invoice Backup</h2>
-              <p>Attached is your daily backup of all invoices from InvoCentric.</p>
+              <p>Attached is your daily automated backup of all invoices from InvoCentric.</p>
               <p>Total Invoices: ${invoices.length}</p>
               <hr />
-              <p style="color: #666; font-size: 12px;">This is an automated security feature of InvoCentric.</p>
+              <p style="color: #666; font-size: 12px;">Automated backup triggered every 24 hours.</p>
             </div>
           `,
           attachments: [
@@ -65,15 +67,40 @@ export default function AutoBackup() {
 
       if (response.ok) {
         console.log("Backup email sent successfully.");
-        // 4. Update last_backup_at locally
-        const profileKey = `user_profile_${user?.uid}`;
-        const currentProfile = getSecureStorage(profileKey, {}) || {};
-        currentProfile.last_backup_at = new Date().toISOString();
-        setSecureStorage(profileKey, currentProfile);
-        window.dispatchEvent(new StorageEvent('storage', { key: profileKey, newValue: JSON.stringify(currentProfile) }));
+        const nowIso = new Date().toISOString();
+        saveStoredUserProfile(user.uid, { last_backup_at: nowIso });
       }
     } catch (error) {
-      console.error("Backup failed:", error);
+      console.error("Email backup failed:", error);
+    }
+  }, [user]);
+
+  const performGoogleDriveBackup = useCallback(async () => {
+    if (!user || !isGoogleDriveConnected()) return;
+    try {
+      console.log("Starting Google Drive auto-backup (Master + Daily folder)...");
+      const res = await syncDataToGoogleDrive(user.uid);
+      if (res.success) {
+        console.log("Google Drive auto-backup succeeded:", res);
+      } else {
+        console.warn("Google Drive auto-backup failed:", res.error);
+      }
+    } catch (err) {
+      console.error("Google Drive auto-backup exception:", err);
+    }
+  }, [user]);
+
+  const performPcDirectoryBackup = useCallback(async () => {
+    if (!user) return;
+    try {
+      const dirHandle = await getDirectoryHandleFromIndexedDB(user.uid);
+      if (!dirHandle) return;
+
+      console.log("Starting PC Hard Drive directory auto-backup (Master + Daily folder)...");
+      await writeAllDataToPcDirectory(user.uid, dirHandle);
+      console.log("PC Hard Drive directory auto-backup complete.");
+    } catch (err) {
+      console.warn("PC Hard Drive auto-backup skipped or needs user permission:", err);
     }
   }, [user]);
 
@@ -82,26 +109,47 @@ export default function AutoBackup() {
 
     const checkBackupStatus = async () => {
       try {
-        if (!user) return;
-        const userData = getSecureStorage(`user_profile_${user.uid}`, null);
-        if (userData) {
-          if (userData.backup_enabled) {
-            const lastBackup = userData.last_backup_at ? parseDateSafe(userData.last_backup_at) : new Date(0);
-            const now = new Date();
-            const hoursSinceLastBackup = (now.getTime() - lastBackup.getTime()) / (1000 * 60 * 60);
+        const userData = getStoredUserProfile(user.uid);
+        const now = new Date();
 
-            if (hoursSinceLastBackup >= 24) {
-              await performBackup(userData);
-            }
+        // 1. Check Email Backup (24h)
+        if (userData && userData.backup_enabled) {
+          const lastBackup = userData.last_backup_at ? parseDateSafe(userData.last_backup_at) : new Date(0);
+          const hoursSinceLastBackup = (now.getTime() - lastBackup.getTime()) / (1000 * 60 * 60);
+
+          if (hoursSinceLastBackup >= 24) {
+            await performEmailBackup(userData);
           }
         }
+
+        // 2. Check Google Drive Backup (24h)
+        if (isGoogleDriveConnected()) {
+          const gdriveLast = getGoogleDriveLastBackupTime();
+          const lastGdriveDate = gdriveLast ? parseDateSafe(gdriveLast) : new Date(0);
+          const hoursGdrive = (now.getTime() - lastGdriveDate.getTime()) / (1000 * 60 * 60);
+
+          if (hoursGdrive >= 24) {
+            await performGoogleDriveBackup();
+          }
+        }
+
+        // 3. Check PC Directory Backup (24h)
+        const lastPcDir = localStorage.getItem(`pc_directory_last_backup_${user.uid}`);
+        const lastPcDate = lastPcDir ? parseDateSafe(lastPcDir) : new Date(0);
+        const hoursPc = (now.getTime() - lastPcDate.getTime()) / (1000 * 60 * 60);
+
+        if (hoursPc >= 24) {
+          await performPcDirectoryBackup();
+        }
       } catch (error) {
-        console.error("Error checking backup status:", error);
+        console.error("Error checking auto-backup status:", error);
       }
     };
 
-    checkBackupStatus();
-  }, [user, performBackup]);
+    // Run check 3 seconds after mount so it doesn't block initial rendering
+    const timer = setTimeout(checkBackupStatus, 3000);
+    return () => clearTimeout(timer);
+  }, [user, performEmailBackup, performGoogleDriveBackup, performPcDirectoryBackup]);
 
-  return null; // Silent component
+  return null; // Silent background runner
 }

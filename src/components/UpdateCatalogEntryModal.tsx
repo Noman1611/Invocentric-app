@@ -196,6 +196,9 @@ export default function UpdateCatalogEntryModal({
           active: initialData.active !== undefined ? initialData.active : true
         });
         setImagePreview(initialData.image || '');
+        if (initialData.image && !initialData.id) {
+          triggerAIExtraction(initialData.image);
+        }
       } else {
         setFormData({
           name: '',
@@ -393,6 +396,77 @@ export default function UpdateCatalogEntryModal({
 
           {/* Form Scroll Body */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 pt-5 sm:pt-6 pb-28 sm:pb-12 space-y-6">
+            
+            {/* PROMINENT HERO CARD: AI PRODUCT PHOTO AUTO-FILL */}
+            <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 border-2 border-dashed border-emerald-300 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-[#166534] text-white flex items-center justify-center shrink-0 shadow-md">
+                  <Camera size={22} />
+                </div>
+                <div className="space-y-0.5 text-center sm:text-left">
+                  <h4 className="text-sm font-black text-slate-900 flex flex-wrap items-center justify-center sm:justify-start gap-1.5">
+                    <span>📸 Snap / Upload Product Photo</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-600 text-white shadow-2xs">Gemini AI Auto-Fill</span>
+                  </h4>
+                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                    Upload product box / packaging photo — AI extracts Product Name, Brand, MRP, Price, Barcode &amp; HSN automatically!
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 shrink-0 w-full sm:w-auto">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  id="catalog-hero-image-upload"
+                />
+                <label
+                  htmlFor="catalog-hero-image-upload"
+                  className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl bg-[#166534] hover:bg-green-800 text-white transition-all shadow-sm active:scale-95 touch-manipulation"
+                >
+                  <Upload size={14} />
+                  <span>{imagePreview ? 'Change Photo' : 'Upload / Snap Photo'}</span>
+                </label>
+
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={() => triggerAIExtraction(imagePreview)}
+                    disabled={isExtractingAI}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl border border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-50 transition-colors shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isExtractingAI ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin text-emerald-600" />
+                        <span>Scanning...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={13} className="text-emerald-600" />
+                        <span>Re-Scan with AI</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* AI Scanning Status */}
+            {isExtractingAI && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800 animate-pulse">
+                <Loader2 size={16} className="animate-spin text-emerald-600" />
+                <span>AI is reading packaging photo for Barcode, MRP, HSN, Brand &amp; Product Name...</span>
+              </div>
+            )}
+            {aiSuccessMessage && !isExtractingAI && (
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-bold text-emerald-800">
+                <CheckCircle2 size={16} className="text-emerald-600" />
+                <span>{aiSuccessMessage}</span>
+              </div>
+            )}
+
             
             {/* SECTION 1: BASIC INFO */}
             <div className="border-b border-slate-100 pb-6 space-y-4">
