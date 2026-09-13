@@ -18,7 +18,8 @@ import {
   Sparkles,
   ChevronDown,
   HelpCircle,
-  Loader2
+  Loader2,
+  Camera
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useItems } from '../hooks/useData';
