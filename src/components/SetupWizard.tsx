@@ -233,7 +233,7 @@ export default function SetupWizard({
     if (e) e.preventDefault();
 
     setSavingWizard(true);
-    const existingProfile = (user?.uid ? getSecureStorage(`user_profile_${user.uid}`, null) : null) || {};
+    const existingProfile = getStoredUserProfile(user?.uid) || {};
     const updatedData = {
       ...existingProfile,
       ...wizardForm,
@@ -249,10 +249,9 @@ export default function SetupWizard({
     try {
       if (user?.uid) {
         localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
-        localStorage.setItem(`user_profile_${user.uid}`, JSON.stringify(updatedData));
+        saveStoredUserProfile(user?.uid, updatedData);
         localStorage.removeItem(`wizard_draft_${user.uid}`);
         setSecureStorage(`wizard_completed_${user.uid}`, true);
-        setSecureStorage(`user_profile_${user.uid}`, updatedData);
       }
       localStorage.setItem('wizard_completed_global', 'true');
     } catch (err) {

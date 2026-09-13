@@ -1,4 +1,5 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
+import { getStoredUserProfile, saveStoredUserProfile, sanitizeFirestorePayload } from '../utils/settingsStorage';
 import { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { 
@@ -437,7 +438,7 @@ export function useSettings() {
     const isLocallyCompleted = localStorage.getItem(`wizard_completed_${user.uid}`) === 'true';
 
     // Try to pre-populate settings with cached data to avoid visual flicker / loading locks
-    const cachedProfile = getSecureStorage(`user_profile_${user.uid}`, null);
+    const cachedProfile = getStoredUserProfile(user.uid);
     if (cachedProfile) {
       setSettings({ id: user.uid, ...cachedProfile, ...(isLocallyCompleted ? { wizard_completed: true } : {}) });
     } else if (isLocallyCompleted) {
@@ -465,9 +466,8 @@ export function useSettings() {
           data.wizard_completed = true;
           localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
         }
-        setSettings({ id: docSnap.id, ...data });
-        // Update local storage too to ensure sync
-        setSecureStorage(`user_profile_${user.uid}`, data);
+        const mergedProfile = saveStoredUserProfile(user.uid, data);
+        setSettings({ id: docSnap.id, ...mergedProfile });
       } else if (isCompletedFlag) {
         setSettings({ id: user.uid, wizard_completed: true });
       }
@@ -480,7 +480,7 @@ export function useSettings() {
         console.error("Error fetching settings (handled):", err);
       }
       // Quota/network fallback
-      const fallbackProfile = getSecureStorage(`user_profile_${user.uid}`, null);
+      const fallbackProfile = getStoredUserProfile(user.uid);
       const isCompletedFlag = localStorage.getItem(`wizard_completed_${user.uid}`) === 'true';
       if (fallbackProfile || isCompletedFlag) {
         setSettings({ id: user.uid, ...(fallbackProfile || {}), ...(isCompletedFlag ? { wizard_completed: true } : {}) });
@@ -497,11 +497,17 @@ export function useSettings() {
   const updateSettings = async (newData: any) => {
     if (!user) return;
     try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, {
-        ...newData,
-        updated_at: serverTimestamp()
-      }, { merge: true });
+      const merged = saveStoredUserProfile(user.uid, newData);
+      setSettings((prev: any) => ({ ...(prev || {}), ...merged }));
+
+      if (!isOfflineMode && navigator.onLine) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const cleanPayload = sanitizeFirestorePayload({
+          ...newData,
+          updated_at: serverTimestamp()
+        });
+        await setDoc(userDocRef, cleanPayload, { merge: true });
+      }
     } catch (error) {
       console.error("Error updating settings:", error);
       throw error;

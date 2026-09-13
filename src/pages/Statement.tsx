@@ -58,8 +58,7 @@ export default function StatementPage() {
       if (!user) return;
       try {
         if (isOfflineMode) {
-          const cachedProfile = getSecureStorage(
-            `user_profile_${user.uid}`,
+          const cachedProfile = getStoredUserProfile(user.uid) || getSecureStorage(`user_profile_${user.uid}`,
             null,
           );
           if (cachedProfile) {
@@ -75,8 +74,7 @@ export default function StatementPage() {
           if (userSnap.exists()) {
             setSellerInfo(userSnap.data());
           } else {
-            const cachedProfile = getSecureStorage(
-              `user_profile_${user.uid}`,
+            const cachedProfile = getStoredUserProfile(user.uid) || getSecureStorage(`user_profile_${user.uid}`,
               null,
             );
             if (cachedProfile) {

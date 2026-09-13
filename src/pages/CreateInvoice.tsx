@@ -1,4 +1,5 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
+import { getStoredUserProfile } from '../utils/settingsStorage';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Plus, Minus, Trash2, Save, Send, Camera, Loader2, Sparkles, X, Barcode, ScanLine, Printer, Mic, Contact, CheckCircle2, AlertCircle, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Tag, Palette, EyeOff, Phone, HelpCircle, ChevronDown, User, Upload } from 'lucide-react';
@@ -347,7 +348,7 @@ export default function CreateInvoicePage() {
       const currentTerms = formData.notes || '';
       
       // 1. Update in offline cache
-      const cachedProfile = getSecureStorage(`user_profile_${user.uid}`, null);
+      const cachedProfile = getStoredUserProfile(user.uid);
       if (cachedProfile) {
         const parsed = typeof cachedProfile === 'string' ? JSON.parse(cachedProfile) : cachedProfile;
         parsed.default_terms = currentTerms;

@@ -130,7 +130,7 @@ export default function InvoiceViewPage() {
           const userIdToFetch = invData.user_id || user?.uid;
           if (userIdToFetch) {
             let ud: any = null;
-            const cp = getSecureStorage(`user_profile_${userIdToFetch}`, null);
+            const cp = getStoredUserProfile(userIdToFetch);
             if (cp) ud = { id: userIdToFetch, ...(typeof cp === 'string' ? JSON.parse(cp) : cp) };
             if (!ud) {
               try { const s = await getDoc(doc(db, 'users', userIdToFetch)); if (s.exists()) ud = { id: s.id, ...s.data() }; } catch (_) {}

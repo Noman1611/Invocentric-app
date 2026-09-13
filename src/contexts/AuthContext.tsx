@@ -1,4 +1,5 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
+import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload } from '../utils/settingsStorage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { OperationType, handleFirestoreError } from '../lib/firebase';
@@ -417,9 +418,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const profile = snapshot.data();
-      // Cache in localStorage for offline fallback
+      // Safely merge with persistent local cache so empty Firestore fields never wipe local data
       if (profile) {
-        setSecureStorage(`user_profile_${user.uid}`, profile);
+        saveStoredUserProfile(user.uid, profile);
       }
 
       // Synchronize key state values in real-time
@@ -479,8 +480,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (userDoc?.exists()) {
               profile = userDoc.data();
-              // Cache the profile details in localStorage as a backup
-              setSecureStorage(`user_profile_${firebaseUser.uid}`, profile);
+              // Safely merge with persistent local cache so empty Firestore fields never wipe local data
+              saveStoredUserProfile(firebaseUser.uid, profile);
             }
           } catch (err: any) {
             const errMessage = err instanceof Error ? err.message : String(err);
@@ -500,7 +501,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // If fetch failed or we are offline and couldn't get from Firestore, load from backup
         if (!profile) {
-          const cachedProfile = getSecureStorage(`user_profile_${firebaseUser.uid}`, null);
+          const cachedProfile = getStoredUserProfile(firebaseUser.uid);
           if (cachedProfile) {
             profile = cachedProfile;
             console.log("Loaded fallback user profile from localStorage [REDACTED]");
@@ -565,7 +566,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 new Promise((_, reject) => setTimeout(() => reject(new Error("setDoc timeout")), 2500))
               ]);
               console.log("Profile created successfully");
-              setSecureStorage(`user_profile_${firebaseUser.uid}`, profileData);
+              saveStoredUserProfile(firebaseUser.uid, profileData);
             } catch (insertErr: any) {
               const msg = insertErr?.message || String(insertErr);
               if (msg.includes('timeout')) {
@@ -591,7 +592,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
               // Merge true updates fields without overwriting user custom settings (like business_name, etc.)
               await Promise.race([
-                setDoc(userDocRef, profileData, { merge: true }),
+                setDoc(userDocRef, sanitizeFirestorePayload(profileData), { merge: true }),
                 new Promise((_, reject) => setTimeout(() => reject(new Error("setDoc timeout")), 2500))
               ]);
               console.log("Profile updated/synced successfully on login");
