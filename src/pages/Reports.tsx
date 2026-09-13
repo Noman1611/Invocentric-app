@@ -1231,7 +1231,8 @@ export default function Reports() {
                 No invoices found in this period.
               </p>
             ) : (
-              <table className="w-full text-left text-xs border-collapse border border-slate-300 excel-table">
+              <div className="overflow-x-auto rounded-xl border border-slate-300">
+                <table className="w-full text-left text-xs border-collapse excel-table">
                 <thead>
                   <tr className="bg-slate-100 border-b border-slate-300 text-slate-700 uppercase tracking-widest font-black text-[9px]">
                     <th className="py-2 px-3 border border-slate-300">No</th>
@@ -1292,6 +1293,7 @@ export default function Reports() {
                   ))}
                 </tbody>
               </table>
+            </div>
             )}
           </div>
 
@@ -1306,7 +1308,8 @@ export default function Reports() {
                 No payments received in this period.
               </p>
             ) : (
-              <table className="w-full text-left text-xs border-collapse border border-slate-300 excel-table">
+              <div className="overflow-x-auto rounded-xl border border-slate-300">
+                <table className="w-full text-left text-xs border-collapse excel-table">
                 <thead>
                   <tr className="bg-slate-100 border-b border-slate-300 text-slate-700 uppercase tracking-widest font-black text-[9px]">
                     <th className="py-2 px-3 border border-slate-300">No</th>
@@ -1332,7 +1335,7 @@ export default function Reports() {
                     const resolvedCustName = pay.customer_name || pay.customerName || customers.find(c => c.id === pay.customer_id)?.name || "Walk-in Customer";
                     return (
                       <tr
-                        key={pay.id}
+                        key={pay.id || idx}
                         className={cn(
                           "text-slate-700 font-medium border-b border-slate-200",
                           idx % 2 === 0 ? "bg-white" : "bg-slate-50/50",
@@ -1344,24 +1347,28 @@ export default function Reports() {
                         <td className="py-2 px-3 border border-slate-200 font-bold text-slate-900">
                           {resolvedCustName}
                         </td>
-                      <td className="py-2 px-3 border border-slate-200">
-                        {pay.date
-                          ? format(parseDateSafe(pay.date), "dd MMM yyyy")
-                          : "N/A"}
-                      </td>
-                      <td className="py-2 px-3 border border-slate-200 uppercase tracking-wider text-[10px] text-slate-500 font-semibold">
-                        {pay.method || "N/A"}
-                      </td>
-                      <td className="py-2 px-3 border border-slate-200 font-mono text-slate-500">
-                        {pay.reference || pay.transaction_id || "-"}
-                      </td>
-                      <td className="py-2 px-3 border border-slate-200 text-right font-bold tabular-nums text-slate-900">
-                        {formatCurrency(pay.amount || 0, pay.currency || "INR")}
-                      </td>
-                    </tr>
-                  )})}
+                        <td className="py-2 px-3 border border-slate-200">
+                          {pay.date
+                            ? format(parseDateSafe(pay.date), "dd MMM yyyy")
+                            : "N/A"}
+                        </td>
+                        <td className="py-2 px-3 border border-slate-200 font-bold">
+                          {pay.payment_method || pay.paymentMethod || "Cash"}
+                        </td>
+                        <td className="py-2 px-3 border border-slate-200 font-mono text-[10px] text-slate-500">
+                          {pay.reference ||
+                            pay.reference_id ||
+                            pay.id?.slice(0, 8) ||
+                            "-"}
+                        </td>
+                        <td className="py-2 px-3 border border-slate-200 text-right font-bold tabular-nums text-slate-900">
+                          {formatCurrency(pay.amount || 0, pay.currency || "INR")}
+                        </td>
+                      </tr>
+                    )})}
                 </tbody>
               </table>
+            </div>
             )}
           </div>
 

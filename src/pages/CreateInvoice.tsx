@@ -1686,7 +1686,7 @@ export default function CreateInvoicePage() {
                         </div>
                       )}
                       {focusedItemIndex === index && (
-                        <div className="absolute -left-9 -right-12 sm:left-0 sm:right-auto top-full z-[150] mt-1 sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl py-1 divide-y divide-slate-100">
+                        <div className="absolute left-0 right-0 sm:left-0 sm:right-auto top-full z-[150] mt-1 sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl py-1 divide-y divide-slate-100">
                           {inventoryItems
                             .filter(invItem => {
                               const term = (item.description || '').toLowerCase();

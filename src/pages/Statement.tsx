@@ -1048,7 +1048,7 @@ export default function StatementPage() {
                               colSpan={6}
                               className="p-4 border border-neutral-200"
                             >
-                              <div className="bg-white p-4 print:p-2 print:bg-transparent border border-neutral-300 rounded-lg">
+                              <div className="bg-white p-4 print:p-2 print:bg-transparent border border-neutral-300 rounded-lg overflow-x-auto">
                                 <table className="w-full text-xs border-collapse">
                                   <thead>
                                     <tr className="text-[9px] font-black uppercase text-neutral-500 tracking-widest bg-neutral-100 border-b border-neutral-300">
