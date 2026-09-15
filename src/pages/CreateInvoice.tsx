@@ -1152,6 +1152,8 @@ export default function CreateInvoicePage() {
         console.warn("toWords failed:", wordErr);
       }
 
+      const sellerProfileSnapshot = user ? getStoredUserProfile(user.uid) : getStoredUserProfile();
+
       const invoiceData: any = {
         customer_id: formData.customer_id || null, // Allow null
         customer_name: selectedCustomer?.name || 'Cash Sale', // Default to Cash Sale
@@ -1167,6 +1169,8 @@ export default function CreateInvoicePage() {
         shipping_charges: Number(formData.shipping_charges) || 0,
         sales_return: formData.sales_return,
         bank_account_id: formData.bank_account_id || '',
+        upi_id: sellerProfileSnapshot?.upi_id || '',
+        seller_info: sellerProfileSnapshot || null,
         invoice_template: formData.invoice_template || 'template_01',
         invoice_title: formData.invoice_title || 'TAX INVOICE',
         copy_subtitle: formData.copy_subtitle || 'ORIGINAL FOR RECIPIENT',

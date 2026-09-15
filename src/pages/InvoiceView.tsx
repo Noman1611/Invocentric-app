@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { WhatsAppShareModal } from '../components/WhatsAppShareModal';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
 import { dbService } from '../services/dbService';
+import { getStoredUserProfile, mergeProfileData } from '../utils/settingsStorage';
 
 const safeToWords = (value: number, currency: string = 'INR'): string => {
   try {
@@ -129,20 +130,67 @@ export default function InvoiceViewPage() {
             if (cust) setCustomer(cust);
           }
 
-          // Fetch Seller / Business details
-          const userIdToFetch = invData.user_id || user?.uid;
-          if (userIdToFetch) {
-            let ud: any = null;
-            const cp = getStoredUserProfile(userIdToFetch);
-            if (cp) ud = { id: userIdToFetch, ...(typeof cp === 'string' ? JSON.parse(cp) : cp) };
-            if (!ud) {
-              try { const s = await getDoc(doc(db, 'users', userIdToFetch)); if (s.exists()) ud = { id: s.id, ...s.data() }; } catch (_) {}
+          // Robust multi-layer Fetch for Seller / Business details
+          let mergedSeller: any = {};
+          
+          // Layer 1: Universal global last known profile
+          try {
+            const globalRaw = localStorage.getItem('invocentric_last_known_business_profile');
+            if (globalRaw) {
+              const parsed = JSON.parse(globalRaw);
+              if (parsed && typeof parsed === 'object') {
+                mergedSeller = mergeProfileData(mergedSeller, parsed);
+              }
             }
-            if (!ud && user) {
-              ud = { id: user.uid, business_name: user.displayName || 'Business', email: user.email };
-            }
-            if (ud) setSellerInfo(ud);
+          } catch (_) {}
+
+          // Layer 2: Specific profile keys for invData.user_id, user?.uid, and 'guest'
+          const candidateUids = [invData.user_id, user?.uid, 'guest'].filter(Boolean) as string[];
+          for (const uid of candidateUids) {
+            try {
+              const cp = getStoredUserProfile(uid);
+              if (cp && typeof cp === 'object') {
+                mergedSeller = mergeProfileData(mergedSeller, cp);
+              }
+            } catch (_) {}
+
+            try {
+              const cachedUsers = getSecureStorage(`offline_users_${uid}`, []);
+              if (Array.isArray(cachedUsers)) {
+                const found = cachedUsers.find((u: any) => u.id === uid || u.uid === uid);
+                if (found) {
+                  mergedSeller = mergeProfileData(mergedSeller, found);
+                }
+              }
+            } catch (_) {}
           }
+
+          // Layer 3: Firestore users document if online
+          if (navigator.onLine && !isOfflineMode) {
+            for (const uid of candidateUids) {
+              try {
+                const s = await getDoc(doc(db, 'users', uid));
+                if (s.exists()) {
+                  mergedSeller = mergeProfileData(mergedSeller, { id: s.id, ...s.data() });
+                }
+              } catch (_) {}
+            }
+          }
+
+          // Layer 4: Snapshot from invoice itself if available
+          if (invData.seller_info && typeof invData.seller_info === 'object') {
+            mergedSeller = mergeProfileData(mergedSeller, invData.seller_info);
+          }
+          if (invData.upi_id) {
+            mergedSeller.upi_id = invData.upi_id;
+          }
+
+          if (user && !mergedSeller.business_name) {
+            mergedSeller.business_name = user.displayName || 'Business Name';
+            if (!mergedSeller.email) mergedSeller.email = user.email || '';
+          }
+
+          setSellerInfo(mergedSeller);
         }
       } catch (err) { 
         console.error("Error loading invoice:", err);
@@ -405,8 +453,20 @@ export default function InvoiceViewPage() {
   });
   const hsnEntries = Object.entries(hsnMap);
 
-  const upiId = sellerInfo?.upi_id || sellerInfo?.upiId;
-  const upiUrl = upiId ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(sellerInfo?.business_name || '')}&am=${grandTotal}&cu=INR` : null;
+  const rawUpi = (invoice?.upi_id || sellerInfo?.upi_id || sellerInfo?.upiId || '').trim();
+  const upiId = rawUpi.replace(/\s+/g, '');
+  const bizNameForUpi = (sellerInfo?.business_name || 'Store').trim();
+  const amountForUpi = Number(grandTotal || 0) > 0 ? Number(grandTotal).toFixed(2) : '1.00';
+  const calculatedInvNo = invoice?.invoice_number || `INV-${invoice?.id ? invoice.id.slice(0, 6).toUpperCase() : '001'}`;
+
+  let upiUrl: string | null = null;
+  if (upiId) {
+    if (upiId.startsWith('upi://')) {
+      upiUrl = upiId;
+    } else {
+      upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(bizNameForUpi)}&am=${amountForUpi}&cu=INR&tn=${encodeURIComponent('Invoice ' + calculatedInvNo)}`;
+    }
+  }
 
   // Smart Adaptive Chunking:
   const itemPages: any[][] = [];
@@ -553,16 +613,28 @@ export default function InvoiceViewPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center gap-3"><Loader2 className="w-8 h-8 text-green-600 animate-spin" /><span className="text-sm font-semibold text-slate-600">Loading invoice…</span></div>;
   if (!invoice) return <div className="min-h-screen flex items-center justify-center p-4"><div className="bg-white p-8 rounded-2xl shadow text-center max-w-sm w-full"><p className="font-bold text-slate-800 mb-4">Invoice Not Found</p><button onClick={() => navigate('/invoices')} className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs">Back to Invoices</button></div></div>;
 
-  const invNo = invoice.invoice_number || `INV-${invoice.id.slice(0, 6).toUpperCase()}`;
+  const invNo = calculatedInvNo;
   const isPaid = invoice.status === 'paid';
   const co = {
-    name: sellerInfo?.business_name || '', address: sellerInfo?.address || '',
-    gstin: sellerInfo?.gstin || '', phone: sellerInfo?.phone || '',
-    email: sellerInfo?.email || '', pan: sellerInfo?.pan || '',
-    logo: sellerInfo?.logo_url || '', bank: sellerInfo?.bank_name || '',
-    branch: sellerInfo?.bank_branch || '', acc: sellerInfo?.account_number || '',
-    ifsc: sellerInfo?.ifsc_code || '', upi: upiId || '',
-    sign: sellerInfo?.signature_url || '', forCo: `For ${sellerInfo?.business_name || 'Company'}`,
+    name: sellerInfo?.business_name || '', 
+    address: sellerInfo?.address || '',
+    gstin: sellerInfo?.gstin || '', 
+    phone: sellerInfo?.phone || '',
+    email: sellerInfo?.email || '', 
+    pan: sellerInfo?.pan || '',
+    logo: sellerInfo?.logo_url || '', 
+    bank: sellerInfo?.bank_name || '',
+    branch: sellerInfo?.bank_branch || '', 
+    acc: sellerInfo?.account_number || '',
+    ifsc: sellerInfo?.ifsc_code || '', 
+    upi: upiId || '',
+    sign: sellerInfo?.signature_url || '', 
+    forCo: `For ${sellerInfo?.business_name || 'Company'}`,
+    instagram: (sellerInfo?.instagram || '').trim(),
+    facebook: (sellerInfo?.facebook || '').trim(),
+    website: (sellerInfo?.website || '').trim(),
+    social_qr_url: (sellerInfo?.social_qr_url || '').trim(),
+    social_qr_label: (sellerInfo?.social_qr_label || '').trim(),
   };
   const bu = {
     name: customer?.name || invoice.customer_name || '',
@@ -576,7 +648,91 @@ export default function InvoiceViewPage() {
     invoiceNo: invNo, invoiceDate: fmtDate(invoice.date), dueDate: fmtDate(invoice.due_date),
     poNo: invoice.po_number || '', poDate: fmtDate(invoice.po_date), eWayNo: invoice.e_way_bill || '',
   };
-  const QRNode = (showSec.upi_qr && upiUrl) ? <QRCodeSVG value={upiUrl} size={isA5 ? 46 : 75} level="H" /> : <div style={{ width: isA5 ? 46 : 75, height: isA5 ? 46 : 75, border: '1px dashed #999' }} />;
+
+  const hasUpi = Boolean(showSec.upi_qr && upiUrl);
+  const hasSocialQr = Boolean(co.social_qr_url);
+
+  const QRNode = (
+    <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      {hasUpi ? (
+        <QRCodeSVG value={upiUrl!} size={isA5 ? 54 : 76} level="M" />
+      ) : hasSocialQr ? (
+        <img 
+          src={co.social_qr_url} 
+          alt="QR Code" 
+          style={{ width: isA5 ? 54 : 76, height: isA5 ? 54 : 76, objectFit: 'contain' }} 
+        />
+      ) : (
+        <div style={{ 
+          width: isA5 ? 54 : 76, 
+          height: isA5 ? 54 : 76, 
+          border: '1px dashed #cbd5e1', 
+          borderRadius: 4, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          padding: 2, 
+          textAlign: 'center',
+          background: '#f8fafc' 
+        }}>
+          <span style={{ fontSize: isA5 ? 7 : 8.5, color: '#94a3b8', fontWeight: 'bold', lineHeight: 1.2 }}>
+            UPI QR
+          </span>
+          <span style={{ fontSize: isA5 ? 6 : 7, color: '#94a3b8', marginTop: 2 }}>
+            Set UPI in Settings
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSocialStrip = (borderColor: string, bg: string = '#f8fafc') => {
+    const hasSocials = Boolean(co.instagram || co.facebook || co.website || (hasUpi && co.social_qr_url));
+    if (!hasSocials) return null;
+
+    return (
+      <div style={{ 
+        border: `1px solid ${borderColor}`, 
+        borderTop: 'none', 
+        background: bg, 
+        padding: isA5 ? '2.5px 6px' : '4px 8px', 
+        fontSize: isA5 ? 7.5 : 9.5, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        flexWrap: 'wrap', 
+        gap: 6 
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isA5 ? 8 : 12, flexWrap: 'wrap' }}>
+          {co.instagram && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <span style={{ fontWeight: 'bold', color: '#be185d' }}>Instagram:</span>
+              <span>{co.instagram.startsWith('@') ? co.instagram : `@${co.instagram}`}</span>
+            </span>
+          )}
+          {co.facebook && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <span style={{ fontWeight: 'bold', color: '#1d4ed8' }}>Facebook:</span>
+              <span>{co.facebook}</span>
+            </span>
+          )}
+          {co.website && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <span style={{ fontWeight: 'bold', color: '#047857' }}>Web:</span>
+              <span>{co.website}</span>
+            </span>
+          )}
+        </div>
+        {co.social_qr_url && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <img src={co.social_qr_url} alt="Social QR" style={{ width: isA5 ? 22 : 30, height: isA5 ? 22 : 30, objectFit: 'contain' }} />
+            {co.social_qr_label && <span style={{ fontSize: isA5 ? 6.5 : 7.5, color: '#475569', fontWeight: 600 }}>{co.social_qr_label}</span>}
+          </div>
+        )}
+      </div>
+    );
+  };
   const termsText = (invoice.terms || sellerInfo?.default_terms || '').split('\n').filter(Boolean);
   const isQuotation = invoice?.bill_type === 'QUOTATION' || invoice?.bill_type === 'ESTIMATE' || invoice?.status === 'quotation';
   const defaultTitle = isQuotation 
@@ -829,6 +985,8 @@ export default function InvoiceViewPage() {
               </div>
             )}
 
+            {renderSocialStrip(blue, lb)}
+
             {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
               <div style={{border:b,borderTop:'none',fontSize: isA5 ? 8 : 9.5,padding:'2px 5px',textAlign:'center',background:lb}}>
                 {invoice.notes || sellerInfo?.footer_notes}
@@ -983,6 +1141,8 @@ export default function InvoiceViewPage() {
             {showSec.terms && (
               <div style={{marginTop:2,fontSize: isA5 ? 7.5 : 9.5}}><b>Terms &amp; Condition:</b> {termsText.slice(0, 2).join('. ')}</div>
             )}
+
+            {renderSocialStrip(blue, '#ffffff')}
           </div>
         ) : (
           <div style={{textAlign:'right',fontSize:9,fontWeight:'bold',padding:3,color:blue,borderTop:`1px solid ${blue}`,marginTop:'auto'}}>
@@ -1187,6 +1347,15 @@ export default function InvoiceViewPage() {
         {/* Dotted / Dashed Separator */}
         <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
 
+        {/* Social Media Handles for POS */}
+        {(co.instagram || co.facebook || co.website) && (
+          <div style={{ fontSize: subItalicSize, textAlign: 'center', margin: '4px 0', lineHeight: 1.35 }}>
+            {co.instagram && <div>IG: {co.instagram.startsWith('@') ? co.instagram : `@${co.instagram}`}</div>}
+            {co.facebook && <div>FB: {co.facebook}</div>}
+            {co.website && <div>Web: {co.website}</div>}
+          </div>
+        )}
+
         {/* 6. Footer: InvoCentric Branding & Visit Again */}
         <div style={{ marginTop: '6px', textAlign: 'center' }}>
           <div style={{ fontWeight: 700, fontSize: docTitleSize, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
@@ -1313,19 +1482,28 @@ export default function InvoiceViewPage() {
             {/* Grid for Bank Details and Summary */}
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, marginBottom: 10, alignItems: 'flex-start' }}>
               
-              {/* Left Column: Bank Details */}
+              {/* Left Column: Bank Details & UPI QR */}
               <div style={{ fontSize: isA5 ? 8.5 : 10 }}>
-                {showSec.bank_details && co.bank && (
+                {showSec.bank_details && (co.bank || upiId || co.social_qr_url) && (
                   <div>
                     <div style={{ fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4, color: '#0f172a' }}>
-                      BANK DETAILS
+                      PAYMENT &amp; BANK DETAILS
                     </div>
-                    <div style={{ lineHeight: 1.4, color: '#334155' }}>
-                      <div><span style={{ fontWeight: 700 }}>Bank Name:</span> {co.bank}</div>
-                      <div><span style={{ fontWeight: 700 }}>Account Name:</span> {co.name}</div>
-                      <div><span style={{ fontWeight: 700 }}>Account Number:</span> {co.acc}</div>
-                      {co.ifsc && <div><span style={{ fontWeight: 700 }}>IFSC Code:</span> {co.ifsc}</div>}
-                      {co.branch && <div><span style={{ fontWeight: 700 }}>Branch:</span> {co.branch}</div>}
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <div style={{ lineHeight: 1.4, color: '#334155', flex: 1 }}>
+                        {co.bank && <div><span style={{ fontWeight: 700 }}>Bank Name:</span> {co.bank}</div>}
+                        {co.name && <div><span style={{ fontWeight: 700 }}>Account Name:</span> {co.name}</div>}
+                        {co.acc && <div><span style={{ fontWeight: 700 }}>Account Number:</span> {co.acc}</div>}
+                        {co.ifsc && <div><span style={{ fontWeight: 700 }}>IFSC Code:</span> {co.ifsc}</div>}
+                        {co.branch && <div><span style={{ fontWeight: 700 }}>Branch:</span> {co.branch}</div>}
+                        {upiId && <div><span style={{ fontWeight: 700 }}>UPI ID:</span> {upiId}</div>}
+                      </div>
+                      {showSec.upi_qr && (
+                        <div style={{ textAlign: 'center', padding: 3, border: `1px solid ${borderGray}`, borderRadius: 6, background: '#ffffff', flexShrink: 0 }}>
+                          {QRNode}
+                          <div style={{ fontSize: 7, fontWeight: 700, marginTop: 1, color: '#475569' }}>Pay using UPI</div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1401,6 +1579,8 @@ export default function InvoiceViewPage() {
                 )}
               </div>
             </div>
+
+            {renderSocialStrip(borderGray, '#f8fafc')}
 
           </div>
         ) : (
