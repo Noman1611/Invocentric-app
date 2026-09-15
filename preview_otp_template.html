@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InvoCentric — Authorization Token Slip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 50px 20px;
+    background: #c8d3ce;
+    font-family: 'Poppins', 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  /* Control Button */
+  .btn-replay {
+    margin-bottom: 24px;
+    background: #0d5c4b;
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .btn-replay:hover {
+    background: #083c31;
+    transform: translateY(-2px);
+  }
+
+  /* POS Machine Body */
+  .pos-terminal {
+    position: relative;
+    max-width: 540px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .printer-header {
+    width: 100%;
+    height: 48px;
+    background: linear-gradient(180deg, #1b2229 0%, #29343f 70%, #151b22 100%);
+    border-radius: 14px 14px 4px 4px;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.2);
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+  }
+
+  /* Status LED Light */
+  .printer-led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #2ecc71;
+    box-shadow: 0 0 10px #2ecc71;
+    animation: ledBlink 0.35s infinite alternate ease-in-out;
+  }
+
+  @keyframes ledBlink {
+    0% { opacity: 0.3; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1.1); }
+  }
+
+  /* Paper Output Mouth */
+  .paper-mouth {
+    flex: 1;
+    height: 9px;
+    margin: 0 20px;
+    background: #090c0e;
+    border-radius: 4px;
+    box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.15);
+    position: relative;
+  }
+
+  .cutter-teeth {
+    position: absolute;
+    bottom: -3px;
+    left: 4px;
+    right: 4px;
+    height: 3px;
+    background-image: repeating-linear-gradient(45deg, #151b22 0, #151b22 3px, transparent 3px, transparent 6px);
+  }
+
+  /* Animated Printing Paper Mask */
+  .feed-container {
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+    margin-top: -10px;
+    z-index: 2;
+    overflow: hidden;
+    padding-bottom: 25px;
+  }
+
+  .receipt-wrap {
+    width: 100%;
+    transform-origin: top center;
+    animation: thermalPrint 3.2s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+  }
+
+  /* Stepped Feed Animation mimicking a real thermal motor */
+  @keyframes thermalPrint {
+    0% { transform: translateY(-92%) scaleY(0.96); opacity: 0.3; }
+    15% { transform: translateY(-75%) scaleY(0.98); opacity: 1; }
+    30% { transform: translateY(-58%); }
+    50% { transform: translateY(-38%); }
+    70% { transform: translateY(-18%); }
+    88% { transform: translateY(0); }
+    94% { transform: translateY(6px); }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .receipt {
+    background: #ffffff;
+    background-image: repeating-linear-gradient(transparent, transparent 27px, rgba(0,0,0,0.015) 28px);
+    padding: 38px 36px 28px;
+    box-shadow: 0 16px 36px rgba(0,0,0,0.18);
+    clip-path: polygon(
+      0% 0%, 100% 0%,
+      100% 99%, 97% 100%, 94% 99%, 91% 100%, 88% 99%, 85% 100%, 82% 99%, 79% 100%, 76% 99%, 73% 100%,
+      70% 99%, 67% 100%, 64% 99%, 61% 100%, 58% 99%, 55% 100%, 52% 99%, 49% 100%, 46% 99%, 43% 100%,
+      40% 99%, 37% 100%, 34% 99%, 31% 100%, 28% 99%, 25% 100%, 22% 99%, 19% 100%, 16% 99%, 13% 100%,
+      10% 99%, 7% 100%, 4% 99%, 0% 100%
+    );
+  }
+
+  /* Logo */
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-icon svg { width: 42px; height: 42px; }
+  .brand-name {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0d5c4b;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    margin: 0;
+  }
+  .brand-tag {
+    font-size: 11px;
+    color: #0d5c4b;
+    margin-top: 4px;
+  }
+
+  .dashed-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+  }
+  .dashed-line::before,
+  .dashed-line::after {
+    content: "";
+    flex: 1;
+    border-top: 2px dashed #ccc;
+  }
+
+  /* Headline */
+  .headline-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin: 16px 0 16px;
+  }
+  .headline-icon { font-size: 28px; line-height: 1; }
+  .headline {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0d5c4b;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  p.body-text {
+    font-size: 14px;
+    color: #222;
+    line-height: 1.6;
+    margin: 0 0 14px;
+  }
+
+  /* Activity box: Session & Status */
+  .activity-box {
+    display: flex;
+    align-items: center;
+    background: #e3f1ec;
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin: 16px 0 20px;
+    gap: 16px;
+  }
+  .activity-col {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .activity-col .icon {
+    font-size: 18px;
+    color: #0d5c4b;
+  }
+  .activity-label {
+    font-size: 11px;
+    color: #555;
+    font-weight: bold;
+    margin: 0 0 2px;
+  }
+  .activity-value {
+    font-size: 13.5px;
+    color: #0d5c4b;
+    font-weight: bold;
+    margin: 0;
+  }
+  .activity-divider {
+    width: 1px;
+    align-self: stretch;
+    background: #b9d4ca;
+  }
+
+  /* Grand OTP Voucher Box */
+  .otp-voucher-block {
+    background: #e3f1ec;
+    border: 2px dashed #0d5c4b;
+    border-radius: 12px;
+    padding: 20px 16px;
+    margin: 20px 0 22px;
+    text-align: center;
+  }
+  .otp-voucher-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #0d5c4b;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .otp-digit-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: 10px;
+    color: #0d5c4b;
+    margin: 6px 0 8px 10px;
+    user-select: all;
+  }
+  .otp-validity {
+    display: inline-block;
+    font-size: 11px;
+    color: #ffffff;
+    font-weight: 600;
+    background: #0d5c4b;
+    padding: 3px 12px;
+    border-radius: 12px;
+  }
+
+  /* Summary Section (Protocol Check) */
+  .summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12.5px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #111;
+    margin-bottom: 6px;
+  }
+  .summary-header .ready {
+    font-size: 10px;
+    color: #0d5c4b;
+    letter-spacing: 1px;
+  }
+  .dashes {
+    border-top: 2px dashed #ccc;
+    margin-bottom: 4px;
+  }
+
+  .summary-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .summary-item:last-child { border-bottom: none; }
+  .item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .item-icon {
+    width: 22px;
+    height: 22px;
+    color: #0d5c4b;
+    flex-shrink: 0;
+  }
+  .item-icon svg { width: 100%; height: 100%; }
+  .item-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: #111;
+    margin: 0;
+  }
+  .item-desc {
+    font-size: 11px;
+    color: #666;
+    margin: 0;
+  }
+  .item-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: bold;
+    color: #0d5c4b;
+  }
+
+  /* CTA */
+  .cta-wrap {
+    text-align: center;
+    margin: 22px 0 10px;
+  }
+  .cta-button {
+    display: inline-block;
+    background: #0d5c4b;
+    color: #ffffff !important;
+    text-decoration: none;
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-size: 13.5px;
+    padding: 12px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(13,92,75,0.25);
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .cta-button:hover {
+    background: #083c31;
+  }
+  .cta-sub {
+    text-align: center;
+    font-size: 11px;
+    color: #666;
+    margin: 10px 0 16px;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 14px;
+  }
+  .footer-thanks {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #555;
+    margin-bottom: 4px;
+  }
+  .footer-brand {
+    font-size: 12px;
+    font-weight: bold;
+    color: #0d5c4b;
+  }
+</style>
+</head>
+<body>
+
+<button class="btn-replay" onclick="reprint()">↺ Print Again</button>
+
+<div class="pos-terminal">
+  <!-- Top Slot Housing -->
+  <div class="printer-header">
+    <div class="printer-led" id="led"></div>
+    <div class="paper-mouth">
+      <div class="cutter-teeth"></div>
+    </div>
+    <div style="width: 10px;"></div>
+  </div>
+
+  <!-- Animated Receipt Coming Out -->
+  <div class="feed-container">
+    <div class="receipt-wrap" id="receiptWrap">
+      <div class="receipt">
+
+        <!-- Logo & Header -->
+        <div class="logo-row">
+          <div class="logo-icon">
+            <svg viewBox="0 0 500 500" width="38" height="38" xmlns="http://www.w3.org/2000/svg">
+              <g fill="#0d5c4b">
+                <path d="M432.7,268c-17.2-4.9-35.1,5.1-39.9,22.3c-0.1,0.3-0.1,0.4-0.2,0.7c-11.4,39.7-37.9,72-74.4,90.9
+                  c-35.2,18.3-75.5,21.7-113.4,9.7c-37.8-12-68.8-38-87-73.3c-18.3-35.2-21.7-75.5-9.7-113.4s38-68.8,73.3-87
+                  c36.6-19.1,80-21.8,118.9-7.9c16.8,6.1,35.3-2.6,41.4-19.4c6.1-16.8-2.6-35.3-19.4-41.4c-55.8-20.1-118.1-16-170.7,11.3
+                  c-50.6,26.3-88,70.6-105.2,125c-0.5,1.9-1.2,3.9-1.8,5.8c-15.1,52.6-9.6,108.1,15.7,156.9c54.2,104.5,183.2,145.4,287.7,91.3
+                  C400,412.6,438.9,365,455,308.8c0.1-0.3,0.2-0.5,0.2-0.7C460,290.8,449.9,272.9,432.7,268z"/>
+                <ellipse cx="420.6" cy="149.9" rx="43.1" ry="43.1"/>
+                <path d="M324.8,191l-95.1,86.8l-31.8-35.6c-12.7-15.1-35.2-16.9-50.2-4.3c-15.1,12.7-16.9,35.2-4.3,50.2l31.7,35.6
+                  c12.4,14.7,29.2,23.2,46.8,25c17.9,2,36.4-2.9,51.8-14.9l95.1-86.8c15.5-12.1,18.1-34.6,6-50
+                  C362.6,181.5,340.3,178.8,324.8,191z"/>
+              </g>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-name">InvoCentric</div>
+            <div class="brand-tag">More than billing. Built for your business.</div>
+          </div>
+        </div>
+
+        <div class="dashed-line">
+          <span style="font-size:11px; letter-spacing:2px; font-weight:bold; color:#333;">SECURITY AUTH SLIP</span>
+        </div>
+
+        <!-- Headline -->
+        <div class="headline-row">
+          <div class="headline-icon">
+            <svg viewBox="0 0 24 24" fill="#0d5c4b" width="30" height="30"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+          </div>
+          <div>
+            <h1 class="headline">Verification Code</h1>
+          </div>
+        </div>
+
+        <p class="body-text">Hi <strong>${businessName}</strong>,</p>
+        <p class="body-text">
+          A secure verification request was initiated for your business management portal. Enter the one-time authentication code below to continue:
+        </p>
+
+        <!-- Stats / Details -->
+        <div class="activity-box">
+          <div class="activity-col">
+            <span class="icon"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="18" height="18"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h2v2h-2zm0-10h2v8h-2z"/></svg></span>
+            <div>
+              <p class="activity-label">Action</p>
+              <p class="activity-value">Login / Register</p>
+            </div>
+          </div>
+          <div class="activity-divider"></div>
+          <div class="activity-col">
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
+            <div>
+              <p class="activity-label">Session Validity</p>
+              <p class="activity-value">10 Minutes</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grand Total Replaced By OTP Voucher -->
+        <div class="otp-voucher-block">
+          <div class="otp-voucher-title">★ One-Time Password ★</div>
+          <div class="otp-digit-value" id="otpCode">${otp}</div>
+          <div class="otp-validity">DO NOT SHARE THIS CODE</div>
+        </div>
+
+        <!-- Security Ledger Summary -->
+        <div class="summary-header">
+          <span>PORTAL ACCESS PROTOCOL</span>
+          <span class="ready">VERIFIED</span>
+        </div>
+        <div class="dashes"></div>
+
+        <div class="summary-item">
+          <div class="item-left">
+            <div class="item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="1.8"><path d="M6 2h9l3 3v17H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></div>
+            <div>
+              <p class="item-title">Invoicing &amp; Billing Data</p>
+              <p class="item-desc">Secure End-to-End Encryption</p>
+            </div>
+          </div>
+          <div class="item-right">LOCKED</div>
+        </div>
+
+        <div class="summary-item">
+          <div class="item-left">
+            <div class="item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="1.8"><path d="M12 2 3 6.5 12 11l9-4.5z"/><path d="M3 6.5v11L12 22l9-4.5v-11"/><path d="M12 11v11"/></svg></div>
+            <div>
+              <p class="item-title">Inventory &amp; Warehouses</p>
+              <p class="item-desc">Multi-Store Access Protection</p>
+            </div>
+          </div>
+          <div class="item-right">PROTECTED</div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="cta-wrap">
+          <button class="cta-button" onclick="copyOTP()">
+            <svg viewBox="0 0 24 24" fill="#ffffff" width="15" height="15" style="vertical-align:-2px;margin-right:6px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>COPY OTP CODE
+          </button>
+        </div>
+        <p class="cta-sub">If you did not initiate this request, contact support immediately.</p>
+
+        <div class="dashes"></div>
+
+        <!-- Barcode & Footer -->
+        <div class="footer">
+          <svg class="barcode-svg" viewBox="0 0 300 40" width="220" height="28" style="display:block;margin:0 auto 12px;">
+            <g fill="#111111">
+              <rect x="0" y="0" width="2" height="40"/><rect x="5" y="0" width="1" height="40"/><rect x="9" y="0" width="3" height="40"/><rect x="15" y="0" width="1" height="40"/><rect x="19" y="0" width="2" height="40"/><rect x="24" y="0" width="1" height="40"/><rect x="28" y="0" width="1" height="40"/><rect x="32" y="0" width="3" height="40"/><rect x="38" y="0" width="1" height="40"/><rect x="42" y="0" width="2" height="40"/><rect x="47" y="0" width="1" height="40"/><rect x="51" y="0" width="1" height="40"/><rect x="55" y="0" width="3" height="40"/><rect x="61" y="0" width="1" height="40"/><rect x="65" y="0" width="2" height="40"/><rect x="70" y="0" width="1" height="40"/><rect x="74" y="0" width="3" height="40"/><rect x="80" y="0" width="1" height="40"/><rect x="84" y="0" width="1" height="40"/><rect x="88" y="0" width="2" height="40"/><rect x="93" y="0" width="1" height="40"/><rect x="97" y="0" width="3" height="40"/><rect x="103" y="0" width="1" height="40"/><rect x="107" y="0" width="2" height="40"/><rect x="112" y="0" width="1" height="40"/><rect x="116" y="0" width="1" height="40"/><rect x="120" y="0" width="3" height="40"/><rect x="126" y="0" width="2" height="40"/><rect x="131" y="0" width="1" height="40"/><rect x="135" y="0" width="1" height="40"/><rect x="139" y="0" width="3" height="40"/><rect x="145" y="0" width="1" height="40"/><rect x="149" y="0" width="2" height="40"/><rect x="154" y="0" width="1" height="40"/><rect x="158" y="0" width="1" height="40"/><rect x="162" y="0" width="3" height="40"/><rect x="168" y="0" width="2" height="40"/><rect x="173" y="0" width="1" height="40"/><rect x="177" y="0" width="3" height="40"/><rect x="183" y="0" width="1" height="40"/><rect x="187" y="0" width="1" height="40"/><rect x="191" y="0" width="2" height="40"/><rect x="196" y="0" width="1" height="40"/><rect x="200" y="0" width="3" height="40"/><rect x="206" y="0" width="1" height="40"/><rect x="210" y="0" width="2" height="40"/><rect x="215" y="0" width="1" height="40"/><rect x="219" y="0" width="1" height="40"/><rect x="223" y="0" width="3" height="40"/><rect x="229" y="0" width="2" height="40"/><rect x="234" y="0" width="1" height="40"/><rect x="238" y="0" width="1" height="40"/><rect x="242" y="0" width="3" height="40"/><rect x="248" y="0" width="1" height="40"/><rect x="252" y="0" width="2" height="40"/><rect x="257" y="0" width="1" height="40"/><rect x="261" y="0" width="3" height="40"/><rect x="267" y="0" width="1" height="40"/><rect x="271" y="0" width="1" height="40"/><rect x="275" y="0" width="2" height="40"/><rect x="280" y="0" width="1" height="40"/><rect x="284" y="0" width="3" height="40"/><rect x="290" y="0" width="1" height="40"/><rect x="294" y="0" width="2" height="40"/>
+            </g>
+          </svg>
+          <p class="footer-thanks">SECURE ENTERPRISE AUTHENTICATION</p>
+          <p class="footer-brand">More than billing. Built for your business.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function reprint() {
+    const wrap = document.getElementById('receiptWrap');
+    const led = document.getElementById('led');
+    
+    wrap.style.animation = 'none';
+    led.style.animation = 'none';
+    led.style.background = '#e74c3c'; // Busy Red
+    led.style.boxShadow = '0 0 10px #e74c3c';
+    
+    void wrap.offsetWidth;
+    
+    wrap.style.animation = 'thermalPrint 3.2s cubic-bezier(0.25, 1, 0.4, 1) forwards';
+    led.style.animation = 'ledBlink 0.35s infinite alternate ease-in-out';
+    led.style.background = '#2ecc71';
+    led.style.boxShadow = '0 0 10px #2ecc71';
+  }
+
+  function copyOTP() {
+    const code = document.getElementById('otpCode').innerText.trim();
+    navigator.clipboard.writeText(code);
+    alert('Verification OTP Copied: ' + code);
+  }
+</script>
+
+</body>
+</html>
