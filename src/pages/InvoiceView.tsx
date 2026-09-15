@@ -58,8 +58,11 @@ export default function InvoiceViewPage() {
   const [pageSize, setPageSize] = useState<'A4' | 'A5'>('A4');
   const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const autoPrintTriggeredRef = useRef(false);
+  const autoShareTriggeredRef = useRef(false);
 
   const shouldAutoPrint = searchParams.get('print') === 'true' || searchParams.get('pos') === 'true' || searchParams.get('autoPrint') === 'true';
+  const shouldAutoShare = searchParams.get('share') === 'true';
 
   // Responsive Auto-Fit Scaling on Mobile Devices (< 768px) - Hook called unconditionally at top level
   const [fitToScreen, setFitToScreen] = useState(true);
@@ -259,14 +262,26 @@ export default function InvoiceViewPage() {
 
   // Trigger Auto-Print when navigating with ?print=true or ?pos=true
   useEffect(() => {
-    if (!loading && invoice && shouldAutoPrint && !hasAutoPrinted) {
+    if (!loading && invoice && shouldAutoPrint && !autoPrintTriggeredRef.current) {
+      autoPrintTriggeredRef.current = true;
       setHasAutoPrinted(true);
       const timer = setTimeout(() => {
         window.print();
-      }, 500);
+      }, 700);
       return () => clearTimeout(timer);
     }
-  }, [loading, invoice, shouldAutoPrint, hasAutoPrinted]);
+  }, [loading, invoice, shouldAutoPrint]);
+
+  // Trigger Auto-Share when navigating with ?share=true
+  useEffect(() => {
+    if (!loading && invoice && shouldAutoShare && !autoShareTriggeredRef.current) {
+      autoShareTriggeredRef.current = true;
+      const timer = setTimeout(() => {
+        handleShare();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, invoice, shouldAutoShare]);
 
   const rawTpl: string = invoice?.invoice_template || sellerInfo?.invoice_template || 'template_01';
   // Map templates: support the 5 sequential templates and legacy fallbacks
@@ -497,7 +512,8 @@ export default function InvoiceViewPage() {
     const shareText = `Dear ${custName}, here is your invoice #${invNum} of ${fc(grandTotal, cur)} from ${sellerInfo?.business_name || 'our store'}. Thank you for your business!`;
 
     // 1. Prepare WhatsApp links & show modal immediately
-    const cp = normalizePhoneNumber(customer?.phone || '');
+    const rawPhone = customer?.phone || invoice?.customer_phone || '';
+    const cp = normalizePhoneNumber(rawPhone);
     const enc = encodeURIComponent(shareText);
     setWhatsAppUrlState(`https://wa.me/${cp}?text=${enc}`);
     setWhatsAppWebUrlState(`https://web.whatsapp.com/send?phone=${cp}&text=${enc}`);

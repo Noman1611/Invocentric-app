@@ -865,11 +865,11 @@ export default function SettingsPage() {
                 value={formData.invoice_template || 'template_01'}
                 onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
               >
-                <option value="template_01">Template 01 — Blue Bordered + IGST Columns (A4)</option>
-                <option value="template_02">Template 02 — Blue Line Top + IGST Columns (A4)</option>
-                <option value="template_03">Template 03 — Supplier B2B (Dedicated Serial / Batch Column)</option>
-                <option value="template_04">Template 04 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
-                <option value="template_05">Template 05 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
+                <option value="template_01">InvoCentic Template 01 — Blue Bordered + IGST Columns (A4)</option>
+                <option value="template_02">InvoCentic Template 02 — Blue Line Top + IGST Columns (A4)</option>
+                <option value="template_03">InvoCentic Template 03 — Supplier B2B (Dedicated Serial / Batch Column)</option>
+                <option value="template_04">InvoCentic Template 04 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
+                <option value="template_05">InvoCentic Template 05 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
               </select>
             </div>
           </div>

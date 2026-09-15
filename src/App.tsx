@@ -822,12 +822,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   return (
     <PlanGate>
-      <div className="flex flex-col md:flex-row h-[100dvh] overflow-hidden bg-[#F8FAFB] text-slate-900">
+      <div className="flex flex-col md:flex-row h-[100dvh] overflow-hidden bg-[#F8FAFB] text-slate-900 print:h-auto print:overflow-visible print:bg-white">
         <div className="hidden md:block print:hidden">
           <Sidebar onProfileClick={() => setIsProfileModalOpen(true)} />
         </div>
         
-        <div className="flex-1 flex flex-col h-[100dvh] overflow-hidden relative">
+        <div className="flex-1 flex flex-col h-[100dvh] overflow-hidden relative print:h-auto print:overflow-visible print:static">
           {isPcDriveEnabled && !isPcFileConnected && (
             <div className="bg-amber-700 text-white text-xs font-bold py-2.5 px-4 text-center flex flex-col sm:flex-row items-center justify-center gap-2 animate-fadeIn z-50 shrink-0 print:hidden shadow-md">
               <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider shrink-0">
@@ -1208,7 +1208,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-10 relative pb-28 md:pb-10 bg-[#F8FAFB]" id="main-scroll-container">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-10 relative pb-28 md:pb-10 bg-[#F8FAFB] print:p-0 print:m-0 print:h-auto print:overflow-visible print:static print:bg-white" id="main-scroll-container">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -1216,6 +1216,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
+                className="print:h-auto print:overflow-visible print:static"
               >
                 {children}
               </motion.div>

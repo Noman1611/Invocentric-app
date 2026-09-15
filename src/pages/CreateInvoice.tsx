@@ -282,7 +282,7 @@ export default function CreateInvoicePage() {
     sales_return: 0,
     advance_amount: 0,
     bank_account_id: '',
-    invoice_template: 'tally_prime_gst',
+    invoice_template: 'template_01',
     invoice_title: 'TAX INVOICE',
     copy_subtitle: 'ORIGINAL FOR RECIPIENT',
     terms_text: '',
@@ -2521,7 +2521,13 @@ export default function CreateInvoicePage() {
                 <div className="flex items-center gap-2 min-w-0">
                   <Palette size={14} className="text-emerald-600 shrink-0" />
                   <span className="truncate">
-                    Template: {formData.invoice_template ? formData.invoice_template.toUpperCase() : 'TEMPLATE_01'}
+                    Template: {
+                      formData.invoice_template === 'template_02' ? 'InvoCentic Template 02 (Blue Line)' :
+                      formData.invoice_template === 'template_03' ? 'InvoCentic Template 03 (B2B Serial)' :
+                      formData.invoice_template === 'template_04' ? 'InvoCentic Template 04 (POS 3")' :
+                      formData.invoice_template === 'template_05' ? 'InvoCentic Template 05 (POS 2")' :
+                      'InvoCentic Template 01 (Classic GST)'
+                    }
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -2536,14 +2542,14 @@ export default function CreateInvoicePage() {
                     <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Invoice Template Style</label>
                     <select
                       className="input-field text-xs py-1.5 font-semibold"
-                      value={formData.invoice_template || 'template_01'}
+                      value={formData.invoice_template === 'tally_prime_gst' ? 'template_01' : (formData.invoice_template || 'template_01')}
                       onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
                     >
-                      <option value="template_01">Template 01 — Blue Bordered + IGST (A4)</option>
-                      <option value="template_02">Template 02 — Blue Line Top + IGST (A4)</option>
-                      <option value="template_03">Template 03 — Supplier B2B (Serial/Batch)</option>
-                      <option value="template_04">Template 04 — POS Thermal (3-Inch / 80mm)</option>
-                      <option value="template_05">Template 05 — POS Thermal (2-Inch / 58mm)</option>
+                      <option value="template_01">InvoCentic Template 01 — Blue Bordered + IGST (A4)</option>
+                      <option value="template_02">InvoCentic Template 02 — Blue Line Top + IGST (A4)</option>
+                      <option value="template_03">InvoCentic Template 03 — Supplier B2B (Serial/Batch)</option>
+                      <option value="template_04">InvoCentic Template 04 — POS Thermal (3-Inch / 80mm)</option>
+                      <option value="template_05">InvoCentic Template 05 — POS Thermal (2-Inch / 58mm)</option>
                     </select>
                   </div>
 
