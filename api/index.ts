@@ -1836,362 +1836,614 @@ async function dispatchEmail({
   }
 }
 
-function generateInactivityEmailTemplate(userName: string): string {
+interface InactivityEmailData {
+  businessName?: string;
+  lastLoginDate?: string;
+  daysInactive?: string | number;
+  invoiceCount?: string | number;
+  stockCount?: string | number;
+  dueCount?: string | number;
+  customerCount?: string | number;
+}
+
+function generateInactivityEmailTemplate(input: string | InactivityEmailData = "Business Partner"): string {
+  const data: InactivityEmailData = typeof input === "string" ? { businessName: input } : (input || {});
+  const businessName = data.businessName || "Business Partner";
+  const lastLoginDate = data.lastLoginDate || "A few days ago";
+  const daysInactive = data.daysInactive || "2+ Days";
+  const invoiceCount = data.invoiceCount !== undefined ? String(data.invoiceCount) : "Ready";
+  const stockCount = data.stockCount !== undefined ? String(data.stockCount) : "Tracked";
+  const dueCount = data.dueCount !== undefined ? String(data.dueCount) : "Synced";
+  const customerCount = data.customerCount !== undefined ? String(data.customerCount) : "Active";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>InvoCentric - We miss you!</title>
+<title>InvoCentric — Business Reminder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 50px 20px;
+    background: #c8d3ce;
+    font-family: 'Poppins', 'Segoe UI', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  /* Control Button */
+  .btn-replay {
+    margin-bottom: 24px;
+    background: #0d5c4b;
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .btn-replay:hover {
+    background: #083c31;
+    transform: translateY(-2px);
+  }
+
+  /* POS Machine Body */
+  .pos-terminal {
+    position: relative;
+    max-width: 580px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .printer-header {
+    width: 100%;
+    height: 48px;
+    background: linear-gradient(180deg, #1b2229 0%, #29343f 70%, #151b22 100%);
+    border-radius: 14px 14px 4px 4px;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.2);
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+  }
+
+  /* Status LED Light */
+  .printer-led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #2ecc71;
+    box-shadow: 0 0 10px #2ecc71;
+    animation: ledBlink 0.35s infinite alternate ease-in-out;
+  }
+
+  @keyframes ledBlink {
+    0% { opacity: 0.3; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1.1); }
+  }
+
+  /* Paper Output Mouth */
+  .paper-mouth {
+    flex: 1;
+    height: 9px;
+    margin: 0 20px;
+    background: #090c0e;
+    border-radius: 4px;
+    box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.15);
+    position: relative;
+  }
+
+  .cutter-teeth {
+    position: absolute;
+    bottom: -3px;
+    left: 4px;
+    right: 4px;
+    height: 3px;
+    background-image: repeating-linear-gradient(45deg, #151b22 0, #151b22 3px, transparent 3px, transparent 6px);
+  }
+
+  /* Animated Printing Paper Mask */
+  .feed-container {
+    width: 100%;
+    max-width: 530px;
+    position: relative;
+    margin-top: -10px;
+    z-index: 2;
+    overflow: hidden;
+    padding-bottom: 25px;
+  }
+
+  .receipt-wrap {
+    width: 100%;
+    transform-origin: top center;
+    animation: thermalPrint 3.2s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+  }
+
+  /* Stepped Feed Animation mimicking a real thermal motor */
+  @keyframes thermalPrint {
+    0% {
+      transform: translateY(-92%) scaleY(0.96);
+      opacity: 0.3;
+    }
+    15% {
+      transform: translateY(-75%) scaleY(0.98);
+      opacity: 1;
+    }
+    30% {
+      transform: translateY(-58%);
+    }
+    50% {
+      transform: translateY(-38%);
+    }
+    70% {
+      transform: translateY(-18%);
+    }
+    88% {
+      transform: translateY(0);
+    }
+    94% {
+      transform: translateY(6px); /* Drop tension */
+    }
+    100% {
+      transform: translateY(0); /* Resting hung position */
+      opacity: 1;
+    }
+  }
+
+  .receipt {
+    background: #ffffff;
+    background-image: repeating-linear-gradient(transparent, transparent 27px, rgba(0,0,0,0.015) 28px);
+    padding: 38px 36px 28px;
+    box-shadow: 0 16px 36px rgba(0,0,0,0.18);
+    clip-path: polygon(
+      0% 0%, 100% 0%,
+      100% 99%, 97% 100%, 94% 99%, 91% 100%, 88% 99%, 85% 100%, 82% 99%, 79% 100%, 76% 99%, 73% 100%,
+      70% 99%, 67% 100%, 64% 99%, 61% 100%, 58% 99%, 55% 100%, 52% 99%, 49% 100%, 46% 99%, 43% 100%,
+      40% 99%, 37% 100%, 34% 99%, 31% 100%, 28% 99%, 25% 100%, 22% 99%, 19% 100%, 16% 99%, 13% 100%,
+      10% 99%, 7% 100%, 4% 99%, 0% 100%
+    );
+  }
+
+  /* Logo */
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-icon svg { width: 42px; height: 42px; }
+  .brand-name {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0d5c4b;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    margin: 0;
+  }
+  .brand-tag {
+    font-size: 11px;
+    color: #0d5c4b;
+    margin-top: 4px;
+  }
+
+  .dashed-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 22px 0;
+  }
+  .dashed-line::before,
+  .dashed-line::after {
+    content: "";
+    flex: 1;
+    border-top: 2px dashed #ccc;
+  }
+
+  /* Headline */
+  .headline-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin: 16px 0 20px;
+  }
+  .bell { font-size: 30px; line-height: 1; }
+  .headline {
+    font-size: 23px;
+    font-weight: 700;
+    color: #0d5c4b;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  p.body-text {
+    font-size: 14px;
+    color: #222;
+    line-height: 1.6;
+    margin: 0 0 14px;
+  }
+
+  /* Activity box */
+  .activity-box {
+    display: flex;
+    align-items: center;
+    background: #e3f1ec;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 18px 0 24px;
+    gap: 16px;
+  }
+  .activity-col {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .activity-col .icon {
+    font-size: 20px;
+    color: #0d5c4b;
+  }
+  .activity-label {
+    font-size: 11px;
+    color: #555;
+    font-weight: bold;
+    margin: 0 0 3px;
+  }
+  .activity-value {
+    font-size: 13.5px;
+    color: #0d5c4b;
+    font-weight: bold;
+    margin: 0;
+  }
+  .activity-divider {
+    width: 1px;
+    align-self: stretch;
+    background: #b9d4ca;
+  }
+
+  /* Summary section */
+  .summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    color: #111;
+    margin-bottom: 8px;
+  }
+  .summary-header .ready {
+    font-size: 10.5px;
+    color: #0d5c4b;
+    letter-spacing: 1px;
+  }
+  .dashes {
+    border-top: 2px dashed #ccc;
+    margin-bottom: 6px;
+  }
+
+  .summary-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .summary-item:last-child { border-bottom: none; }
+  .item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .item-icon {
+    width: 30px;
+    height: 30px;
+    color: #0d5c4b;
+    flex-shrink: 0;
+  }
+  .item-icon svg { width: 100%; height: 100%; }
+  .item-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #111;
+    margin: 0 0 2px;
+  }
+  .item-desc {
+    font-size: 11.5px;
+    color: #666;
+    margin: 0;
+  }
+  .item-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+  }
+
+  /* CTA */
+  .cta-wrap {
+    text-align: center;
+    margin: 28px 0 10px;
+  }
+  .cta-button {
+    display: inline-block;
+    background: #0d5c4b;
+    color: #ffffff !important;
+    text-decoration: none;
+    font-weight: bold;
+    letter-spacing: 1px;
+    font-size: 14px;
+    padding: 14px 34px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(13,92,75,0.25);
+  }
+  .cta-sub {
+    text-align: center;
+    font-size: 11.5px;
+    color: #666;
+    margin: 12px 0 6px;
+  }
+
+  /* Features */
+  .features {
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+    margin: 24px 0 18px;
+    gap: 6px;
+  }
+  .feature { flex: 1; }
+  .feature .f-icon {
+    color: #0d5c4b;
+    margin-bottom: 6px;
+  }
+  .feature .f-text {
+    font-size: 10px;
+    color: #333;
+    line-height: 1.3;
+    font-weight: bold;
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 16px;
+  }
+  .footer-thanks {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #555;
+    margin-bottom: 4px;
+  }
+  .footer-brand {
+    font-size: 12px;
+    font-weight: bold;
+    color: #0d5c4b;
+  }
+</style>
 </head>
-<body style="margin:0; padding:0; background-color:#000000; font-family: Arial, Helvetica, sans-serif;">
+<body>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#000000; padding:30px 0;">
-  <tr>
-    <td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a; border:1px solid #1f1f1f; border-radius:14px; overflow:hidden;">
+<button class="btn-replay" onclick="reprint()">↺ Print Again</button>
 
-        <!-- HEADER -->
-        <tr>
-          <td style="padding:26px 32px; border-bottom:1px solid #1f1f1f;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td align="left" valign="middle">
-                  <table role="presentation" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td valign="middle" style="padding-right:10px;">
-                        <svg width="38" height="38" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-                          <g fill="#22c55e">
-                            <path d="M432.7,268c-17.2-4.9-35.1,5.1-39.9,22.3c-0.1,0.3-0.1,0.4-0.2,0.7c-11.4,39.7-37.9,72-74.4,90.9
-                              c-35.2,18.3-75.5,21.7-113.4,9.7c-37.8-12-68.8-38-87-73.3c-18.3-35.2-21.7-75.5-9.7-113.4s38-68.8,73.3-87
-                              c36.6-19.1,80-21.8,118.9-7.9c16.8,6.1,35.3-2.6,41.4-19.4c6.1-16.8-2.6-35.3-19.4-41.4c-55.8-20.1-118.1-16-170.7,11.3
-                              c-50.6,26.3-88,70.6-105.2,125c-0.5,1.9-1.2,3.9-1.8,5.8c-15.1,52.6-9.6,108.1,15.7,156.9c54.2,104.5,183.2,145.4,287.7,91.3
-                              C400,412.6,438.9,365,455,308.8c0.1-0.3,0.2-0.5,0.2-0.7C460,290.8,449.9,272.9,432.7,268z"/>
-                            <ellipse cx="420.6" cy="149.9" rx="43.1" ry="43.1"/>
-                            <path d="M324.8,191l-95.1,86.8l-31.8-35.6c-12.7-15.1-35.2-16.9-50.2-4.3c-15.1,12.7-16.9,35.2-4.3,50.2l31.7,35.6
-                              c12.4,14.7,29.2,23.2,46.8,25c17.9,2,36.4-2.9,51.8-14.9l95.1-86.8c15.5-12.1,18.1-34.6,6-50C362.6,181.5,340.3,178.8,324.8,191z"/>
-                          </g>
-                        </svg>
-                      </td>
-                      <td valign="middle">
-                        <div style="font-size:20px; font-weight:bold; color:#ffffff; line-height:1.1;">Invo<span style="color:#22c55e;">Centric</span></div>
-                        <div style="font-size:11px; color:#8a8a8a; margin-top:2px;">Billing. Simplified.</div>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-                <td align="right" valign="middle" style="font-size:12px; color:#9a9a9a;">
-                  Can't see this email? <a href="https://invocentric.in/" style="color:#22c55e; text-decoration:none;">View in browser</a>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+<div class="pos-terminal">
+  <!-- Top slot housing -->
+  <div class="printer-header">
+    <div class="printer-led" id="led"></div>
+    <div class="paper-mouth">
+      <div class="cutter-teeth"></div>
+    </div>
+    <div style="width: 10px;"></div>
+  </div>
 
-        <!-- HERO -->
-        <tr>
-          <td style="padding:34px 32px 10px 32px;">
-            <div style="font-size:16px; color:#d0d0d0; margin-bottom:14px;">Hi ${userName}, 👋</div>
-            <div style="font-size:30px; font-weight:bold; color:#ffffff; line-height:1.25; margin-bottom:18px;">
-              We miss you!<br>
-              Your business is<br>
-              <span style="color:#22c55e;">always</span> a click away.
+  <!-- Animated receipt coming out -->
+  <div class="feed-container">
+    <div class="receipt-wrap" id="receiptWrap">
+      <div class="receipt">
+
+        <!-- Logo & Header -->
+        <div class="logo-row">
+          <div class="logo-icon">
+            <svg viewBox="0 0 500 500" width="38" height="38" xmlns="http://www.w3.org/2000/svg">
+              <g fill="#0d5c4b">
+                <path d="M432.7,268c-17.2-4.9-35.1,5.1-39.9,22.3c-0.1,0.3-0.1,0.4-0.2,0.7c-11.4,39.7-37.9,72-74.4,90.9
+                  c-35.2,18.3-75.5,21.7-113.4,9.7c-37.8-12-68.8-38-87-73.3c-18.3-35.2-21.7-75.5-9.7-113.4s38-68.8,73.3-87
+                  c36.6-19.1,80-21.8,118.9-7.9c16.8,6.1,35.3-2.6,41.4-19.4c6.1-16.8-2.6-35.3-19.4-41.4c-55.8-20.1-118.1-16-170.7,11.3
+                  c-50.6,26.3-88,70.6-105.2,125c-0.5,1.9-1.2,3.9-1.8,5.8c-15.1,52.6-9.6,108.1,15.7,156.9c54.2,104.5,183.2,145.4,287.7,91.3
+                  C400,412.6,438.9,365,455,308.8c0.1-0.3,0.2-0.5,0.2-0.7C460,290.8,449.9,272.9,432.7,268z"/>
+                <ellipse cx="420.6" cy="149.9" rx="43.1" ry="43.1"/>
+                <path d="M324.8,191l-95.1,86.8l-31.8-35.6c-12.7-15.1-35.2-16.9-50.2-4.3c-15.1,12.7-16.9,35.2-4.3,50.2l31.7,35.6
+                  c12.4,14.7,29.2,23.2,46.8,25c17.9,2,36.4-2.9,51.8-14.9l95.1-86.8c15.5-12.1,18.1-34.6,6-50
+                  C362.6,181.5,340.3,178.8,324.8,191z"/>
+              </g>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-name">InvoCentric</div>
+            <div class="brand-tag">More than billing. Built for your business.</div>
+          </div>
+        </div>
+
+        <div class="dashed-line">
+          <span style="font-size:12px; letter-spacing:2px; font-weight:bold; color:#333;">BUSINESS REMINDER</span>
+        </div>
+
+        <div class="headline-row">
+          <div class="bell">
+            <svg viewBox="0 0 24 24" fill="#0d5c4b" width="30" height="30"><path d="M12 22c1.3 0 2.4-1.1 2.4-2.4h-4.8C9.6 20.9 10.7 22 12 22zm7.2-6.4V11c0-3.5-1.9-6.4-5.2-7.2V3c0-1.1-.9-2-2-2s-2 .9-2 2v.8C6.7 4.6 4.8 7.5 4.8 11v4.6L3 17.4V18h18v-.6l-1.8-1.8z"/></svg>
+          </div>
+          <h1 class="headline">Your Business<br>Has Been Waiting!</h1>
+        </div>
+
+        <p class="body-text">Hi ${businessName},</p>
+        <p class="body-text">
+          It's been a few days since you last used InvoCentric. We noticed your business might be waiting for you!
+        </p>
+
+        <!-- Stats -->
+        <div class="activity-box">
+          <div class="activity-col">
+            <span class="icon"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="20" height="20"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1zM5 10v10h14V10H5zm2 3h4v4H7v-4z"/></svg></span>
+            <div>
+              <p class="activity-label">Last Activity</p>
+              <p class="activity-value">${lastLoginDate}</p>
             </div>
-            <div style="font-size:14px; color:#a8a8a8; line-height:1.7; max-width:400px;">
-              You haven't opened InvoCentric for the last <span style="color:#e5e5e5; font-weight:bold;">24 hours.</span> Your invoices, customers, and business data are safe and ready whenever you need them.
+          </div>
+          <div class="activity-divider"></div>
+          <div class="activity-col">
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
+            <div>
+              <p class="activity-label">Days Inactive</p>
+              <p class="activity-value">${daysInactive}</p>
             </div>
-            <div style="font-size:14px; color:#a8a8a8; line-height:1.7; margin-top:14px; max-width:400px;">
-              Come back and continue managing your business like a pro.
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-header">
+          <span>YOUR BUSINESS SUMMARY</span>
+          <span class="ready">READY TO GO</span>
+        </div>
+        <div class="dashes"></div>
+
+        <div class="summary-item">
+          <div class="item-left">
+            <div class="item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="1.8"><path d="M6 2h9l3 3v17H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></div>
+            <div>
+              <p class="item-title">Invoices</p>
+              <p class="item-desc">Create &amp; send professional invoices</p>
             </div>
-          </td>
-        </tr>
+          </div>
+          <div class="item-right">${invoiceCount} <span style="color:#0d5c4b;"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="13" height="13"><path d="M8 5v2h6.6l-8.3 8.3 1.4 1.4L16 8.4V15h2V5H8z"/></svg></span></div>
+        </div>
 
-        <!-- DASHBOARD PREVIEW CARD -->
-        <tr>
-          <td style="padding:20px 32px 10px 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#101010; border:1px solid #232323; border-radius:12px;">
-              <tr>
-                <td style="padding:18px 20px;">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td valign="middle">
-                        <span style="font-size:13px; font-weight:bold; color:#ffffff;">📊 InvoCentric</span>
-                      </td>
-                      <td align="right">
-                        <table role="presentation" cellpadding="0" cellspacing="0" align="right">
-                          <tr>
-                            <td style="background-color:#0d1f16; border:1px solid #22c55e; border-radius:50%; width:34px; height:34px; text-align:center;">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;">
-                                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" fill="#22c55e"/>
-                              </svg>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
+        <div class="summary-item">
+          <div class="item-left">
+            <div class="item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="1.8"><path d="M12 2 3 6.5 12 11l9-4.5z"/><path d="M3 6.5v11L12 22l9-4.5v-11"/><path d="M12 11v11"/></svg></div>
+            <div>
+              <p class="item-title">Inventory</p>
+              <p class="item-desc">Track stock &amp; get low stock alerts</p>
+            </div>
+          </div>
+          <div class="item-right">${stockCount} <span style="color:#0d5c4b;"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="13" height="13"><path d="M8 5v2h6.6l-8.3 8.3 1.4 1.4L16 8.4V15h2V5H8z"/></svg></span></div>
+        </div>
 
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
-                    <tr>
-                      <!-- side nav -->
-                      <td width="30%" valign="top" style="border-right:1px solid #232323; padding-right:12px;">
-                        <div style="background-color:#16301f; border-radius:6px; padding:7px 8px; font-size:11px; color:#22c55e; margin-bottom:6px;">🏠 Dashboard</div>
-                        <div style="padding:7px 8px; font-size:11px; color:#8a8a8a; margin-bottom:6px;">📄 Invoices</div>
-                        <div style="padding:7px 8px; font-size:11px; color:#8a8a8a; margin-bottom:6px;">👥 Customers</div>
-                        <div style="padding:7px 8px; font-size:11px; color:#8a8a8a; margin-bottom:6px;">🛍 Products</div>
-                        <div style="padding:7px 8px; font-size:11px; color:#8a8a8a; margin-bottom:6px;">📈 Reports</div>
-                        <div style="padding:7px 8px; font-size:11px; color:#8a8a8a;">⚙️ Settings</div>
-                      </td>
-                      <!-- main -->
-                      <td width="70%" valign="top" style="padding-left:14px;">
-                        <div style="font-size:12px; font-weight:bold; color:#ffffff; margin-bottom:10px;">Dashboard</div>
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                          <tr>
-                            <td width="33%" style="background-color:#151515; border:1px solid #232323; border-radius:8px; padding:8px 10px;">
-                              <div style="font-size:9px; color:#8a8a8a;">Total Invoices</div>
-                              <div style="font-size:14px; color:#ffffff; font-weight:bold;">124</div>
-                              <div style="font-size:9px; color:#22c55e;">▲ 12%</div>
-                            </td>
-                            <td width="4%"></td>
-                            <td width="33%" style="background-color:#151515; border:1px solid #232323; border-radius:8px; padding:8px 10px;">
-                              <div style="font-size:9px; color:#8a8a8a;">Total Sales</div>
-                              <div style="font-size:14px; color:#ffffff; font-weight:bold;">₹45,250</div>
-                              <div style="font-size:9px; color:#22c55e;">▲ 18%</div>
-                            </td>
-                            <td width="4%"></td>
-                            <td width="26%" style="background-color:#151515; border:1px solid #232323; border-radius:8px; padding:8px 10px;">
-                              <div style="font-size:9px; color:#8a8a8a;">Outstanding</div>
-                              <div style="font-size:14px; color:#ffffff; font-weight:bold;">₹8,450</div>
-                              <div style="font-size:9px; color:#22c55e;">▲ 8%</div>
-                            </td>
-                          </tr>
-                        </table>
+        <div class="summary-item">
+          <div class="item-left">
+            <div class="item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><text x="12" y="16.5" text-anchor="middle" font-family="'Poppins', Arial, sans-serif" font-size="11" font-weight="700" fill="#0d5c4b" stroke="none">₹</text></svg></div>
+            <div>
+              <p class="item-title">Outstanding Payments</p>
+              <p class="item-desc">Keep track of what's due</p>
+            </div>
+          </div>
+          <div class="item-right">${dueCount} <span style="color:#0d5c4b;"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="13" height="13"><path d="M8 5v2h6.6l-8.3 8.3 1.4 1.4L16 8.4V15h2V5H8z"/></svg></span></div>
+        </div>
 
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px; background-color:#151515; border:1px solid #232323; border-radius:8px;">
-                          <tr>
-                            <td style="padding:10px;">
-                              <table width="100%"><tr>
-                                <td style="font-size:10px; color:#ffffff; font-weight:bold;">Sales Overview</td>
-                                <td align="right" style="font-size:9px; color:#8a8a8a;">This Month</td>
-                              </tr></table>
-                              <svg width="100%" height="55" viewBox="0 0 260 55" preserveAspectRatio="none" style="margin-top:6px;">
-                                <polyline points="0,35 40,25 80,40 120,20 160,30 200,10 240,18 260,12" fill="none" stroke="#22c55e" stroke-width="2"/>
-                                <circle cx="120" cy="20" r="3" fill="#22c55e"/>
-                                <circle cx="200" cy="10" r="3" fill="#22c55e"/>
-                              </svg>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+        <div class="summary-item">
+          <div class="item-left">
+            <div class="item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><path d="M2 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M15 20c0-2.6 1-4.6 2.5-5.6"/></svg></div>
+            <div>
+              <p class="item-title">Customers</p>
+              <p class="item-desc">Manage your customer details</p>
+            </div>
+          </div>
+          <div class="item-right">${customerCount} <span style="color:#0d5c4b;"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="13" height="13"><path d="M8 5v2h6.6l-8.3 8.3 1.4 1.4L16 8.4V15h2V5H8z"/></svg></span></div>
+        </div>
 
-        <!-- CTA -->
-        <tr>
-          <td align="center" style="padding:28px 32px 6px 32px;">
-            <a href="https://invocentric.in/" style="display:inline-block; background-color:#22c55e; color:#04140a; font-size:16px; font-weight:bold; text-decoration:none; padding:16px 38px; border-radius:10px;">
-              Open InvoCentric Now &nbsp;→
-            </a>
-          </td>
-        </tr>
-        <tr>
-          <td align="center" style="padding:0 32px 26px 32px; font-size:12px; color:#8a8a8a;">
-            🔒 Secure. Fast. Always with you.
-          </td>
-        </tr>
+        <!-- Action Button -->
+        <div class="cta-wrap">
+          <a href="https://invocentric.in/" target="_blank" class="cta-button">
+            <svg viewBox="0 0 24 24" fill="#ffffff" width="15" height="15" style="vertical-align:-2px;margin-right:6px;"><path d="M14 3h7v7h-2V6.4l-8.3 8.3-1.4-1.4L17.6 5H14V3zM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>OPEN INVOCENTRIC
+          </a>
+        </div>
+        <p class="cta-sub">Pick up where you left off. Your business is just a click away.</p>
 
-        <!-- FEATURES -->
-        <tr>
-          <td style="padding:0 32px 26px 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0d0d0d; border:1px solid #1f1f1f; border-radius:12px;">
-              <tr>
-                <td style="padding:24px 20px 20px 20px;" align="center">
-                  <div style="font-size:16px; font-weight:bold; color:#ffffff; margin-bottom:20px;">
-                    Everything you can do with <span style="color:#22c55e;">InvoCentric</span>
-                  </div>
-                  <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-                    <tr>
-                      <td width="20%" align="center" style="padding:0 4px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0" align="center">
-                          <tr>
-                            <td align="center" valign="middle" style="width:52px; height:52px; background-color:#141414; border:1px solid #232323; border-radius:50%; text-align:center; line-height:0; font-size:0;">
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin:0; padding:0;">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                <polyline points="14 2 14 8 20 8" />
-                                <line x1="16" y1="13" x2="8" y2="13" />
-                                <line x1="16" y1="17" x2="8" y2="17" />
-                                <line x1="10" y1="9" x2="8" y2="9" />
-                              </svg>
-                            </td>
-                          </tr>
-                        </table>
-                        <div style="font-size:11px; color:#c9c9c9; margin-top:10px; line-height:1.4;">Create &amp; Send<br>Invoices</div>
-                      </td>
-                      <td width="20%" align="center" style="padding:0 4px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0" align="center">
-                          <tr>
-                            <td align="center" valign="middle" style="width:52px; height:52px; background-color:#141414; border:1px solid #232323; border-radius:50%; text-align:center; line-height:0; font-size:0;">
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin:0; padding:0;">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                              </svg>
-                            </td>
-                          </tr>
-                        </table>
-                        <div style="font-size:11px; color:#c9c9c9; margin-top:10px; line-height:1.4;">Manage<br>Customers</div>
-                      </td>
-                      <td width="20%" align="center" style="padding:0 4px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0" align="center">
-                          <tr>
-                            <td align="center" valign="middle" style="width:52px; height:52px; background-color:#141414; border:1px solid #232323; border-radius:50%; text-align:center; line-height:0; font-size:0;">
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin:0; padding:0;">
-                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                                <line x1="12" y1="22.08" x2="12" y2="12" />
-                              </svg>
-                            </td>
-                          </tr>
-                        </table>
-                        <div style="font-size:11px; color:#c9c9c9; margin-top:10px; line-height:1.4;">Manage<br>Products</div>
-                      </td>
-                      <td width="20%" align="center" style="padding:0 4px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0" align="center">
-                          <tr>
-                            <td align="center" valign="middle" style="width:52px; height:52px; background-color:#141414; border:1px solid #232323; border-radius:50%; text-align:center; line-height:0; font-size:0;">
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin:0; padding:0;">
-                                <line x1="18" y1="20" x2="18" y2="10" />
-                                <line x1="12" y1="20" x2="12" y2="4" />
-                                <line x1="6" y1="20" x2="6" y2="14" />
-                                <path d="M2 20h20" />
-                              </svg>
-                            </td>
-                          </tr>
-                        </table>
-                        <div style="font-size:11px; color:#c9c9c9; margin-top:10px; line-height:1.4;">Sales &amp; GST<br>Reports</div>
-                      </td>
-                      <td width="20%" align="center" style="padding:0 4px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0" align="center">
-                          <tr>
-                            <td align="center" valign="middle" style="width:52px; height:52px; background-color:#141414; border:1px solid #232323; border-radius:50%; text-align:center; line-height:0; font-size:0;">
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin:0; padding:0;">
-                                <rect x="3" y="3" width="7" height="7" />
-                                <rect x="14" y="3" width="7" height="7" />
-                                <rect x="3" y="14" width="7" height="7" />
-                                <rect x="14" y="14" width="7" height="7" />
-                              </svg>
-                            </td>
-                          </tr>
-                        </table>
-                        <div style="font-size:11px; color:#c9c9c9; margin-top:10px; line-height:1.4;">Barcode &amp; QR<br>Tools</div>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+        <!-- Feature Points -->
+        <div class="features">
+          <div class="feature">
+            <div class="f-icon"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="22" height="22" style="display:block;margin:0 auto;"><path d="M6 2h12v6H6V2zm-2 8a2 2 0 0 0-2 2v6h4v4h12v-4h4v-6a2 2 0 0 0-2-2H4zm3 8v-4h10v4H7zm11-6.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg></div>
+            <div class="f-text">A4 / A5 / POS<br>Formats</div>
+          </div>
+          <div class="feature">
+            <div class="f-icon"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="22" height="22" style="display:block;margin:0 auto;"><path d="M6 2h8l4 4v16H6V2zm7 1.5V7h3.5L13 3.5zM8 12h8v2H8v-2zm0 4h8v2H8v-2zm0-8h4v2H8V8z"/></svg></div>
+            <div class="f-text">16 Professional<br>Templates</div>
+          </div>
+          <div class="feature">
+            <div class="f-icon"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="22" height="22" style="display:block;margin:0 auto;"><path d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2zm0 2.2 6.1 3.05L12 10.3 5.9 7.25 12 4.2zM5 9.05l6 3v7.7l-6-3v-7.7zm8 10.7v-7.7l6-3v7.7l-6 3z"/></svg></div>
+            <div class="f-text">Inventory &amp;<br>Stock</div>
+          </div>
+          <div class="feature">
+            <div class="f-icon"><svg viewBox="0 0 24 24" fill="#0d5c4b" width="22" height="22" style="display:block;margin:0 auto;"><path d="M12 2 2.5 5v6c0 5.2 3.6 9.9 9.5 11 5.9-1.1 9.5-5.8 9.5-11V5L12 2zm-1.4 14.4L6.5 12.3l1.4-1.4 2.7 2.7 5.5-5.5 1.4 1.4-6.9 6.9z"/></svg></div>
+            <div class="f-text">GST Ready<br>Billing</div>
+          </div>
+        </div>
 
-        <!-- SECURITY BANNER -->
-        <tr>
-          <td style="padding:0 32px 26px 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0d0d0d; border:1px solid #1f1f1f; border-radius:12px;">
-              <tr>
-                <td style="padding:18px 20px;" valign="middle">
-                  <table role="presentation" cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td valign="middle" style="padding-right:14px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0">
-                          <tr>
-                            <td align="center" valign="middle" style="width:44px; height:44px; background-color:#0f2417; border-radius:50%; text-align:center; line-height:0; font-size:0;">
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin:0; padding:0;">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                <polyline points="9 11 11 13 15 9" />
-                              </svg>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                      <td valign="middle">
-                        <div style="font-size:14px; color:#e5e5e5;"><span style="color:#22c55e; font-weight:bold;">Your data is 100% secure</span> with us.</div>
-                        <div style="font-size:13px; color:#9a9a9a; margin-top:2px;">We're here to help you grow your business.</div>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+        <div class="dashes"></div>
 
-        <!-- FOOTER CONTACT -->
-        <tr>
-          <td style="padding:0 32px 20px 32px; border-top:1px solid #1f1f1f; padding-top:24px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td valign="top" width="55%">
-                  <div style="font-size:13px; color:#9a9a9a;">Thank you for choosing InvoCentric.</div>
-                  <div style="font-size:14px; color:#e5e5e5; font-weight:bold; margin-top:4px;">We're here whenever you need us!</div>
-                  <div style="font-size:13px; color:#22c55e; margin-top:6px;">– Team InvoCentric</div>
-                </td>
-                <td valign="top" width="45%">
-                  <table role="presentation" cellpadding="0" cellspacing="0" align="right">
-                    <tr>
-                      <td style="padding-bottom:8px;" align="left">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle; margin-right:8px;">
-                          <path d="M3 5h18v14H3z" stroke="#22c55e" stroke-width="1.6"/>
-                          <path d="M3 6l9 7 9-7" stroke="#22c55e" stroke-width="1.6"/>
-                        </svg>
-                        <span style="font-size:12px; color:#ffffff; font-weight:bold;">support@invocentric.in</span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding-bottom:8px;" align="left">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle; margin-right:8px;">
-                          <circle cx="12" cy="12" r="9" stroke="#22c55e" stroke-width="1.6"/>
-                          <path d="M3 12h18M12 3c2.5 2.5 4 5.7 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.7-4-9s1.5-6.5 4-9z" stroke="#22c55e" stroke-width="1.4"/>
-                        </svg>
-                        <span style="font-size:12px; color:#ffffff; font-weight:bold;">www.invocentric.in</span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td align="left">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle; margin-right:8px;">
-                          <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.5.6.6 0 1.1.5 1.1 1.1v3.3c0 .6-.5 1.1-1.1 1.1C10.6 21.1 2.9 13.4 2.9 3.2 2.9 2.6 3.4 2.1 4 2.1h3.3c.6 0 1.1.5 1.1 1.1 0 1.2.2 2.4.6 3.5.1.4 0 .8-.2 1L6.6 10.8z" stroke="#22c55e" stroke-width="1.4"/>
-                        </svg>
-                        <span style="font-size:12px; color:#ffffff; font-weight:bold;">+91 98241 94869</span>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+        <!-- Footer -->
+        <div class="footer">
+          <svg class="barcode-svg" viewBox="0 0 300 40" width="220" height="28" style="display:block;margin:0 auto 12px;">
+            <g fill="#111111">
+              <rect x="0" y="0" width="2" height="40"/><rect x="5" y="0" width="1" height="40"/><rect x="9" y="0" width="3" height="40"/><rect x="15" y="0" width="1" height="40"/><rect x="19" y="0" width="2" height="40"/><rect x="24" y="0" width="1" height="40"/><rect x="28" y="0" width="1" height="40"/><rect x="32" y="0" width="3" height="40"/><rect x="38" y="0" width="1" height="40"/><rect x="42" y="0" width="2" height="40"/><rect x="47" y="0" width="1" height="40"/><rect x="51" y="0" width="1" height="40"/><rect x="55" y="0" width="3" height="40"/><rect x="61" y="0" width="1" height="40"/><rect x="65" y="0" width="2" height="40"/><rect x="70" y="0" width="1" height="40"/><rect x="74" y="0" width="3" height="40"/><rect x="80" y="0" width="1" height="40"/><rect x="84" y="0" width="1" height="40"/><rect x="88" y="0" width="2" height="40"/><rect x="93" y="0" width="1" height="40"/><rect x="97" y="0" width="3" height="40"/><rect x="103" y="0" width="1" height="40"/><rect x="107" y="0" width="2" height="40"/><rect x="112" y="0" width="1" height="40"/><rect x="116" y="0" width="1" height="40"/><rect x="120" y="0" width="3" height="40"/><rect x="126" y="0" width="2" height="40"/><rect x="131" y="0" width="1" height="40"/><rect x="135" y="0" width="1" height="40"/><rect x="139" y="0" width="3" height="40"/><rect x="145" y="0" width="1" height="40"/><rect x="149" y="0" width="2" height="40"/><rect x="154" y="0" width="1" height="40"/><rect x="158" y="0" width="1" height="40"/><rect x="162" y="0" width="3" height="40"/><rect x="168" y="0" width="2" height="40"/><rect x="173" y="0" width="1" height="40"/><rect x="177" y="0" width="3" height="40"/><rect x="183" y="0" width="1" height="40"/><rect x="187" y="0" width="1" height="40"/><rect x="191" y="0" width="2" height="40"/><rect x="196" y="0" width="1" height="40"/><rect x="200" y="0" width="3" height="40"/><rect x="206" y="0" width="1" height="40"/><rect x="210" y="0" width="2" height="40"/><rect x="215" y="0" width="1" height="40"/><rect x="219" y="0" width="1" height="40"/><rect x="223" y="0" width="3" height="40"/><rect x="229" y="0" width="2" height="40"/><rect x="234" y="0" width="1" height="40"/><rect x="238" y="0" width="1" height="40"/><rect x="242" y="0" width="3" height="40"/><rect x="248" y="0" width="1" height="40"/><rect x="252" y="0" width="2" height="40"/><rect x="257" y="0" width="1" height="40"/><rect x="261" y="0" width="3" height="40"/><rect x="267" y="0" width="1" height="40"/><rect x="271" y="0" width="1" height="40"/><rect x="275" y="0" width="2" height="40"/><rect x="280" y="0" width="1" height="40"/><rect x="284" y="0" width="3" height="40"/><rect x="290" y="0" width="1" height="40"/><rect x="294" y="0" width="2" height="40"/>
+            </g>
+          </svg>
+          <p class="footer-thanks">THANK YOU FOR BEING A PART OF INVOCENTRIC</p>
+          <p class="footer-brand">More than billing. Built for your business.</p>
+        </div>
 
-        <!-- LEGAL -->
-        <tr>
-          <td align="center" style="padding:22px 32px 30px 32px; font-size:11px; color:#6a6a6a; line-height:1.6;">
-            You received this email because you are a registered user of InvoCentric.<br>
-            <a href="https://invocentric.in/settings" target="_blank" style="color:#22c55e; text-decoration:underline;">Unsubscribe</a>
-          </td>
-        </tr>
+      </div>
+    </div>
+  </div>
+</div>
 
-      </table>
-    </td>
-  </tr>
-</table>
+<script>
+  function reprint() {
+    const wrap = document.getElementById('receiptWrap');
+    const led = document.getElementById('led');
+    
+    // Animation Reset
+    wrap.style.animation = 'none';
+    led.style.animation = 'none';
+    led.style.background = '#e74c3c'; // Busy/Red
+    led.style.boxShadow = '0 0 10px #e74c3c';
+    
+    void wrap.offsetWidth; // Reflow trigger
+    
+    wrap.style.animation = 'thermalPrint 3.2s cubic-bezier(0.25, 1, 0.4, 1) forwards';
+    led.style.animation = 'ledBlink 0.35s infinite alternate ease-in-out';
+    led.style.background = '#2ecc71';
+    led.style.boxShadow = '0 0 10px #2ecc71';
+  }
+</script>
 
 </body>
 </html>`;
 }
+
 // Global function to perform the user inactivity scanning and reminder dispatches
 async function runInactivityRemindersCheck(
   authHeader?: string, 
@@ -2251,7 +2503,23 @@ async function runInactivityRemindersCheck(
         console.log(`[Inactivity Scheduler] Sending reminder to: ${email} (inactive for ${lastActiveStr ? Math.round(inactiveMs / 3600000) : 'unknown'} hours, force=${force})`);
         
         const userName = user.owner_name || user.display_name || user.business_name || email.split("@")[0] || "there";
-        const html = generateInactivityEmailTemplate(userName);
+        const businessName = user.business_name || user.owner_name || user.display_name || email.split("@")[0] || "Business Partner";
+        const lastLoginDate = lastActiveStr ? new Date(lastActiveStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently';
+        const daysInactive = lastActiveStr ? Math.max(1, Math.round(inactiveMs / (24 * 3600000))) + ' Days' : '2+ Days';
+        const invoiceCount = user.invoices_count !== undefined ? String(user.invoices_count) : '10+';
+        const stockCount = user.items_count !== undefined ? String(user.items_count) : 'Active';
+        const dueCount = user.pending_due !== undefined ? '₹' + user.pending_due : 'Synced';
+        const customerCount = user.customers_count !== undefined ? String(user.customers_count) : 'Connected';
+
+        const html = generateInactivityEmailTemplate({
+          businessName,
+          lastLoginDate,
+          daysInactive,
+          invoiceCount,
+          stockCount,
+          dueCount,
+          customerCount
+        });
         const text = `Hi ${userName},\n\nWe miss you! Your InvoCentric billing dashboard is ready.\n\nYou haven't logged into InvoCentric in the last 24 hours. This is just a friendly check-in to see if we can help you streamline your invoicing today.\n\nYour client lists, custom products, pending payments, and receipts are safely synced in the cloud and ready whenever you are.\n\nReturn to Dashboard: https://invocentric.in/\n\nTo stop receiving these alerts, update your settings at https://invocentric.in/settings`;
 
         const dispatch = await dispatchEmail({
@@ -2326,6 +2594,21 @@ startInactivityScheduler();
 // --- ADMIN API ENDPOINTS FOR EMAIL MANAGEMENT & TEST DISPATCH ---
 
 // 1. Trigger manual scan
+// Public preview of inactivity email animation
+app.get("/api/preview/inactivity-email", (req, res) => {
+  const html = generateInactivityEmailTemplate({
+    businessName: (req.query.name as string) || "Sample Store",
+    lastLoginDate: "12-Sep-2026",
+    daysInactive: "3 Days",
+    invoiceCount: "128",
+    stockCount: "45 Items",
+    dueCount: "₹8,450",
+    customerCount: "64"
+  });
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(html);
+});
+
 app.post("/api/admin/check-inactivity", checkAuth, async (req, res) => {
   const adminEmail = "nomanshaikh1999@gmail.com";
   if ((req as any).user.email?.toLowerCase() !== adminEmail) {
@@ -2355,7 +2638,15 @@ app.post("/api/admin/send-test-reminder", checkAuth, async (req, res) => {
   }
 
   try {
-    const testHtml = generateInactivityEmailTemplate("Valued Admin");
+    const testHtml = generateInactivityEmailTemplate({
+      businessName: "Valued Partner",
+      lastLoginDate: "Yesterday",
+      daysInactive: "3 Days",
+      invoiceCount: "142",
+      stockCount: "58 Items",
+      dueCount: "₹12,400",
+      customerCount: "86"
+    });
     const testText = `Hi Valued Admin,\n\nWe miss you! Your InvoCentric billing dashboard is ready.\n\nYou haven't logged into InvoCentric in the last 24 hours. This is just a friendly check-in to see if we can help you streamline your invoicing today.\n\nYour client lists, custom products, pending payments, and receipts are safely synced in the cloud and ready whenever you are.\n\nReturn to Dashboard: https://invocentric.in/\n\nTo stop receiving these alerts, update your settings at https://invocentric.in/settings`;
     const result = await dispatchEmail({
       to: email,
