@@ -1,3 +1,119 @@
-if(!self.define){let s,e={};const n=(n,l)=>(n=new URL(n+".js",l).href,e[n]||new Promise(e=>{if("document"in self){const s=document.createElement("script");s.src=n,s.onload=e,document.head.appendChild(s)}else s=n,importScripts(n),e()}).then(()=>{let s=e[n];if(!s)throw new Error(`Module ${n} didn’t register its module`);return s}));self.define=(l,i)=>{const r=s||("document"in self?document.currentScript.src:"")||location.href;if(e[r])return;let a={};const o=s=>n(s,r),u={module:{uri:r},exports:a,require:o};e[r]=Promise.all(l.map(s=>u[s]||o(s))).then(s=>(i(...s),a))}}define(["./workbox-6c06881d"],function(s){"use strict";self.skipWaiting(),s.clientsClaim(),s.precacheAndRoute([{url:"maskable.svg",revision:"5dedc25a316c97aec1fc6182cfebc4cd"},{url:"manifest.json",revision:"ba58bd3bb7ccaa7d5a0f8da65e9e9108"},{url:"logo.svg",revision:"13284d546d8772b8a72363103c19256b"},{url:"logo.png",revision:"bf5a42006e615295fee9c417d88d9825"},{url:"logo-maskable.svg",revision:"a423138bea6229ad7b88e2116cdd3d86"},{url:"index.html",revision:"7c86ef86562e0094cb0a2e7172bf12ba"},{url:"google8702ced00c370b9f.html",revision:"fc1ede07cfa5030c83afdb76d52cd25c"},{url:"favicon.ico",revision:"ea4a8d3a923ec342f744403550c96659"},{url:"512x512.png",revision:"f4237f57a71a46d273ea2c17d3a70bcc"},{url:"192x192.png",revision:"dd176dd0c5b6298806ba3a3a76205b06"},{url:"assets/WhatsAppShareModal-76IdTBUZ.js",revision:null},{url:"assets/WhatsAppIcon-CLW5ZPvK.js",revision:null},{url:"assets/vendor-icons-uA2cV2eh.js",revision:null},{url:"assets/vendor-firebase-DmKnFo0L.js",revision:null},{url:"assets/vendor-export-DyOTVc-B.js",revision:null},{url:"assets/vendor-charts-Bq4_pzQ6.js",revision:null},{url:"assets/TermsPage-CUbLsAnR.js",revision:null},{url:"assets/subDays-D7iU3JWc.js",revision:null},{url:"assets/Statement-BZJuPFsf.js",revision:null},{url:"assets/startOfMonth-8WJ86C60.js",revision:null},{url:"assets/Settings-B32vO0GB.js",revision:null},{url:"assets/seoSchema-DfsxKtkW.js",revision:null},{url:"assets/SeoLandingPage-BuFTe79L.js",revision:null},{url:"assets/SEOHead-DT12s8st.js",revision:null},{url:"assets/ScannerHelpGuide-CeHmL786.js",revision:null},{url:"assets/Reports-Cwygfu8_.js",revision:null},{url:"assets/Quotations-BRRpW8EU.js",revision:null},{url:"assets/QuickPOS-CZoUru5p.js",revision:null},{url:"assets/QrGenerator-DpVdu8_5.js",revision:null},{url:"assets/Purchases-BkREBybe.js",revision:null},{url:"assets/Pricing-B8Q3tDmN.js",revision:null},{url:"assets/Payments-cxV-uTLq.js",revision:null},{url:"assets/numberToWords.min-DhYi6tbl.js",revision:null},{url:"assets/MobileScan-DUHbX9h2.js",revision:null},{url:"assets/LoginPage-D6icZQmO.js",revision:null},{url:"assets/LandingPage-DHFxctW2.js",revision:null},{url:"assets/Items-C_Td0gO9.js",revision:null},{url:"assets/InvoiceView-D5kAButo.js",revision:null},{url:"assets/Invoices-C9UYhhS6.js",revision:null},{url:"assets/index.es-DB3DC7VZ.js",revision:null},{url:"assets/index-BP8tn94K.js",revision:null},{url:"assets/index-BeoRn2gJ.js",revision:null},{url:"assets/index-B20_gqVT.css",revision:null},{url:"assets/html2canvas.esm-B0tyYwQk.js",revision:null},{url:"assets/GstCalculatorPage-CpeRd1dm.js",revision:null},{url:"assets/Expenses-ewTQgwFo.js",revision:null},{url:"assets/excelService-CSnOKVCM.js",revision:null},{url:"assets/endOfMonth-C4yFtMjZ.js",revision:null},{url:"assets/endOfDay-ChzDfli0.js",revision:null},{url:"assets/emailService-BAkc8A05.js",revision:null},{url:"assets/Dashboard-Ck3JkxJU.js",revision:null},{url:"assets/DailyBook-DoN6T8Xc.js",revision:null},{url:"assets/Customers-B1RkKEDo.js",revision:null},{url:"assets/CreateInvoice-kDPlax6o.js",revision:null},{url:"assets/BlogPage-0cDaq2wg.js",revision:null},{url:"assets/BarcodeGenerator-CW2ajZUS.js",revision:null},{url:"assets/BarcodeCanvas-D6Ra7V2Q.js",revision:null},{url:"assets/aiService-7eZFjhMZ.js",revision:null},{url:"assets/Admin-Bw4fYr-4.js",revision:null},{url:"192x192.png",revision:"dd176dd0c5b6298806ba3a3a76205b06"},{url:"512x512.png",revision:"f4237f57a71a46d273ea2c17d3a70bcc"},{url:"logo.svg",revision:"13284d546d8772b8a72363103c19256b"},{url:"maskable.svg",revision:"5dedc25a316c97aec1fc6182cfebc4cd"},{url:"manifest.webmanifest",revision:"e077abcdab25bbaa7fd1d8b16e235d49"}],{}),s.cleanupOutdatedCaches(),s.registerRoute(new s.NavigationRoute(s.createHandlerBoundToURL("index.html"))),s.registerRoute(/^https:\/\/fonts\.googleapis\.com\/.*/i,new s.CacheFirst({cacheName:"google-fonts-stylesheets",plugins:[new s.ExpirationPlugin({maxEntries:10,maxAgeSeconds:31536e3})]}),"GET"),s.registerRoute(/^https:\/\/fonts\.gstatic\.com\/.*/i,new s.CacheFirst({cacheName:"google-fonts-webfonts",plugins:[new s.ExpirationPlugin({maxEntries:30,maxAgeSeconds:31536e3})]}),"GET"),s.registerRoute(/^https:\/\/i\.ibb\.co\/.*/i,new s.StaleWhileRevalidate({cacheName:"external-images",plugins:[new s.ExpirationPlugin({maxEntries:20,maxAgeSeconds:2592e3})]}),"GET")});
-//# sourceMappingURL=sw.js.map
-//# sourceMappingURL=sw.js.map
+/* eslint-disable */
+const CACHE_NAME = 'invocentric-v1';
+const PRECACHE_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/logo.svg',
+  '/logo.png',
+  '/192x192.png',
+  '/512x512.png',
+  '/robots.txt'
+];
+
+// Install Event - Pre-cache core shell assets
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('[Service Worker] Pre-caching offline shell');
+        return cache.addAll(PRECACHE_ASSETS);
+      })
+      .then(() => self.skipWaiting())
+  );
+});
+
+// Activate Event - Clean up old caches
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            console.log('[Service Worker] Clearing old cache:', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Fetch Event - Handle offline requests
+self.addEventListener('fetch', event => {
+  // Only handle GET requests
+  if (event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+
+  // Bypass cache for API routes, Firebase Auth, and Firestore requests
+  if (
+    url.pathname.startsWith('/api/') || 
+    url.hostname.includes('firebase') || 
+    url.hostname.includes('googleapis') ||
+    url.hostname.includes('identitytoolkit')
+  ) {
+    return;
+  }
+
+  // Network-First strategy for HTML document requests (so users always get the latest version if online)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Save a copy in cache
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
+          return response;
+        })
+        .catch(() => {
+          // If network is down, serve from cache
+          return caches.match('/') || caches.match('/index.html');
+        })
+    );
+    return;
+  }
+
+  // Cache-First (with Network Fallback and Cache Update) for JS, CSS, Fonts, and Images
+  event.respondWith(
+    caches.match(event.request).then(cachedResponse => {
+      if (cachedResponse) {
+        // Fetch in background to update cache for non-fingerprinted assets
+        fetch(event.request)
+          .then(networkResponse => {
+            if (networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, networkResponse);
+              });
+            }
+          })
+          .catch(() => { /* Ignore background fetch errors */ });
+
+        return cachedResponse;
+      }
+
+      return fetch(event.request)
+        .then(response => {
+          // Only cache valid successful GET responses (both basic and cors)
+          if (!response || response.status !== 200 || (response.type !== 'basic' && response.type !== 'cors')) {
+            return response;
+          }
+
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
+
+          return response;
+        })
+        .catch(() => {
+          // Offline fallback for specific assets if possible
+          if (event.request.destination === 'image') {
+            return caches.match('/logo.png');
+          }
+        });
+    })
+  );
+});

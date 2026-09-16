@@ -752,16 +752,48 @@ export default function AdminPage() {
     try {
       if (auth.currentUser) {
         const token = await auth.currentUser.getIdToken();
+        const cleanEmail = testEmail.trim().toLowerCase();
+        
+        // Match real user record from database
+        const matchedUser = dbUsers.find((u: any) => (u.email || u.business_email || '').trim().toLowerCase() === cleanEmail);
+        const userInvs = matchedUser ? dbInvoices.filter((i: any) => i.user_id === matchedUser.id) : [];
+        const dueSum = userInvs
+          .filter((i: any) => {
+            const st = (i.status || '').toLowerCase();
+            return st !== 'paid' && st !== 'cancelled';
+          })
+          .reduce((acc: number, i: any) => acc + Math.max(0, (Number(i.total || i.amount || 0) - Number(i.paid_amount || 0))), 0);
+
+        const lastActive = matchedUser?.last_active_at || matchedUser?.updated_at || matchedUser?.created_at;
+        let diffDays = 1;
+        let lastLoginFormatted = "Recently";
+        if (lastActive) {
+          const parsed = parseDateSafe(lastActive);
+          diffDays = Math.max(1, Math.round((Date.now() - parsed.getTime()) / (24 * 3600000)));
+          lastLoginFormatted = parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        const realPayload = {
+          email: testEmail,
+          businessName: matchedUser?.business_name || matchedUser?.owner_name || matchedUser?.display_name || cleanEmail.split('@')[0],
+          lastLoginDate: lastLoginFormatted,
+          daysInactive: `${diffDays} Day${diffDays > 1 ? 's' : ''}`,
+          invoiceCount: String(userInvs.length),
+          stockCount: matchedUser?.items_count !== undefined ? `${matchedUser.items_count} Items` : (userInvs.length > 0 ? "Synced" : "0 Items"),
+          dueCount: `₹${dueSum.toLocaleString('en-IN')}`,
+          customerCount: matchedUser?.customers_count !== undefined ? String(matchedUser.customers_count) : "0"
+        };
+
         const res = await fetch('/api/admin/send-test-reminder', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ email: testEmail })
+          body: JSON.stringify(realPayload)
         });
         if (res.ok) {
-          triggerToast(`Test email dispatched to ${testEmail}!`);
+          triggerToast(`Test email dispatched to ${testEmail} with real user data!`);
           setTestEmail('');
         } else {
           const err = await res.json();
