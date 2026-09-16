@@ -257,8 +257,8 @@ export default function LandingPage() {
       >
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-              <Logo size={40} />
+            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
+              <Logo size={48} />
               <span className="font-brand text-2xl tracking-tight text-gray-900">
                 <span className="font-extrabold">Invo</span><span className="font-bold">Centric</span>
               </span>
@@ -1632,7 +1632,7 @@ export default function LandingPage() {
             {/* Brand Logo & Contact details */}
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
-                <Logo size={32} className="text-white" />
+                <Logo size={40} className="text-white" />
                 <span className="font-brand text-2xl tracking-tight text-white">
                   <span className="font-extrabold">Invo</span><span className="font-bold">Centric</span>
                 </span>

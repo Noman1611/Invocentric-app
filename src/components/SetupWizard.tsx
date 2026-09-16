@@ -318,7 +318,7 @@ export default function SetupWizard({
           <div>
             {/* Top Brand Logo Header */}
             <div className="flex items-center gap-3 mb-10">
-              <Logo size={36} showBg={true} />
+              <Logo size={44} showBg={true} />
               <div>
                 <h1 className="font-brand text-2xl font-black text-slate-900 tracking-tight leading-tight">
                   InvoCentric

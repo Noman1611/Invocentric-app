@@ -1381,7 +1381,7 @@ export default function BlogPage() {
         <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 py-3.5 shadow-xs">
           <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2 group">
-              <Logo size={32} />
+              <Logo size={38} />
               <span className="font-black text-lg tracking-tight text-slate-900 group-hover:text-green-600 transition-colors">
                 Invo<span className="text-green-600">Centric</span>
               </span>
@@ -1654,7 +1654,7 @@ export default function BlogPage() {
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3.5 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
-            <Logo size={32} />
+            <Logo size={38} />
             <span className="font-black text-lg tracking-tight text-slate-900 group-hover:text-green-600 transition-colors">
               Invo<span className="text-green-600">Centric</span>
             </span>

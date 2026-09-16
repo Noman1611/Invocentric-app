@@ -113,7 +113,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
       {/* Header with App Logo */}
       <div className="p-5 flex items-center justify-between mb-2">
         <div className={cn("flex items-center gap-2.5 transition-all duration-300", collapsed && "opacity-0 hidden")}>
-          <Logo size={28} showBg={true} />
+          <Logo size={38} showBg={true} />
           <div className="flex flex-col">
             <span className="font-brand text-[15px] tracking-tight text-slate-900 leading-tight">
               <span className="font-black text-slate-800">Invo</span><span className="font-bold text-slate-700">Centric</span>

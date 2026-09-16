@@ -82,7 +82,7 @@ const InvoiceMockup = () => {
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
           <div>
-            <Logo size={40} className="mb-2" />
+            <Logo size={46} className="mb-2" />
             <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Invoice #INV-2026-001</p>
           </div>
           <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -341,7 +341,7 @@ export default function LoginPage() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-5">
               <Link to="/" className="inline-block focus:outline-none">
-                <Logo size={42} />
+                <Logo size={50} />
               </Link>
 
               {authMode === 'forgot' ? (
@@ -742,7 +742,7 @@ export default function LoginPage() {
               </button>
 
               <div className="text-center mb-5">
-                <Logo size={44} className="mx-auto mb-3" />
+                <Logo size={52} className="mx-auto mb-3" />
                 <h3 className="text-lg font-bold text-slate-900">InvoCentric Support</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Need help accessing your business account?</p>
               </div>

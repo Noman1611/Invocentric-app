@@ -141,7 +141,7 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
       {/* Navigation Header */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 md:px-8 py-3.5 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
-          <Logo size={32} showBg={true} />
+          <Logo size={38} showBg={true} />
           <span className="font-brand text-base tracking-tight text-slate-900">
             <span className="font-extrabold">Invo</span><span className="font-bold text-emerald-700">Centric</span>
           </span>
@@ -379,7 +379,7 @@ export default function SeoLandingPage({ pageKey }: { pageKey?: string }) {
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Logo size={28} />
+              <Logo size={36} />
               <span className="font-brand text-base font-black text-white">InvoCentric</span>
             </div>
             <p className="text-slate-400 text-[11px] leading-relaxed">

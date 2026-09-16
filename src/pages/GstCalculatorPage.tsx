@@ -113,7 +113,7 @@ export default function GstCalculatorPage() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-            <Logo size={36} />
+            <Logo size={44} />
             <div>
               <span className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">InvoCentric</span>
               <span className="hidden sm:inline-block ml-2 text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">GST Tools</span>

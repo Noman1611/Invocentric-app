@@ -9,7 +9,7 @@ interface LogoProps {
 
 export const Logo: React.FC<LogoProps & { iconColor?: string; showBg?: boolean }> = ({ 
   className, 
-  size = 40, 
+  size = 44, 
   style, 
   iconColor, 
   showBg = true
@@ -31,7 +31,7 @@ export const Logo: React.FC<LogoProps & { iconColor?: string; showBg?: boolean }
       <svg 
         viewBox="0 0 500 500" 
         xmlns="http://www.w3.org/2000/svg"
-        className={cn("w-full h-full", showBg ? "scale-[0.55]" : "scale-[0.80]")}
+        className={cn("w-full h-full", showBg ? "scale-[0.75]" : "scale-[0.88]")}
         aria-hidden="true"
         style={{ shapeRendering: 'geometricPrecision', textRendering: 'geometricPrecision', imageRendering: 'optimizeQuality' }}
       >

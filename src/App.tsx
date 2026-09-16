@@ -856,7 +856,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
             {/* Left side: Mobile Brand OR Beautiful Desktop Search Bar */}
             <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
               <div id="mobile-brand-logo" className="md:hidden flex items-center gap-1.5 shrink-0">
-                <Logo size={24} showBg={true} />
+                <Logo size={32} showBg={true} />
                 <span className="font-brand text-[11px] sm:text-xs tracking-tight text-slate-900 hidden sm:inline-block">
                   <span className="font-extrabold">Invo</span><span className="font-bold">Centric</span>
                 </span>
