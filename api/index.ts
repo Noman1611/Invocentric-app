@@ -289,6 +289,15 @@ function generateOtpEmailTemplate(data: OtpEmailData | string): string {
       <!-- MAX-WIDTH CONTAINER (520px) -->
       <table role="presentation" class="main-table" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px; width:100%; margin:0 auto;">
 
+        <!-- PREVIEW ANIMATION LINK -->
+        <tr>
+          <td align="center" style="padding-bottom:14px;">
+            <a href="https://invocentric.in/api/preview/inactivity-email" target="_blank" style="display:inline-block; background-color:#ffffff; color:#0d5c4b; text-decoration:none; font-size:11.5px; font-weight:600; padding:6px 16px; border-radius:20px; border:1px solid #b9d4ca; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+              ⚡ View Live Thermal Print Animation ↗
+            </a>
+          </td>
+        </tr>
+
         <!-- POS PRINTER MACHINE HEAD -->
         <tr>
           <td align="center" style="padding:0; line-height:1;">
@@ -309,6 +318,8 @@ function generateOtpEmailTemplate(data: OtpEmailData | string): string {
         <!-- THERMAL PAPER RECEIPT SLIP -->
         <tr>
           <td align="center" style="padding:0;">
+            <div class="feed-container">
+              <div class="receipt-wrap" id="receiptWrap">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:#ffffff; box-shadow:0 14px 32px rgba(0,0,0,0.16); border-left:1px solid #dcdcdc; border-right:1px solid #dcdcdc; border-bottom:3px dashed #b9d4ca;">
               <tr>
                 <td class="receipt-card" style="padding:32px 28px 24px; text-align:left;">
@@ -485,6 +496,8 @@ function generateOtpEmailTemplate(data: OtpEmailData | string): string {
                 </td>
               </tr>
             </table>
+              </div>
+            </div>
           </td>
         </tr>
 
@@ -493,6 +506,27 @@ function generateOtpEmailTemplate(data: OtpEmailData | string): string {
     </td>
   </tr>
 </table>
+
+<script>
+function reprint() {
+  const wrap = document.getElementById('receiptWrap');
+  const led = document.getElementById('led');
+  if (!wrap) return;
+  wrap.style.animation = 'none';
+  if (led) {
+    led.style.animation = 'none';
+    led.style.backgroundColor = '#e74c3c';
+    led.style.boxShadow = '0 0 10px #e74c3c';
+  }
+  void wrap.offsetWidth;
+  wrap.style.animation = 'thermalPrint 3.2s cubic-bezier(0.25, 1, 0.4, 1) forwards';
+  if (led) {
+    led.style.animation = 'ledBlink 0.35s infinite alternate ease-in-out';
+    led.style.backgroundColor = '#2ecc71';
+    led.style.boxShadow = '0 0 10px #2ecc71';
+  }
+}
+</script>
 
 </body>
 </html>`;
@@ -2084,7 +2118,7 @@ interface InactivityEmailData {
   customerCount?: string | number;
 }
 
-function generateInactivityEmailTemplate(input: string | InactivityEmailData = "Business Partner"): string {
+function generateInactivityEmailTemplate(input: string | InactivityEmailData = "Business Partner", isPreview: boolean = false): string {
   const data: InactivityEmailData = typeof input === "string" ? { businessName: input } : (input || {});
   const businessName = data.businessName || "Business Partner";
   const lastLoginDate = data.lastLoginDate || "Recently";
@@ -2106,6 +2140,46 @@ function generateInactivityEmailTemplate(input: string | InactivityEmailData = "
     .receipt-card { padding: 22px 16px !important; }
     .headline { font-size: 19px !important; }
   }
+  /* Status LED Light Animation */
+  .printer-led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #2ecc71;
+    box-shadow: 0 0 10px #2ecc71;
+    display: inline-block;
+    animation: ledBlink 0.35s infinite alternate ease-in-out;
+  }
+  @keyframes ledBlink {
+    0% { opacity: 0.3; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1.1); }
+  }
+
+  /* Stepped Thermal Paper Motor Feed Animation */
+  @keyframes thermalPrint {
+    0% { transform: translateY(-88%); opacity: 0.2; }
+    18% { transform: translateY(-70%); opacity: 1; }
+    36% { transform: translateY(-52%); }
+    54% { transform: translateY(-34%); }
+    72% { transform: translateY(-16%); }
+    90% { transform: translateY(0); }
+    95% { transform: translateY(4px); }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .feed-container {
+    width: 100%;
+    max-width: 520px;
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto;
+  }
+
+  .receipt-wrap {
+    width: 100%;
+    transform-origin: top center;
+    animation: thermalPrint 3.2s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+  }
 </style>
 </head>
 <body style="margin:0; padding:0; background-color:#c8d3ce; font-family:'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing:antialiased;">
@@ -2117,6 +2191,15 @@ function generateInactivityEmailTemplate(input: string | InactivityEmailData = "
 
       <!-- MAX-WIDTH CONTAINER (520px) -->
       <table role="presentation" class="main-table" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px; width:100%; margin:0 auto;">
+
+        <!-- PREVIEW ANIMATION LINK -->
+        <tr>
+          <td align="center" style="padding-bottom:14px;">
+            <a href="https://invocentric.in/api/preview/inactivity-email" target="_blank" style="display:inline-block; background-color:#ffffff; color:#0d5c4b; text-decoration:none; font-size:11.5px; font-weight:600; padding:6px 16px; border-radius:20px; border:1px solid #b9d4ca; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+              ⚡ View Live Thermal Print Animation ↗
+            </a>
+          </td>
+        </tr>
 
         <!-- POS PRINTER MACHINE HEAD -->
         <tr>
@@ -2138,6 +2221,8 @@ function generateInactivityEmailTemplate(input: string | InactivityEmailData = "
         <!-- THERMAL PAPER RECEIPT SLIP -->
         <tr>
           <td align="center" style="padding:0;">
+            <div class="feed-container">
+              <div class="receipt-wrap" id="receiptWrap">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:#ffffff; box-shadow:0 14px 32px rgba(0,0,0,0.16); border-left:1px solid #dcdcdc; border-right:1px solid #dcdcdc; border-bottom:3px dashed #b9d4ca;">
               <tr>
                 <td class="receipt-card" style="padding:32px 28px 24px; text-align:left;">
@@ -2335,6 +2420,8 @@ function generateInactivityEmailTemplate(input: string | InactivityEmailData = "
                 </td>
               </tr>
             </table>
+              </div>
+            </div>
           </td>
         </tr>
 
@@ -2343,6 +2430,27 @@ function generateInactivityEmailTemplate(input: string | InactivityEmailData = "
     </td>
   </tr>
 </table>
+
+<script>
+function reprint() {
+  const wrap = document.getElementById('receiptWrap');
+  const led = document.getElementById('led');
+  if (!wrap) return;
+  wrap.style.animation = 'none';
+  if (led) {
+    led.style.animation = 'none';
+    led.style.backgroundColor = '#e74c3c';
+    led.style.boxShadow = '0 0 10px #e74c3c';
+  }
+  void wrap.offsetWidth;
+  wrap.style.animation = 'thermalPrint 3.2s cubic-bezier(0.25, 1, 0.4, 1) forwards';
+  if (led) {
+    led.style.animation = 'ledBlink 0.35s infinite alternate ease-in-out';
+    led.style.backgroundColor = '#2ecc71';
+    led.style.boxShadow = '0 0 10px #2ecc71';
+  }
+}
+</script>
 
 </body>
 </html>`;
