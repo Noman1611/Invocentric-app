@@ -852,13 +852,15 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
           ) : null}
 
           {/* Responsive Header Bar */}
-          <div className="bg-white border-b border-slate-200/60 sticky top-0 z-50 pt-safe px-3 sm:px-4 md:px-10 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 print:hidden">
+          <div className="bg-[#0D635D] md:bg-white border-b border-[#094742] md:border-slate-200/60 sticky top-0 z-50 pt-safe px-3 sm:px-4 md:px-10 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 print:hidden transition-colors shadow-xs md:shadow-none">
             {/* Left side: Mobile Brand OR Beautiful Desktop Search Bar */}
             <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
-              <div id="mobile-brand-logo" className="md:hidden flex items-center gap-1.5 shrink-0">
-                <Logo size={24} showBg={true} />
-                <span className="font-brand text-[11px] sm:text-xs tracking-tight text-slate-900 hidden sm:inline-block">
-                  <span className="font-extrabold">Invo</span><span className="font-bold">Centric</span>
+              <div id="mobile-brand-logo" className="md:hidden flex items-center gap-2 shrink-0">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center border border-white/30 p-1 backdrop-blur-xs">
+                  <Logo size={20} showBg={false} iconColor="#FFFFFF" />
+                </div>
+                <span className="font-brand text-xs sm:text-sm tracking-tight text-white inline-block">
+                  <span className="font-extrabold text-white">Invo</span><span className="font-bold text-teal-100">Centric</span>
                 </span>
               </div>
               
@@ -881,13 +883,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setAppMode(appMode === 'shop' ? 'freelancer' : 'shop')}
                 className={cn(
-                  "flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 border shrink-0",
-                  appMode === 'shop'
-                    ? "bg-green-50/70 border-green-100 text-green-700 hover:bg-green-100/50"
-                    : "bg-green-50/70 border-green-100 text-green-700 hover:bg-green-100/50"
+                  "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 border shrink-0",
+                  "bg-white/15 border-white/25 text-white hover:bg-white/25 active:scale-95 md:bg-green-50/70 md:border-green-100 md:text-green-700 md:hover:bg-green-100/50"
                 )}
               >
-                {appMode === 'shop' ? <Store size={12} className="text-green-600 shrink-0" /> : <Briefcase size={12} className="text-green-600 shrink-0" />}
+                {appMode === 'shop' ? <Store size={13} className="text-teal-100 md:text-green-600 shrink-0" /> : <Briefcase size={13} className="text-teal-100 md:text-green-600 shrink-0" />}
                 <span className="hidden xs:inline">{appMode === 'shop' ? 'Shop Mode' : 'Freelancer'}</span>
                 <span className="xs:hidden">{appMode === 'shop' ? 'Shop' : 'Free'}</span>
               </button>
@@ -927,17 +927,18 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                   setIsProfileOpen(false);
                 }}
                 className={cn(
-                  "relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-xl transition-all  flex items-center justify-center",
-                  isNotificationsOpen && "bg-slate-50 text-slate-800 border-slate-200 shadow-inner"
+                  "relative p-2 rounded-xl transition-all flex items-center justify-center border",
+                  "text-white hover:bg-white/15 border-white/20 active:scale-95 md:text-slate-500 md:hover:text-slate-800 md:hover:bg-slate-50 md:border-slate-100 md:hover:border-slate-200",
+                  isNotificationsOpen && "bg-white/25 text-white md:bg-slate-50 md:text-slate-800 md:border-slate-200 shadow-inner"
                 )}
               >
                 <Bell size={18} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-white animate-pulse"></span>
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0D635D] md:ring-white animate-pulse"></span>
                 )}
               </button>
 
-              <div className="h-6 w-px bg-slate-200/80 hidden xs:block" />
+              <div className="h-6 w-px bg-white/20 md:bg-slate-200/80 hidden xs:block" />
 
               {/* User Dropdown Profile Pill */}
               <div 
@@ -948,15 +949,16 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                   setIsNotificationsOpen(false);
                 }}
                 className={cn(
-                  "flex items-center gap-3 hover:bg-slate-50/80 p-1.5 rounded-2xl transition-all cursor-pointer border border-transparent select-none",
-                  isProfileOpen && "bg-slate-50/80 border-slate-100 "
+                  "flex items-center gap-3 p-1 rounded-2xl transition-all cursor-pointer border select-none",
+                  "hover:bg-white/15 border-transparent md:hover:bg-slate-50/80 md:p-1.5",
+                  isProfileOpen && "bg-white/20 border-white/30 md:bg-slate-50/80 md:border-slate-100"
                 )}
               >
-                <div className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden border border-slate-200  bg-green-50">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center overflow-hidden border-2 border-white/50 md:border-slate-200 bg-white/20 md:bg-green-50 shadow-xs">
                   {user?.photoURL ? (
                     <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs font-black text-green-600">{user?.displayName?.[0] || 'N'}</span>
+                    <span className="text-xs font-black text-white md:text-green-600">{user?.displayName?.[0] || 'N'}</span>
                   )}
                 </div>
                 <div className="hidden md:block text-left">
@@ -967,7 +969,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                     {planTier === 'pro' ? 'Pro Account' : 'Free Account'}
                   </p>
                 </div>
-                <ChevronDown size={14} className="text-slate-500 hidden sm:block" />
+                <ChevronDown size={14} className="text-white md:text-slate-500 hidden sm:block" />
               </div>
 
               {/* FLOATING NOTIFICATION DROPDOWN */}
