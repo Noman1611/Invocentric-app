@@ -11,6 +11,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { dbService } from '../services/dbService';
 import { setSecureStorage } from '../utils/cryptoUtils';
+import { getStoredUserProfile, saveStoredUserProfile } from '../utils/settingsStorage';
 
 interface SetupWizardProps {
   wizardForm: {

@@ -144,7 +144,7 @@ export default function SettingsPage() {
       setPcDirName(dirHandle.name);
 
       const res = await writeAllDataToPcDirectory(user.uid, dirHandle);
-      if (res.success) {
+      if (res.masterSaved) {
         setPcDirLastBackup(new Date().toISOString());
         alert(`🎉 PC Folder connected successfully!\nBackup saved to: ${dirHandle.name}/invocentric_master_backup.json and daily_backups/`);
       }
@@ -168,11 +168,11 @@ export default function SettingsPage() {
         return;
       }
       const res = await writeAllDataToPcDirectory(user.uid, dirHandle);
-      if (res.success) {
+      if (res.masterSaved) {
         setPcDirLastBackup(new Date().toISOString());
         alert(`✅ Backup saved to PC folder (${dirHandle.name}) successfully!`);
       } else {
-        alert(`Backup failed: ${res.error}`);
+        alert(`Backup failed: Master file could not be saved.`);
       }
     } catch (err: any) {
       console.error("PC directory sync error:", err);

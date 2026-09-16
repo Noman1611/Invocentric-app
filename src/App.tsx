@@ -852,7 +852,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
           ) : null}
 
           {/* Responsive Header Bar */}
-          <div className="bg-white border-b border-slate-200/60 sticky top-0 z-50 px-3 sm:px-4 md:px-10 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 print:hidden">
+          <div className="bg-white border-b border-slate-200/60 sticky top-0 z-50 pt-safe px-3 sm:px-4 md:px-10 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 print:hidden">
             {/* Left side: Mobile Brand OR Beautiful Desktop Search Bar */}
             <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
               <div id="mobile-brand-logo" className="md:hidden flex items-center gap-1.5 shrink-0">
@@ -1709,6 +1709,12 @@ export default function App() {
   return (
       <AuthProvider>
         <BrowserRouter>
+          {/* Mobile Status Bar Notch Safe-Area Filler (Brand Green #0D635D) */}
+          <div 
+            className="fixed top-0 left-0 right-0 z-[99999] bg-[#0D635D] pointer-events-none md:hidden print:hidden" 
+            style={{ height: 'env(safe-area-inset-top, 0px)' }} 
+            aria-hidden="true"
+          />
           <GlobalShortcutsManager />
           <MigrationModal />
           <AutoBackup />

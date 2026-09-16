@@ -33,13 +33,15 @@
 
 @layer base {
   html {
-    background-color: #f8fafc;
+    background-color: #0D635D;
   }
   html, body {
     overflow-x: hidden;
   }
   body {
     @apply bg-slate-50 text-slate-900 font-sans antialiased selection:bg-green-100 selection:text-green-900 transition-colors duration-200;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   h1, h2, h3, h4, h5, h6 {

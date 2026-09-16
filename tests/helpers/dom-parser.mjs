@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const WORKSPACE_ROOT = 'E:\\Original App\\InvoCentic';
+const WORKSPACE_ROOT = process.cwd();
 
 /**
  * Reads a workspace source file safely

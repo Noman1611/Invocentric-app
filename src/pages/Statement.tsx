@@ -1,4 +1,5 @@
 import { getSecureStorage } from "../utils/cryptoUtils";
+import { getStoredUserProfile } from "../utils/settingsStorage";
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";

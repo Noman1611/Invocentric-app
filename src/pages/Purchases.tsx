@@ -1,4 +1,5 @@
 import { getSecureStorage } from "../utils/cryptoUtils";
+import { getStoredUserProfile } from "../utils/settingsStorage";
 import { useState, useMemo } from "react";
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
