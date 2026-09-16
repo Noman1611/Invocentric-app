@@ -1,9 +1,10 @@
 /* eslint-disable */
-const CACHE_NAME = 'invocentric-v1';
+const CACHE_NAME = 'invocentric-v2';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/manifest.webmanifest',
   '/logo.svg',
   '/logo.png',
   '/192x192.png',
