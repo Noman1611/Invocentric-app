@@ -1706,6 +1706,21 @@ import UpgradeModal from './components/UpgradeModal';
 import { GlobalShortcutsManager } from './components/GlobalShortcutsManager';
 
 export default function App() {
+  React.useEffect(() => {
+    // Dynamically enforce theme-color across all matching meta tags
+    const themeColor = '#0D635D';
+    document.querySelectorAll('meta[name="theme-color"]').forEach(el => {
+      el.setAttribute('content', themeColor);
+    });
+
+    // Proactively check for Service Worker updates to clear stale caches
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(reg => reg.update());
+      }).catch(() => {});
+    }
+  }, []);
+
   return (
       <AuthProvider>
         <BrowserRouter>
