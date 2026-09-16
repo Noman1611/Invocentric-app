@@ -1,5 +1,5 @@
 /* eslint-disable */
-const CACHE_NAME = 'invocentric-v2';
+const CACHE_NAME = 'invocentric-v3';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',

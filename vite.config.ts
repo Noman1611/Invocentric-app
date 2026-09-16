@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
           short_name: 'InvoCentric',
           description: 'Invoice & Billing Management App',
           theme_color: '#0D635D',
-          background_color: '#0D635D',
+          background_color: '#ffffff',
           icons: [
             {
               src: 'logo.svg',
