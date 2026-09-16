@@ -1,43 +1,56 @@
-import express from "express";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
-import nodemailer from "nodemailer";
-import crypto from "crypto";
-import dotenv from "dotenv";
-import { GoogleGenAI, Type } from "@google/genai";
-import helmet from "helmet";
-import cors from "cors";
-import rateLimit from "express-rate-limit";
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 
-const _filename = typeof __filename !== "undefined"
-  ? __filename
-  : "";
-
-const _dirname = typeof __dirname !== "undefined"
-  ? __dirname
-  : path.dirname(_filename);
-
-const loadFirebaseConfig = () => {
+// api/index.ts
+var import_express = __toESM(require("express"), 1);
+var import_path = __toESM(require("path"), 1);
+var import_fs = __toESM(require("fs"), 1);
+var import_nodemailer = __toESM(require("nodemailer"), 1);
+var import_crypto = __toESM(require("crypto"), 1);
+var import_dotenv = __toESM(require("dotenv"), 1);
+var import_genai = require("@google/genai");
+var import_helmet = __toESM(require("helmet"), 1);
+var import_cors = __toESM(require("cors"), 1);
+var import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
+var _filename = typeof __filename !== "undefined" ? __filename : "";
+var _dirname = typeof __dirname !== "undefined" ? __dirname : import_path.default.dirname(_filename);
+var loadFirebaseConfig = () => {
   const searchPaths = [
-    path.resolve(_dirname, "../firebase-applet-config.json"),
-    path.resolve(_dirname, "./firebase-applet-config.json"),
-    path.resolve(_dirname, "firebase-applet-config.json"),
-    path.resolve(process.cwd(), "firebase-applet-config.json"),
-    path.resolve(process.cwd(), "api/firebase-applet-config.json")
+    import_path.default.resolve(_dirname, "../firebase-applet-config.json"),
+    import_path.default.resolve(_dirname, "./firebase-applet-config.json"),
+    import_path.default.resolve(_dirname, "firebase-applet-config.json"),
+    import_path.default.resolve(process.cwd(), "firebase-applet-config.json"),
+    import_path.default.resolve(process.cwd(), "api/firebase-applet-config.json")
   ];
-
   for (const p of searchPaths) {
     try {
-      if (fs.existsSync(p)) {
+      if (import_fs.default.existsSync(p)) {
         console.log(`[Firebase Config] Successfully loaded config from: ${p}`);
-        return JSON.parse(fs.readFileSync(p, "utf-8"));
+        return JSON.parse(import_fs.default.readFileSync(p, "utf-8"));
       }
     } catch (err) {
-      // ignore and try next
     }
   }
-
   if (process.env.FIREBASE_CONFIG) {
     try {
       console.log("[Firebase Config] Attempting to load config from process.env.FIREBASE_CONFIG...");
@@ -46,7 +59,6 @@ const loadFirebaseConfig = () => {
       console.error("[Firebase Config] Failed to parse process.env.FIREBASE_CONFIG:", err);
     }
   }
-
   if (process.env.FIREBASE_PROJECT_ID) {
     return {
       projectId: process.env.FIREBASE_PROJECT_ID,
@@ -55,37 +67,26 @@ const loadFirebaseConfig = () => {
       authDomain: process.env.FIREBASE_AUTH_DOMAIN,
       firestoreDatabaseId: process.env.FIREBASE_DATABASE_ID || "ai-studio-35b3a03e-2ff1-43a1-8d12-3b65d45df63e",
       storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+      messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID
     };
   }
-
   throw new Error("Could not find firebase-applet-config.json in any search path and no fallback environment variables are defined.");
 };
-
-const firebaseConfig = loadFirebaseConfig();
-
-dotenv.config();
-
-const isProd = process.env.NODE_ENV === "production" || process.env.VITE_PROD === "true";
-
-// --- CRITICAL ENVIRONMENT VARIABLE VALIDATION ---
+var firebaseConfig = loadFirebaseConfig();
+import_dotenv.default.config();
+var isProd = process.env.NODE_ENV === "production" || process.env.VITE_PROD === "true";
 if (isProd && !process.env.GEMINI_API_KEY) {
   console.warn("WARNING: GEMINI_API_KEY is missing. AI features will fail gracefully.");
 }
-
-const app = express();
+var app = (0, import_express.default)();
 app.set("trust proxy", 1);
-
-// --- AUTOMATIC HTTPS REDIRECTION IN PRODUCTION ---
 app.use((req, res, next) => {
   if (isProd && req.headers["x-forwarded-proto"] && req.headers["x-forwarded-proto"] !== "https") {
     return res.redirect(`https://${req.headers.host}${req.url}`);
   }
   next();
 });
-
-// --- HTTP SECURITY (Helmet & CORS) ---
-app.use(helmet({
+app.use((0, import_helmet.default)({
   contentSecurityPolicy: isProd ? {
     directives: {
       defaultSrc: ["'self'"],
@@ -97,20 +98,19 @@ app.use(helmet({
       frameAncestors: ["'none'"]
     }
   } : false,
-  frameguard: isProd ? { action: 'deny' } : false, // Deny framing in production, allow in dev for AI Studio preview
-  hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false, // Strict-Transport-Security: 1 year (31536000 seconds)
-  crossOriginEmbedderPolicy: false,
+  frameguard: isProd ? { action: "deny" } : false,
+  // Deny framing in production, allow in dev for AI Studio preview
+  hsts: isProd ? { maxAge: 31536e3, includeSubDomains: true, preload: true } : false,
+  // Strict-Transport-Security: 1 year (31536000 seconds)
+  crossOriginEmbedderPolicy: false
 }));
-
-// Restrict CORS in production to specific frontend domains; allow localhost and preview servers
-const allowedOrigins = [
+var allowedOrigins = [
   "https://invocentric.vercel.app",
   "https://invocentric.dev",
   "https://invocentric.in",
   "https://www.invocentric.in"
 ];
-
-app.use(cors({
+app.use((0, import_cors.default)({
   origin: (origin, callback) => {
     if (!origin || !isProd || allowedOrigins.includes(origin) || origin.startsWith("https://ais-dev-") || origin.startsWith("https://ais-pre-") || origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1")) {
       callback(null, true);
@@ -120,156 +120,121 @@ app.use(cors({
   },
   credentials: true
 }));
-
-// --- RATE LIMITING (Abuse Protection) ---
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+var apiLimiter = (0, import_express_rate_limit.default)({
+  windowMs: 15 * 60 * 1e3,
+  // 15 minutes
+  max: 100,
+  // Limit each IP to 100 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
   validate: {
-    xForwardedForHeader: false,
+    xForwardedForHeader: false
   },
-  message: { error: 'Too many requests from this IP, please try again after 15 minutes.' }
+  message: { error: "Too many requests from this IP, please try again after 15 minutes." }
 });
-
-// Dedicated strict rate limiter for authentication/email-sending endpoints (5 attempts/min per IP)
-const authEmailLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5, // Limit 5 attempts per minute
+var authEmailLimiter = (0, import_express_rate_limit.default)({
+  windowMs: 60 * 1e3,
+  // 1 minute
+  max: 5,
+  // Limit 5 attempts per minute
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many action requests. Please wait 1 minute before trying again.' }
+  message: { error: "Too many action requests. Please wait 1 minute before trying again." }
 });
-
-// --- SECURE AUTHENTICATION MIDDLEWARE ---
-// Uses Firebase's secure userinfo token validation to verify active identity context
-async function checkAuth(req: any, res: any, next: any) {
+async function checkAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "UNAUTHORIZED: Missing or invalid authorization credentials." });
   }
-
   const token = authHeader.split(" ")[1];
   if (!token) {
     return res.status(401).json({ error: "UNAUTHORIZED: No access token provided." });
   }
-
   try {
     const apiKey = firebaseConfig.apiKey;
     if (!apiKey) {
       return res.status(500).json({ error: "SERVER_ERROR: Firebase API Key configuration missing." });
     }
-
-    // Securely validate Firebase ID Token with Google ID Token validation API endpoint
     const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken: token }),
+      body: JSON.stringify({ idToken: token })
     });
-
     if (!response.ok) {
       return res.status(401).json({ error: "UNAUTHORIZED: Session expired or invalid signature token." });
     }
-
     const result = await response.json();
     if (!result.users || result.users.length === 0) {
       return res.status(401).json({ error: "UNAUTHORIZED: Validated profile could not be resolved." });
     }
-
-    // Bind authenticated identity securely to request state
     req.user = {
       uid: result.users[0].localId,
       email: result.users[0].email,
       emailVerified: result.users[0].emailVerified,
       idToken: token
     };
-
     next();
   } catch (error) {
     console.error("Token Auth Validation Error:", error);
     return res.status(500).json({ error: "SERVER_ERROR: Security token validation failed." });
   }
 }
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
-// --- STATIC CRAWLER SEO ACCESSIBILITY ROUTES ---
+app.use(import_express.default.json({ limit: "10mb" }));
+app.use(import_express.default.urlencoded({ limit: "10mb", extended: true }));
 app.get("/robots.txt", (req, res) => {
-  const robotsPath = path.resolve(_dirname, "../public/robots.txt");
+  const robotsPath = import_path.default.resolve(_dirname, "../public/robots.txt");
   res.setHeader("Content-Type", "text/plain");
   res.sendFile(robotsPath);
 });
-
 app.get("/sitemap.xml", (req, res) => {
-  const sitemapPath = path.resolve(_dirname, "../public/sitemap.xml");
+  const sitemapPath = import_path.default.resolve(_dirname, "../public/sitemap.xml");
   res.setHeader("Content-Type", "application/xml");
   res.sendFile(sitemapPath);
 });
-
 app.get("/manifest.webmanifest", (req, res) => {
-  const manifestPath = path.resolve(_dirname, "../public/manifest.webmanifest");
+  const manifestPath = import_path.default.resolve(_dirname, "../public/manifest.webmanifest");
   res.setHeader("Content-Type", "application/manifest+json");
   res.sendFile(manifestPath);
 });
-
-// Apply general rate limiter to API routes
 app.use("/api/", apiLimiter);
-
-// Helper function to generate safe unique correlation IDs for error tracking
-function generateCorrelationId(): string {
+function generateCorrelationId() {
   return "ERR-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 }
-
-// API Route for sending emails with rate limit and strict error containment (Protected by checkAuth)
 app.post("/api/send-email", authEmailLimiter, checkAuth, async (req, res) => {
   const { to, subject, html, attachments } = req.body;
-
-  // --- STRICT INPUT VALIDATION & SANITIZATION ---
   if (typeof to !== "string" || !to.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "A valid recipient email address is required." });
   }
   if (typeof subject !== "string" || !subject.trim() || subject.length > 250) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "Subject must be a valid string under 250 characters." });
   }
-  if (typeof html !== "string" || !html.trim() || html.length > 500000) {
+  if (typeof html !== "string" || !html.trim() || html.length > 5e5) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "HTML content must be a valid string under 500,000 characters." });
   }
   if (attachments && (!Array.isArray(attachments) || attachments.length > 10)) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "Attachments must be an array with max 10 files." });
   }
-
   const result = await dispatchEmail({ to, subject, html, attachments });
   if (result.success) {
     res.status(200).json({ success: true });
   } else {
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: "SEND_FAILED",
       message: result.error || "Failed to dispatch email via SMTP."
     });
   }
 });
-
-// --- EMAIL OTP AUTHENTICATION (100% Free, No Billing Required) ---
-const emailOtpStore = new Map<string, { otp: string; expires: number }>();
-
-interface OtpEmailData {
-  otp: string;
-  businessName?: string;
-}
-
-function generateOtpEmailTemplate(data: OtpEmailData | string): string {
-  const otp = typeof data === "string" ? data : (data?.otp || "");
-  const businessName = (typeof data === "object" && data?.businessName) ? data.businessName : "Business Partner";
-
+var emailOtpStore = /* @__PURE__ */ new Map();
+function generateOtpEmailTemplate(data) {
+  const otp = typeof data === "string" ? data : data?.otp || "";
+  const businessName = typeof data === "object" && data?.businessName ? data.businessName : "Business Partner";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>InvoCentric — Authorization Token Slip</title>
+<title>InvoCentric \u2014 Authorization Token Slip</title>
 <style>
   @media only screen and (max-width: 600px) {
     .main-table { width: 100% !important; }
@@ -293,7 +258,7 @@ function generateOtpEmailTemplate(data: OtpEmailData | string): string {
         <tr>
           <td align="center" style="padding-bottom:14px;">
             <a href="https://invocentric.in/api/preview/inactivity-email" target="_blank" style="display:inline-block; background-color:#ffffff; color:#0d5c4b; text-decoration:none; font-size:11.5px; font-weight:600; padding:6px 16px; border-radius:20px; border:1px solid #b9d4ca; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
-              ⚡ View Live Thermal Print Animation ↗
+              \u26A1 View Live Thermal Print Animation \u2197
             </a>
           </td>
         </tr>
@@ -414,7 +379,7 @@ function generateOtpEmailTemplate(data: OtpEmailData | string): string {
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e3f1ec; border:2px dashed #0d5c4b; border-radius:10px; margin:20px 0;">
                     <tr>
                       <td align="center" style="padding:22px 16px;">
-                        <div style="font-size:11px; font-weight:700; color:#0d5c4b; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;">★ ONE-TIME PASSWORD ★</div>
+                        <div style="font-size:11px; font-weight:700; color:#0d5c4b; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;">\u2605 ONE-TIME PASSWORD \u2605</div>
                         <div class="otp-val" style="font-family:'Space Mono', 'Courier New', Courier, monospace; font-size:36px; font-weight:700; letter-spacing:8px; color:#0d5c4b; margin:6px 0 10px 8px;">${otp}</div>
                         <div style="display:inline-block; font-size:10.5px; color:#ffffff; font-weight:600; background-color:#0d5c4b; padding:3px 14px; border-radius:12px;">DO NOT SHARE THIS CODE</div>
                       </td>
@@ -531,89 +496,79 @@ function reprint() {
 </body>
 </html>`;
 }
-
 app.post("/api/auth/send-email-otp", async (req, res) => {
   const { email } = req.body;
   if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Please enter a valid email address." });
   }
-
-  const otp = crypto.randomInt(100000, 1000000).toString();
-  // Valid for full 10 minutes (600,000 ms)
+  const otp = import_crypto.default.randomInt(1e5, 1e6).toString();
   emailOtpStore.set(email.trim().toLowerCase(), {
     otp,
-    expires: Date.now() + 10 * 60 * 1000 
+    expires: Date.now() + 10 * 60 * 1e3
   });
-
   const businessName = email.split("@")[0] || "Business Partner";
   const html = generateOtpEmailTemplate({
     otp,
     businessName
   });
-  const text = `Hi ${businessName},\n\nYour InvoCentric verification code is: ${otp}\n\nThis code is valid for 10 minutes. Do not share this with anyone.\n\n- InvoCentric Team`;
+  const text = `Hi ${businessName},
 
+Your InvoCentric verification code is: ${otp}
+
+This code is valid for 10 minutes. Do not share this with anyone.
+
+- InvoCentric Team`;
   const result = await dispatchEmail({
     to: email.trim(),
     subject: `Your InvoCentric Verification Code: ${otp}`,
     html,
     text
   });
-
   if (result.success) {
     return res.json({ success: true, message: "OTP sent successfully to your email! Valid for 10 minutes." });
   } else {
     console.log(`[Development OTP Fallback] Email: ${email}, OTP: ${otp}`);
-    return res.json({ 
-      success: true, 
-      message: "OTP generated successfully!", 
-      devOtp: otp 
+    return res.json({
+      success: true,
+      message: "OTP generated successfully!",
+      devOtp: otp
     });
   }
 });
-
 app.post("/api/auth/verify-email-otp", async (req, res) => {
   const { email, otp } = req.body;
   if (!email || !otp) {
     return res.status(400).json({ error: "Email and OTP are required." });
   }
-
   const key = email.trim().toLowerCase();
   const record = emailOtpStore.get(key);
-
   if (!record || record.expires < Date.now()) {
     return res.status(400).json({ error: "OTP expired or invalid. Please request a new code." });
   }
-
   if (record.otp !== otp.trim()) {
     return res.status(400).json({ error: "Incorrect verification code. Please try again." });
   }
-
   emailOtpStore.delete(key);
   return res.json({ success: true, email: key });
 });
-
-// --- EMAIL & PASSWORD + OTP AUTHENTICATION SYSTEM ---
-const usersDbPath = path.resolve(process.cwd(), 'users_db.json');
-
-function loadUsersDb(): Record<string, { email: string; passwordHash: string; name: string }> {
+var usersDbPath = import_path.default.resolve(process.cwd(), "users_db.json");
+function loadUsersDb() {
   try {
-    if (fs.existsSync(usersDbPath)) {
-      return JSON.parse(fs.readFileSync(usersDbPath, 'utf-8'));
+    if (import_fs.default.existsSync(usersDbPath)) {
+      return JSON.parse(import_fs.default.readFileSync(usersDbPath, "utf-8"));
     }
   } catch (e) {
     console.error("Error reading users db:", e);
   }
   return {};
 }
-
-function saveUsersDb(db: Record<string, { email: string; passwordHash: string; name: string }>) {
+function saveUsersDb(db) {
   try {
-    fs.writeFileSync(usersDbPath, JSON.stringify(db, null, 2), 'utf-8');
+    import_fs.default.writeFileSync(usersDbPath, JSON.stringify(db, null, 2), "utf-8");
   } catch (e) {
     console.error("Error writing users db:", e);
   }
 }
-
 app.post("/api/auth/check-user", (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email required" });
@@ -621,240 +576,166 @@ app.post("/api/auth/check-user", (req, res) => {
   const exists = !!db[email.trim().toLowerCase()];
   res.json({ exists });
 });
-
 app.post("/api/auth/register-password", async (req, res) => {
   const { email, password, otp } = req.body;
   if (!email || !password || !otp) {
     return res.status(400).json({ error: "Email, password, and OTP are required." });
   }
-
   const key = email.trim().toLowerCase();
   const record = emailOtpStore.get(key);
-
   if (!record || record.expires < Date.now()) {
     return res.status(400).json({ error: "OTP expired or invalid. Please request a new code." });
   }
-
   if (record.otp !== otp.trim()) {
     return res.status(400).json({ error: "Incorrect verification code. Please try again." });
   }
-
   const db = loadUsersDb();
   db[key] = {
     email: key,
     passwordHash: String(password).trim(),
-    name: key.split('@')[0]
+    name: key.split("@")[0]
   };
   saveUsersDb(db);
   emailOtpStore.delete(key);
-
-  return res.json({ 
-    success: true, 
+  return res.json({
+    success: true,
     user: {
-      uid: 'user_' + key.replace(/[^a-zA-Z0-9]/g, '_'),
+      uid: "user_" + key.replace(/[^a-zA-Z0-9]/g, "_"),
       email: key,
-      displayName: key.split('@')[0],
+      displayName: key.split("@")[0],
       emailVerified: true
     }
   });
 });
-
 app.post("/api/auth/login-password", (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required." });
   }
-
   const key = email.trim().toLowerCase();
   const rawPass = String(password).trim();
   const db = loadUsersDb();
   const userRecord = db[key];
-
   if (!userRecord || userRecord.passwordHash !== rawPass) {
     return res.status(400).json({ error: "Invalid email or password. Click 'Forgot password?' to set or reset your password via OTP." });
   }
-
   return res.json({
     success: true,
     user: {
-      uid: 'user_' + key.replace(/[^a-zA-Z0-9]/g, '_'),
+      uid: "user_" + key.replace(/[^a-zA-Z0-9]/g, "_"),
       email: key,
-      displayName: userRecord.name || key.split('@')[0],
+      displayName: userRecord.name || key.split("@")[0],
       emailVerified: true
     }
   });
 });
-
 app.post("/api/auth/reset-password", async (req, res) => {
   const { email, password, otp } = req.body;
   if (!email || !password || !otp) {
     return res.status(400).json({ error: "Email, new password, and OTP are required." });
   }
-
   const key = email.trim().toLowerCase();
   const record = emailOtpStore.get(key);
-
   if (!record || record.expires < Date.now()) {
     return res.status(400).json({ error: "OTP expired or invalid. Please request a new code." });
   }
-
   if (record.otp !== otp.trim()) {
     return res.status(400).json({ error: "Incorrect verification code. Please try again." });
   }
-
   const db = loadUsersDb();
   db[key] = {
     email: key,
     passwordHash: password,
-    name: key.split('@')[0]
+    name: key.split("@")[0]
   };
   saveUsersDb(db);
   emailOtpStore.delete(key);
-
   return res.json({
     success: true,
     user: {
-      uid: 'user_' + key.replace(/[^a-zA-Z0-9]/g, '_'),
+      uid: "user_" + key.replace(/[^a-zA-Z0-9]/g, "_"),
       email: key,
       displayName: db[key].name,
       emailVerified: true
     }
   });
 });
-
-// --- GEMINI INVOICE EXTRACTION ENGINE ---
-let aiClient: GoogleGenAI | null = null;
-
+var aiClient = null;
 function getAI() {
   if (!aiClient) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not set. AI features will not work.");
     }
-    aiClient = new GoogleGenAI({
+    aiClient = new import_genai.GoogleGenAI({
       apiKey,
       httpOptions: {
         headers: {
-          'User-Agent': 'aistudio-build',
+          "User-Agent": "aistudio-build"
         }
       }
     });
   }
   return aiClient;
 }
-
-function safeParseJson(jsonString: string) {
-  try {
-    return JSON.parse(jsonString);
-  } catch (e) {
-    let cleaned = jsonString.trim();
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '').trim();
-    }
-    // Replace unescaped control characters
-    cleaned = cleaned.replace(/[\u0000-\u001F\u007F-\u009F]/g, (match) => {
-      if (match === '\n') return '\\n';
-      if (match === '\r') return '\\r';
-      if (match === '\t') return '\\t';
-      return '';
-    });
-    return JSON.parse(cleaned);
-  }
-}
-function isQuotaOrRateLimitError(error: any): boolean {
-  const errMessage = (typeof error?.message === 'string' ? error.message : JSON.stringify(error || '')).toLowerCase();
+function isQuotaOrRateLimitError(error) {
+  const errMessage = (typeof error?.message === "string" ? error.message : JSON.stringify(error || "")).toLowerCase();
   const errStatus = String(error?.status || error?.error?.status || "").toLowerCase();
   const errCode = String(error?.code || error?.status || error?.error?.code || "");
-  
-  return (
-    errMessage.includes("resource_exhausted") ||
-    errMessage.includes("quota exceeded") ||
-    errMessage.includes("rate exceeded") ||
-    errMessage.includes("rate limit") ||
-    errMessage.includes("limit exceeded") ||
-    errMessage.includes("429") ||
-    errStatus.includes("resource_exhausted") ||
-    errCode === "429"
-  );
+  return errMessage.includes("resource_exhausted") || errMessage.includes("quota exceeded") || errMessage.includes("rate exceeded") || errMessage.includes("rate limit") || errMessage.includes("limit exceeded") || errMessage.includes("429") || errStatus.includes("resource_exhausted") || errCode === "429";
 }
-
-async function generateContentWithRetry(aiInstance: GoogleGenAI, params: any, maxRetries = 3) {
-  let lastError: any = null;
-  // Dynamic fallback hierarchy: requested model -> gemini-3.7-flash -> gemini-2.5-flash -> gemini-2.5-pro -> gemini-1.5-flash -> gemini-3.1-flash-lite
+async function generateContentWithRetry(aiInstance, params, maxRetries = 3) {
+  let lastError = null;
   const initialModel = params.model || "gemini-3.6-flash";
   const candidateModels = [initialModel, "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.7-flash", "gemini-2.5-pro", "gemini-1.5-flash"];
   const modelsToTry = Array.from(new Set(candidateModels));
-
   for (const model of modelsToTry) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`[AI Request] Attempting with model: ${model} (Attempt ${attempt}/${maxRetries})...`);
         const response = await aiInstance.models.generateContent({
           ...params,
-          model: model
+          model
         });
         console.log(`[AI Request] Success with model: ${model}`);
         return response;
-      } catch (err: any) {
+      } catch (err) {
         lastError = err;
-        const errMessage = typeof err?.message === 'string' ? err.message : JSON.stringify(err || '');
+        const errMessage = typeof err?.message === "string" ? err.message : JSON.stringify(err || "");
         const errStatus = String(err?.status || err?.error?.status || "");
         const errCode = String(err?.code || err?.status || err?.error?.code || "");
-
         console.warn(`[AI Request] Attempt ${attempt} failed for model ${model}:`, errMessage);
-
         const lowerMessage = errMessage.toLowerCase();
         const lowerStatus = String(errStatus).toLowerCase();
-        const isTransient = 
-          lowerMessage.includes("503") || 
-          lowerMessage.includes("unavailable") || 
-          lowerMessage.includes("429") || 
-          lowerMessage.includes("resource_exhausted") ||
-          lowerMessage.includes("quota exceeded") ||
-          lowerMessage.includes("rate exceeded") ||
-          lowerMessage.includes("rate limit") ||
-          lowerMessage.includes("limit exceeded") ||
-          lowerMessage.includes("high demand") ||
-          lowerStatus.includes("unavailable") ||
-          lowerStatus.includes("resource_exhausted") ||
-          errCode === "503" ||
-          errCode === "429";
-
+        const isTransient = lowerMessage.includes("503") || lowerMessage.includes("unavailable") || lowerMessage.includes("429") || lowerMessage.includes("resource_exhausted") || lowerMessage.includes("quota exceeded") || lowerMessage.includes("rate exceeded") || lowerMessage.includes("rate limit") || lowerMessage.includes("limit exceeded") || lowerMessage.includes("high demand") || lowerStatus.includes("unavailable") || lowerStatus.includes("resource_exhausted") || errCode === "503" || errCode === "429";
         if (isTransient) {
           if (attempt < maxRetries) {
             const delay = attempt * 1200 + Math.floor(Math.random() * 600);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await new Promise((resolve) => setTimeout(resolve, delay));
             continue;
           } else {
-            // Move on to next model in hierarchy on persistent 503/429
             console.warn(`[AI Request] Model ${model} unavailable after ${maxRetries} attempts, attempting fallback model if available...`);
             break;
           }
         } else {
-          // Non-transient error for this model, try fallback
           break;
         }
       }
     }
   }
-
   throw lastError;
 }
-
-// --- FIRESTORE USER DOCUMENT CHECKER ---
-async function fetchUserDoc(uid: string, idToken?: string): Promise<any> {
+async function fetchUserDoc(uid, idToken) {
   const projectId = firebaseConfig.projectId;
   const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
   const apiKey = firebaseConfig.apiKey;
   const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${uid}?key=${apiKey}`;
-  
-  const headers: Record<string, string> = {
+  const headers = {
     "Content-Type": "application/json"
   };
   if (idToken) {
     headers["Authorization"] = `Bearer ${idToken}`;
   }
-
   try {
     const res = await fetch(url, { headers });
     if (!res.ok) {
@@ -868,28 +749,21 @@ async function fetchUserDoc(uid: string, idToken?: string): Promise<any> {
     return null;
   }
 }
-
-async function isUserPro(uid: string, email?: string, idToken?: string): Promise<boolean> {
+async function isUserPro(uid, email, idToken) {
   if (email && email.toLowerCase() === "nomanshaikh1999@gmail.com") {
     return true;
   }
-  
   const userDoc = await fetchUserDoc(uid, idToken);
   if (!userDoc || !userDoc.fields) return false;
-  
   const plan = userDoc.fields.plan?.stringValue;
   const role = userDoc.fields.role?.stringValue;
-  
   if (plan === "pro" || role === "owner") {
     return true;
   }
   return false;
 }
-
 app.post("/api/extract-invoice", checkAuth, async (req, res) => {
   const { base64Image, mimeType } = req.body;
-
-  // --- STRICT INPUT VALIDATION & SANITIZATION ---
   if (!base64Image || !mimeType) {
     return res.status(400).json({ error: "Missing base64Image or mimeType in request body." });
   }
@@ -900,23 +774,19 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
   if (!allowedMimeTypes.includes(mimeType.toLowerCase())) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "Unsupported file type. Only JPEG, PNG, WEBP, GIF, and PDF are supported." });
   }
-  if (base64Image.length > 20000000) {
+  if (base64Image.length > 2e7) {
     return res.status(413).json({ error: "INVALID_INPUT", message: "File payload exceeds size limit (max 15MB)." });
   }
-
   try {
-    // Backend billing guard
-    const isPro = await isUserPro((req as any).user.uid, (req as any).user.email, (req as any).user.idToken);
+    const isPro = await isUserPro(req.user.uid, req.user.email, req.user.idToken);
     if (!isPro) {
-      return res.status(403).json({ 
-        error: "FORBIDDEN_LIMIT_REACHED", 
-        message: "AI Scan is a Pro Plan feature. Please upgrade your plan." 
+      return res.status(403).json({
+        error: "FORBIDDEN_LIMIT_REACHED",
+        message: "AI Scan is a Pro Plan feature. Please upgrade your plan."
       });
     }
-
     const aiInstance = getAI();
     const prompt = "Extract complete invoice information from this purchase invoice or supplier bill image. Extract header fields (invoiceNo, invoiceDate, supplierBillNo, dueDate, supplierName, supplierGst, supplierPhone, supplierAddress), item table rows (description, hsn, barcode, batchNo, serialNo, quantity, rate, gstPercent, amount), and totals (subTotal, discount, taxableAmount, cgst, sgst, roundOff, totalAmount). Ensure the output is valid JSON.";
-
     const response = await generateContentWithRetry(aiInstance, {
       model: "gemini-3.6-flash",
       contents: [{
@@ -929,40 +799,40 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: import_genai.Type.OBJECT,
           properties: {
-            customerName: { type: Type.STRING },
-            supplierName: { type: Type.STRING },
-            supplierGst: { type: Type.STRING },
-            supplierPhone: { type: Type.STRING },
-            supplierAddress: { type: Type.STRING },
-            invoiceNo: { type: Type.STRING },
-            invoiceDate: { type: Type.STRING },
-            supplierBillNo: { type: Type.STRING },
-            dueDate: { type: Type.STRING },
-            currency: { type: Type.STRING },
-            subTotal: { type: Type.NUMBER },
-            discount: { type: Type.NUMBER },
-            taxableAmount: { type: Type.NUMBER },
-            cgst: { type: Type.NUMBER },
-            sgst: { type: Type.NUMBER },
-            roundOff: { type: Type.NUMBER },
-            totalAmount: { type: Type.NUMBER },
+            customerName: { type: import_genai.Type.STRING },
+            supplierName: { type: import_genai.Type.STRING },
+            supplierGst: { type: import_genai.Type.STRING },
+            supplierPhone: { type: import_genai.Type.STRING },
+            supplierAddress: { type: import_genai.Type.STRING },
+            invoiceNo: { type: import_genai.Type.STRING },
+            invoiceDate: { type: import_genai.Type.STRING },
+            supplierBillNo: { type: import_genai.Type.STRING },
+            dueDate: { type: import_genai.Type.STRING },
+            currency: { type: import_genai.Type.STRING },
+            subTotal: { type: import_genai.Type.NUMBER },
+            discount: { type: import_genai.Type.NUMBER },
+            taxableAmount: { type: import_genai.Type.NUMBER },
+            cgst: { type: import_genai.Type.NUMBER },
+            sgst: { type: import_genai.Type.NUMBER },
+            roundOff: { type: import_genai.Type.NUMBER },
+            totalAmount: { type: import_genai.Type.NUMBER },
             items: {
-              type: Type.ARRAY,
+              type: import_genai.Type.ARRAY,
               items: {
-                type: Type.OBJECT,
+                type: import_genai.Type.OBJECT,
                 properties: {
-                  description: { type: Type.STRING },
-                  hsn: { type: Type.STRING },
-                  barcode: { type: Type.STRING },
-                  batchNo: { type: Type.STRING },
-                  serialNo: { type: Type.STRING },
-                  quantity: { type: Type.NUMBER },
-                  rate: { type: Type.NUMBER },
-                  price: { type: Type.NUMBER },
-                  gstPercent: { type: Type.NUMBER },
-                  amount: { type: Type.NUMBER }
+                  description: { type: import_genai.Type.STRING },
+                  hsn: { type: import_genai.Type.STRING },
+                  barcode: { type: import_genai.Type.STRING },
+                  batchNo: { type: import_genai.Type.STRING },
+                  serialNo: { type: import_genai.Type.STRING },
+                  quantity: { type: import_genai.Type.NUMBER },
+                  rate: { type: import_genai.Type.NUMBER },
+                  price: { type: import_genai.Type.NUMBER },
+                  gstPercent: { type: import_genai.Type.NUMBER },
+                  amount: { type: import_genai.Type.NUMBER }
                 },
                 required: ["description", "quantity"]
               }
@@ -972,15 +842,13 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
         }
       }
     });
-
     const text = response.text;
     if (!text) {
       throw new Error("No data returned from AI");
     }
-
     const data = JSON.parse(text);
     res.status(200).json(data);
-  } catch (error: any) {
+  } catch (error) {
     const correlationId = generateCorrelationId();
     console.error(`[${correlationId}] AI Extraction Error server-side:`, error);
     if (isQuotaOrRateLimitError(error)) {
@@ -988,22 +856,19 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
         success: false,
         error: "QUOTA_EXCEEDED",
         message: "Your request hit Gemini API's rate limits or daily quota. Please wait a minute or try again later. For permanent high-volume access, consider attaching a custom billing key in the application settings.",
-        correlationId: correlationId
+        correlationId
       });
     }
-    res.status(500).json({ 
-      success: false, 
-      error: "EXTRACTION_FAILED", 
+    res.status(500).json({
+      success: false,
+      error: "EXTRACTION_FAILED",
       message: "Failed to extract invoice data. Please verify the image size or quality and try again.",
-      correlationId: correlationId
+      correlationId
     });
   }
 });
-
 app.post("/api/extract-product", checkAuth, async (req, res) => {
   const { base64Image, mimeType } = req.body;
-
-  // --- STRICT INPUT VALIDATION & SANITIZATION ---
   if (!base64Image || !mimeType) {
     return res.status(400).json({ error: "Missing base64Image or mimeType in request body." });
   }
@@ -1014,10 +879,9 @@ app.post("/api/extract-product", checkAuth, async (req, res) => {
   if (!allowedMimeTypes.includes(mimeType.toLowerCase())) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "Unsupported file type. Only JPEG, PNG, WEBP, and GIF are supported." });
   }
-  if (base64Image.length > 20000000) {
+  if (base64Image.length > 2e7) {
     return res.status(413).json({ error: "INVALID_INPUT", message: "File payload exceeds size limit (max 15MB)." });
   }
-
   try {
     const aiInstance = getAI();
     const prompt = `Analyze this product packaging, label, or product image and extract ALL product catalog details accurately. Inspect all visible text, price marks, nutrition/spec tables, batch codes, and barcode stripes.
@@ -1026,8 +890,8 @@ Extract:
 2. brand: Brand or manufacturer name.
 3. category: Product category (e.g. Grocery, Snacks, Electronics, Personal Care, Dairy, Stationery, Hardware, Beverages, Medicine, Fashion, etc.).
 4. barcode: Barcode or UPC / EAN-13 / GTIN digits. Look carefully at any barcode stripes on the packaging and extract the complete digits printed directly under or beside the barcode lines. If not visible, return empty string.
-5. mrp: Maximum Retail Price (₹ / MRP) printed on packaging or label. Number only.
-6. price: Selling price / retail price (₹) if stated or reasonable price (default to MRP if only MRP is present).
+5. mrp: Maximum Retail Price (\u20B9 / MRP) printed on packaging or label. Number only.
+6. price: Selling price / retail price (\u20B9) if stated or reasonable price (default to MRP if only MRP is present).
 7. wholesalePrice: Wholesale / bulk price if stated, otherwise 0.
 8. costPrice: Purchase or cost price if stated, otherwise 0.
 9. discount: Discount percentage (%) if stated on packaging (e.g. '20% OFF' -> 20), otherwise 0.
@@ -1040,7 +904,6 @@ Extract:
 16. custom_box: Batch Number, Expiry Date, or Manufacturing Date if printed (e.g. 'Batch: B102 | Exp: 12/2026').
 17. description: Short, clear description of the product and its features.
 Ensure the response is valid JSON matching the schema.`;
-
     const response = await generateContentWithRetry(aiInstance, {
       model: "gemini-3.6-flash",
       contents: [{
@@ -1053,39 +916,37 @@ Ensure the response is valid JSON matching the schema.`;
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: import_genai.Type.OBJECT,
           properties: {
-            name: { type: Type.STRING },
-            brand: { type: Type.STRING },
-            category: { type: Type.STRING },
-            barcode: { type: Type.STRING },
-            mrp: { type: Type.NUMBER },
-            price: { type: Type.NUMBER },
-            wholesalePrice: { type: Type.NUMBER },
-            costPrice: { type: Type.NUMBER },
-            discount: { type: Type.NUMBER },
-            hsn: { type: Type.STRING },
-            unit: { type: Type.STRING },
-            size: { type: Type.STRING },
-            stock: { type: Type.NUMBER },
-            serialNumber: { type: Type.STRING },
-            custom_box: { type: Type.STRING },
-            gstPercent: { type: Type.NUMBER },
-            description: { type: Type.STRING }
+            name: { type: import_genai.Type.STRING },
+            brand: { type: import_genai.Type.STRING },
+            category: { type: import_genai.Type.STRING },
+            barcode: { type: import_genai.Type.STRING },
+            mrp: { type: import_genai.Type.NUMBER },
+            price: { type: import_genai.Type.NUMBER },
+            wholesalePrice: { type: import_genai.Type.NUMBER },
+            costPrice: { type: import_genai.Type.NUMBER },
+            discount: { type: import_genai.Type.NUMBER },
+            hsn: { type: import_genai.Type.STRING },
+            unit: { type: import_genai.Type.STRING },
+            size: { type: import_genai.Type.STRING },
+            stock: { type: import_genai.Type.NUMBER },
+            serialNumber: { type: import_genai.Type.STRING },
+            custom_box: { type: import_genai.Type.STRING },
+            gstPercent: { type: import_genai.Type.NUMBER },
+            description: { type: import_genai.Type.STRING }
           },
           required: ["name"]
         }
       }
     });
-
     const text = response.text;
     if (!text) {
       throw new Error("No data returned from AI");
     }
-
     const data = JSON.parse(text);
     res.status(200).json(data);
-  } catch (error: any) {
+  } catch (error) {
     const correlationId = generateCorrelationId();
     console.error(`[${correlationId}] AI Product Extraction Error server-side:`, error);
     if (isQuotaOrRateLimitError(error)) {
@@ -1093,33 +954,28 @@ Ensure the response is valid JSON matching the schema.`;
         success: false,
         error: "QUOTA_EXCEEDED",
         message: "Gemini API rate limit reached. Please try again in a moment.",
-        correlationId: correlationId
+        correlationId
       });
     }
-    res.status(500).json({ 
-      success: false, 
-      error: "EXTRACTION_FAILED", 
+    res.status(500).json({
+      success: false,
+      error: "EXTRACTION_FAILED",
       message: "Failed to extract product data from image.",
-      correlationId: correlationId
+      correlationId
     });
   }
 });
-
 app.post("/api/parse-contact", checkAuth, async (req, res) => {
   const { text } = req.body;
-  
-  // --- STRICT INPUT VALIDATION & SANITIZATION ---
   if (!text) {
     return res.status(400).json({ error: "Missing text in request body." });
   }
-  if (typeof text !== "string" || text.length > 10000) {
+  if (typeof text !== "string" || text.length > 1e4) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "Text must be a valid string under 10,000 characters." });
   }
-
   try {
     const aiInstance = getAI();
     const prompt = "Extract contact information from this transcript. Return data for name, phone, company_name, email, address, and gst_number. Return empty strings for any missing fields.";
-
     const response = await generateContentWithRetry(aiInstance, {
       model: "gemini-3.6-flash",
       contents: [{
@@ -1129,27 +985,25 @@ app.post("/api/parse-contact", checkAuth, async (req, res) => {
       config: {
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
+          type: import_genai.Type.OBJECT,
           properties: {
-            name: { type: Type.STRING },
-            phone: { type: Type.STRING },
-            company_name: { type: Type.STRING },
-            email: { type: Type.STRING },
-            address: { type: Type.STRING },
-            gst_number: { type: Type.STRING }
+            name: { type: import_genai.Type.STRING },
+            phone: { type: import_genai.Type.STRING },
+            company_name: { type: import_genai.Type.STRING },
+            email: { type: import_genai.Type.STRING },
+            address: { type: import_genai.Type.STRING },
+            gst_number: { type: import_genai.Type.STRING }
           }
         }
       }
     });
-
     const resultText = response.text;
     if (!resultText) {
       throw new Error("No data returned from AI");
     }
-
     const data = JSON.parse(resultText);
     res.status(200).json(data);
-  } catch (error: any) {
+  } catch (error) {
     const correlationId = generateCorrelationId();
     console.error(`[${correlationId}] AI Parse Contact Error server-side:`, error);
     if (isQuotaOrRateLimitError(error)) {
@@ -1157,52 +1011,44 @@ app.post("/api/parse-contact", checkAuth, async (req, res) => {
         success: false,
         error: "QUOTA_EXCEEDED",
         message: "Your request hit Gemini API's rate limits or daily quota. Please wait a minute or try again later. For permanent high-volume access, consider attaching a custom billing key in the application settings.",
-        correlationId: correlationId
+        correlationId
       });
     }
-    res.status(500).json({ 
-      success: false, 
-      error: "PARSE_FAILED", 
+    res.status(500).json({
+      success: false,
+      error: "PARSE_FAILED",
       message: "Failed to parse contact data.",
-      correlationId: correlationId
+      correlationId
     });
   }
 });
-
-// --- TELEGRAM SECURE ADMIN NOTIFICATION ENGINE ---
-const processedTelegramEvents = new Set<string>();
-
-function markEventProcessed(eventId: string): boolean {
+var processedTelegramEvents = /* @__PURE__ */ new Set();
+function markEventProcessed(eventId) {
   if (processedTelegramEvents.has(eventId)) {
-    return true; // Duplicate detected!
+    return true;
   }
-  if (processedTelegramEvents.size > 2000) {
+  if (processedTelegramEvents.size > 2e3) {
     const firstItem = processedTelegramEvents.values().next().value;
     if (firstItem) processedTelegramEvents.delete(firstItem);
   }
   processedTelegramEvents.add(eventId);
   return false;
 }
-
-async function sendTelegramAdminNotification(messageText: string, eventId?: string): Promise<{ success: boolean; error?: string }> {
+async function sendTelegramAdminNotification(messageText, eventId) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
-
   if (!botToken || !chatId) {
     console.log("[Telegram] TELEGRAM_BOT_TOKEN or TELEGRAM_ADMIN_CHAT_ID not configured in environment variables. Skipping Telegram notification.");
     return { success: false, error: "Telegram credentials missing" };
   }
-
   if (eventId && markEventProcessed(eventId)) {
     console.log(`[Telegram] Duplicate event ID detected (${eventId}). Skipping duplicate message.`);
     return { success: true };
   }
-
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
   const doRequest = async () => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000); // 6s timeout
+    const timeout = setTimeout(() => controller.abort(), 6e3);
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -1221,15 +1067,13 @@ async function sendTelegramAdminNotification(messageText: string, eventId?: stri
       throw err;
     }
   };
-
   try {
     let res = await doRequest();
     if (!res.ok) {
       console.warn(`[Telegram] First attempt returned status ${res.status}. Retrying in 1s...`);
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1e3));
       res = await doRequest();
     }
-
     if (res.ok) {
       console.log("[Telegram] Notification sent successfully to admin chat ID.");
       return { success: true };
@@ -1238,28 +1082,22 @@ async function sendTelegramAdminNotification(messageText: string, eventId?: stri
       console.error(`[Telegram] API error (HTTP ${res.status}):`, text);
       return { success: false, error: `Telegram HTTP ${res.status}` };
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error("[Telegram] Network exception while sending notification:", err.message || err);
     return { success: false, error: err.message || "Network error" };
   }
 }
-
-// --- USER LOGIN TELEGRAM NOTIFICATION ROUTE ---
 app.post("/api/notify-login", authEmailLimiter, checkAuth, async (req, res) => {
-  const user = (req as any).user;
+  const user = req.user;
   const userId = user.uid;
   const userEmail = user.email || "Unknown Email";
   const idToken = user.idToken;
-
   try {
-    // Deduplicate rapid session calls within a 15-minute window for the same user
-    const timeBucket = Math.floor(Date.now() / (15 * 60 * 1000));
+    const timeBucket = Math.floor(Date.now() / (15 * 60 * 1e3));
     const eventId = `login_${userId}_${timeBucket}`;
-
     const userDoc = await fetchUserDoc(userId, idToken);
-    const userName = userDoc?.fields?.display_name?.stringValue || userEmail.split('@')[0] || "User";
-
-    const localDateAndTime = new Date().toLocaleString("en-IN", {
+    const userName = userDoc?.fields?.display_name?.stringValue || userEmail.split("@")[0] || "User";
+    const localDateAndTime = (/* @__PURE__ */ new Date()).toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
       day: "2-digit",
       month: "short",
@@ -1268,52 +1106,54 @@ app.post("/api/notify-login", authEmailLimiter, checkAuth, async (req, res) => {
       minute: "2-digit",
       hour12: true
     });
+    const telegramMessage = `\u{1F510} NEW USER LOGIN
 
-    const telegramMessage = `🔐 NEW USER LOGIN\n\n👤 User: ${userName}\n📧 Email: ${userEmail}\n🕒 Login Time: ${localDateAndTime}`;
-
-    // Dispatch Telegram notification safely in background
+\u{1F464} User: ${userName}
+\u{1F4E7} Email: ${userEmail}
+\u{1F552} Login Time: ${localDateAndTime}`;
     const telegramResult = await sendTelegramAdminNotification(telegramMessage, eventId);
-
     res.status(200).json({
       success: true,
       telegram: telegramResult
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Login notification route error:", error);
-    // Return 200 so login flow is never broken
     res.status(200).json({ success: false, error: error.message });
   }
 });
-
-// --- ADMIN NOTIFICATION DISPATCH ENGINE FOR PENDING UPI PAYMENTS ---
 app.post("/api/subscription/notify-pending", authEmailLimiter, checkAuth, async (req, res) => {
   const { amount, billingCycle, upiId } = req.body;
-  const user = (req as any).user;
+  const user = req.user;
   const userId = user.uid;
   const idToken = user.idToken;
   const userEmail = user.email || "Unknown Email";
-
   if (!amount || !billingCycle || !upiId) {
     return res.status(400).json({ error: "Missing subscription details." });
   }
-
   const adminEmail = "nomanshaikh1999@gmail.com";
-  const notificationText = `🚨 *InvoCentric Alert* 🚨\n\nNew UPI Subscription payment submitted for verification!\n\nUser: ${userEmail}\nPlan Cycle: ${billingCycle.toUpperCase()}\nAmount: ₹${amount}\nUPI ID / UTR Ref No: ${upiId}\n\nPlease match this with your SBI Yono App/Account and approve/reject it in the Admin Panel.\n\nAdmin Panel: https://invocentric.in/admin`;
+  const notificationText = `\u{1F6A8} *InvoCentric Alert* \u{1F6A8}
 
+New UPI Subscription payment submitted for verification!
+
+User: ${userEmail}
+Plan Cycle: ${billingCycle.toUpperCase()}
+Amount: \u20B9${amount}
+UPI ID / UTR Ref No: ${upiId}
+
+Please match this with your SBI Yono App/Account and approve/reject it in the Admin Panel.
+
+Admin Panel: https://invocentric.in/admin`;
   const results = {
     email: false,
     whatsappCallMeBot: false,
     twilio: false,
-    telegram: { success: false } as any,
-    errors: [] as string[]
+    telegram: { success: false },
+    errors: []
   };
-
-  // 1. Dispatch Telegram Notification Alert
   try {
     const userDoc = await fetchUserDoc(userId, idToken);
-    const userName = userDoc?.fields?.display_name?.stringValue || userEmail.split('@')[0] || "User";
-
-    const localDateAndTime = new Date().toLocaleString("en-IN", {
+    const userName = userDoc?.fields?.display_name?.stringValue || userEmail.split("@")[0] || "User";
+    const localDateAndTime = (/* @__PURE__ */ new Date()).toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
       day: "2-digit",
       month: "short",
@@ -1322,27 +1162,30 @@ app.post("/api/subscription/notify-pending", authEmailLimiter, checkAuth, async 
       minute: "2-digit",
       hour12: true
     });
-
     const planName = billingCycle === "yearly" ? "InvoCentric Pro (Yearly)" : "InvoCentric Pro (Monthly)";
+    const telegramMessage = `\u{1F4B3} NEW PRO PLAN PAYMENT REQUEST
 
-    const telegramMessage = `💳 NEW PRO PLAN PAYMENT REQUEST\n\n👤 User: ${userName}\n📧 Email: ${userEmail}\n📦 Plan: ${planName}\n💰 Amount: ₹${amount}\n🧾 Transaction ID: ${upiId}\n🕒 Submitted: ${localDateAndTime}\n📌 Status: Pending Admin Approval`;
-
+\u{1F464} User: ${userName}
+\u{1F4E7} Email: ${userEmail}
+\u{1F4E6} Plan: ${planName}
+\u{1F4B0} Amount: \u20B9${amount}
+\u{1F9FE} Transaction ID: ${upiId}
+\u{1F552} Submitted: ${localDateAndTime}
+\u{1F4CC} Status: Pending Admin Approval`;
     const eventId = `payment_${userId}_${upiId}`;
     results.telegram = await sendTelegramAdminNotification(telegramMessage, eventId);
-  } catch (tgErr: any) {
+  } catch (tgErr) {
     console.error("Failed to send Telegram admin notification:", tgErr);
     results.errors.push(`Telegram Error: ${tgErr.message || tgErr}`);
   }
-
-  // 1. Send Email Notification via SMTP
   try {
     const emailRes = await dispatchEmail({
       to: adminEmail,
-      subject: `🚨 ACTION REQUIRED: UPI Subscription Verification (₹${amount}) - Ref: ${upiId}`,
+      subject: `\u{1F6A8} ACTION REQUIRED: UPI Subscription Verification (\u20B9${amount}) - Ref: ${upiId}`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
           <div style="text-align: center; margin-bottom: 24px;">
-            <span style="font-size: 40px;">🚨</span>
+            <span style="font-size: 40px;">\u{1F6A8}</span>
             <h2 style="font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: -0.025em; color: #0f172a; margin-top: 12px; margin-bottom: 4px;">Pending UPI Verification</h2>
             <p style="font-size: 13px; color: #64748b; font-weight: 600; margin: 0;">InvoCentric Admin Alert Engine</p>
           </div>
@@ -1359,7 +1202,7 @@ app.post("/api/subscription/notify-pending", authEmailLimiter, checkAuth, async 
               </tr>
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 8px 0; color: #64748b; font-weight: 500;">Amount Due:</td>
-                <td style="padding: 8px 0; color: #10b981; font-weight: 800; text-align: right;">₹${amount}</td>
+                <td style="padding: 8px 0; color: #10b981; font-weight: 800; text-align: right;">\u20B9${amount}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #64748b; font-weight: 500;">UTR / UPI ID Ref No:</td>
@@ -1369,7 +1212,7 @@ app.post("/api/subscription/notify-pending", authEmailLimiter, checkAuth, async 
           </div>
           
           <p style="font-size: 13px; line-height: 1.6; color: #475569; margin-bottom: 24px;">
-            Please open your <strong>State Bank of India (SBI)</strong> account or check your SMS transactions to verify if ₹${amount} was received matching transaction reference <strong>${upiId}</strong>.
+            Please open your <strong>State Bank of India (SBI)</strong> account or check your SMS transactions to verify if \u20B9${amount} was received matching transaction reference <strong>${upiId}</strong>.
           </p>
           
           <div style="text-align: center;">
@@ -1383,17 +1226,15 @@ app.post("/api/subscription/notify-pending", authEmailLimiter, checkAuth, async 
     } else {
       results.errors.push(`Email Alert Error: ${emailRes.error}`);
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error("Failed to send admin alert email:", err);
     results.errors.push(`Email Error: ${err.message || err}`);
   }
-
-  // 2. CallMeBot WhatsApp Integration (Free, personal developer gateway)
   const callMeBotKey = process.env.CALLMEBOT_WHATSAPP_API_KEY;
   const adminPhone = process.env.ADMIN_PHONE_NUMBER;
   if (callMeBotKey && adminPhone) {
     try {
-      const cleanPhone = adminPhone.replace(/\+/g, '').replace(/\s/g, '');
+      const cleanPhone = adminPhone.replace(/\+/g, "").replace(/\s/g, "");
       const url = `https://api.callmebot.com/whatsapp.php?phone=${cleanPhone}&text=${encodeURIComponent(notificationText)}&apikey=${callMeBotKey}`;
       const response = await fetch(url);
       if (response.ok) {
@@ -1402,22 +1243,19 @@ app.post("/api/subscription/notify-pending", authEmailLimiter, checkAuth, async 
         const text = await response.text();
         results.errors.push(`CallMeBot Error: status ${response.status}, ${text}`);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to send WhatsApp alert via CallMeBot:", err);
       results.errors.push(`CallMeBot Connection Error: ${err.message || err}`);
     }
   }
-
-  // 3. Twilio SMS / WhatsApp Integration (Professional gateway)
   const twilioSid = process.env.TWILIO_ACCOUNT_SID;
   const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
   const twilioFrom = process.env.TWILIO_FROM_NUMBER;
   if (twilioSid && twilioAuthToken && twilioFrom && adminPhone) {
     try {
-      const authHeader = Buffer.from(`${twilioSid}:${twilioAuthToken}`).toString('base64');
-      const isWhatsApp = twilioFrom.startsWith('whatsapp:');
+      const authHeader = Buffer.from(`${twilioSid}:${twilioAuthToken}`).toString("base64");
+      const isWhatsApp = twilioFrom.startsWith("whatsapp:");
       const toPhone = isWhatsApp ? `whatsapp:${adminPhone}` : adminPhone;
-      
       const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
         method: "POST",
         headers: {
@@ -1430,44 +1268,34 @@ app.post("/api/subscription/notify-pending", authEmailLimiter, checkAuth, async 
           Body: notificationText
         })
       });
-
       if (response.ok) {
         results.twilio = true;
       } else {
         const json = await response.json();
         results.errors.push(`Twilio Error: ${json.message || JSON.stringify(json)}`);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to send Twilio notification:", err);
       results.errors.push(`Twilio API Error: ${err.message || err}`);
     }
   }
-
   res.status(200).json({ success: true, results });
 });
-
-// --- AUTOMATIC PAYMENT RECEIPT GENERATION & EMAIL DELIVERY ON SUBSCRIPTION APPROVAL ---
 app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
   const adminEmail = "nomanshaikh1999@gmail.com";
-  if ((req as any).user.email?.toLowerCase() !== adminEmail) {
+  if (req.user.email?.toLowerCase() !== adminEmail) {
     return res.status(403).json({ error: "FORBIDDEN: Admin privileges required." });
   }
-
   const { userId, userEmail, amount, billingCycle, upiIdRef } = req.body;
-
   if (!userId || !userEmail || !amount || !billingCycle || !upiIdRef) {
     return res.status(400).json({ error: "Missing required approval details." });
   }
-
   try {
-    const idToken = (req as any).user.idToken;
-    // 1. Fetch user displayName from Firestore
+    const idToken = req.user.idToken;
     const userDoc = await fetchUserDoc(userId, idToken);
-    const userName = userDoc?.fields?.display_name?.stringValue || userEmail.split('@')[0];
-
-    // 2. Generate Unique Receipt Number (INV-YYYY-NNNNNN format)
-    const receiptNo = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
-    const dateStr = new Date().toLocaleString("en-IN", {
+    const userName = userDoc?.fields?.display_name?.stringValue || userEmail.split("@")[0];
+    const receiptNo = `INV-2026-${Math.floor(1e5 + Math.random() * 9e5)}`;
+    const dateStr = (/* @__PURE__ */ new Date()).toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
       day: "2-digit",
       month: "short",
@@ -1476,43 +1304,30 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
       minute: "2-digit",
       hour12: true
     });
-
-    // 3. Generate PDF Buffer via jsPDF
     const { jsPDF } = await import("jspdf");
     const doc = new jsPDF({
       orientation: "portrait",
       unit: "mm",
       format: "a4"
     });
-
-    // Draw header accent band
-    doc.setFillColor(22, 101, 52); // #166534
+    doc.setFillColor(22, 101, 52);
     doc.rect(0, 0, 210, 8, "F");
-
-    // InvoCentric logo and subtitle
     doc.setTextColor(22, 101, 52);
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(26);
     doc.text("InvoCentric", 15, 25);
-
     doc.setFontSize(9);
     doc.setTextColor(100, 116, 139);
     doc.setFont("Helvetica", "normal");
     doc.text("Professional Billing & Invoicing Made Simple", 15, 31);
-
-    // Document Title
     doc.setFontSize(18);
     doc.setTextColor(15, 23, 42);
     doc.setFont("Helvetica", "bold");
     doc.text("PAYMENT RECEIPT", 135, 25);
-
-    // Intro Line
     doc.setFontSize(10);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(71, 85, 105);
     doc.text("Thank you for subscribing to InvoCentric. Below is your official payment receipt.", 15, 42);
-
-    // Grid details (Requirement 2 - exactly 10 fields, in order, NO GST/tax fields)
     const receiptFields = [
       { label: "Receipt No.", value: receiptNo },
       { label: "Customer Name", value: userName },
@@ -1525,111 +1340,81 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
       { label: "UPI Reference / UTR No.", value: upiIdRef },
       { label: "Paid Amount", value: `INR ${Number(amount).toFixed(2)}` }
     ];
-
-    // Draw fields in a beautiful dual-column key-value table
     let currentY = 48;
-    
-    // Draw table top border
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.3);
     doc.line(15, currentY, 195, currentY);
-
     receiptFields.forEach((field, i) => {
-      const rowY = currentY + (i * 10);
-      
-      // Draw alternating backgrounds
+      const rowY = currentY + i * 10;
       if (field.label === "Paid Amount") {
-        // Highlighted green background for Paid Amount
         doc.setFillColor(220, 252, 231);
         doc.rect(15, rowY, 180, 10, "F");
       } else if (i % 2 === 0) {
         doc.setFillColor(248, 250, 252);
         doc.rect(15, rowY, 180, 10, "F");
       }
-
-      // Draw Row Borders
       doc.setDrawColor(241, 245, 249);
       doc.line(15, rowY + 10, 195, rowY + 10);
-
-      // Render Label
       doc.setFontSize(9.5);
       doc.setFont("Helvetica", "bold");
       if (field.label === "Paid Amount") {
-        doc.setTextColor(21, 128, 61); // Green-700
+        doc.setTextColor(21, 128, 61);
       } else {
-        doc.setTextColor(71, 85, 105); // Slate-600
+        doc.setTextColor(71, 85, 105);
       }
       doc.text(field.label, 18, rowY + 6.5);
-
-      // Render Value
       doc.setFont("Helvetica", field.label === "Paid Amount" ? "bold" : "normal");
       if (field.label === "Paid Amount") {
         doc.setFontSize(11);
-        doc.setTextColor(21, 128, 61); // Green-700
+        doc.setTextColor(21, 128, 61);
       } else {
         doc.setFontSize(9.5);
-        doc.setTextColor(15, 23, 42); // Slate-900
+        doc.setTextColor(15, 23, 42);
       }
       doc.text(String(field.value), 80, rowY + 6.5);
     });
-
-    // Draw table side vertical lines to frame it
     doc.setDrawColor(226, 232, 240);
     doc.line(15, currentY, 15, currentY + 100);
     doc.line(195, currentY, 195, currentY + 100);
     doc.line(15, currentY + 100, 195, currentY + 100);
-
-    // Terms & Conditions section (Requirement 2 - 4 short points)
     const termsY = currentY + 112;
     doc.setFontSize(11);
     doc.setFont("Helvetica", "bold");
     doc.setTextColor(15, 23, 42);
     doc.text("Terms and Conditions:", 15, termsY);
-
     const points = [
       "1. Receipt confirms successful payment towards mentioned plan.",
       "2. Subscription benefits activate within a few minutes of approval.",
       "3. This is system-generated, no signature required.",
       "4. Unauthorized use/copying of receipt is prohibited."
     ];
-
     doc.setFontSize(8.5);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(100, 116, 139);
     points.forEach((point, idx) => {
-      doc.text(point, 15, termsY + 6 + (idx * 5.5));
+      doc.text(point, 15, termsY + 6 + idx * 5.5);
     });
-
-    // Discrepancy Contact line (Requirement 2 - placeholder phone and support email)
     const contactY = termsY + 34;
     doc.setFontSize(9);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(71, 85, 105);
     const contactText = "For any discrepancies, support inquiries, or billing issues, please contact our support team at support@invocentric.in or call +91 9824194869.";
     doc.text(contactText, 15, contactY, { maxWidth: 180 });
-
-    // Footer Disclaimer (Requirement 2 - small, centered footer disclaimer)
     const footerY = 265;
     doc.setDrawColor(241, 245, 249);
     doc.line(15, footerY - 5, 195, footerY - 5);
-
     doc.setFontSize(7.5);
     doc.setFont("Helvetica", "normal");
     doc.setTextColor(148, 163, 184);
-    
     const disclaimerText = "This is a system-generated receipt and does not require a signature. Any unauthorized use, disclosure, dissemination or copying of this receipt is strictly prohibited and may be unlawful.";
     doc.text(disclaimerText, 105, footerY, { align: "center", maxWidth: 170 });
-
     const arrayBuffer = doc.output("arraybuffer");
     const pdfBuffer = Buffer.from(arrayBuffer);
     const pdfBase64 = pdfBuffer.toString("base64");
-
-    // 4. Save metadata and pdf_base64 to subscription_receipts inside Firestore using REST
     const projectId = firebaseConfig.projectId;
     const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
     const apiKey = firebaseConfig.apiKey;
     const fsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/subscription_receipts?key=${apiKey}`;
-
     const receiptPayload = {
       fields: {
         receipt_number: { stringValue: receiptNo },
@@ -1641,25 +1426,21 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
         payment_method: { stringValue: "upi" },
         upi_id_ref: { stringValue: upiIdRef },
         pdf_base64: { stringValue: pdfBase64 },
-        created_at: { stringValue: new Date().toISOString() }
+        created_at: { stringValue: (/* @__PURE__ */ new Date()).toISOString() }
       }
     };
-
     const fsResponse = await fetch(fsUrl, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${idToken}`
       },
       body: JSON.stringify(receiptPayload)
     });
-
     if (!fsResponse.ok) {
       const errText = await fsResponse.text();
       console.error("Failed to save receipt record to Firestore REST:", errText);
     }
-
-    // 5. Send PDF Email Attachment to Customer via Nodemailer
     const receiptEmailResult = await dispatchEmail({
       to: userEmail,
       subject: "Your InvoCentric Payment Receipt",
@@ -1667,7 +1448,7 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
           <div style="text-align: center; margin-bottom: 24px;">
             <div style="display: inline-block; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 50%; padding: 12px; margin-bottom: 12px;">
-              <span style="font-size: 32px; color: #15803d; line-height: 1;">✓</span>
+              <span style="font-size: 32px; color: #15803d; line-height: 1;">\u2713</span>
             </div>
             <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">Subscription Activated!</h2>
             <p style="font-size: 14px; color: #64748b; margin: 0;">Welcome to InvoCentric Pro</p>
@@ -1678,7 +1459,7 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
           </p>
           
           <p style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
-            Thank you for subscribing to InvoCentric. Below is your official payment receipt. Your <strong>InvoCentric Pro Account (${billingCycle === 'yearly' ? 'Yearly' : 'Monthly'})</strong> has been activated successfully.
+            Thank you for subscribing to InvoCentric. Below is your official payment receipt. Your <strong>InvoCentric Pro Account (${billingCycle === "yearly" ? "Yearly" : "Monthly"})</strong> has been activated successfully.
           </p>
           
           <p style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
@@ -1693,7 +1474,7 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
               </tr>
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Amount:</td>
-                <td style="padding: 6px 0; color: #166534; font-weight: 800; text-align: right;">₹${amount}</td>
+                <td style="padding: 6px 0; color: #166534; font-weight: 800; text-align: right;">\u20B9${amount}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-weight: 500;">UPI UTR:</td>
@@ -1709,7 +1490,7 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
           <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 20px;" />
           
           <p style="font-size: 11px; text-align: center; color: #94a3b8; margin: 0;">
-            InvoCentric © 2026. All rights reserved.<br/>
+            InvoCentric \xA9 2026. All rights reserved.<br/>
             If you have any questions, reply to this email or write to <a href="mailto:support@invocentric.in" style="color: #166534; text-decoration: none; font-weight: 600;">support@invocentric.in</a> or call <strong style="color: #166534;">+91 9824194869</strong>.
           </p>
         </div>
@@ -1717,35 +1498,30 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
       attachments: [
         {
           filename: `Receipt-${receiptNo}.pdf`,
-          content: pdfBuffer,
+          content: pdfBuffer
         }
       ]
     });
-
     const emailSent = receiptEmailResult.success;
     const emailError = receiptEmailResult.error || "";
-
     res.status(200).json({
       success: true,
       receiptNumber: receiptNo,
       emailSent,
       emailError: emailError || null
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to approve subscription receipt:", error);
     res.status(500).json({ error: "Internal server error: " + (error.message || error) });
   }
 });
-
-// --- SUBSCRIPTION RECEIPT DOWNLOAD SERVING ROUTE ---
 app.get("/api/subscription/receipt-download/:receiptId", checkAuth, async (req, res) => {
   const { receiptId } = req.params;
-  const idToken = (req as any).user.idToken;
+  const idToken = req.user.idToken;
   const projectId = firebaseConfig.projectId;
   const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
   const apiKey = firebaseConfig.apiKey;
   const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/subscription_receipts/${receiptId}?key=${apiKey}`;
-
   try {
     const response = await fetch(url, {
       headers: {
@@ -1770,21 +1546,18 @@ app.get("/api/subscription/receipt-download/:receiptId", checkAuth, async (req, 
     res.status(500).send("Internal server error");
   }
 });
-
-// --- EMAIL DISPATCH AND INACTIVITY MONITORING ENGINE ---
-
-function parseFirestoreValue(value: any): any {
+function parseFirestoreValue(value) {
   if (!value) return null;
-  if ('stringValue' in value) return value.stringValue;
-  if ('timestampValue' in value) return value.timestampValue;
-  if ('integerValue' in value) return parseInt(value.integerValue, 10);
-  if ('doubleValue' in value) return parseFloat(value.doubleValue);
-  if ('booleanValue' in value) return value.booleanValue;
-  if ('arrayValue' in value) {
-    return (value.arrayValue.values || []).map((v: any) => parseFirestoreValue(v));
+  if ("stringValue" in value) return value.stringValue;
+  if ("timestampValue" in value) return value.timestampValue;
+  if ("integerValue" in value) return parseInt(value.integerValue, 10);
+  if ("doubleValue" in value) return parseFloat(value.doubleValue);
+  if ("booleanValue" in value) return value.booleanValue;
+  if ("arrayValue" in value) {
+    return (value.arrayValue.values || []).map((v) => parseFirestoreValue(v));
   }
-  if ('mapValue' in value) {
-    const parsed: Record<string, any> = {};
+  if ("mapValue" in value) {
+    const parsed = {};
     const fields = value.mapValue.fields || {};
     for (const key of Object.keys(fields)) {
       parsed[key] = parseFirestoreValue(fields[key]);
@@ -1793,30 +1566,24 @@ function parseFirestoreValue(value: any): any {
   }
   return null;
 }
-
-function parseFirestoreDocument(doc: any) {
+function parseFirestoreDocument(doc) {
   if (!doc || !doc.fields) return null;
   const id = doc.name.split("/").pop();
-  const parsed: Record<string, any> = { id };
+  const parsed = { id };
   for (const key of Object.keys(doc.fields)) {
     parsed[key] = parseFirestoreValue(doc.fields[key]);
   }
   return parsed;
 }
-
-// Fetch all users in paginated chunks via Firestore REST API
-async function fetchAllUsers(authHeader?: string): Promise<any[]> {
+async function fetchAllUsers(authHeader) {
   const projectId = firebaseConfig.projectId;
   const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
   const apiKey = firebaseConfig.apiKey;
-  let allUsers: any[] = [];
-
-  const headers: Record<string, string> = {};
+  let allUsers = [];
+  const headers = {};
   if (authHeader) {
     headers["Authorization"] = authHeader;
   }
-
-  // Strategy 1: runQuery POST request (Works seamlessly with API Key across public rules)
   try {
     const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${apiKey}`;
     const queryBody = {
@@ -1835,9 +1602,7 @@ async function fetchAllUsers(authHeader?: string): Promise<any[]> {
     if (res.ok) {
       const queryData = await res.json();
       if (Array.isArray(queryData)) {
-        const queryDocs = queryData
-          .filter((item: any) => item && item.document)
-          .map((item: any) => item.document);
+        const queryDocs = queryData.filter((item) => item && item.document).map((item) => item.document);
         if (queryDocs.length > 0) {
           allUsers = queryDocs;
         }
@@ -1846,10 +1611,8 @@ async function fetchAllUsers(authHeader?: string): Promise<any[]> {
   } catch (err) {
     console.error("Error in fetchAllUsers runQuery strategy:", err);
   }
-
-  // Strategy 2: If runQuery returned empty, fallback to GET list
   if (allUsers.length === 0) {
-    let nextPageToken: string | undefined = undefined;
+    let nextPageToken = void 0;
     do {
       const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users?pageSize=300${nextPageToken ? `&pageToken=${nextPageToken}` : ""}&key=${apiKey}`;
       try {
@@ -1867,17 +1630,13 @@ async function fetchAllUsers(authHeader?: string): Promise<any[]> {
       }
     } while (nextPageToken);
   }
-
   return allUsers;
 }
-
-// Log email events securely inside a unified Firestore collection
-async function logEmailDispatch(email: string, type: string, subject: string, status: string, errorMsg?: string) {
+async function logEmailDispatch(email, type, subject, status, errorMsg) {
   const projectId = firebaseConfig.projectId;
   const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
   const apiKey = firebaseConfig.apiKey;
   const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/email_logs?key=${apiKey}`;
-  
   const payload = {
     fields: {
       recipient_email: { stringValue: email },
@@ -1885,10 +1644,9 @@ async function logEmailDispatch(email: string, type: string, subject: string, st
       subject: { stringValue: subject },
       status: { stringValue: status },
       error: errorMsg ? { stringValue: errorMsg } : { nullValue: null },
-      timestamp: { stringValue: new Date().toISOString() }
+      timestamp: { stringValue: (/* @__PURE__ */ new Date()).toISOString() }
     }
   };
-
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -1902,34 +1660,23 @@ async function logEmailDispatch(email: string, type: string, subject: string, st
     console.error("Error logging email dispatch:", err);
   }
 }
-
-// Update specific fields on the user's document via REST PATCH
-async function updateUserInactivityReminderFields(uid: string, fields: {
-  inactivity_reminder_status?: string;
-  inactivity_reminder_sent_at?: string | null;
-  inactivity_reminder_cycle_id?: string | null;
-  inactivity_reminder_error?: string | null;
-}) {
+async function updateUserInactivityReminderFields(uid, fields) {
   const projectId = firebaseConfig.projectId;
   const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
   const apiKey = firebaseConfig.apiKey;
-  
-  const updateMasks: string[] = [];
-  const firestoreFields: Record<string, any> = {};
-
+  const updateMasks = [];
+  const firestoreFields = {};
   for (const key of Object.keys(fields)) {
     updateMasks.push(`updateMask.fieldPaths=${key}`);
-    const val = (fields as any)[key];
+    const val = fields[key];
     if (val === null) {
       firestoreFields[key] = { nullValue: null };
     } else {
       firestoreFields[key] = { stringValue: val };
     }
   }
-
   const queryParams = [...updateMasks, `key=${apiKey}`].join("&");
   const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${uid}?${queryParams}`;
-
   try {
     const res = await fetch(url, {
       method: "PATCH",
@@ -1943,18 +1690,15 @@ async function updateUserInactivityReminderFields(uid: string, fields: {
     console.error(`Error updating user inactivity fields for ${uid}:`, err);
   }
 }
-
-let etherealTransporter: any = null;
-
-async function getSmtpTransporter(): Promise<{ transporter: nodemailer.Transporter; from: string } | null> {
+var etherealTransporter = null;
+async function getSmtpTransporter() {
   const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
   const smtpPort = Number(process.env.SMTP_PORT || 587);
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASSWORD;
-
   if (smtpUser && smtpPass) {
     return {
-      transporter: nodemailer.createTransport({
+      transporter: import_nodemailer.default.createTransport({
         host: smtpHost,
         port: smtpPort,
         secure: smtpPort === 465,
@@ -1966,12 +1710,10 @@ async function getSmtpTransporter(): Promise<{ transporter: nodemailer.Transport
       from: `"InvoCentric" <${smtpUser}>`
     };
   }
-
-  // Fallback: Lazy create an Ethereal test account so email sending always succeeds without configuration
   if (!etherealTransporter) {
     try {
-      const testAccount = await nodemailer.createTestAccount();
-      etherealTransporter = nodemailer.createTransport({
+      const testAccount = await import_nodemailer.default.createTestAccount();
+      etherealTransporter = import_nodemailer.default.createTransport({
         host: "smtp.ethereal.email",
         port: 587,
         secure: false,
@@ -1985,37 +1727,25 @@ async function getSmtpTransporter(): Promise<{ transporter: nodemailer.Transport
       console.error("[SMTP] Failed to create Ethereal test account:", err);
     }
   }
-
   if (etherealTransporter) {
     return {
       transporter: etherealTransporter,
       from: `"InvoCentric Demo" <no-reply@invocentric.app>`
     };
   }
-
   return null;
 }
-
-// Unified email sender via Resend API (primary) or Nodemailer (fallback)
-async function dispatchEmail({ 
-  to, 
-  subject, 
-  html, 
+async function dispatchEmail({
+  to,
+  subject,
+  html,
   text,
-  attachments 
-}: { 
-  to: string; 
-  subject: string; 
-  html: string; 
-  text?: string;
-  attachments?: { filename: string; content: any }[];
-}): Promise<{ success: boolean; error?: string }> {
+  attachments
+}) {
   let resendError = "";
-
-  // 1. Try Resend API first if key is present
   if (process.env.RESEND_API_KEY) {
     try {
-      const resendPayload: any = {
+      const resendPayload = {
         from: process.env.RESEND_FROM || "InvoCentric <onboarding@resend.dev>",
         to: [to],
         subject,
@@ -2023,12 +1753,11 @@ async function dispatchEmail({
         text
       };
       if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-        resendPayload.attachments = attachments.map(att => ({
+        resendPayload.attachments = attachments.map((att) => ({
           filename: att.filename,
           content: typeof att.content === "string" ? att.content : Buffer.from(att.content).toString("base64")
         }));
       }
-
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -2037,7 +1766,6 @@ async function dispatchEmail({
         },
         body: JSON.stringify(resendPayload)
       });
-
       if (res.ok) {
         console.log(`[Resend API] Email sent successfully to ${to}`);
         return { success: true };
@@ -2046,25 +1774,21 @@ async function dispatchEmail({
         resendError = errData.message || `Resend API failed with status ${res.status}`;
         console.warn(`[Resend API] Failed (${resendError}). Automatically falling back to SMTP...`);
       }
-    } catch (err: any) {
+    } catch (err) {
       resendError = err.message || String(err);
       console.warn(`[Resend API] Threw error (${resendError}). Automatically falling back to SMTP...`);
     }
   }
-
-  // 2. Fallback to SMTP / Nodemailer (if Resend failed, hit rate limit, or wasn't configured)
   try {
     const config = await getSmtpTransporter();
     if (!config) {
-      return { 
-        success: false, 
-        error: resendError ? `Resend failed (${resendError}) and SMTP transporter is unconfigured.` : "SMTP Transporter and Resend API key both missing." 
+      return {
+        success: false,
+        error: resendError ? `Resend failed (${resendError}) and SMTP transporter is unconfigured.` : "SMTP Transporter and Resend API key both missing."
       };
     }
-
     const smtpUser = process.env.SMTP_USER || "no-reply@invocentric.app";
-
-    const mailOptions: any = {
+    const mailOptions = {
       from: config.from,
       to,
       subject,
@@ -2077,63 +1801,47 @@ async function dispatchEmail({
         "X-Mailer": "InvoCentric Mailer"
       }
     };
-
     if (text) {
       mailOptions.text = text;
     }
-
     if (attachments && Array.isArray(attachments) && attachments.length > 0) {
       mailOptions.attachments = attachments.map((att) => ({
         filename: att.filename,
         content: att.content,
-        encoding: typeof att.content === "string" ? "base64" : undefined
+        encoding: typeof att.content === "string" ? "base64" : void 0
       }));
     }
-
     const info = await config.transporter.sendMail(mailOptions);
-    const previewUrl = nodemailer.getTestMessageUrl(info);
+    const previewUrl = import_nodemailer.default.getTestMessageUrl(info);
     if (previewUrl) {
       console.log(`[SMTP Fallback] Email sent to ${to}. Ethereal Preview: ${previewUrl}`);
     } else {
       console.log(`[SMTP Fallback] Email sent successfully to ${to}`);
     }
-
     return { success: true };
-  } catch (smtpErr: any) {
+  } catch (smtpErr) {
     console.error("dispatchEmail SMTP fallback failed:", smtpErr);
-    return { 
-      success: false, 
-      error: `Resend error: ${resendError || 'none'} | SMTP error: ${smtpErr.message || String(smtpErr)}` 
+    return {
+      success: false,
+      error: `Resend error: ${resendError || "none"} | SMTP error: ${smtpErr.message || String(smtpErr)}`
     };
   }
 }
-
-interface InactivityEmailData {
-  businessName?: string;
-  lastLoginDate?: string;
-  daysInactive?: string | number;
-  invoiceCount?: string | number;
-  stockCount?: string | number;
-  dueCount?: string | number;
-  customerCount?: string | number;
-}
-
-function generateInactivityEmailTemplate(input: string | InactivityEmailData = "Business Partner", isPreview: boolean = false): string {
-  const data: InactivityEmailData = typeof input === "string" ? { businessName: input } : (input || {});
+function generateInactivityEmailTemplate(input = "Business Partner", isPreview = false) {
+  const data = typeof input === "string" ? { businessName: input } : input || {};
   const businessName = data.businessName || "Business Partner";
   const lastLoginDate = data.lastLoginDate || "Recently";
   const daysInactive = data.daysInactive || "1 Day";
-  const invoiceCount = data.invoiceCount !== undefined ? String(data.invoiceCount) : "0";
-  const stockCount = data.stockCount !== undefined ? String(data.stockCount) : "0 Items";
-  const dueCount = data.dueCount !== undefined ? String(data.dueCount) : "₹0";
-  const customerCount = data.customerCount !== undefined ? String(data.customerCount) : "0";
-
+  const invoiceCount = data.invoiceCount !== void 0 ? String(data.invoiceCount) : "0";
+  const stockCount = data.stockCount !== void 0 ? String(data.stockCount) : "0 Items";
+  const dueCount = data.dueCount !== void 0 ? String(data.dueCount) : "\u20B90";
+  const customerCount = data.customerCount !== void 0 ? String(data.customerCount) : "0";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>InvoCentric — Business Reminder</title>
+<title>InvoCentric \u2014 Business Reminder</title>
 <style>
   @media only screen and (max-width: 600px) {
     .main-table { width: 100% !important; }
@@ -2196,7 +1904,7 @@ function generateInactivityEmailTemplate(input: string | InactivityEmailData = "
         <tr>
           <td align="center" style="padding-bottom:14px;">
             <a href="https://invocentric.in/api/preview/inactivity-email" target="_blank" style="display:inline-block; background-color:#ffffff; color:#0d5c4b; text-decoration:none; font-size:11.5px; font-weight:600; padding:6px 16px; border-radius:20px; border:1px solid #b9d4ca; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
-              ⚡ View Live Thermal Print Animation ↗
+              \u26A1 View Live Thermal Print Animation \u2197
             </a>
           </td>
         </tr>
@@ -2455,74 +2163,53 @@ function reprint() {
 </body>
 </html>`;
 }
-
-// Global function to perform the user inactivity scanning and reminder dispatches
-async function runInactivityRemindersCheck(
-  authHeader?: string, 
-  force: boolean = false, 
-  reset: boolean = false
-): Promise<{ checked: number; sent: number; errors: string[] }> {
+async function runInactivityRemindersCheck(authHeader, force = false, reset = false) {
   console.log(`[Inactivity Scheduler] Scanning users for inactivity reminders (force=${force}, reset=${reset})...`);
-  const results = { checked: 0, sent: 0, errors: [] as string[] };
+  const results = { checked: 0, sent: 0, errors: [] };
   try {
     const rawUsers = await fetchAllUsers(authHeader);
     results.checked = rawUsers.length;
-    
     const now = Date.now();
-    const INACTIVITY_THRESHOLD = 24 * 60 * 60 * 1000; // 24 continuous hours
+    const INACTIVITY_THRESHOLD = 24 * 60 * 60 * 1e3;
     for (const rawUser of rawUsers) {
       const user = parseFirestoreDocument(rawUser);
       if (!user) continue;
-
-      // Extract valid email
       const email = user.email || user.business_email;
       if (!email || !email.includes("@")) continue;
-
-      // Reset reminders if requested
       if (reset) {
-        if (user.inactivity_reminder_status !== 'not_eligible') {
+        if (user.inactivity_reminder_status !== "not_eligible") {
           await updateUserInactivityReminderFields(user.id, {
-            inactivity_reminder_status: 'not_eligible',
+            inactivity_reminder_status: "not_eligible",
             inactivity_reminder_sent_at: null,
             inactivity_reminder_cycle_id: null,
             inactivity_reminder_error: null
           });
-          user.inactivity_reminder_status = 'not_eligible';
+          user.inactivity_reminder_status = "not_eligible";
         }
       }
-
-      // Check user toggle settings
       if (user.email_reminders_enabled === false) {
-        if (user.inactivity_reminder_status !== 'disabled') {
-          await updateUserInactivityReminderFields(user.id, { inactivity_reminder_status: 'disabled' });
+        if (user.inactivity_reminder_status !== "disabled") {
+          await updateUserInactivityReminderFields(user.id, { inactivity_reminder_status: "disabled" });
         }
         continue;
       }
-
-      // Safeguard: do not dispatch if already sent in this cycle (unless forced)
-      if (user.inactivity_reminder_status === 'sent' && !force) {
+      if (user.inactivity_reminder_status === "sent" && !force) {
         continue;
       }
-
-      // Check last active threshold
       const lastActiveStr = user.last_active_at || user.updated_at || user.created_at;
       if (!lastActiveStr && !force) continue;
-
       const lastActiveTime = lastActiveStr ? new Date(lastActiveStr).getTime() : 0;
       const inactiveMs = now - lastActiveTime;
-
       if (inactiveMs >= INACTIVITY_THRESHOLD || force) {
-        console.log(`[Inactivity Scheduler] Sending reminder to: ${email} (inactive for ${lastActiveStr ? Math.round(inactiveMs / 3600000) : 'unknown'} hours, force=${force})`);
-        
+        console.log(`[Inactivity Scheduler] Sending reminder to: ${email} (inactive for ${lastActiveStr ? Math.round(inactiveMs / 36e5) : "unknown"} hours, force=${force})`);
         const userName = user.owner_name || user.display_name || user.business_name || email.split("@")[0] || "there";
         const businessName = user.business_name || user.owner_name || user.display_name || email.split("@")[0] || "Business Partner";
-        const lastLoginDate = lastActiveStr ? new Date(lastActiveStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently';
-        const daysInactive = lastActiveStr ? Math.max(1, Math.round(inactiveMs / (24 * 3600000))) + ' Days' : '2+ Days';
-        const invoiceCount = user.invoices_count !== undefined ? String(user.invoices_count) : '10+';
-        const stockCount = user.items_count !== undefined ? String(user.items_count) : 'Active';
-        const dueCount = user.pending_due !== undefined ? '₹' + user.pending_due : 'Synced';
-        const customerCount = user.customers_count !== undefined ? String(user.customers_count) : 'Connected';
-
+        const lastLoginDate = lastActiveStr ? new Date(lastActiveStr).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Recently";
+        const daysInactive = lastActiveStr ? Math.max(1, Math.round(inactiveMs / (24 * 36e5))) + " Days" : "2+ Days";
+        const invoiceCount = user.invoices_count !== void 0 ? String(user.invoices_count) : "10+";
+        const stockCount = user.items_count !== void 0 ? String(user.items_count) : "Active";
+        const dueCount = user.pending_due !== void 0 ? "\u20B9" + user.pending_due : "Synced";
+        const customerCount = user.customers_count !== void 0 ? String(user.customers_count) : "Connected";
         const html = generateInactivityEmailTemplate({
           businessName,
           lastLoginDate,
@@ -2532,25 +2219,32 @@ async function runInactivityRemindersCheck(
           dueCount,
           customerCount
         });
-        const text = `Hi ${userName},\n\nWe miss you! Your InvoCentric billing dashboard is ready.\n\nYou haven't logged into InvoCentric in the last 24 hours. This is just a friendly check-in to see if we can help you streamline your invoicing today.\n\nYour client lists, custom products, pending payments, and receipts are safely synced in the cloud and ready whenever you are.\n\nReturn to Dashboard: https://invocentric.in/\n\nTo stop receiving these alerts, update your settings at https://invocentric.in/settings`;
+        const text = `Hi ${userName},
 
+We miss you! Your InvoCentric billing dashboard is ready.
+
+You haven't logged into InvoCentric in the last 24 hours. This is just a friendly check-in to see if we can help you streamline your invoicing today.
+
+Your client lists, custom products, pending payments, and receipts are safely synced in the cloud and ready whenever you are.
+
+Return to Dashboard: https://invocentric.in/
+
+To stop receiving these alerts, update your settings at https://invocentric.in/settings`;
         const dispatch = await dispatchEmail({
           to: email,
           subject: "InvoCentric Account Status: Your billing dashboard is active",
           html,
           text
         });
-
         if (dispatch.success) {
           results.sent++;
           const cycleId = "cycle_" + Date.now();
           await updateUserInactivityReminderFields(user.id, {
-            inactivity_reminder_status: 'sent',
-            inactivity_reminder_sent_at: new Date().toISOString(),
+            inactivity_reminder_status: "sent",
+            inactivity_reminder_sent_at: (/* @__PURE__ */ new Date()).toISOString(),
             inactivity_reminder_cycle_id: cycleId,
             inactivity_reminder_error: null
           });
-
           await logEmailDispatch(
             email,
             "Reminder",
@@ -2560,10 +2254,9 @@ async function runInactivityRemindersCheck(
         } else {
           results.errors.push(`${email}: ${dispatch.error}`);
           await updateUserInactivityReminderFields(user.id, {
-            inactivity_reminder_status: 'failed',
+            inactivity_reminder_status: "failed",
             inactivity_reminder_error: dispatch.error || "Unknown Error"
           });
-
           await logEmailDispatch(
             email,
             "Reminder",
@@ -2574,110 +2267,92 @@ async function runInactivityRemindersCheck(
         }
       }
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error("[Inactivity Scheduler] Error executing scanning cycle:", err);
     results.errors.push(`Global check error: ${err.message || err}`);
   }
   return results;
 }
-
-// Background loop running at server level inside the Cloud container (no client state dependency)
 function startInactivityScheduler() {
   console.log("[Inactivity Scheduler] Initializing background checker loop...");
-  
-  // Stagger start by 10 seconds to let container finish bootup gracefully
   setTimeout(() => {
-    runInactivityRemindersCheck()
-      .then(res => console.log(`[Inactivity Scheduler] Startup scan complete: Checked ${res.checked}, Sent ${res.sent}, Failures: ${res.errors.length}`))
-      .catch(err => console.error("[Inactivity Scheduler] Startup scan crash:", err));
-  }, 10000);
-
-  // Poll every 1 hour thereafter
+    runInactivityRemindersCheck().then((res) => console.log(`[Inactivity Scheduler] Startup scan complete: Checked ${res.checked}, Sent ${res.sent}, Failures: ${res.errors.length}`)).catch((err) => console.error("[Inactivity Scheduler] Startup scan crash:", err));
+  }, 1e4);
   setInterval(() => {
-    runInactivityRemindersCheck()
-      .then(res => console.log(`[Inactivity Scheduler] Hourly scan complete: Checked ${res.checked}, Sent ${res.sent}, Failures: ${res.errors.length}`))
-      .catch(err => console.error("[Inactivity Scheduler] Hourly scan crash:", err));
-  }, 3600000);
+    runInactivityRemindersCheck().then((res) => console.log(`[Inactivity Scheduler] Hourly scan complete: Checked ${res.checked}, Sent ${res.sent}, Failures: ${res.errors.length}`)).catch((err) => console.error("[Inactivity Scheduler] Hourly scan crash:", err));
+  }, 36e5);
 }
-
-// Start the scheduler on application initialization
 startInactivityScheduler();
-
-// --- ADMIN API ENDPOINTS FOR EMAIL MANAGEMENT & TEST DISPATCH ---
-
-// 1. Trigger manual scan
-// Public preview of inactivity email animation
-// Public preview of OTP email animation
 app.get("/api/preview/otp-email", (req, res) => {
   const html = generateOtpEmailTemplate({
-    otp: (req.query.otp as string) || "749205",
-    businessName: (req.query.name as string) || "Sample Store"
+    otp: req.query.otp || "749205",
+    businessName: req.query.name || "Sample Store"
   });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(html);
 });
-
 app.get("/api/preview/inactivity-email", (req, res) => {
   const html = generateInactivityEmailTemplate({
-    businessName: (req.query.name as string) || "Sample Store",
+    businessName: req.query.name || "Sample Store",
     lastLoginDate: "12-Sep-2026",
     daysInactive: "3 Days",
     invoiceCount: "128",
     stockCount: "45 Items",
-    dueCount: "₹8,450",
+    dueCount: "\u20B98,450",
     customerCount: "64"
   });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(html);
 });
-
 app.post("/api/admin/check-inactivity", checkAuth, async (req, res) => {
   const adminEmail = "nomanshaikh1999@gmail.com";
-  if ((req as any).user.email?.toLowerCase() !== adminEmail) {
+  if (req.user.email?.toLowerCase() !== adminEmail) {
     return res.status(403).json({ error: "FORBIDDEN: Admin privileges required." });
   }
-
   try {
     const authHeader = req.headers.authorization;
     const { force, reset } = req.body || {};
     const results = await runInactivityRemindersCheck(authHeader, !!force, !!reset);
     res.status(200).json({ success: true, ...results });
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message || err });
   }
 });
-
-// 2. Send customized test inactivity email template
 app.post("/api/admin/send-test-reminder", checkAuth, async (req, res) => {
   const adminEmail = "nomanshaikh1999@gmail.com";
-  if ((req as any).user.email?.toLowerCase() !== adminEmail) {
+  if (req.user.email?.toLowerCase() !== adminEmail) {
     return res.status(403).json({ error: "FORBIDDEN: Admin privileges required." });
   }
-
   const { email, businessName, lastLoginDate, daysInactive, invoiceCount, stockCount, dueCount, customerCount } = req.body;
   if (!email || !email.includes("@")) {
     return res.status(400).json({ error: "Invalid recipient email address." });
   }
-
   try {
     const cleanBusinessName = businessName || email.split("@")[0] || "Valued Partner";
     const testHtml = generateInactivityEmailTemplate({
       businessName: cleanBusinessName,
       lastLoginDate: lastLoginDate || "Recently",
       daysInactive: daysInactive || "1 Day",
-      invoiceCount: invoiceCount !== undefined ? String(invoiceCount) : "0",
-      stockCount: stockCount !== undefined ? String(stockCount) : "0 Items",
-      dueCount: dueCount !== undefined ? String(dueCount) : "₹0",
-      customerCount: customerCount !== undefined ? String(customerCount) : "0"
+      invoiceCount: invoiceCount !== void 0 ? String(invoiceCount) : "0",
+      stockCount: stockCount !== void 0 ? String(stockCount) : "0 Items",
+      dueCount: dueCount !== void 0 ? String(dueCount) : "\u20B90",
+      customerCount: customerCount !== void 0 ? String(customerCount) : "0"
     });
-    const testText = `Hi ${cleanBusinessName},\n\nWe miss you! Your InvoCentric billing dashboard is ready.\n\nYour client lists, custom products, pending payments, and receipts are safely synced in the cloud and ready whenever you are.\n\nReturn to Dashboard: https://invocentric.in/\n\nTo stop receiving these alerts, update your settings at https://invocentric.in/settings`;
+    const testText = `Hi ${cleanBusinessName},
+
+We miss you! Your InvoCentric billing dashboard is ready.
+
+Your client lists, custom products, pending payments, and receipts are safely synced in the cloud and ready whenever you are.
+
+Return to Dashboard: https://invocentric.in/
+
+To stop receiving these alerts, update your settings at https://invocentric.in/settings`;
     const result = await dispatchEmail({
       to: email,
       subject: "Ready to streamline your billing? (Admin Test)",
       html: testHtml,
       text: testText
     });
-
     if (result.success) {
       await logEmailDispatch(email, "Test Reminder", "Ready to streamline your billing? (Admin Test)", "Sent");
       res.status(200).json({ success: true, message: "Test inactivity email sent." });
@@ -2685,68 +2360,55 @@ app.post("/api/admin/send-test-reminder", checkAuth, async (req, res) => {
       await logEmailDispatch(email, "Test Reminder", "Ready to streamline your billing? (Admin Test)", "Failed", result.error);
       res.status(500).json({ error: result.error || "Failed to dispatch test email." });
     }
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message || err });
   }
 });
-
-
-// 3. Log receipt sending on approval
-// Note: Handled inside app.post("/api/subscription/approve-receipt") via logEmailDispatch calls.
-
-// Hook up logEmailDispatch to original approve-receipt endpoint
-const originalApproveReceipt = app._router.stack.find((layer: any) => layer.route && layer.route.path === "/api/subscription/approve-receipt");
+var originalApproveReceipt = app._router.stack.find((layer) => layer.route && layer.route.path === "/api/subscription/approve-receipt");
 if (originalApproveReceipt) {
   const handler = originalApproveReceipt.route.stack[originalApproveReceipt.route.stack.length - 1].handle;
-  originalApproveReceipt.route.stack[originalApproveReceipt.route.stack.length - 1].handle = async function (req: any, res: any, next: any) {
+  originalApproveReceipt.route.stack[originalApproveReceipt.route.stack.length - 1].handle = async function(req, res, next) {
     const originalResJson = res.json;
-    res.json = function (body: any) {
+    res.json = function(body) {
       if (body && body.success) {
         logEmailDispatch(
           req.body.userEmail,
           "Receipt",
           "Your InvoCentric Payment Receipt",
           body.emailSent ? "Sent" : "Failed",
-          body.emailError || undefined
-        ).catch(e => console.error("Async post-receipt logging failed:", e));
+          body.emailError || void 0
+        ).catch((e) => console.error("Async post-receipt logging failed:", e));
       }
       return originalResJson.call(this, body);
     };
     return handler(req, res, next);
   };
 }
-
-// --- LOCAL USB MOBILE SCANNER ENGINE (OFFLINE-READY) ---
-let sseClients: { res: any; sessionId: string }[] = [];
-const mobileHeartbeats = new Map<string, number>(); // sessionId -> timestamp
-const wasMobileConnectedMap = new Map<string, boolean>(); // sessionId -> wasConnected
-const HEARTBEAT_TIMEOUT = 5000; // 5s timeout
-
-function isMobileConnected(sessionId: string) {
+var sseClients = [];
+var mobileHeartbeats = /* @__PURE__ */ new Map();
+var wasMobileConnectedMap = /* @__PURE__ */ new Map();
+var HEARTBEAT_TIMEOUT = 5e3;
+function isMobileConnected(sessionId) {
   const lastHeartbeat = mobileHeartbeats.get(sessionId) || 0;
-  return (Date.now() - lastHeartbeat) < HEARTBEAT_TIMEOUT;
+  return Date.now() - lastHeartbeat < HEARTBEAT_TIMEOUT;
 }
+function broadcastToSse(sessionId, data) {
+  const payload = `data: ${JSON.stringify(data)}
 
-// Broadcast message helper
-function broadcastToSse(sessionId: string, data: any) {
-  const payload = `data: ${JSON.stringify(data)}\n\n`;
-  sseClients.forEach(client => {
+`;
+  sseClients.forEach((client) => {
     if (client.sessionId === sessionId || client.sessionId === "default" || sessionId === "default") {
       try {
         client.res.write(payload);
       } catch (err) {
-        // client connection might be dead
       }
     }
   });
 }
-
-// Check connectivity status periodically and broadcast changes
 setInterval(() => {
-  const activeSessions = new Set<string>();
-  sseClients.forEach(c => activeSessions.add(c.sessionId));
-
-  activeSessions.forEach(sessionId => {
+  const activeSessions = /* @__PURE__ */ new Set();
+  sseClients.forEach((c) => activeSessions.add(c.sessionId));
+  activeSessions.forEach((sessionId) => {
     const currentConnected = isMobileConnected(sessionId);
     const wasConnected = wasMobileConnectedMap.get(sessionId) || false;
     if (currentConnected !== wasConnected) {
@@ -2754,32 +2416,24 @@ setInterval(() => {
       broadcastToSse(sessionId, { type: "status", connected: currentConnected });
     }
   });
-}, 1000);
-
-// SSE connection for PC browser
+}, 1e3);
 app.get("/api/usb-scanner/events", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
-
-  const sessionId = (req.query.sessionId as string) || "default";
-
+  const sessionId = req.query.sessionId || "default";
   sseClients.push({ res, sessionId });
+  res.write(`data: ${JSON.stringify({ type: "status", connected: isMobileConnected(sessionId) })}
 
-  // Send current connectivity immediately
-  res.write(`data: ${JSON.stringify({ type: "status", connected: isMobileConnected(sessionId) })}\n\n`);
-
+`);
   req.on("close", () => {
-    sseClients = sseClients.filter(client => client.res !== res);
+    sseClients = sseClients.filter((client) => client.res !== res);
   });
 });
-
-// Mobile heartbeat route
 app.post("/api/usb-scanner/heartbeat", (req, res) => {
   const { sessionId } = req.body;
   const sid = sessionId || "default";
-
   mobileHeartbeats.set(sid, Date.now());
   const currentConnected = isMobileConnected(sid);
   const wasConnected = wasMobileConnectedMap.get(sid) || false;
@@ -2789,24 +2443,75 @@ app.post("/api/usb-scanner/heartbeat", (req, res) => {
   }
   res.status(200).json({ success: true, connected: true });
 });
-
-// Mobile barcode submission route
 app.post("/api/usb-scanner/scan", (req, res) => {
   const { code, sessionId } = req.body;
   if (!code || typeof code !== "string") {
     return res.status(400).json({ error: "Missing barcode code" });
   }
-
   const sid = sessionId || "default";
-
-  // Record a heartbeat since they successfully scanned
   mobileHeartbeats.set(sid, Date.now());
   wasMobileConnectedMap.set(sid, true);
-
-  // Broadcast code to matching session PC listeners
   broadcastToSse(sid, { type: "scan", code: code.trim() });
-
   res.status(200).json({ success: true });
 });
+var api_default = app;
 
-export default app;
+// server.ts
+var isProd2 = process.env.NODE_ENV === "production" || process.env.VITE_PROD === "true";
+var isVercel = process.env.VERCEL === "1";
+function generateCorrelationId2() {
+  return "ERR-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+}
+async function startServer() {
+  if (!isVercel) {
+    if (!isProd2) {
+      console.log("[Local Dev] Starting in DEVELOPMENT mode with Vite Middleware...");
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa"
+      });
+      api_default.use(vite.middlewares);
+    } else {
+      console.log("[Local Prod] Starting in PRODUCTION mode with static file server...");
+      const path2 = await import("path");
+      const express2 = await import("express");
+      const distPath = path2.resolve(process.cwd(), "dist");
+      api_default.use(express2.static(distPath, {
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith(".html") || filePath.endsWith("sw.js")) {
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
+          } else if (filePath.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$/)) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          }
+        }
+      }));
+      api_default.get("*", (req, res) => {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.sendFile(path2.join(distPath, "index.html"));
+      });
+    }
+    api_default.use((err, req, res, next) => {
+      const correlationId = generateCorrelationId2();
+      console.error(`[${correlationId}] Global Error Handler:`, err);
+      if (err instanceof SyntaxError && "status" in err && err.status === 400 && "body" in err) {
+        return res.status(400).json({ error: "Invalid JSON payload", correlationId });
+      }
+      if (err.type === "entity.too.large") {
+        return res.status(413).json({ error: "Payload too large. Please use a smaller image (max 10MB).", correlationId });
+      }
+      res.status(err.status || 500).json({
+        error: "An internal server error occurred. Please contact support.",
+        correlationId
+      });
+    });
+    const PORT = 3e3;
+    api_default.listen(PORT, "0.0.0.0", () => {
+      console.log(`[Local Server] Server running on http://localhost:${PORT}`);
+    });
+  }
+}
+startServer();
+//# sourceMappingURL=server.cjs.map
