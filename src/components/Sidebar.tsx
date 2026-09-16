@@ -37,7 +37,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export default function Sidebar({ onProfileClick }: { onProfileClick?: () => void }) {
-  const { logout, user, isAdmin, appMode, setAppMode, planTier, isPro, triggerUpgradeModal } = useAuth();
+  const { logout, user, isAdmin, appMode, planTier, isPro, triggerUpgradeModal } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
   const isHardcodedAdmin = user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
@@ -291,44 +291,6 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
               </div>
             </div>
             <MoreVertical size={16} className="text-slate-500 shrink-0 ml-1 hover:text-slate-600 transition-colors" />
-          </div>
-        )}
-
-        {!collapsed && (
-          <div className="flex items-center justify-between p-4 rounded-2xl border transition-all bg-white border-slate-100 shadow-sm">
-            <div className="flex items-center gap-3.5">
-              <div className={cn(
-                "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-inner",
-                appMode === 'shop' ? "bg-green-50 text-green-600" : "bg-green-50 text-green-600"
-              )}>
-                {appMode === 'shop' ? <Store size={18} /> : <Briefcase size={18} />}
-              </div>
-              <div>
-                <p className="text-[13px] font-black tracking-tight leading-none text-slate-800">
-                  {appMode === 'shop' ? 'Shop Mode' : 'Freelancer Mode'}
-                </p>
-                <p className="text-[10.5px] font-bold text-slate-500 mt-1">
-                  {appMode === 'shop' ? 'Freelancer Mode' : 'Shop Mode'}
-                </p>
-              </div>
-            </div>
-            
-            {/* Fully Functional Premium Toggle Switch */}
-            <div 
-              onClick={() => setAppMode(appMode === 'shop' ? 'freelancer' : 'shop')}
-              className={cn(
-                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                appMode === 'shop' ? "bg-[#166534]" : "bg-slate-200"
-              )}
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                  appMode === 'shop' ? "translate-x-5" : "translate-x-0"
-                )}
-              />
-            </div>
           </div>
         )}
 

@@ -2,7 +2,7 @@ import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, DEFAULT_PROFILE_DATA } from '../utils/settingsStorage';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Save, X, LogOut, CheckCircle2, Download, Upload, Trash2, HardDrive, FolderOpen, Lock, Unlock, CloudDownload } from 'lucide-react';
+import { Save, X, LogOut, CheckCircle2, Download, Upload, Trash2, HardDrive, FolderOpen, Lock, Unlock, CloudDownload, Store, Briefcase, Keyboard } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -36,6 +36,8 @@ export default function SettingsPage() {
     isOfflineMode: isOfflineModeReal, 
     setOfflineMode, 
     planTier,
+    appMode,
+    setAppMode,
     isPcDriveEnabled,
     isPcFileConnected,
     pcFileName,
@@ -692,6 +694,147 @@ export default function SettingsPage() {
               {planTier === 'pro' ? 'View Pricing Plans' : 'Upgrade to Pro'}
             </Link>
           </div>
+        </section>
+
+        {/* Operating Mode (Shop Mode vs Freelancer Mode) */}
+        <section className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                  Operating Mode (व्यवसाय प्रकार)
+                </h2>
+                <span className={cn(
+                  "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                  appMode === 'shop' ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
+                )}>
+                  {appMode === 'shop' ? 'Shop Mode Active' : 'Freelancer Mode Active'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                Choose your primary operating interface: Retail/Wholesale Shop or Freelancer/Consultant Services.
+              </p>
+            </div>
+
+            {/* Premium Toggle Switch */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-slate-600">
+                {appMode === 'shop' ? 'Shop Mode' : 'Freelancer Mode'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setAppMode(appMode === 'shop' ? 'freelancer' : 'shop')}
+                className={cn(
+                  "relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                  appMode === 'shop' ? "bg-[#166534]" : "bg-blue-600"
+                )}
+                role="switch"
+                aria-checked={appMode === 'shop'}
+                title="Toggle Shop / Freelancer Mode"
+              >
+                <span
+                  className={cn(
+                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                    appMode === 'shop' ? "translate-x-7" : "translate-x-0"
+                  )}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Cards Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+            {/* Shop Mode Option */}
+            <div
+              onClick={() => setAppMode('shop')}
+              className={cn(
+                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
+                appMode === 'shop'
+                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 bg-white"
+              )}
+            >
+              <div className={cn(
+                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+                appMode === 'shop' ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
+              )}>
+                <Store size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">Shop Mode (दुकान / रिटेल)</h3>
+                  {appMode === 'shop' && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                  )}
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Best for retail, wholesale, and traders. Includes barcode scanning, quick POS terminal, stock inventory, and GST bills.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Quick POS</span>
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Inventory</span>
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Parties</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Freelancer Mode Option */}
+            <div
+              onClick={() => setAppMode('freelancer')}
+              className={cn(
+                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
+                appMode === 'freelancer'
+                  ? "border-blue-600 bg-blue-50/40 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 bg-white"
+              )}
+            >
+              <div className={cn(
+                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+                appMode === 'freelancer' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+              )}>
+                <Briefcase size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">Freelancer Mode (फ्रीलांसर / सेवा)</h3>
+                  {appMode === 'freelancer' && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  )}
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Best for consultants, designers, developers & agencies. Streamlined for client proposals, hourly/project services, and contracts.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Proposals</span>
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Clients</span>
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Services</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Fast Keys & Keyboard Shortcuts Guide */}
+        <section className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Keyboard size={18} className="text-[#166534]" />
+              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                Fast Keys & Shortcuts (कीबोर्ड शॉर्टकट)
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500 font-medium">
+              Speed up your billing workflow using fast keys (F1 for help, F8 for new invoice, Alt+N, Ctrl+S to save).
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('open_shortcuts_modal'))}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-950 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+          >
+            <Keyboard size={14} className="text-emerald-400" />
+            <span>Open Fast Keys (F1)</span>
+          </button>
         </section>
 
         {/* Business Profile */}

@@ -292,21 +292,14 @@ export function GlobalShortcutsManager() {
     return matchesCat && matchesSearch;
   });
 
+  useEffect(() => {
+    const handleOpenModal = () => setIsOpen(true);
+    window.addEventListener('open_shortcuts_modal', handleOpenModal);
+    return () => window.removeEventListener('open_shortcuts_modal', handleOpenModal);
+  }, []);
+
   return (
     <>
-      {/* Mini Floating Shortcut Hint Button on bottom-left */}
-      <div className="fixed bottom-4 left-4 z-40 print:hidden hidden sm:flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 bg-slate-900/90 hover:bg-slate-950 text-white backdrop-blur-md rounded-xl shadow-lg border border-slate-800 text-xs font-bold transition-all hover:scale-105 cursor-pointer group"
-          title="Keyboard Shortcuts Guide (Press F1 or ?)"
-        >
-          <Keyboard size={14} className="text-emerald-400 group-hover:rotate-12 transition-transform" />
-          <span className="text-[11px] font-mono tracking-tight text-slate-200">Fast Keys (F1)</span>
-        </button>
-      </div>
-
       {/* Interactive Toast Notification for executed shortcuts */}
       <AnimatePresence>
         {toastMessage && (
