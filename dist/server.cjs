@@ -201,7 +201,7 @@ function generateCorrelationId() {
   return "ERR-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 }
 app.post("/api/send-email", authEmailLimiter, checkAuth, async (req, res) => {
-  const { to, subject, html, attachments } = req.body;
+  const { to, subject, html, attachments, emailType, recipientName, businessName, deliveryMode } = req.body;
   if (typeof to !== "string" || !to.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "A valid recipient email address is required." });
   }
@@ -215,6 +215,20 @@ app.post("/api/send-email", authEmailLimiter, checkAuth, async (req, res) => {
     return res.status(400).json({ error: "INVALID_INPUT", message: "Attachments must be an array with max 10 files." });
   }
   const result = await dispatchEmail({ to, subject, html, attachments });
+  const computedType = emailType || (subject.toLowerCase().includes("reminder") ? "Reminder" : "Receipt");
+  logEmailDispatch(
+    to,
+    computedType,
+    subject,
+    result.success ? "Sent" : "Failed",
+    result.error,
+    {
+      recipient_name: recipientName,
+      business_name: businessName,
+      user_id: req.user?.uid,
+      delivery_mode: deliveryMode || "Automatic"
+    }
+  ).catch((err) => console.error("send-email logging failed:", err));
   if (result.success) {
     res.status(200).json({ success: true });
   } else {
@@ -1632,21 +1646,30 @@ async function fetchAllUsers(authHeader) {
   }
   return allUsers;
 }
-async function logEmailDispatch(email, type, subject, status, errorMsg) {
+async function logEmailDispatch(email, type, subject, status, errorMsg, extra) {
   const projectId = firebaseConfig.projectId;
   const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
   const apiKey = firebaseConfig.apiKey;
   const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/email_logs?key=${apiKey}`;
-  const payload = {
-    fields: {
-      recipient_email: { stringValue: email },
-      email_type: { stringValue: type },
-      subject: { stringValue: subject },
-      status: { stringValue: status },
-      error: errorMsg ? { stringValue: errorMsg } : { nullValue: null },
-      timestamp: { stringValue: (/* @__PURE__ */ new Date()).toISOString() }
-    }
+  const fields = {
+    recipient_email: { stringValue: email },
+    email_type: { stringValue: type },
+    subject: { stringValue: subject },
+    status: { stringValue: status },
+    error: errorMsg ? { stringValue: errorMsg } : { nullValue: null },
+    timestamp: { stringValue: (/* @__PURE__ */ new Date()).toISOString() },
+    delivery_mode: { stringValue: extra?.delivery_mode || "Automatic" }
   };
+  if (extra?.recipient_name) {
+    fields.recipient_name = { stringValue: extra.recipient_name };
+  }
+  if (extra?.business_name) {
+    fields.business_name = { stringValue: extra.business_name };
+  }
+  if (extra?.user_id) {
+    fields.user_id = { stringValue: extra.user_id };
+  }
+  const payload = { fields };
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -2163,22 +2186,28 @@ function reprint() {
 </body>
 </html>`;
 }
-async function runInactivityRemindersCheck(authHeader, force = false, reset = false) {
-  console.log(`[Inactivity Scheduler] Scanning users for inactivity reminders (force=${force}, reset=${reset})...`);
+async function runInactivityRemindersCheck(authHeader, force = false, reset = false, providedUsers) {
+  console.log(`[Inactivity Scheduler] Scanning users for inactivity reminders (force=${force}, reset=${reset}, providedUsers=${providedUsers?.length || 0})...`);
   const results = { checked: 0, sent: 0, errors: [] };
   try {
-    const rawUsers = await fetchAllUsers(authHeader);
+    let rawUsers = [];
+    if (Array.isArray(providedUsers) && providedUsers.length > 0) {
+      rawUsers = providedUsers;
+    } else {
+      rawUsers = await fetchAllUsers(authHeader);
+    }
     results.checked = rawUsers.length;
     const now = Date.now();
     const INACTIVITY_THRESHOLD = 24 * 60 * 60 * 1e3;
     for (const rawUser of rawUsers) {
-      const user = parseFirestoreDocument(rawUser);
+      const user = rawUser.fields ? parseFirestoreDocument(rawUser) : rawUser;
       if (!user) continue;
+      const userId = user.id || user.uid;
       const email = user.email || user.business_email;
       if (!email || !email.includes("@")) continue;
-      if (reset) {
+      if (reset && userId) {
         if (user.inactivity_reminder_status !== "not_eligible") {
-          await updateUserInactivityReminderFields(user.id, {
+          await updateUserInactivityReminderFields(userId, {
             inactivity_reminder_status: "not_eligible",
             inactivity_reminder_sent_at: null,
             inactivity_reminder_cycle_id: null,
@@ -2188,25 +2217,31 @@ async function runInactivityRemindersCheck(authHeader, force = false, reset = fa
         }
       }
       if (user.email_reminders_enabled === false) {
-        if (user.inactivity_reminder_status !== "disabled") {
-          await updateUserInactivityReminderFields(user.id, { inactivity_reminder_status: "disabled" });
+        if (user.inactivity_reminder_status !== "disabled" && userId) {
+          await updateUserInactivityReminderFields(userId, { inactivity_reminder_status: "disabled" });
         }
         continue;
       }
       if (user.inactivity_reminder_status === "sent" && !force) {
-        continue;
+        if (user.inactivity_reminder_sent_at) {
+          const sentTime = new Date(user.inactivity_reminder_sent_at).getTime();
+          const daysSinceSent = (now - sentTime) / (24 * 36e5);
+          if (daysSinceSent < 3) continue;
+        } else {
+          continue;
+        }
       }
-      const lastActiveStr = user.last_active_at || user.updated_at || user.created_at;
+      const lastActiveStr = user.last_active_at || user.lastActiveDate || user.updated_at || user.created_at;
       if (!lastActiveStr && !force) continue;
       const lastActiveTime = lastActiveStr ? new Date(lastActiveStr).getTime() : 0;
       const inactiveMs = now - lastActiveTime;
       if (inactiveMs >= INACTIVITY_THRESHOLD || force) {
         console.log(`[Inactivity Scheduler] Sending reminder to: ${email} (inactive for ${lastActiveStr ? Math.round(inactiveMs / 36e5) : "unknown"} hours, force=${force})`);
-        const userName = user.owner_name || user.display_name || user.business_name || email.split("@")[0] || "there";
-        const businessName = user.business_name || user.owner_name || user.display_name || email.split("@")[0] || "Business Partner";
+        const userName = user.owner_name || user.display_name || user.business_name || user.name || email.split("@")[0] || "there";
+        const businessName = user.business_name || user.owner_name || user.display_name || user.name || email.split("@")[0] || "Business Partner";
         const lastLoginDate = lastActiveStr ? new Date(lastActiveStr).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "Recently";
         const daysInactive = lastActiveStr ? Math.max(1, Math.round(inactiveMs / (24 * 36e5))) + " Days" : "2+ Days";
-        const invoiceCount = user.invoices_count !== void 0 ? String(user.invoices_count) : "10+";
+        const invoiceCount = user.invoices_count !== void 0 ? String(user.invoices_count) : user.invoiceCount !== void 0 ? String(user.invoiceCount) : "10+";
         const stockCount = user.items_count !== void 0 ? String(user.items_count) : "Active";
         const dueCount = user.pending_due !== void 0 ? "\u20B9" + user.pending_due : "Synced";
         const customerCount = user.customers_count !== void 0 ? String(user.customers_count) : "Connected";
@@ -2239,30 +2274,47 @@ To stop receiving these alerts, update your settings at https://invocentric.in/s
         if (dispatch.success) {
           results.sent++;
           const cycleId = "cycle_" + Date.now();
-          await updateUserInactivityReminderFields(user.id, {
-            inactivity_reminder_status: "sent",
-            inactivity_reminder_sent_at: (/* @__PURE__ */ new Date()).toISOString(),
-            inactivity_reminder_cycle_id: cycleId,
-            inactivity_reminder_error: null
-          });
+          if (userId) {
+            await updateUserInactivityReminderFields(userId, {
+              inactivity_reminder_status: "sent",
+              inactivity_reminder_sent_at: (/* @__PURE__ */ new Date()).toISOString(),
+              inactivity_reminder_cycle_id: cycleId,
+              inactivity_reminder_error: null
+            });
+          }
           await logEmailDispatch(
             email,
             "Reminder",
             "InvoCentric Account Status: Your billing dashboard is active",
-            "Sent"
+            "Sent",
+            void 0,
+            {
+              recipient_name: userName,
+              business_name: businessName,
+              user_id: userId,
+              delivery_mode: "Automatic"
+            }
           );
         } else {
           results.errors.push(`${email}: ${dispatch.error}`);
-          await updateUserInactivityReminderFields(user.id, {
-            inactivity_reminder_status: "failed",
-            inactivity_reminder_error: dispatch.error || "Unknown Error"
-          });
+          if (userId) {
+            await updateUserInactivityReminderFields(userId, {
+              inactivity_reminder_status: "failed",
+              inactivity_reminder_error: dispatch.error || "Unknown Error"
+            });
+          }
           await logEmailDispatch(
             email,
             "Reminder",
             "InvoCentric Account Status: Your billing dashboard is active",
             "Failed",
-            dispatch.error
+            dispatch.error,
+            {
+              recipient_name: userName,
+              business_name: businessName,
+              user_id: userId,
+              delivery_mode: "Automatic"
+            }
           );
         }
       }
@@ -2311,8 +2363,8 @@ app.post("/api/admin/check-inactivity", checkAuth, async (req, res) => {
   }
   try {
     const authHeader = req.headers.authorization;
-    const { force, reset } = req.body || {};
-    const results = await runInactivityRemindersCheck(authHeader, !!force, !!reset);
+    const { force, reset, users } = req.body || {};
+    const results = await runInactivityRemindersCheck(authHeader, !!force, !!reset, users);
     res.status(200).json({ success: true, ...results });
   } catch (err) {
     res.status(500).json({ error: err.message || err });
@@ -2354,13 +2406,152 @@ To stop receiving these alerts, update your settings at https://invocentric.in/s
       text: testText
     });
     if (result.success) {
-      await logEmailDispatch(email, "Test Reminder", "Ready to streamline your billing? (Admin Test)", "Sent");
+      await logEmailDispatch(
+        email,
+        "Test Reminder",
+        "Ready to streamline your billing? (Admin Test)",
+        "Sent",
+        void 0,
+        {
+          recipient_name: cleanBusinessName,
+          business_name: cleanBusinessName,
+          delivery_mode: "Manual"
+        }
+      );
       res.status(200).json({ success: true, message: "Test inactivity email sent." });
     } else {
-      await logEmailDispatch(email, "Test Reminder", "Ready to streamline your billing? (Admin Test)", "Failed", result.error);
+      await logEmailDispatch(
+        email,
+        "Test Reminder",
+        "Ready to streamline your billing? (Admin Test)",
+        "Failed",
+        result.error,
+        {
+          recipient_name: cleanBusinessName,
+          business_name: cleanBusinessName,
+          delivery_mode: "Manual"
+        }
+      );
       res.status(500).json({ error: result.error || "Failed to dispatch test email." });
     }
   } catch (err) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
+app.post("/api/admin/send-user-reminder", checkAuth, async (req, res) => {
+  const adminEmail = "nomanshaikh1999@gmail.com";
+  if (req.user.email?.toLowerCase() !== adminEmail) {
+    return res.status(403).json({ error: "FORBIDDEN: Admin privileges required." });
+  }
+  const {
+    userId,
+    email,
+    businessName,
+    recipientName,
+    daysInactive,
+    lastLoginDate,
+    invoiceCount,
+    stockCount,
+    dueCount,
+    customerCount,
+    deliveryMode = "Manual"
+  } = req.body;
+  if (!email || !email.includes("@")) {
+    return res.status(400).json({ error: "Invalid recipient email address." });
+  }
+  try {
+    const cleanBusiness = businessName || recipientName || email.split("@")[0] || "Valued Partner";
+    const cleanName = recipientName || cleanBusiness;
+    const html = generateInactivityEmailTemplate({
+      businessName: cleanBusiness,
+      lastLoginDate: lastLoginDate || "Recently",
+      daysInactive: daysInactive || "1 Day",
+      invoiceCount: invoiceCount !== void 0 ? String(invoiceCount) : "0",
+      stockCount: stockCount !== void 0 ? String(stockCount) : "0 Items",
+      dueCount: dueCount !== void 0 ? String(dueCount) : "\u20B90",
+      customerCount: customerCount !== void 0 ? String(customerCount) : "0"
+    });
+    const text = `Hi ${cleanName},
+
+We miss you! Your InvoCentric billing dashboard is ready.
+
+You haven't logged into InvoCentric in the last 24 hours. This is just a friendly check-in to see if we can help you streamline your invoicing today.
+
+Your client lists, custom products, pending payments, and receipts are safely synced in the cloud and ready whenever you are.
+
+Return to Dashboard: https://invocentric.in/
+
+To stop receiving these alerts, update your settings at https://invocentric.in/settings`;
+    const dispatch = await dispatchEmail({
+      to: email,
+      subject: "InvoCentric Account Status: Your billing dashboard is active",
+      html,
+      text
+    });
+    if (dispatch.success) {
+      if (userId) {
+        await updateUserInactivityReminderFields(userId, {
+          inactivity_reminder_status: "sent",
+          inactivity_reminder_sent_at: (/* @__PURE__ */ new Date()).toISOString(),
+          inactivity_reminder_cycle_id: "cycle_" + Date.now(),
+          inactivity_reminder_error: null
+        });
+      }
+      await logEmailDispatch(
+        email,
+        "Reminder",
+        "InvoCentric Account Status: Your billing dashboard is active",
+        "Sent",
+        void 0,
+        {
+          recipient_name: cleanName,
+          business_name: cleanBusiness,
+          user_id: userId,
+          delivery_mode: deliveryMode
+        }
+      );
+      res.status(200).json({ success: true, message: `Reminder sent to ${email}` });
+    } else {
+      if (userId) {
+        await updateUserInactivityReminderFields(userId, {
+          inactivity_reminder_status: "failed",
+          inactivity_reminder_error: dispatch.error || "Failed to dispatch"
+        });
+      }
+      await logEmailDispatch(
+        email,
+        "Reminder",
+        "InvoCentric Account Status: Your billing dashboard is active",
+        "Failed",
+        dispatch.error,
+        {
+          recipient_name: cleanName,
+          business_name: cleanBusiness,
+          user_id: userId,
+          delivery_mode: deliveryMode
+        }
+      );
+      res.status(500).json({ error: dispatch.error || "Failed to dispatch reminder" });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
+app.get("/api/cron/reminders", async (req, res) => {
+  const isVercelCron = req.headers["x-vercel-cron"] === "1";
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.authorization;
+  const isSecretValid = cronSecret && authHeader === `Bearer ${cronSecret}`;
+  console.log(`[Cron Reminders] Inactive scan triggered (vercel=${isVercelCron}, secretValid=${!!isSecretValid}) at ${(/* @__PURE__ */ new Date()).toISOString()}`);
+  try {
+    const results = await runInactivityRemindersCheck(authHeader, false, false);
+    res.status(200).json({
+      success: true,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      ...results
+    });
+  } catch (err) {
+    console.error("[Cron Reminders] Execution failure:", err);
     res.status(500).json({ error: err.message || err });
   }
 });

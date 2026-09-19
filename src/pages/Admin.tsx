@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   Users, 
   FileText, 
@@ -32,7 +32,10 @@ import {
   List,
   Clock,
   Radio,
-  Sparkles
+  Sparkles,
+  Bell,
+  Zap,
+  Send
 } from 'lucide-react';
 import { db, auth, OperationType, handleFirestoreError } from '../lib/firebase';
 import { dbService } from '../services/dbService';
@@ -135,7 +138,7 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
   
-  // Email logs states
+  // Email logs & Auto-sync reminder states
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
   const [checkingInactivity, setCheckingInactivity] = useState(false);
@@ -143,20 +146,47 @@ export default function AdminPage() {
   const [resetStatuses, setResetStatuses] = useState(false);
   const [logSearchTerm, setLogSearchTerm] = useState('');
   const [emailSubTab, setEmailSubTab] = useState<'reminders' | 'receipts'>('reminders');
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('admin_reminder_autosync') !== 'false';
+  });
+  const [lastAutoSyncTime, setLastAutoSyncTime] = useState<Date | null>(() => {
+    const saved = localStorage.getItem('admin_last_reminder_autosync');
+    return saved ? new Date(saved) : null;
+  });
+  const [sendingReminderUserId, setSendingReminderUserId] = useState<string | null>(null);
+  const isAutoSyncingRef = useRef(false);
 
   const filteredEmailLogs = useMemo(() => {
-    return emailLogs.filter(log => {
+    return emailLogs.map((log: any) => {
+      // If legacy log lacks recipient_name or business_name, resolve it from real-time dbUsers
+      const matchedUser = dbUsers.find((u: any) => 
+        (u.email || '').trim().toLowerCase() === (log.recipient_email || '').trim().toLowerCase() ||
+        (u.business_email || '').trim().toLowerCase() === (log.recipient_email || '').trim().toLowerCase()
+      );
+      const recipientName = log.recipient_name || matchedUser?.display_name || matchedUser?.owner_name || matchedUser?.name || '';
+      const businessName = log.business_name || matchedUser?.business_name || '';
+
+      return {
+        ...log,
+        recipient_name: recipientName,
+        business_name: businessName,
+        delivery_mode: log.delivery_mode || 'Automatic'
+      };
+    }).filter((log: any) => {
       const isReminder = log.email_type === 'Reminder' || log.email_type === 'Test Reminder';
       if (emailSubTab === 'reminders' && !isReminder) return false;
       if (emailSubTab === 'receipts' && isReminder) return false;
 
       const email = (log.recipient_email || '').toLowerCase();
+      const recName = (log.recipient_name || '').toLowerCase();
+      const bizName = (log.business_name || '').toLowerCase();
       const type = (log.email_type || '').toLowerCase();
       const subject = (log.subject || '').toLowerCase();
+      const mode = (log.delivery_mode || '').toLowerCase();
       const search = logSearchTerm.toLowerCase();
-      return email.includes(search) || type.includes(search) || subject.includes(search);
+      return email.includes(search) || recName.includes(search) || bizName.includes(search) || type.includes(search) || subject.includes(search) || mode.includes(search);
     });
-  }, [emailLogs, logSearchTerm, emailSubTab]);
+  }, [emailLogs, dbUsers, logSearchTerm, emailSubTab]);
 
   // Modals / Full-list states
   const [showAllUsersModal, setShowAllUsersModal] = useState(false);
@@ -313,6 +343,49 @@ export default function AdminPage() {
     const fiveMinsAgo = Date.now() - 5 * 60 * 1000;
     return mergedUsers.filter(u => u.lastActiveDate.getTime() >= fiveMinsAgo).length;
   }, [mergedUsers]);
+
+  // Calculate real-time inactive users eligible for inactivity reminder (>24 continuous hours)
+  const inactiveUsersForReminder = useMemo(() => {
+    const now = Date.now();
+    const INACTIVITY_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+    return dbUsers.filter((u: any) => {
+      const email = (u.email || u.business_email || '').trim();
+      if (!email || !email.includes('@')) return false;
+      if (u.email_reminders_enabled === false) return false;
+
+      const dateRaw = u.last_active_at || u.last_login_at || u.updated_at || u.created_at;
+      const lastActiveTime = dateRaw ? parseDateSafe(dateRaw).getTime() : 0;
+      if (!lastActiveTime) return false;
+
+      const inactiveMs = now - lastActiveTime;
+      if (inactiveMs < INACTIVITY_THRESHOLD_MS) return false;
+
+      // Check if already sent recently (within last 3 days cooldown)
+      if (u.inactivity_reminder_status === 'sent' && u.inactivity_reminder_sent_at) {
+        const sentTime = parseDateSafe(u.inactivity_reminder_sent_at).getTime();
+        const daysSinceSent = (now - sentTime) / (24 * 3600000);
+        if (daysSinceSent < 3) return false;
+      }
+
+      return true;
+    }).map((u: any) => {
+      const dateRaw = u.last_active_at || u.last_login_at || u.updated_at || u.created_at;
+      const lastActiveDate = parseDateSafe(dateRaw);
+      const hoursInactive = Math.max(1, Math.round((Date.now() - lastActiveDate.getTime()) / 3600000));
+      const daysInactive = Math.max(1, Math.round((Date.now() - lastActiveDate.getTime()) / (24 * 3600000)));
+      const invoiceCount = getUserInvoiceCount(u.id, u.email, dbInvoices);
+      return {
+        ...u,
+        name: u.display_name || u.owner_name || u.name || (u.email ? u.email.split('@')[0] : 'User'),
+        business: u.business_name || u.owner_name || u.display_name || 'InvoCentric Partner',
+        lastActiveDate,
+        hoursInactive,
+        daysInactive,
+        invoiceCount
+      };
+    }).sort((a, b) => b.hoursInactive - a.hoursInactive);
+  }, [dbUsers, dbInvoices]);
 
   // High-level system statistics summary (counts only - no monetary amounts shown)
   const statsSummary = useMemo(() => {
@@ -711,18 +784,170 @@ export default function AdminPage() {
     }
   };
 
+  // Real-time Auto-Sync Engine: dispatches reminders automatically in background when due
+  const performAutoSync = useCallback(async () => {
+    if (!autoSyncEnabled || isAutoSyncingRef.current || !auth.currentUser) return;
+    if (inactiveUsersForReminder.length === 0) return;
+
+    // Throttle: don't auto-sync more than once every 10 minutes
+    const now = Date.now();
+    const lastTime = lastAutoSyncTime ? lastAutoSyncTime.getTime() : 0;
+    if (now - lastTime < 10 * 60 * 1000) return;
+
+    isAutoSyncingRef.current = true;
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const payloadUsers = inactiveUsersForReminder.map((u: any) => {
+        const userInvs = dbInvoices.filter((i: any) => i.user_id === u.id);
+        const dueSum = userInvs
+          .filter((i: any) => (i.status || '').toLowerCase() !== 'paid' && (i.status || '').toLowerCase() !== 'cancelled')
+          .reduce((acc: number, i: any) => acc + Math.max(0, (Number(i.total || i.amount || 0) - Number(i.paid_amount || 0))), 0);
+
+        return {
+          id: u.id,
+          email: u.email || u.business_email,
+          owner_name: u.name,
+          business_name: u.business,
+          last_active_at: u.last_active_at || u.updated_at || u.created_at,
+          invoices_count: userInvs.length,
+          items_count: u.items_count,
+          pending_due: dueSum > 0 ? dueSum.toLocaleString('en-IN') : undefined,
+          customers_count: u.customers_count
+        };
+      });
+
+      const res = await fetch('/api/admin/check-inactivity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ users: payloadUsers, force: false, reset: false })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const syncDate = new Date();
+        setLastAutoSyncTime(syncDate);
+        localStorage.setItem('admin_last_reminder_autosync', syncDate.toISOString());
+        if (data.sent > 0) {
+          triggerToast(`⚡ Real-time Auto-Sync: Dispatched ${data.sent} reminder(s) automatically!`);
+        }
+      }
+    } catch (err) {
+      console.warn("Auto-sync background check error:", err);
+    } finally {
+      isAutoSyncingRef.current = false;
+    }
+  }, [autoSyncEnabled, inactiveUsersForReminder, dbInvoices, lastAutoSyncTime]);
+
+  // Periodic heartbeat: run auto-sync every 60 seconds while admin is viewing
+  useEffect(() => {
+    if (!autoSyncEnabled) return;
+    performAutoSync();
+    const interval = setInterval(performAutoSync, 60000);
+    return () => clearInterval(interval);
+  }, [autoSyncEnabled, performAutoSync]);
+
+  const handleToggleAutoSync = () => {
+    const nextVal = !autoSyncEnabled;
+    setAutoSyncEnabled(nextVal);
+    localStorage.setItem('admin_reminder_autosync', String(nextVal));
+    triggerToast(`Real-time Auto-Sync is now ${nextVal ? 'ACTIVATED (Scanning Every 60s)' : 'PAUSED'}.`);
+  };
+
+  const handleSendIndividualReminder = async (targetUser: any) => {
+    const email = (targetUser.email || targetUser.business_email || '').trim();
+    if (!email || !email.includes('@')) {
+      triggerToast("User does not have a valid recipient email.");
+      return;
+    }
+
+    setSendingReminderUserId(targetUser.id);
+    try {
+      if (auth.currentUser) {
+        const token = await auth.currentUser.getIdToken();
+        const userInvs = dbInvoices.filter((i: any) => i.user_id === targetUser.id);
+        const dueSum = userInvs
+          .filter((i: any) => (i.status || '').toLowerCase() !== 'paid' && (i.status || '').toLowerCase() !== 'cancelled')
+          .reduce((acc: number, i: any) => acc + Math.max(0, (Number(i.total || i.amount || 0) - Number(i.paid_amount || 0))), 0);
+
+        const dateRaw = targetUser.last_active_at || targetUser.updated_at || targetUser.created_at;
+        let diffDays = 1;
+        let lastLoginFormatted = "Recently";
+        if (dateRaw) {
+          const parsed = parseDateSafe(dateRaw);
+          diffDays = Math.max(1, Math.round((Date.now() - parsed.getTime()) / (24 * 3600000)));
+          lastLoginFormatted = parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        const res = await fetch('/api/admin/send-user-reminder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            userId: targetUser.id,
+            email,
+            recipientName: targetUser.name || targetUser.owner_name || targetUser.display_name,
+            businessName: targetUser.business || targetUser.business_name,
+            lastLoginDate: lastLoginFormatted,
+            daysInactive: `${diffDays} Day${diffDays > 1 ? 's' : ''}`,
+            invoiceCount: String(userInvs.length),
+            stockCount: targetUser.items_count !== undefined ? `${targetUser.items_count} Items` : (userInvs.length > 0 ? "Synced" : "0 Items"),
+            dueCount: `₹${dueSum.toLocaleString('en-IN')}`,
+            customerCount: targetUser.customers_count !== undefined ? String(targetUser.customers_count) : "0",
+            deliveryMode: "Manual"
+          })
+        });
+
+        if (res.ok) {
+          triggerToast(`Reminder email dispatched to ${email}!`);
+        } else {
+          const err = await res.json();
+          triggerToast(`Failed to dispatch: ${err.error || 'Unknown Error'}`);
+        }
+      }
+    } catch (err: any) {
+      console.error("Individual reminder dispatch error:", err);
+      triggerToast(`Connection failed: ${err.message || err}`);
+    } finally {
+      setSendingReminderUserId(null);
+    }
+  };
+
   const handleTriggerInactivityCheck = async () => {
     setCheckingInactivity(true);
     try {
       if (auth.currentUser) {
         const token = await auth.currentUser.getIdToken();
+        const payloadUsers = inactiveUsersForReminder.map((u: any) => {
+          const userInvs = dbInvoices.filter((i: any) => i.user_id === u.id);
+          const dueSum = userInvs
+            .filter((i: any) => (i.status || '').toLowerCase() !== 'paid' && (i.status || '').toLowerCase() !== 'cancelled')
+            .reduce((acc: number, i: any) => acc + Math.max(0, (Number(i.total || i.amount || 0) - Number(i.paid_amount || 0))), 0);
+
+          return {
+            id: u.id,
+            email: u.email || u.business_email,
+            owner_name: u.name,
+            business_name: u.business,
+            last_active_at: u.last_active_at || u.updated_at || u.created_at,
+            invoices_count: userInvs.length,
+            items_count: u.items_count,
+            pending_due: dueSum > 0 ? dueSum.toLocaleString('en-IN') : undefined,
+            customers_count: u.customers_count
+          };
+        });
+
         const res = await fetch('/api/admin/check-inactivity', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ force: forceScan, reset: resetStatuses })
+          body: JSON.stringify({ users: payloadUsers, force: forceScan, reset: resetStatuses })
         });
         if (res.ok) {
           const result = await res.json();
@@ -2050,6 +2275,19 @@ export default function AdminPage() {
                         
                         <div className="flex items-center gap-1.5">
                           <button
+                            onClick={() => handleSendIndividualReminder(u)}
+                            disabled={sendingReminderUserId === u.id}
+                            className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer disabled:opacity-50"
+                            title="Send Inactivity Reminder"
+                          >
+                            {sendingReminderUserId === u.id ? (
+                              <RefreshCw size={11} className="animate-spin text-emerald-700" />
+                            ) : (
+                              <Bell size={11} className="text-emerald-700" />
+                            )}
+                            <span>Remind</span>
+                          </button>
+                          <button
                             onClick={() => {
                               if (u.email) {
                                 window.location.href = `mailto:${u.email}?subject=InvoCentric%20Admin%20Support`;
@@ -2179,6 +2417,18 @@ export default function AdminPage() {
                           {/* Action buttons */}
                           <td className="py-3.5 text-center">
                             <div className="flex justify-center items-center gap-1">
+                              <button
+                                onClick={() => handleSendIndividualReminder(u)}
+                                disabled={sendingReminderUserId === u.id}
+                                className="p-1.5 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-colors border-none bg-transparent cursor-pointer disabled:opacity-50"
+                                title="Send Inactivity Reminder Email"
+                              >
+                                {sendingReminderUserId === u.id ? (
+                                  <RefreshCw size={13} className="animate-spin text-emerald-600" />
+                                ) : (
+                                  <Bell size={13} />
+                                )}
+                              </button>
                               <button
                                 onClick={() => {
                                   if (u.email) {
@@ -2320,10 +2570,206 @@ export default function AdminPage() {
             </p>
           </div>
           
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#166534] animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">SMTP Server Online</span>
+          <div className="flex items-center gap-2.5">
+            <div className={cn(
+              "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border",
+              autoSyncEnabled 
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
+                : "bg-amber-50 text-amber-700 border-amber-200"
+            )}>
+              <span className={cn("w-2 h-2 rounded-full", autoSyncEnabled ? "bg-emerald-500 animate-pulse" : "bg-amber-500")} />
+              <span>{autoSyncEnabled ? "Real-Time Auto-Sync: Active" : "Auto-Sync: Paused"}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-200/60">
+              <span className="w-2 h-2 rounded-full bg-[#166534] animate-pulse" />
+              <span>SMTP Online</span>
+            </div>
           </div>
+        </div>
+
+        {/* REAL-TIME AUTO-SYNC REMINDERS ENGINE BANNER */}
+        <div className="bg-gradient-to-br from-[#0B4D46] via-[#0F645D] to-[#083833] rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase bg-white/15 border border-white/20 text-emerald-200 backdrop-blur-sm">
+                  <Zap size={12} className="text-amber-300 fill-amber-300" />
+                  <span>Real-Time Engine</span>
+                </span>
+                <span className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border",
+                  autoSyncEnabled 
+                    ? "bg-emerald-400/20 text-emerald-200 border-emerald-400/40" 
+                    : "bg-rose-400/20 text-rose-200 border-rose-400/40"
+                )}>
+                  <span className={cn("w-2 h-2 rounded-full", autoSyncEnabled ? "bg-emerald-400 animate-ping" : "bg-rose-400")} />
+                  <span>{autoSyncEnabled ? "Auto-Sync Active (Scanning Every 60s)" : "Paused"}</span>
+                </span>
+                {inactiveUsersForReminder.length > 0 ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase bg-amber-400/20 text-amber-200 border border-amber-400/30">
+                    <Bell size={11} />
+                    <span>{inactiveUsersForReminder.length} Due for Reminder</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                    <CheckCircle size={11} />
+                    <span>All Users Up-To-Date</span>
+                  </span>
+                )}
+              </div>
+
+              <h3 className="text-lg font-black tracking-tight text-white">
+                Automatic 24-Hour Inactivity Email Dispatcher
+              </h3>
+              <p className="text-xs text-emerald-100/90 leading-relaxed font-medium">
+                Jaise hi koi user 24 ghante tak login nahi karta, system automatically background me bina kisi manual button click ke reminder email bhej deta hai. Saare dispatched emails real-time me niche System Reminders audit log me user aur business name ke sath record hote hain.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4 pt-1 text-[11px] text-emerald-200/80 font-semibold">
+                <div className="flex items-center gap-1.5">
+                  <Clock size={12} className="text-emerald-300" />
+                  <span>Heartbeat: Every 60s auto-scan</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={12} className="text-emerald-300" />
+                  <span>
+                    Last checked: {lastAutoSyncTime ? formatDistanceToNow(lastAutoSyncTime, { addSuffix: true }) : 'Just initialized'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Zap size={12} className="text-amber-300" />
+                  <span>Cooldown: 1 email per user every 3 days</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
+              <button
+                onClick={handleToggleAutoSync}
+                className={cn(
+                  "px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all border cursor-pointer flex items-center justify-center gap-2 shadow-sm",
+                  autoSyncEnabled
+                    ? "bg-white text-[#0B4D46] hover:bg-emerald-50 border-white/80"
+                    : "bg-emerald-400 hover:bg-emerald-300 text-slate-900 border-emerald-300 font-extrabold"
+                )}
+              >
+                {autoSyncEnabled ? (
+                  <>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
+                    <span>Auto-Sync is ON (Click to Pause)</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap size={13} className="fill-current" />
+                    <span>Enable Auto-Sync</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={performAutoSync}
+                disabled={isAutoSyncingRef.current || inactiveUsersForReminder.length === 0}
+                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white border border-white/20 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 backdrop-blur-sm"
+              >
+                <RefreshCw size={12} className={isAutoSyncingRef.current ? "animate-spin" : ""} />
+                <span>Sync Pending Now ({inactiveUsersForReminder.length})</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ELIGIBLE INACTIVITY REMINDERS QUEUE */}
+        <div className="bg-slate-50/70 border border-slate-200/80 rounded-3xl p-5 md:p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 pb-3 border-b border-slate-200/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                <Bell size={16} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                  <span>Due Inactivity Reminders Queue</span>
+                  <span className="text-[10px] font-black bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
+                    {inactiveUsersForReminder.length} Eligible
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Users inactive for &gt; 24 hours queued for automated dispatch (or dispatch instantly with 1-click)
+                </p>
+              </div>
+            </div>
+
+            {inactiveUsersForReminder.length > 0 && (
+              <button
+                onClick={handleTriggerInactivityCheck}
+                disabled={checkingInactivity}
+                className="px-4 py-2 bg-[#166534] hover:bg-[#0D635C] disabled:opacity-50 text-white rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer border-none flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                {checkingInactivity ? (
+                  <>
+                    <RefreshCw className="animate-spin" size={11} />
+                    <span>Sending to All...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={11} />
+                    <span>Send to All {inactiveUsersForReminder.length} Users</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {inactiveUsersForReminder.length === 0 ? (
+            <div className="py-6 text-center text-slate-400 text-xs font-semibold flex flex-col items-center justify-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <CheckCircle size={20} />
+              </div>
+              <span>All registered users are active or have recently received their scheduled reminders!</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {inactiveUsersForReminder.slice(0, 6).map((user: any) => (
+                <div key={user.id} className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-xs hover:border-slate-300 transition-all">
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-black text-slate-900 truncate" title={user.name}>{user.name}</h4>
+                        <p className="text-[10px] text-slate-400 font-bold truncate" title={user.email || user.business_email}>
+                          {user.email || user.business_email}
+                        </p>
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full shrink-0">
+                        {user.daysInactive}d Inactive
+                      </span>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-semibold text-slate-500">
+                      <span className="truncate max-w-[130px] font-bold text-slate-700">{user.business}</span>
+                      <span>{user.invoiceCount} Invoices</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleSendIndividualReminder(user)}
+                    disabled={sendingReminderUserId === user.id}
+                    className="w-full py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {sendingReminderUserId === user.id ? (
+                      <>
+                        <RefreshCw size={11} className="animate-spin text-emerald-700" />
+                        <span>Dispatching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={11} className="text-emerald-700" />
+                        <span>Send Reminder Now</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* INTERACTIVE ACTIONS GRID */}
@@ -2434,7 +2880,7 @@ export default function AdminPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
             <div className="flex flex-col gap-0.5">
               <span className="text-xs font-black uppercase tracking-wider text-slate-800 font-sans">Dispatched Receipts & Reminders</span>
-              <p className="text-[10px] text-slate-400 font-bold">Manage system-generated automated client communications</p>
+              <p className="text-[10px] text-slate-400 font-bold">Manage system-generated automated client communications with real-time delivery logs</p>
             </div>
             
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -2443,7 +2889,7 @@ export default function AdminPage() {
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input 
                   type="text"
-                  placeholder="Search recipient, subject..."
+                  placeholder="Search user, business, email..."
                   value={logSearchTerm}
                   onChange={(e) => setLogSearchTerm(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-[#166534]"
@@ -2492,10 +2938,11 @@ export default function AdminPage() {
           </div>
 
           <div className="overflow-x-auto border border-slate-100 rounded-2xl">
-            <table className="w-full text-left border-collapse min-w-[750px]">
+            <table className="w-full text-left border-collapse min-w-[850px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-wider">
-                  <th className="py-3 px-4 font-black">Recipient</th>
+                  <th className="py-3 px-4 font-black">User & Business</th>
+                  <th className="py-3 px-4 font-black">Delivery Mode</th>
                   <th className="py-3 px-4 font-black">Type</th>
                   <th className="py-3 px-4 font-black">Subject</th>
                   <th className="py-3 px-4 font-black">Delivery Status</th>
@@ -2507,21 +2954,47 @@ export default function AdminPage() {
                 {filteredEmailLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
                     
-                    {/* Recipient Email */}
+                    {/* User & Business */}
                     <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-slate-800">{log.recipient_email}</span>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(log.recipient_email || "");
-                            triggerToast("Email Copied!");
-                          }}
-                          className="p-1 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer rounded"
-                          title="Copy Email"
-                        >
-                          <Copy size={11} />
-                        </button>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-slate-900">
+                            {log.recipient_name || 'Registered User'}
+                          </span>
+                          {log.business_name && (
+                            <span className="text-[9px] font-bold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200/60 max-w-[120px] truncate" title={log.business_name}>
+                              {log.business_name}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
+                          <span className="truncate max-w-[170px]">{log.recipient_email}</span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(log.recipient_email || "");
+                              triggerToast("Email Copied!");
+                            }}
+                            className="p-0.5 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer rounded"
+                            title="Copy Email"
+                          >
+                            <Copy size={10} />
+                          </button>
+                        </div>
                       </div>
+                    </td>
+
+                    {/* Delivery Mode */}
+                    <td className="py-3.5 px-4">
+                      {log.delivery_mode === 'Automatic' || log.delivery_mode === 'Cron' ? (
+                        <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          <Zap size={10} className="fill-emerald-600 text-emerald-600" />
+                          <span>Auto-Synced</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-200">
+                          <span>👤 Manual</span>
+                        </span>
+                      )}
                     </td>
 
                     {/* Email Type */}
@@ -2542,7 +3015,7 @@ export default function AdminPage() {
                     </td>
 
                     {/* Subject */}
-                    <td className="py-3.5 px-4 text-xs font-semibold text-slate-600">
+                    <td className="py-3.5 px-4 text-xs font-semibold text-slate-600 max-w-xs truncate" title={log.subject}>
                       {log.subject}
                     </td>
 
@@ -2570,20 +3043,41 @@ export default function AdminPage() {
 
                     {/* Timestamp */}
                     <td className="py-3.5 px-4 text-right">
-                      <span className="text-xs font-bold text-slate-400 font-sans">
+                      <span className="text-xs font-bold text-slate-400 font-sans" title={log.timestamp}>
                         {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
                       </span>
                     </td>
 
                     {/* Action */}
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => handleDeleteEmailLog(log.id)}
-                        className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors border-none bg-transparent cursor-pointer inline-flex items-center justify-center"
-                        title="Delete entry"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => {
+                            const matchedUser = dbUsers.find((u: any) => 
+                              (u.email || '').toLowerCase() === (log.recipient_email || '').toLowerCase() ||
+                              (u.business_email || '').toLowerCase() === (log.recipient_email || '').toLowerCase()
+                            );
+                            handleSendIndividualReminder(matchedUser || {
+                              id: log.user_id || 'manual-resend',
+                              email: log.recipient_email,
+                              name: log.recipient_name,
+                              business: log.business_name
+                            });
+                          }}
+                          disabled={sendingReminderUserId === (log.user_id || log.recipient_email)}
+                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border-none bg-transparent cursor-pointer disabled:opacity-50 inline-flex items-center justify-center"
+                          title="Resend Reminder to this User"
+                        >
+                          <Send size={12} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEmailLog(log.id)}
+                          className="p-1.5 text-rose-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors border-none bg-transparent cursor-pointer inline-flex items-center justify-center"
+                          title="Delete log entry"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </td>
 
                   </tr>
@@ -2591,7 +3085,7 @@ export default function AdminPage() {
 
                 {filteredEmailLogs.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-12 text-slate-400 italic text-xs">
+                    <td colSpan={7} className="text-center py-12 text-slate-400 italic text-xs">
                       No matching email dispatch logs resolved.
                     </td>
                   </tr>
