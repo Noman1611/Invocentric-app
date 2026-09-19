@@ -777,6 +777,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
+    if (typeof window !== 'undefined' && localStorage.getItem('invocentric_auth_active') === 'true') {
+      return <PageLoader />;
+    }
     return <Navigate to="/login" />;
   }
 
@@ -1690,6 +1693,9 @@ function HomeRoute() {
   }
 
   if (!user) {
+    if (typeof window !== 'undefined' && localStorage.getItem('invocentric_auth_active') === 'true') {
+      return <PageLoader />;
+    }
     return (
       <Suspense fallback={<PageLoader />}>
         <LandingPage />

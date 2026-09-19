@@ -348,19 +348,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Safety timeout: if auth state doesn't resolve within 5 seconds, force loading to false
-    // to prevent getting stuck on the page loader screen due to network hang or Firebase blockages.
+    // Check if user was previously authenticated in local session to prevent premature loader dismiss
+    const hadActiveSession = typeof window !== 'undefined' && localStorage.getItem('invocentric_auth_active') === 'true';
+
+    // Safety timeout: if auth state doesn't resolve within timeout, force loading to false
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
       console.warn("Auth state took too long to resolve; safety timeout triggered.");
-    }, 5000);
+    }, hadActiveSession ? 10000 : 5000);
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       clearTimeout(safetyTimeout);
-      if (typeof window !== 'undefined' && localStorage.getItem('local_guest_session') === 'true') {
-        setLoading(false);
-        return;
-      }
       console.log("Auth state change:", firebaseUser ? `User ID ${firebaseUser.uid.slice(0, 5)}...` : "No user");
       await handleUserChange(firebaseUser);
     });
@@ -407,17 +405,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (snapshot) => {
       if (!snapshot.exists()) {
-        // Only force logout if we are explicitly online, to prevent offline sync mismatch from signing us out
-        if (navigator.onLine) {
-          console.log("Real-time profile deletion detected. Signing out user");
-          signOut(auth);
-          setUser(null);
-          setIsAdmin(false);
-        }
+        // DO NOT FORCE LOGOUT!
+        // If snapshot does not exist, the user document in Firestore hasn't been created yet or is being initialized.
+        // Create/sync the profile document safely in the background instead of signing out the authenticated user!
+        console.log("Firestore user profile document not yet created. Ensuring default profile...");
+        ensureUserProfileExists(user);
         return;
       }
 
       const profile = snapshot.data();
+      // Check if user was explicitly banned by Admin
+      if (profile?.status === 'banned') {
+        console.warn("Account has been banned. Signing out.");
+        alert("This account has been suspended by administration. Please contact support.");
+        logout();
+        return;
+      }
+
       // Safely merge with persistent local cache so empty Firestore fields never wipe local data
       if (profile) {
         saveStoredUserProfile(user.uid, profile);
@@ -456,198 +460,180 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [user?.uid, isOfflineMode, isBrowserOffline]);
 
+  const ensureUserProfileExists = async (firebaseUser: User) => {
+    try {
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+      const cached = getStoredUserProfile(firebaseUser.uid);
+      
+      const profileData: any = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email || null,
+        display_name: firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'User'),
+        photo_url: firebaseUser.photoURL || null,
+        is_admin: isOwnerEmail || !!cached?.is_admin,
+        status: 'active',
+        plan_status: cached?.plan_status || 'active',
+        plan_tier: cached?.plan_tier || 'free',
+        plan: cached?.plan || 'free',
+        role: isOwnerEmail ? 'owner' : (cached?.role || 'user'),
+        billing_cycle: cached?.billing_cycle || null,
+        plan_renews_at: cached?.plan_renews_at || null,
+        is_offline_mode: false,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+        last_login_at: serverTimestamp(),
+        last_active_at: serverTimestamp(),
+        app_mode: cached?.app_mode || appMode || 'shop'
+      };
+      
+      await setDoc(userDocRef, sanitizeFirestorePayload(profileData), { merge: true });
+      saveStoredUserProfile(firebaseUser.uid, profileData);
+      console.log("Profile ensured in Firestore successfully");
+    } catch (err) {
+      console.warn("Could not ensure profile in Firestore (safe fallback active):", err);
+    }
+  };
+
+  const syncFirestoreProfileInBackground = async (firebaseUser: User, cachedProfile: any) => {
+    if (!navigator.onLine) return;
+    try {
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      let userDoc: any = null;
+      try {
+        userDoc = await Promise.race([
+          getDoc(userDocRef),
+          new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 3500))
+        ]);
+      } catch (err: any) {
+        console.warn("Background user doc fetch notice:", err?.message || err);
+      }
+
+      const profile = userDoc?.exists() ? userDoc.data() : null;
+
+      if (profile) {
+        // Save to local storage
+        saveStoredUserProfile(firebaseUser.uid, profile);
+
+        if (profile.plan_status) setPlanStatus(profile.plan_status);
+        const isPro = profile.plan_tier === 'pro' || profile.plan === 'pro' || profile.subscription_status === 'active';
+        setPlanTier(isPro ? 'pro' : 'free');
+        if (profile.app_mode) {
+          setAppModeState(profile.app_mode);
+          localStorage.setItem('app_mode', profile.app_mode);
+        }
+        const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+        setRole(isOwnerEmail ? 'owner' : (profile.role || 'user'));
+        setBillingCycle(profile.billing_cycle || profile.billingCycle || null);
+        setPlanRenewsAt(profile.plan_renews_at || profile.planRenewsAt || null);
+        setSubscriptionPending(!!profile.subscription_pending);
+        setSubscriptionStatus(profile.subscription_status || null);
+        setSubscriptionRequestRef(profile.subscription_request_ref || null);
+        const isAdminEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+        setIsAdmin(isAdminEmail || !!profile.is_admin);
+
+        // Update last login timestamp without overwriting other data
+        try {
+          await setDoc(userDocRef, {
+            last_login_at: serverTimestamp(),
+            last_active_at: serverTimestamp(),
+            updated_at: serverTimestamp()
+          }, { merge: true });
+        } catch (updateErr) {
+          console.warn("Could not update last_login_at timestamp:", updateErr);
+        }
+      } else {
+        // Profile does not exist in Firestore - create it safely!
+        await ensureUserProfileExists(firebaseUser);
+      }
+
+      // Background Telegram login notification
+      const sessionNotifiedKey = `login_telegram_notified_${firebaseUser.uid}`;
+      if (!sessionStorage.getItem(sessionNotifiedKey)) {
+        sessionStorage.setItem(sessionNotifiedKey, 'true');
+        if (typeof (firebaseUser as any).getIdToken === 'function') {
+          (firebaseUser as any).getIdToken().then((token: string) => {
+            fetch('/api/notify-login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              }
+            }).catch(err => console.warn("Login notification trigger notice:", err));
+          }).catch((err: any) => console.warn("Acquire token for login alert notice:", err));
+        } else {
+          fetch('/api/notify-login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: firebaseUser.email, uid: firebaseUser.uid })
+          }).catch(err => console.warn("Login notification trigger notice:", err));
+        }
+      }
+    } catch (err) {
+      console.warn("Background profile sync notice:", err);
+    }
+  };
+
   const handleUserChange = async (firebaseUser: User | null) => {
     console.log("Auth transition:", firebaseUser ? `User logged in [REDACTED]` : "No user");
     try {
       if (firebaseUser) {
-        // Daily login check logic
-        const today = new Date().toDateString();
-        const lastCheck = localStorage.getItem('last_plan_check_date');
-        
-        // Fetch user profile from Firestore with safe offline fallback
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        let userDoc = null;
-        let profile = null;
-        const isOffline = !navigator.onLine;
-
-        if (!isOffline) {
-          try {
-            // Fetch with a 2.5 seconds timeout to avoid hanging the entire app startup
-            userDoc = await Promise.race([
-              getDoc(userDocRef),
-              new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 2500))
-            ]) as any;
-
-            if (userDoc?.exists()) {
-              profile = userDoc.data();
-              // Safely merge with persistent local cache so empty Firestore fields never wipe local data
-              saveStoredUserProfile(firebaseUser.uid, profile);
-            }
-          } catch (err: any) {
-            const errMessage = err instanceof Error ? err.message : String(err);
-            if (errMessage.includes('timeout')) {
-              console.log("Firestore login profile fetch timed out gracefully, using local cached profile.");
-            } else {
-              console.warn("Error fetching user doc on login:", errMessage);
-            }
-            if (errMessage.toLowerCase().includes('quota') || errMessage.toLowerCase().includes('resource-exhausted') || errMessage.toLowerCase().includes('resource_exhausted')) {
-              localStorage.setItem('is_offline_mode', 'true');
-              localStorage.setItem('firestore_quota_exceeded', 'true');
-              localStorage.setItem('firestore_quota_exceeded_timestamp', String(Date.now()));
-              window.dispatchEvent(new CustomEvent('firestore-quota-exceeded', { detail: { error: errMessage } }));
-            }
+        // 1. Immediately store session marker in localStorage
+        try {
+          localStorage.setItem('invocentric_auth_active', 'true');
+          localStorage.setItem('invocentric_last_uid', firebaseUser.uid);
+          if (firebaseUser.email) {
+            localStorage.setItem('invocentric_last_email', firebaseUser.email);
           }
-        }
+        } catch (e) {}
 
-        // If fetch failed or we are offline and couldn't get from Firestore, load from backup
-        if (!profile) {
-          const cachedProfile = getStoredUserProfile(firebaseUser.uid);
-          if (cachedProfile) {
-            profile = cachedProfile;
-            console.log("Loaded fallback user profile from localStorage [REDACTED]");
-          }
-        }
-
-        // Plan status logic
-        if (profile?.plan_status) {
-          setPlanStatus(profile.plan_status);
-        } else {
-          setPlanStatus('active'); // Initial trial
-        }
-
-        // Plan tier logic
-        const isProLogin = profile?.plan_tier === 'pro' || profile?.plan === 'pro' || profile?.subscription_status === 'active';
-        setPlanTier(isProLogin ? 'pro' : 'free');
-
-        const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-        setRole(isOwnerEmail ? 'owner' : (profile?.role || 'user'));
-        setBillingCycle(profile?.billing_cycle || profile?.billingCycle || null);
-        setPlanRenewsAt(profile?.plan_renews_at || profile?.planRenewsAt || null);
-        setSubscriptionPending(!!profile?.subscription_pending);
-        setSubscriptionStatus(profile?.subscription_status || null);
-        setSubscriptionRequestRef(profile?.subscription_request_ref || null);
-
-        // Update last check date
-        localStorage.setItem('last_plan_check_date', today);
-
-        // Check for admin status - prioritize email for bootstrap admin
-        const isAdminEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-        setIsAdmin(isAdminEmail || !!profile?.is_admin);
-
-        // Sync profile details only when online
-        if (!isOffline) {
-          const profileData: any = {
-            id: firebaseUser.uid,
-            email: firebaseUser.email || null,
-            display_name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || null,
-            photo_url: firebaseUser.photoURL || null,
-            updated_at: serverTimestamp(),
-            last_login_at: serverTimestamp(),
-            last_active_at: serverTimestamp()
-          };
-
-          if (!userDoc?.exists() && !profile) {
-            console.log("Creating brand new profile");
-            profileData.is_admin = isAdminEmail;
-            profileData.status = 'active';
-            profileData.plan_status = 'active';
-            profileData.plan_tier = 'free';
-            profileData.plan = 'free';
-            profileData.role = isAdminEmail ? 'owner' : 'user';
-            profileData.billing_cycle = null;
-            profileData.plan_renews_at = null;
-            profileData.is_offline_mode = false;
-            profileData.created_at = serverTimestamp();
-            profileData.app_mode = appMode; // Default to local selected mode
-            
-            try {
-              await Promise.race([
-                setDoc(userDocRef, profileData),
-                new Promise((_, reject) => setTimeout(() => reject(new Error("setDoc timeout")), 2500))
-              ]);
-              console.log("Profile created successfully");
-              saveStoredUserProfile(firebaseUser.uid, profileData);
-            } catch (insertErr: any) {
-              const msg = insertErr?.message || String(insertErr);
-              if (msg.includes('timeout')) {
-                console.log("Profile creation timed out gracefully, continuing startup.");
-              } else {
-                console.warn("Failed to create user profile:", msg);
-              }
-            }
-          } else {
-            console.log("Syncing/updating profile for existing user");
-            try {
-              // Set local app mode if found in DB, otherwise write current local appMode to DB
-              if (profile?.app_mode) {
-                setAppModeState(profile.app_mode);
-                localStorage.setItem('app_mode', profile.app_mode);
-              } else {
-                profileData.app_mode = appMode;
-              }
-
-              // If the existing user profile doesn't have a created_at field, add it!
-              if (!profile?.created_at) {
-                profileData.created_at = serverTimestamp();
-              }
-              // Merge true updates fields without overwriting user custom settings (like business_name, etc.)
-              await Promise.race([
-                setDoc(userDocRef, sanitizeFirestorePayload(profileData), { merge: true }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error("setDoc timeout")), 2500))
-              ]);
-              console.log("Profile updated/synced successfully on login");
-            } catch (updateErr: any) {
-              const msg = updateErr?.message || String(updateErr);
-              if (msg.includes('timeout')) {
-                console.log("Profile update timed out gracefully, continuing startup.");
-              } else {
-                console.warn("Failed to update user profile on login sync:", msg);
-              }
-            }
-          }
-        } else {
-          console.log("Device is offline. Skipping Firestore profile sync, keeping current local state.");
-          if (profile?.app_mode) {
-            setAppModeState(profile.app_mode);
-            localStorage.setItem('app_mode', profile.app_mode);
-          }
-        }
-
+        // 2. Set user immediately in state so PrivateRoute and HomeRoute know user is active!
         setUser(firebaseUser);
 
-        // Dispatch background Telegram alert for successful user login
-        if (firebaseUser && !isOffline) {
-          const sessionNotifiedKey = `login_telegram_notified_${firebaseUser.uid}`;
-          if (!sessionStorage.getItem(sessionNotifiedKey)) {
-            sessionStorage.setItem(sessionNotifiedKey, 'true');
-            if (typeof (firebaseUser as any).getIdToken === 'function') {
-              (firebaseUser as any).getIdToken().then((token: string) => {
-                fetch('/api/notify-login', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  }
-                }).catch(err => console.warn("Login notification trigger failed (handled):", err));
-              }).catch((err: any) => console.warn("Failed to acquire user ID token for login alert (handled):", err));
-            } else {
-              fetch('/api/notify-login', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ email: firebaseUser.email, uid: firebaseUser.uid })
-              }).catch(err => console.warn("Login notification trigger failed (handled):", err));
-            }
+        // 3. Fast offline-first hydration from local storage (0ms - instantaneous)
+        const cachedProfile = getStoredUserProfile(firebaseUser.uid);
+        if (cachedProfile) {
+          if (cachedProfile.plan_status) setPlanStatus(cachedProfile.plan_status);
+          const isProOffline = cachedProfile.plan_tier === 'pro' || cachedProfile.plan === 'pro' || cachedProfile.subscription_status === 'active';
+          setPlanTier(isProOffline ? 'pro' : 'free');
+          if (cachedProfile.app_mode) {
+            setAppModeState(cachedProfile.app_mode);
+            localStorage.setItem('app_mode', cachedProfile.app_mode);
           }
+          const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+          setRole(isOwnerEmail ? 'owner' : (cachedProfile.role || 'user'));
+          setBillingCycle(cachedProfile.billing_cycle || cachedProfile.billingCycle || null);
+          setPlanRenewsAt(cachedProfile.plan_renews_at || cachedProfile.planRenewsAt || null);
+          setSubscriptionPending(!!cachedProfile.subscription_pending);
+          setSubscriptionStatus(cachedProfile.subscription_status || null);
+          setSubscriptionRequestRef(cachedProfile.subscription_request_ref || null);
+          const isAdminEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+          setIsAdmin(isAdminEmail || !!cachedProfile.is_admin);
+        } else {
+          const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+          setRole(isOwnerEmail ? 'owner' : 'user');
+          setIsAdmin(isOwnerEmail);
         }
+
+        // 4. Release loading immediately so user sees their dashboard instantly without any 5-second hang
+        setLoading(false);
+
+        // 5. In background, sync with Firestore asynchronously without blocking user navigation
+        syncFirestoreProfileInBackground(firebaseUser, cachedProfile);
       } else {
+        try {
+          localStorage.removeItem('invocentric_auth_active');
+          localStorage.removeItem('invocentric_last_uid');
+          localStorage.removeItem('invocentric_last_email');
+        } catch (e) {}
         setUser(null);
         setIsAdmin(false);
+        setLoading(false);
       }
     } catch (error) {
       console.error("Critical error in auth session handling:", error);
-    } finally {
       setLoading(false);
     }
   };
@@ -859,10 +845,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      localStorage.removeItem('invocentric_auth_active');
+      localStorage.removeItem('invocentric_last_uid');
+      localStorage.removeItem('invocentric_last_email');
       localStorage.removeItem('local_guest_session');
       localStorage.removeItem('email_otp_session');
       await signOut(auth);
       setUser(null);
+      setIsAdmin(false);
+      setRole('user');
+      setPlanTier('free');
     } catch (error) {
       console.error("Error signing out:", error);
       throw error;
