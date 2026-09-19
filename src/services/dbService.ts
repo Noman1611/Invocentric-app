@@ -13,6 +13,7 @@ import {
   setDoc
 } from 'firebase/firestore';
 import { sanitizeData } from '../utils/sanitizeUtils';
+import { localDbEngine } from './localDbEngine';
 
 export interface DbOperationOptions {
   offlineMode?: boolean;
@@ -181,6 +182,20 @@ export const dbService = {
     const { userId } = options;
     if (!userId) throw new Error("User ID is required for database operations");
 
+    const isLocalOnly = options.offlineMode || localStorage.getItem('invocentric_storage_mode') === 'local_pc';
+    if (isLocalOnly) {
+      const saved = await localDbEngine.saveItem(collectionName, {
+        ...data,
+        user_id: userId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      if (collectionName !== 'notifications') {
+        triggerNotification('create', collectionName, saved.id, data, null, options).catch(console.error);
+      }
+      return { id: saved.id };
+    }
+
     const payload = {
       ...data,
       user_id: userId,
@@ -201,6 +216,20 @@ export const dbService = {
     data = sanitizeData(data);
     const { userId } = options;
     if (!userId) throw new Error("User ID is required for database operations");
+
+    const isLocalOnly = options.offlineMode || localStorage.getItem('invocentric_storage_mode') === 'local_pc';
+    if (isLocalOnly) {
+      const saved = await localDbEngine.saveItem(collectionName, {
+        ...data,
+        id: docId,
+        user_id: userId,
+        updated_at: new Date().toISOString()
+      });
+      if (collectionName !== 'notifications') {
+        triggerNotification('update', collectionName, docId, data, null, options).catch(console.error);
+      }
+      return { id: saved.id };
+    }
 
     const docRef = doc(db, collectionName, docId);
     let oldDoc: any = null;
@@ -226,6 +255,15 @@ export const dbService = {
   async delete(collectionName: string, docId: string, options: DbOperationOptions) {
     const { userId } = options;
     if (!userId) return;
+
+    const isLocalOnly = options.offlineMode || localStorage.getItem('invocentric_storage_mode') === 'local_pc';
+    if (isLocalOnly) {
+      await localDbEngine.deleteItem(collectionName, docId, options.permanent);
+      if (collectionName !== 'notifications') {
+        triggerNotification('delete', collectionName, docId, null, null, options).catch(console.error);
+      }
+      return;
+    }
 
     const docRef = doc(db, collectionName, docId);
     let oldDoc: any = null;

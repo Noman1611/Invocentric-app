@@ -63,6 +63,10 @@ interface AuthContextType {
   planRenewsAt: string | null;
   isPro: boolean;
   isOwner: boolean;
+  isTrialActive: boolean;
+  daysLeftInTrial: number;
+  isTrialExpired: boolean;
+  trialStartDate: string | null;
   activeLockedFeature: { name: string; benefits: string[] } | null;
   triggerUpgradeModal: (name: string, benefits: string[]) => void;
   closeUpgradeModal: () => void;
@@ -329,7 +333,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isOfflineMode = false;
   const isOwner = role === 'owner' || user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-  const isPro = planTier === 'pro' || isOwner;
+
+  // 14-Day Free Trial Logic
+  const [trialStartDate, setTrialStartDate] = useState<string | null>(() => {
+    return localStorage.getItem('invocentric_trial_start');
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    const key = `invocentric_trial_start_${user.uid}`;
+    let savedStart = localStorage.getItem(key) || localStorage.getItem('invocentric_trial_start');
+    if (!savedStart) {
+      savedStart = new Date().toISOString();
+      localStorage.setItem(key, savedStart);
+      localStorage.setItem('invocentric_trial_start', savedStart);
+    }
+    setTrialStartDate(savedStart);
+  }, [user]);
+
+  const trialDurationMs = 14 * 24 * 60 * 60 * 1000;
+  const trialStartTime = trialStartDate ? new Date(trialStartDate).getTime() : Date.now();
+  const trialElapsed = Date.now() - trialStartTime;
+  const isTrialActive = !isOwner && planTier !== 'pro' && trialElapsed < trialDurationMs;
+  const isTrialExpired = !isOwner && planTier !== 'pro' && trialElapsed >= trialDurationMs;
+  const daysLeftInTrial = isTrialActive ? Math.max(1, Math.ceil((trialDurationMs - trialElapsed) / (24 * 60 * 60 * 1000))) : 0;
+
+  const isPro = planTier === 'pro' || isOwner || isTrialActive;
   const [loading, setLoading] = useState(true);
 
   const setOfflineMode = (offline: boolean) => {
@@ -887,6 +916,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       planRenewsAt,
       isPro,
       isOwner,
+      isTrialActive,
+      daysLeftInTrial,
+      isTrialExpired,
+      trialStartDate,
       activeLockedFeature,
       triggerUpgradeModal,
       closeUpgradeModal,

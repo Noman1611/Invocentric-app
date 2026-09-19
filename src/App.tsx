@@ -6,6 +6,8 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { StorageModeProvider } from './contexts/StorageModeContext';
+import { TrialBanner } from './components/TrialBanner';
 import { motion, AnimatePresence } from 'motion/react';
 import { Logo } from './components/Logo';
 import Sidebar from './components/Sidebar';
@@ -853,6 +855,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
               <span>Local PC Storage Active (Saving in real-time to {pcFileName})</span>
             </div>
           ) : null}
+
+          {/* 14-Day Free Trial Top Banner */}
+          <TrialBanner />
 
           {/* Responsive Header Bar */}
           <div className="bg-white border-b border-slate-200/60 sticky top-0 z-50 px-3 sm:px-4 md:px-10 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 print:hidden">
@@ -1728,6 +1733,7 @@ export default function App() {
   }, []);
 
   return (
+    <StorageModeProvider>
       <AuthProvider>
         <BrowserRouter>
           <GlobalShortcutsManager />
@@ -1791,6 +1797,7 @@ export default function App() {
           </Suspense>
         </BrowserRouter>
       </AuthProvider>
+    </StorageModeProvider>
   );
 }
 

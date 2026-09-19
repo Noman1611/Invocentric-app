@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { doc, getDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { cn } from '../lib/utils';
+import { StorageModeSelector } from '../components/StorageModeSelector';
 import { dbService } from '../services/dbService';
 import { 
   getFileHandleFromIndexedDB, 
@@ -1202,6 +1203,9 @@ export default function SettingsPage() {
         </section>
 
 
+
+        {/* Storage Engine & Privacy Selector (Cloud vs Local PC Offline) */}
+        <StorageModeSelector />
 
         {/* Storage & Connectivity */}
         <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
