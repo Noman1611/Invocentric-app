@@ -33,6 +33,7 @@
     "date-fns": "^4.1.0",
     "dompurify": "^3.4.12",
     "dotenv": "^17.2.3",
+    "electron-updater": "^6.8.9",
     "esbuild": "^0.28.1",
     "eslint": "^10.3.0",
     "express": "^4.22.1",
@@ -78,26 +79,36 @@
   "build": {
     "appId": "com.invocentric.app",
     "productName": "InvoCentic",
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
     "directories": {
       "output": "dist_electron"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json"
+      "!node_modules/**/*"
     ],
     "win": {
       "target": [
         "nsis"
       ],
-      "icon": "public/favicon.ico"
+      "icon": "public/512x512.png"
     },
     "nsis": {
+      "artifactName": "InvoCentic-Setup.exe",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "InvoCentic"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Noman1611",
+        "repo": "Invocentric-app"
+      }
+    ]
   }
 }

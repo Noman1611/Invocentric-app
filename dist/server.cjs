@@ -196,6 +196,49 @@ app.get("/manifest.webmanifest", (req, res) => {
   res.setHeader("Content-Type", "application/manifest+json");
   res.sendFile(manifestPath);
 });
+app.get("/api/download", async (req, res) => {
+  const platform = (req.query.platform || req.query.type || "windows").toString().toLowerCase();
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const repo = "Noman1611/Invocentric-app";
+  try {
+    const headers = {
+      "User-Agent": "InvoCentic-Server"
+    };
+    if (token) {
+      headers["Authorization"] = `token ${token}`;
+    }
+    let releaseData = null;
+    const relRes = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers });
+    if (relRes.ok) {
+      releaseData = await relRes.json();
+    } else {
+      const fallbackRes = await fetch(`https://api.github.com/repos/${repo}/releases/tags/v1.0.0`, { headers });
+      if (fallbackRes.ok) {
+        releaseData = await fallbackRes.json();
+      }
+    }
+    if (!releaseData) {
+      return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentic-Setup.exe`);
+    }
+    const isAndroid = platform.includes("android") || platform.includes("apk") || platform.includes("mobile");
+    const targetFileName = isAndroid ? "InvoCentic.apk" : "InvoCentic-Setup.exe";
+    const asset = releaseData.assets?.find((a) => a.name.toLowerCase() === targetFileName.toLowerCase());
+    if (!asset) {
+      return res.status(404).send(`
+        <html>
+          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h2>${targetFileName} is preparing for download...</h2>
+            <p>The release asset is currently processing. Please check back in a moment or visit <a href="/download">InvoCentic Download</a>.</p>
+          </body>
+        </html>
+      `);
+    }
+    return res.redirect(302, asset.browser_download_url);
+  } catch (err) {
+    console.error("[Download Route Error]:", err);
+    return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentic-Setup.exe`);
+  }
+});
 app.use("/api/", apiLimiter);
 function generateCorrelationId() {
   return "ERR-" + Math.random().toString(36).substring(2, 10).toUpperCase();

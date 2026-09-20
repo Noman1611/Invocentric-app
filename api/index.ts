@@ -214,6 +214,59 @@ app.get("/manifest.webmanifest", (req, res) => {
   res.sendFile(manifestPath);
 });
 
+// --- OFFICIAL SOFTWARE & APP DOWNLOAD ROUTE ---
+app.get("/api/download", async (req, res) => {
+  const platform = (req.query.platform || req.query.type || 'windows').toString().toLowerCase();
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const repo = "Noman1611/Invocentric-app";
+
+  try {
+    const headers: Record<string, string> = {
+      'User-Agent': 'InvoCentic-Server'
+    };
+    if (token) {
+      headers['Authorization'] = `token ${token}`;
+    }
+
+    let releaseData: any = null;
+    const relRes = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, { headers });
+
+    if (relRes.ok) {
+      releaseData = await relRes.json();
+    } else {
+      const fallbackRes = await fetch(`https://api.github.com/repos/${repo}/releases/tags/v1.0.0`, { headers });
+      if (fallbackRes.ok) {
+        releaseData = await fallbackRes.json();
+      }
+    }
+
+    if (!releaseData) {
+      return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentic-Setup.exe`);
+    }
+
+    const isAndroid = platform.includes('android') || platform.includes('apk') || platform.includes('mobile');
+    const targetFileName = isAndroid ? 'InvoCentic.apk' : 'InvoCentic-Setup.exe';
+
+    const asset = releaseData.assets?.find((a: any) => a.name.toLowerCase() === targetFileName.toLowerCase());
+
+    if (!asset) {
+      return res.status(404).send(`
+        <html>
+          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+            <h2>${targetFileName} is preparing for download...</h2>
+            <p>The release asset is currently processing. Please check back in a moment or visit <a href="/download">InvoCentic Download</a>.</p>
+          </body>
+        </html>
+      `);
+    }
+
+    return res.redirect(302, asset.browser_download_url);
+  } catch (err: any) {
+    console.error('[Download Route Error]:', err);
+    return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentic-Setup.exe`);
+  }
+});
+
 // Apply general rate limiter to API routes
 app.use("/api/", apiLimiter);
 

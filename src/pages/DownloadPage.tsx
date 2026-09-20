@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Logo } from '../components/Logo';
@@ -28,8 +28,8 @@ export default function DownloadPage() {
   const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentic.apk';
 
   const handleDownload = (platform: 'windows' | 'android') => {
-    const url = platform === 'windows' ? GITHUB_WINDOWS_URL : GITHUB_ANDROID_URL;
-    window.open(url, '_blank');
+    // Official high-speed download route with automatic cloud redirect
+    window.location.href = `/api/download?platform=${platform}`;
   };
 
   return (

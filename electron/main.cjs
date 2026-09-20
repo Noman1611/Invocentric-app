@@ -1,6 +1,12 @@
-﻿const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
+
+// Configure autoUpdater
+autoUpdater.logger = console;
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 let mainWindow = null;
 
@@ -119,9 +125,71 @@ ipcMain.handle('print-to-pdf', async (event, defaultName = 'Invoice.pdf') => {
   }
 });
 
+// Auto-Updater handlers and events
+ipcMain.handle('check-for-updates', async () => {
+  if (!app.isPackaged) {
+    return { status: 'dev-mode', message: 'Auto-update is disabled in development mode' };
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return { status: 'success', updateInfo: result?.updateInfo };
+  } catch (err) {
+    console.error('[AutoUpdater] Error checking for updates:', err);
+    return { status: 'error', error: err.message };
+  }
+});
+
+ipcMain.handle('restart-and-install', () => {
+  autoUpdater.quitAndInstall();
+});
+
+autoUpdater.on('checking-for-update', () => {
+  console.log('[AutoUpdater] Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('[AutoUpdater] Update available:', info.version);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-available', info);
+  }
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  console.log('[AutoUpdater] Software is up to date.');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-not-available', info);
+  }
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  console.log(`[AutoUpdater] Download: ${progressObj.percent.toFixed(1)}%`);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('download-progress', progressObj);
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('[AutoUpdater] Update downloaded successfully:', info.version);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-downloaded', info);
+  }
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('[AutoUpdater] Update error:', err?.message || err);
+});
+
 // App lifecycle
 app.whenReady().then(() => {
   createWindow();
+
+  if (app.isPackaged) {
+    setTimeout(() => {
+      autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+        console.error('[AutoUpdater] Initial check failed:', err);
+      });
+    }, 4000);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
