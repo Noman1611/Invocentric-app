@@ -44,6 +44,7 @@ const QuickPOSPage = lazy(() => import('./pages/QuickPOS'));
 const MobileScanPage = lazy(() => import('./pages/MobileScan'));
 const SeoLandingPage = lazy(() => import('./pages/SeoLandingPage'));
 const GstCalculatorPage = lazy(() => import('./pages/GstCalculatorPage'));
+const DownloadPage = lazy(() => import('./pages/DownloadPage'));
 
 function PageLoader() {
   return (
@@ -1752,6 +1753,8 @@ export default function App() {
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/blogs" element={<BlogPage />} />
               <Route path="/blog/:slug" element={<BlogPage />} />
+              <Route path="/download" element={<DownloadPage />} />
+              <Route path="/downloads" element={<DownloadPage />} />
               <Route path="/mobile-scan" element={<MobileScanPage />} />
               
               {/* Public SEO Feature Landing Pages */}

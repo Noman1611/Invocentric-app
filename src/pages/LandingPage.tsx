@@ -8,7 +8,8 @@ import {
   Receipt, PieChart, Package, Printer, Store, 
   Smartphone, Activity, FileText, QrCode, TrendingUp,
   Mail, Phone, MapPin, ChevronRight, MessageCircle, HelpCircle,
-  Sparkles, Star, Award, History, User, Users, RefreshCw, Upload, Download, BookOpen, X, Globe, Share2, ExternalLink
+  Sparkles, Star, Award, History, User, Users, RefreshCw, Upload, Download, BookOpen, X, Globe, Share2, ExternalLink,
+  Monitor, HardDrive
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { BLOG_POSTS } from './BlogPage';
@@ -269,6 +270,10 @@ export default function LandingPage() {
                <a href="#showcase" className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors">Showcase</a>
                <a href="#pricing" className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors">Pricing</a>
                <a href="#calculator" className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors">GST Tools</a>
+               <button onClick={() => navigate('/download')} className="text-sm font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-3 py-1 rounded-full border border-emerald-300 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm">
+                 <Download size={13} className="text-emerald-700" />
+                 Download App
+               </button>
                <button onClick={() => navigate('/blog')} className="text-sm font-semibold text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200/60 hover:bg-green-100 transition-all cursor-pointer flex items-center gap-1.5">
                  <BookOpen size={14} className="text-green-600" />
                  Blogs
@@ -276,7 +281,15 @@ export default function LandingPage() {
                <a href="#faq" className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors">FAQ</a>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/download')}
+                className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-full transition-all cursor-pointer shadow-sm active:scale-95"
+              >
+                <Download size={13} className="text-emerald-700" />
+                <span>Download App</span>
+              </button>
+
               {user ? (
                 <button
                   onClick={() => navigate('/dashboard')}
@@ -351,6 +364,35 @@ export default function LandingPage() {
                     <Store size={18} />
                     See a Live POS Demo
                   </button>
+                </motion.div>
+
+                {/* Direct PC / Android App Download CTAs */}
+                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="mt-5 p-3.5 bg-emerald-50/90 border border-emerald-200/90 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-center gap-2.5 text-left">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <Download size={16} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 leading-tight">Install Offline PC Software &amp; Android App</p>
+                      <p className="text-[11px] text-emerald-800 font-medium">100% Free 14-Day Pro Trial • No Cloud Dependency</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => navigate('/download')}
+                      className="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <Monitor size={14} />
+                      Windows (.exe)
+                    </button>
+                    <button
+                      onClick={() => navigate('/download')}
+                      className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <Smartphone size={14} />
+                      Android (.apk)
+                    </button>
+                  </div>
                 </motion.div>
 
                 <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="mt-4 text-xs text-gray-500 font-medium">
@@ -1598,6 +1640,144 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Dedicated Download Software & App Section */}
+        <section id="download" className="py-24 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-300/80 text-emerald-900 text-xs font-black uppercase tracking-wider mb-4">
+                <Sparkles size={14} className="text-emerald-700" />
+                Multi-Platform Support
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-black text-gray-950 tracking-tight">
+                Use InvoCentic Anywhere: <br className="hidden sm:inline" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-700">
+                  PC Software, Android App &amp; Web
+                </span>
+              </h2>
+              <p className="text-gray-600 text-base mt-4 leading-relaxed max-w-2xl mx-auto">
+                No internet? No problem. Run 100% private offline billing on your Windows PC, take billing on the go with your Android phone, or manage everything from the cloud browser.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Windows Card */}
+              <div className="bg-white border-2 border-emerald-600/90 rounded-3xl p-8 shadow-xl shadow-emerald-950/5 flex flex-col justify-between relative">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-emerald-800 text-white px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                  <HardDrive size={12} /> Best for Retail &amp; POS
+                </div>
+                <div>
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-6">
+                    <Monitor size={28} />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 mb-2">Windows PC Software</h3>
+                  <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                    Install on your shop counter PC or laptop. Fast thermal printing, barcode scanning, and 100% private local storage.
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-gray-700 font-semibold mb-8">
+                    <li className="flex items-center gap-2 text-emerald-800">
+                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      14-Day Free Pro Trial Auto-Unlocked
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      Works 100% offline without internet
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      Fast 2-inch &amp; 3-inch thermal printing
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  onClick={() => navigate('/download')}
+                  className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-800/20 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Download size={16} />
+                  Download Windows (.exe)
+                </button>
+              </div>
+
+              {/* Android Card */}
+              <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm hover:shadow-xl hover:border-emerald-300 transition-all flex flex-col justify-between">
+                <div>
+                  <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mb-6">
+                    <Smartphone size={28} />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 mb-2">Android Mobile App</h3>
+                  <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                    Bill from your pocket. Perfect for field sales, delivery vans, small counters, and quick customer billing.
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-gray-700 font-semibold mb-8">
+                    <li className="flex items-center gap-2 text-emerald-800">
+                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      Direct APK download (no Play Store needed)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      Mobile camera barcode scanner
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      Instant 1-click WhatsApp bill sharing
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  onClick={() => navigate('/download')}
+                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-950 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                >
+                  <Download size={16} />
+                  Download Android (.apk)
+                </button>
+              </div>
+
+              {/* Web App Card */}
+              <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm hover:shadow-xl hover:border-emerald-300 transition-all flex flex-col justify-between">
+                <div>
+                  <div className="w-14 h-14 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center mb-6">
+                    <Globe size={28} />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 mb-2">Cloud Web Edition</h3>
+                  <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                    Access from Chrome, Edge, Safari on any computer, tablet or Mac without installing anything.
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-gray-700 font-semibold mb-8">
+                    <li className="flex items-center gap-2 text-emerald-800">
+                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      Zero installation required
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      Real-time multi-device cloud sync
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check size={16} className="text-emerald-600 shrink-0" />
+                      Works on Mac, Linux, Windows, iPad
+                    </li>
+                  </ul>
+                </div>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="w-full py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+                >
+                  <span>Launch in Browser</span>
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <button
+                onClick={() => navigate('/download')}
+                className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+              >
+                <span>Need installation guide or troubleshooting? Visit the full Download Hub</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* Big CTA */}
         <section className="py-24 bg-green-900 relative overflow-hidden">
           <div className="absolute inset-0 z-0">
@@ -1616,6 +1796,13 @@ export default function LandingPage() {
                   className="px-8 py-4 bg-white text-green-900 text-lg font-bold rounded-full hover:bg-green-50 transition-all active:scale-95 shadow-xl shadow-white/10"
                 >
                   Start Billing for Free
+                </button>
+                <button 
+                  onClick={() => navigate('/download')}
+                  className="px-8 py-4 bg-emerald-800 hover:bg-emerald-700 text-white text-lg font-bold rounded-full transition-all active:scale-95 shadow-xl shadow-emerald-950/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Download size={20} />
+                  Download Software / App
                 </button>
               </div>
               <p className="mt-8 text-sm text-green-200/60 font-bold uppercase tracking-widest">Takes 30 seconds to setup. No credit card required.</p>
@@ -1675,6 +1862,15 @@ export default function LandingPage() {
             <div className="space-y-6">
               <h3 className="text-white text-lg font-bold mb-4">Billing Solutions</h3>
               <ul className="space-y-3">
+                <li>
+                  <Link to="/download" className="text-sm text-left text-emerald-400 hover:text-emerald-300 transition-colors font-bold flex items-center gap-1.5">
+                    <Download size={13} />
+                    <span>Download Hub (PC &amp; App)</span>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-black uppercase">Free</span>
+                  </Link>
+                </li>
+                <li><Link to="/download" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Windows PC Software (.exe)</Link></li>
+                <li><Link to="/download" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Android Mobile App (.apk)</Link></li>
                 <li><Link to="/invoice-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Invoice Software</Link></li>
                 <li><Link to="/free-invoice-maker" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Free Invoice Maker</Link></li>
                 <li><Link to="/gst-billing-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">GST Billing Software</Link></li>

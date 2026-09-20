@@ -29,6 +29,7 @@ import {
   ShoppingBag,
   Sparkles,
   Lock,
+  Download,
   Layout as LayoutIcon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -97,6 +98,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
         { name: 'Reports', path: '/reports', icon: BarChart3 },
         { name: 'Barcode Generator', path: '/barcode-generator', icon: Barcode },
         { name: 'QR Generator', path: '/qr-generator', icon: QrCode },
+        { name: 'Download App / PC', path: '/download', icon: Download },
         { name: 'Plans & Pricing', path: '/pricing', icon: Sparkles },
         { name: 'Settings', path: '/settings', icon: Settings },
       ]
