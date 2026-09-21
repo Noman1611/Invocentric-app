@@ -139,7 +139,7 @@ export default function DownloadPage() {
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-100">
+              <div className="mt-8 pt-6 border-t border-slate-100">
               <button
                 onClick={() => handleDownload('windows')}
                 className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
@@ -148,7 +148,7 @@ export default function DownloadPage() {
                 <span>Download for Windows (.exe)</span>
               </button>
               <p className="text-[10px] text-center text-slate-400 mt-2 font-mono">
-                Version 1.0.0 • Size ~75MB • Installer
+                Version 1.0.1 • Size ~112MB • Windows Installer
               </p>
             </div>
           </div>
@@ -156,7 +156,7 @@ export default function DownloadPage() {
           {/* Card 2: Android Mobile App */}
           <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between">
             <div>
-              <div className="w-14 h-14 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center mb-5 shadow-inner">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-[#0d5c4b] flex items-center justify-center mb-5 shadow-inner">
                 <Smartphone size={28} />
               </div>
               <h2 className="text-xl font-black text-slate-900">Android Mobile App</h2>
@@ -189,7 +189,7 @@ export default function DownloadPage() {
             <div className="mt-8 pt-6 border-t border-slate-100">
               <button
                 onClick={() => handleDownload('android')}
-                className="w-full py-3.5 px-5 bg-teal-800 hover:bg-teal-900 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Smartphone size={16} />
                 <span>Use on Android Phone (Install)</span>
@@ -203,7 +203,7 @@ export default function DownloadPage() {
           {/* Card 3: Cloud Web App (Browser Edition) */}
           <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between">
             <div>
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mb-5 shadow-inner">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-[#0d5c4b] flex items-center justify-center mb-5 shadow-inner">
                 <Globe size={28} />
               </div>
               <h2 className="text-xl font-black text-slate-900">Cloud Web Edition</h2>
@@ -236,7 +236,7 @@ export default function DownloadPage() {
             <div className="mt-8 pt-6 border-t border-slate-100">
               <Link
                 to="/login"
-                className="w-full py-3.5 px-5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-5 bg-slate-900 hover:bg-slate-950 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <ArrowRight size={16} />
                 <span>Launch in Browser</span>
@@ -250,41 +250,54 @@ export default function DownloadPage() {
         </div>
 
         {/* 3 Simple Steps to Get Started */}
-        <div className="bg-gradient-to-r from-emerald-900 to-slate-900 text-white rounded-3xl p-8 sm:p-12 mb-16 shadow-xl">
+        <div className="bg-white border border-slate-200/90 rounded-3xl p-8 sm:p-12 mb-16 shadow-xl shadow-slate-900/5">
           <div className="text-center max-w-xl mx-auto mb-10">
-            <h3 className="text-2xl font-black">How to Install & Get Started in 3 Steps</h3>
-            <p className="text-xs sm:text-sm text-slate-300 mt-2">No complicated setup. You will be ready to print your first invoice in under 2 minutes.</p>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-[#0d5c4b] text-[11px] font-black uppercase tracking-wider mb-3">
+              Quick Setup Guide
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              How to Install & Get Started in 3 Steps
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 mt-2 leading-relaxed">
+              No complicated setup. You will be ready to print your first invoice in under 2 minutes.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white font-black flex items-center justify-center mb-4 text-lg">
-                1
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-slate-50/70 hover:bg-emerald-50/40 border border-slate-200/80 hover:border-emerald-200/90 rounded-2xl p-6 transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-[#0d5c4b] text-white font-black flex items-center justify-center mb-4 text-base shadow-sm">
+                  1
+                </div>
+                <h4 className="font-bold text-base text-slate-900 mb-2 tracking-tight">Download & Run Installer</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Click "Download for Windows" above to get the setup file. Double click to run the installer on your PC.
+                </p>
               </div>
-              <h4 className="font-bold text-base mb-2">Download & Run Installer</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Click "Download for Windows" above to get the setup file. Double click to run the installer on your PC.
-              </p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white font-black flex items-center justify-center mb-4 text-lg">
-                2
+            <div className="bg-slate-50/70 hover:bg-emerald-50/40 border border-slate-200/80 hover:border-emerald-200/90 rounded-2xl p-6 transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-[#0d5c4b] text-white font-black flex items-center justify-center mb-4 text-base shadow-sm">
+                  2
+                </div>
+                <h4 className="font-bold text-base text-slate-900 mb-2 tracking-tight">Login with your Email</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Open InvoCentric on your desktop and enter your Email ID. Your <strong className="text-slate-800 font-semibold">14-Day Free Pro Trial</strong> activates instantly with zero license keys.
+                </p>
               </div>
-              <h4 className="font-bold text-base mb-2">Login with your Email</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Open InvoCentric on your desktop and enter your Email ID. Your <strong>14-Day Free Pro Trial</strong> activates instantly with zero license keys.
-              </p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white font-black flex items-center justify-center mb-4 text-lg">
-                3
+            <div className="bg-slate-50/70 hover:bg-emerald-50/40 border border-slate-200/80 hover:border-emerald-200/90 rounded-2xl p-6 transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-[#0d5c4b] text-white font-black flex items-center justify-center mb-4 text-base shadow-sm">
+                  3
+                </div>
+                <h4 className="font-bold text-base text-slate-900 mb-2 tracking-tight">Start Billing & Printing</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Add your business name, create GST bills, print thermal receipts, or scan barcodes — fully offline or online!
+                </p>
               </div>
-              <h4 className="font-bold text-base mb-2">Start Billing & Printing</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Add your business name, create GST bills, print thermal receipts, or scan barcodes — fully offline or online!
-              </p>
             </div>
           </div>
         </div>
