@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { localDbEngine, LocalDbStats } from '../services/localDbEngine';
 
 export type StorageMode = 'cloud' | 'local_pc';
@@ -67,7 +67,7 @@ export function StorageModeProvider({ children }: { children: React.ReactNode })
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `InvoCentic_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `InvoCentric_Backup_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

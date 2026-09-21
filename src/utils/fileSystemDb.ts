@@ -377,7 +377,7 @@ export function isDirectoryPickerSupported(): boolean {
 
 export function saveDirectoryHandleToIndexedDB(userId: string, handle: FileSystemDirectoryHandle): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(`InvoCenticFolderStorage_${userId}`, 1);
+    const request = indexedDB.open(`InvoCentricFolderStorage_${userId}`, 1);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains("dir_handles")) {
@@ -402,7 +402,7 @@ export function saveDirectoryHandleToIndexedDB(userId: string, handle: FileSyste
 
 export function getDirectoryHandleFromIndexedDB(userId: string): Promise<FileSystemDirectoryHandle | null> {
   return new Promise((resolve) => {
-    const request = indexedDB.open(`InvoCenticFolderStorage_${userId}`, 1);
+    const request = indexedDB.open(`InvoCentricFolderStorage_${userId}`, 1);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains("dir_handles")) {
@@ -424,7 +424,7 @@ export function getDirectoryHandleFromIndexedDB(userId: string): Promise<FileSys
 
 export function removeDirectoryHandleFromIndexedDB(userId: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(`InvoCenticFolderStorage_${userId}`, 1);
+    const request = indexedDB.open(`InvoCentricFolderStorage_${userId}`, 1);
     request.onsuccess = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains("dir_handles")) {

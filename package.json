@@ -1,9 +1,9 @@
 {
   "name": "invocentric",
   "private": true,
-  "version": "1.0.0",
-  "description": "InvoCentic - Professional GST Billing, Inventory & Accounting Software",
-  "author": "InvoCentic <support@invocentric.com>",
+  "version": "1.0.1",
+  "description": "InvoCentric - Professional GST Billing, Inventory & Accounting Software",
+  "author": "InvoCentric <support@invocentric.com>",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -78,7 +78,7 @@
   },
   "build": {
     "appId": "com.invocentric.app",
-    "productName": "InvoCentic",
+    "productName": "InvoCentric",
     "npmRebuild": false,
     "nodeGypRebuild": false,
     "directories": {
@@ -96,18 +96,19 @@
       "icon": "public/512x512.png"
     },
     "nsis": {
-      "artifactName": "InvoCentic-Setup.exe",
+      "artifactName": "InvoCentric-Setup.exe",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "InvoCentic"
+      "shortcutName": "InvoCentric"
     },
     "publish": [
       {
         "provider": "github",
         "owner": "Noman1611",
-        "repo": "Invocentric-app"
+        "repo": "Invocentric-app",
+        "releaseType": "release"
       }
     ]
   }

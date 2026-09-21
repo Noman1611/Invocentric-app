@@ -181,8 +181,8 @@ async function uploadOrUpdateFile(
 
 /**
  * Performs full sync to Google Drive:
- * 1. Master accumulation file: /InvoCentic_Backups/invocentric_master_backup.json
- * 2. Daily dated file: /InvoCentic_Backups/daily_backups/backup_YYYY-MM-DD.json
+ * 1. Master accumulation file: /InvoCentric_Backups/invocentric_master_backup.json
+ * 2. Daily dated file: /InvoCentric_Backups/daily_backups/backup_YYYY-MM-DD.json
  */
 export async function syncDataToGoogleDrive(userId: string): Promise<GDriveSyncResult> {
   if (!userId) {
@@ -199,8 +199,8 @@ export async function syncDataToGoogleDrive(userId: string): Promise<GDriveSyncR
     const jsonStr = JSON.stringify(data, null, 2);
     const today = new Date().toISOString().split('T')[0];
 
-    // 1. Root InvoCentic Backups Folder
-    const rootFolderId = await getOrCreateFolder('InvoCentic_Backups', undefined, token);
+    // 1. Root InvoCentric Backups Folder
+    const rootFolderId = await getOrCreateFolder('InvoCentric_Backups', undefined, token);
 
     // 2. Upload / Update Master File
     const masterFileId = await uploadOrUpdateFile('invocentric_master_backup.json', jsonStr, rootFolderId, token, false);

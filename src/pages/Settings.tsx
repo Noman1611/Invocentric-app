@@ -1009,11 +1009,11 @@ export default function SettingsPage() {
                 value={formData.invoice_template || 'template_01'}
                 onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
               >
-                <option value="template_01">InvoCentic Template 01 — Blue Bordered + IGST Columns (A4)</option>
-                <option value="template_02">InvoCentic Template 02 — Blue Line Top + IGST Columns (A4)</option>
-                <option value="template_03">InvoCentic Template 03 — Supplier B2B (Dedicated Serial / Batch Column)</option>
-                <option value="template_04">InvoCentic Template 04 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
-                <option value="template_05">InvoCentic Template 05 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
+                <option value="template_01">InvoCentric Template 01 — Blue Bordered + IGST Columns (A4)</option>
+                <option value="template_02">InvoCentric Template 02 — Blue Line Top + IGST Columns (A4)</option>
+                <option value="template_03">InvoCentric Template 03 — Supplier B2B (Dedicated Serial / Batch Column)</option>
+                <option value="template_04">InvoCentric Template 04 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
+                <option value="template_05">InvoCentric Template 05 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
               </select>
             </div>
           </div>
@@ -1233,7 +1233,7 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <p className="text-xs text-slate-700 font-medium leading-relaxed">
-                    Select a folder on your PC. InvoCentic automatically writes the master database (<span className="font-mono font-bold text-emerald-900">invocentric_master_backup.json</span>) and creates daily dated files inside <span className="font-mono font-bold text-emerald-900">daily_backups/</span> every 24 hours.
+                    Select a folder on your PC. InvoCentric automatically writes the master database (<span className="font-mono font-bold text-emerald-900">invocentric_master_backup.json</span>) and creates daily dated files inside <span className="font-mono font-bold text-emerald-900">daily_backups/</span> every 24 hours.
                   </p>
                   {pcDirConnected && (
                     <div className="flex flex-wrap items-center gap-3 text-xs pt-1">

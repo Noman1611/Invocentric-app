@@ -1,4 +1,4 @@
-﻿import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
+import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 
 declare global {
   interface Window {
@@ -136,7 +136,7 @@ class LocalDbEngine {
     return JSON.stringify({
       version: '1.0',
       exported_at: new Date().toISOString(),
-      app: 'InvoCentic Local Edition',
+      app: 'InvoCentric Local Edition',
       data: exportBundle
     }, null, 2);
   }

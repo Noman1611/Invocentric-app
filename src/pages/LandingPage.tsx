@@ -1649,7 +1649,7 @@ export default function LandingPage() {
                 Multi-Platform Support
               </div>
               <h2 className="text-3xl sm:text-5xl font-black text-gray-950 tracking-tight">
-                Use InvoCentic Anywhere: <br className="hidden sm:inline" />
+                Use InvoCentric Anywhere: <br className="hidden sm:inline" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-700">
                   PC Software, Android App &amp; Web
                 </span>

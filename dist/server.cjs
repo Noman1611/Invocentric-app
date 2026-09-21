@@ -202,7 +202,7 @@ app.get("/api/download", async (req, res) => {
   const repo = "Noman1611/Invocentric-app";
   try {
     const headers = {
-      "User-Agent": "InvoCentic-Server"
+      "User-Agent": "InvoCentric-Server"
     };
     if (token) {
       headers["Authorization"] = `token ${token}`;
@@ -218,17 +218,21 @@ app.get("/api/download", async (req, res) => {
       }
     }
     if (!releaseData) {
-      return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentic-Setup.exe`);
+      return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric-Setup.exe`);
     }
     const isAndroid = platform.includes("android") || platform.includes("apk") || platform.includes("mobile");
-    const targetFileName = isAndroid ? "InvoCentic.apk" : "InvoCentic-Setup.exe";
-    const asset = releaseData.assets?.find((a) => a.name.toLowerCase() === targetFileName.toLowerCase());
+    const asset = releaseData.assets?.find((a) => {
+      const n = a.name.toLowerCase();
+      if (isAndroid) return n.includes("invocentric") && n.endsWith(".apk") || n.includes("invocentic") && n.endsWith(".apk") || n === "app-release.apk";
+      return (n.includes("invocentric") || n.includes("invocentic")) && n.endsWith(".exe");
+    });
     if (!asset) {
+      const displayFileName = isAndroid ? "InvoCentric.apk" : "InvoCentric-Setup.exe";
       return res.status(404).send(`
         <html>
           <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-            <h2>${targetFileName} is preparing for download...</h2>
-            <p>The release asset is currently processing. Please check back in a moment or visit <a href="/download">InvoCentic Download</a>.</p>
+            <h2>${displayFileName} is preparing for download...</h2>
+            <p>The release asset is currently processing. Please check back in a moment or visit <a href="/download">InvoCentric Download</a>.</p>
           </body>
         </html>
       `);
@@ -236,7 +240,7 @@ app.get("/api/download", async (req, res) => {
     return res.redirect(302, asset.browser_download_url);
   } catch (err) {
     console.error("[Download Route Error]:", err);
-    return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentic-Setup.exe`);
+    return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric-Setup.exe`);
   }
 });
 app.use("/api/", apiLimiter);

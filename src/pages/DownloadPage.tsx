@@ -24,8 +24,8 @@ export default function DownloadPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'windows' | 'android' | 'web'>('windows');
 
-  const GITHUB_WINDOWS_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentic-Setup.exe';
-  const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentic.apk';
+  const GITHUB_WINDOWS_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric-Setup.exe';
+  const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
 
   const handleDownload = (platform: 'windows' | 'android') => {
     // Official high-speed download route with automatic cloud redirect
@@ -70,7 +70,7 @@ export default function DownloadPage() {
             Official Desktop Software & Mobile App
           </div>
           <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            Download InvoCentic for <br className="hidden sm:inline" />
+            Download InvoCentric for <br className="hidden sm:inline" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
               Windows PC & Android Phone
             </span>
@@ -195,7 +195,7 @@ export default function DownloadPage() {
               <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">Online in Browser</p>
               
               <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-                No installation needed. Run InvoCentic directly in Google Chrome, Edge, Safari or Firefox from any computer or laptop.
+                No installation needed. Run InvoCentric directly in Google Chrome, Edge, Safari or Firefox from any computer or laptop.
               </p>
 
               <div className="mt-5 space-y-2 text-xs font-semibold text-slate-700">
@@ -258,7 +258,7 @@ export default function DownloadPage() {
               </div>
               <h4 className="font-bold text-base mb-2">Login with your Email</h4>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Open InvoCentic on your desktop and enter your Email ID. Your <strong>14-Day Free Pro Trial</strong> activates instantly with zero license keys.
+                Open InvoCentric on your desktop and enter your Email ID. Your <strong>14-Day Free Pro Trial</strong> activates instantly with zero license keys.
               </p>
             </div>
 
@@ -282,7 +282,7 @@ export default function DownloadPage() {
           <div>
             <h4 className="font-bold text-sm text-slate-900">Notice for First-Time Windows Installation (SmartScreen):</h4>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              When installing any new Windows software, Windows Defender SmartScreen may display a prompt saying <em>"Windows protected your PC"</em>. Simply click on <strong>"More info"</strong> and then click <strong>"Run anyway"</strong>. InvoCentic is 100% safe, verified, and malware-free.
+              When installing any new Windows software, Windows Defender SmartScreen may display a prompt saying <em>"Windows protected your PC"</em>. Simply click on <strong>"More info"</strong> and then click <strong>"Run anyway"</strong>. InvoCentric is 100% safe, verified, and malware-free.
             </p>
           </div>
         </div>
@@ -290,7 +290,7 @@ export default function DownloadPage() {
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-8 px-4 text-center text-xs text-slate-500">
-        <p>© {new Date().getFullYear()} InvoCentic. Made with pride for Indian Small Businesses & Traders.</p>
+        <p>© {new Date().getFullYear()} InvoCentric. Made with pride for Indian Small Businesses & Traders.</p>
         <div className="mt-2 flex items-center justify-center gap-4 font-medium">
           <Link to="/" className="hover:text-emerald-700">Home</Link>
           <Link to="/pricing" className="hover:text-emerald-700">Pricing</Link>

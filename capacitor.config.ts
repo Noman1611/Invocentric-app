@@ -12,7 +12,7 @@ interface CapacitorConfig {
 
 const config: CapacitorConfig = {
   appId: 'com.invocentric.app',
-  appName: 'InvoCentic',
+  appName: 'InvoCentric',
   webDir: 'dist',
   bundledWebRuntime: false,
   server: {

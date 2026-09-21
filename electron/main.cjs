@@ -22,7 +22,7 @@ function createWindow() {
     height: 860,
     minWidth: 1024,
     minHeight: 680,
-    title: 'InvoCentic — GST Billing & Accounting Software',
+    title: 'InvoCentric — GST Billing & Accounting Software',
     icon: path.join(__dirname, '../public/favicon.ico'),
     backgroundColor: '#ffffff',
     webPreferences: {
