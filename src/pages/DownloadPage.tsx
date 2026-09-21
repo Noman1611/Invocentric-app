@@ -26,10 +26,12 @@ export default function DownloadPage() {
   const GITHUB_WINDOWS_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric-Setup.exe';
   const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
 
-  const handleDownload = (platform: 'windows' | 'android') => {
-    // Official high-speed direct download route
-    window.location.href = `/api/download?platform=${platform}`;
-  };
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+      return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || '');
+    }
+    return false;
+  });
 
   return (
     <div className="min-h-screen bg-[#FAFCFB] font-sans selection:bg-emerald-500/20 text-slate-800">
@@ -63,15 +65,15 @@ export default function DownloadPage() {
 
       {/* Hero Section */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-        <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-4">
             <Sparkles size={14} className="text-emerald-600 animate-pulse" />
-            Official Desktop Software & Mobile App
+            Official Desktop Software &amp; Mobile App
           </div>
           <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-tight">
             Download InvoCentric for <br className="hidden sm:inline" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">
-              Windows PC & Android Phone
+              Windows PC &amp; Android Phone
             </span>
           </h1>
           <p className="text-slate-600 text-sm sm:text-base mt-4 leading-relaxed max-w-2xl mx-auto">
@@ -83,14 +85,119 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        {/* 3 Main Download Cards Grid */}
+        {/* Smart Device Detection Quick-Download Banner */}
+        <div className="mb-12 p-5 sm:p-6 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border-2 border-emerald-600/80 rounded-3xl shadow-lg shadow-emerald-900/5 flex flex-col md:flex-row items-center justify-between gap-5">
+          <div className="flex items-center gap-4 text-left w-full md:w-auto">
+            <div className="w-14 h-14 rounded-2xl bg-[#0d5c4b] text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-900/20">
+              {isMobile ? <Smartphone size={28} /> : <Monitor size={28} />}
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-200/80 text-emerald-900 mb-1">
+                <Sparkles size={11} />
+                {isMobile ? 'Detected: Smartphone / Android' : 'Detected: Windows PC / Laptop'}
+              </div>
+              <h2 className="text-base sm:text-lg font-black text-slate-900 leading-tight">
+                {isMobile ? 'Recommended: Install InvoCentric Mobile App' : 'Recommended: Install InvoCentric Windows Software'}
+              </h2>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {isMobile 
+                  ? 'Tap button to directly download and install the APK on your phone like Play Store.' 
+                  : 'Click below to download the offline desktop installer with local PC storage.'}
+              </p>
+            </div>
+          </div>
+          <div className="w-full md:w-auto shrink-0 flex flex-col items-center">
+            <a
+              href={isMobile ? GITHUB_ANDROID_URL : GITHUB_WINDOWS_URL}
+              download={isMobile ? 'InvoCentric.apk' : 'InvoCentric-Setup.exe'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full md:w-auto px-7 py-4 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs sm:text-sm font-black uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-emerald-900/20 active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer text-center"
+            >
+              <Download size={18} />
+              <span>{isMobile ? 'Download Android APK Now (~1.2MB)' : 'Download Windows (.exe ~112MB)'}</span>
+            </a>
+            <span className="text-[10px] text-slate-500 mt-1.5 font-medium">
+              1-Click Direct Download • Free 14-Day Pro Included
+            </span>
+          </div>
+        </div>
+
+        {/* 3 Main Download Cards Grid (Reordered so Android is First on Mobile) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           
-          {/* Card 1: Windows PC Desktop Software (Featured) */}
-          <div className="bg-white border-2 border-emerald-600 rounded-3xl p-6 sm:p-8 shadow-xl shadow-emerald-900/5 relative flex flex-col justify-between">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0d5c4b] text-white px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1.5">
-              <HardDrive size={12} /> Most Popular for Retail
+          {/* Card: Android Mobile App */}
+          <div className={`bg-white border-2 ${isMobile ? 'border-emerald-600 shadow-xl shadow-emerald-900/5 order-first' : 'border-slate-200/80 hover:border-slate-300 md:order-2'} rounded-3xl p-6 sm:p-8 transition-all flex flex-col justify-between relative`}>
+            {isMobile && (
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0d5c4b] text-white px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                <Smartphone size={12} /> Best For Your Phone
+              </div>
+            )}
+
+            <div>
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-[#0d5c4b] flex items-center justify-center mb-5 shadow-inner">
+                <Smartphone size={28} />
+              </div>
+              <h2 className="text-xl font-black text-slate-900">Android Mobile App</h2>
+              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">Mobile Application (.apk)</p>
+              
+              <p className="text-xs text-slate-600 mt-3 leading-relaxed">
+                Bill on the go from your Android smartphone. Scan barcodes with camera and share PDF bills instantly on WhatsApp.
+              </p>
+
+              <div className="mt-5 space-y-2 text-xs font-semibold text-slate-700">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                  <span>Direct APK install like Play Store</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                  <span>Camera Barcode &amp; QR Scanner</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                  <span>1-Click WhatsApp Invoice Sharing</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                  <span>Android 8.0, 9, 10, 11, 12, 13, 14+</span>
+                </div>
+              </div>
             </div>
+
+            <div className="mt-8 pt-6 border-t border-slate-100">
+              <a
+                href={GITHUB_ANDROID_URL}
+                download="InvoCentric.apk"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer text-center"
+              >
+                <Download size={16} />
+                <span>Download Android App (.apk)</span>
+              </a>
+              <p className="text-[10px] text-center text-slate-400 mt-2 font-mono">
+                Direct APK • Size ~1.2MB • Instant Install
+              </p>
+              <div className="text-center mt-1.5">
+                <a 
+                  href={GITHUB_ANDROID_URL} 
+                  download="InvoCentric.apk" 
+                  className="text-[10px] text-emerald-800 hover:text-emerald-950 font-bold underline"
+                >
+                  Direct Link: InvoCentric.apk
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Card: Windows PC Desktop Software */}
+          <div className={`bg-white border-2 ${!isMobile ? 'border-emerald-600 shadow-xl shadow-emerald-900/5 md:order-1' : 'border-slate-200/80 hover:border-slate-300 order-2'} rounded-3xl p-6 sm:p-8 transition-all flex flex-col justify-between relative`}>
+            {!isMobile && (
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#0d5c4b] text-white px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                <HardDrive size={12} /> Most Popular for Retail PC
+              </div>
+            )}
 
             <div>
               <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-5 shadow-inner">
@@ -110,7 +217,7 @@ export default function DownloadPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                  <span>2" & 3" Thermal Receipt Printers Support</span>
+                  <span>2" &amp; 3" Thermal Receipt Printers Support</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
@@ -123,69 +230,34 @@ export default function DownloadPage() {
               </div>
             </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-100">
-              <button
-                onClick={() => handleDownload('windows')}
-                className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            <div className="mt-8 pt-6 border-t border-slate-100">
+              <a
+                href={GITHUB_WINDOWS_URL}
+                download="InvoCentric-Setup.exe"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer text-center"
               >
                 <Download size={16} />
                 <span>Download for Windows (.exe)</span>
-              </button>
+              </a>
               <p className="text-[10px] text-center text-slate-400 mt-2 font-mono">
                 Version 1.0.1 • Size ~112MB • Windows Installer
               </p>
-            </div>
-          </div>
-
-          {/* Card 2: Android Mobile App */}
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between">
-            <div>
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-[#0d5c4b] flex items-center justify-center mb-5 shadow-inner">
-                <Smartphone size={28} />
+              <div className="text-center mt-1.5">
+                <a 
+                  href={GITHUB_WINDOWS_URL} 
+                  download="InvoCentric-Setup.exe" 
+                  className="text-[10px] text-emerald-800 hover:text-emerald-950 font-bold underline"
+                >
+                  Direct Link: InvoCentric-Setup.exe
+                </a>
               </div>
-              <h2 className="text-xl font-black text-slate-900">Android Mobile App</h2>
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">Mobile Application (.apk)</p>
-              
-              <p className="text-xs text-slate-600 mt-3 leading-relaxed">
-                Bill on the go from your Android smartphone. Scan barcodes with camera and share PDF bills instantly on WhatsApp.
-              </p>
-
-              <div className="mt-5 space-y-2 text-xs font-semibold text-slate-700">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                  <span>Camera Barcode & QR Scanner</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                  <span>1-Click WhatsApp Invoice Sharing</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                  <span>Realtime Sync with PC & Tablet</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                  <span>Android 8.0 or higher</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-slate-100">
-              <button
-                onClick={() => handleDownload('android')}
-                className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Download size={16} />
-                <span>Download Android App (.apk)</span>
-              </button>
-              <p className="text-[10px] text-center text-slate-400 mt-2 font-mono">
-                Direct APK • Size ~1.2MB • Instant Install
-              </p>
             </div>
           </div>
 
           {/* Card 3: Cloud Web App (Browser Edition) */}
-          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between">
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between order-3">
             <div>
               <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-[#0d5c4b] flex items-center justify-center mb-5 shadow-inner">
                 <Globe size={28} />
@@ -204,7 +276,7 @@ export default function DownloadPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                  <span>Automatic Cloud Backup & Sync</span>
+                  <span>Automatic Cloud Backup &amp; Sync</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
@@ -286,16 +358,32 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        {/* Windows SmartScreen Installation Tip */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 mb-16 flex flex-col sm:flex-row items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-            <HelpCircle size={22} />
+        {/* Installation Tips (Windows & Android) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+          {/* Android Tip */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <Smartphone size={22} />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-slate-900">Notice for Android APK Installation:</h4>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                When downloading APK files outside Play Store, Chrome may say <em>"File might be harmful"</em>. Simply tap <strong>"Download anyway"</strong>, open the APK file, and tap <strong>"Install"</strong>. If prompted, allow <em>"Install from unknown sources"</em>. InvoCentric APK is 100% verified, virus-free, and official.
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-bold text-sm text-slate-900">Notice for First-Time Windows Installation (SmartScreen):</h4>
-            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              When installing any new Windows software, Windows Defender SmartScreen may display a prompt saying <em>"Windows protected your PC"</em>. Simply click on <strong>"More info"</strong> and then click <strong>"Run anyway"</strong>. InvoCentric is 100% safe, verified, and malware-free.
-            </p>
+
+          {/* Windows SmartScreen Tip */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+              <HelpCircle size={22} />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-slate-900">Notice for Windows PC Installation:</h4>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                When installing on Windows, Defender SmartScreen may show <em>"Windows protected your PC"</em>. Simply click on <strong>"More info"</strong> and then click <strong>"Run anyway"</strong>. InvoCentric is 100% safe, verified, and malware-free.
+              </p>
+            </div>
           </div>
         </div>
       </main>

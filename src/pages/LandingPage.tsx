@@ -68,6 +68,9 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [landingBillingCycle, setLandingBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
+  const GITHUB_WINDOWS_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric-Setup.exe';
+  const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
+
   // New states for interactive modals
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isBlogsOpen, setIsBlogsOpen] = useState(false);
@@ -378,20 +381,26 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <button
-                      onClick={() => navigate('/download')}
-                      className="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                    <a
+                      href={GITHUB_WINDOWS_URL}
+                      download="InvoCentric-Setup.exe"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer text-center"
                     >
                       <Monitor size={14} />
                       Windows (.exe)
-                    </button>
-                    <button
-                      onClick={() => navigate('/download')}
-                      className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                    </a>
+                    <a
+                      href={GITHUB_ANDROID_URL}
+                      download="InvoCentric.apk"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer text-center"
                     >
                       <Smartphone size={14} />
                       Android (.apk)
-                    </button>
+                    </a>
                   </div>
                 </motion.div>
 
@@ -1688,13 +1697,16 @@ export default function LandingPage() {
                     </li>
                   </ul>
                 </div>
-                <button
-                  onClick={() => navigate('/download')}
-                  className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-800/20 transition-all active:scale-95 cursor-pointer"
+                <a
+                  href={GITHUB_WINDOWS_URL}
+                  download="InvoCentric-Setup.exe"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-800/20 transition-all active:scale-95 cursor-pointer text-center"
                 >
                   <Download size={16} />
-                  Download Windows (.exe)
-                </button>
+                  <span>Download Windows (.exe)</span>
+                </a>
               </div>
 
               {/* Android Card */}
@@ -1722,13 +1734,16 @@ export default function LandingPage() {
                     </li>
                   </ul>
                 </div>
-                <button
-                  onClick={() => navigate('/download')}
-                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-950 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer"
+                <a
+                  href={GITHUB_ANDROID_URL}
+                  download="InvoCentric.apk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 bg-slate-900 hover:bg-slate-950 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer text-center"
                 >
                   <Download size={16} />
-                  Download Android (.apk)
-                </button>
+                  <span>Download Android (.apk)</span>
+                </a>
               </div>
 
               {/* Web App Card */}
@@ -1869,8 +1884,8 @@ export default function LandingPage() {
                     <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-black uppercase">Free</span>
                   </Link>
                 </li>
-                <li><Link to="/download" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Windows PC Software (.exe)</Link></li>
-                <li><Link to="/download" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Android Mobile App (.apk)</Link></li>
+                <li><a href={GITHUB_WINDOWS_URL} download="InvoCentric-Setup.exe" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Windows PC Software (.exe)</a></li>
+                <li><a href={GITHUB_ANDROID_URL} download="InvoCentric.apk" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Android Mobile App (.apk)</a></li>
                 <li><Link to="/invoice-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Invoice Software</Link></li>
                 <li><Link to="/free-invoice-maker" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Free Invoice Maker</Link></li>
                 <li><Link to="/gst-billing-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">GST Billing Software</Link></li>
