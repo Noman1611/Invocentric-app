@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Logo } from '../components/Logo';
 import { 
   Download, 
@@ -17,19 +18,33 @@ import {
   Zap, 
   Lock,
   ChevronDown,
-  ExternalLink
+  ExternalLink,
+  X,
+  QrCode
 } from 'lucide-react';
 
 export default function DownloadPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'windows' | 'android' | 'web'>('windows');
+  const [showAndroidModal, setShowAndroidModal] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('platform') === 'android' || searchParams.get('guide') === 'open') {
+      setShowAndroidModal(true);
+    }
+  }, [searchParams]);
 
   const GITHUB_WINDOWS_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric-Setup.exe';
   const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
 
   const handleDownload = (platform: 'windows' | 'android') => {
-    // Official high-speed download route with automatic cloud redirect
-    window.location.href = `/api/download?platform=${platform}`;
+    if (platform === 'windows') {
+      // Official high-speed download route with automatic cloud redirect
+      window.location.href = '/api/download?platform=windows';
+    } else {
+      setShowAndroidModal(true);
+    }
   };
 
   return (
@@ -174,13 +189,13 @@ export default function DownloadPage() {
             <div className="mt-8 pt-6 border-t border-slate-100">
               <button
                 onClick={() => handleDownload('android')}
-                className="w-full py-3.5 px-5 bg-slate-900 hover:bg-slate-950 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 px-5 bg-teal-800 hover:bg-teal-900 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Download size={16} />
-                <span>Download Android APK (.apk)</span>
+                <Smartphone size={16} />
+                <span>Use on Android Phone (Install)</span>
               </button>
               <p className="text-[10px] text-center text-slate-400 mt-2 font-mono">
-                Direct APK • Size ~15MB • Auto-Updates
+                PWA WebAPK • Works 100% Offline • Camera Scanner
               </p>
             </div>
           </div>
@@ -286,6 +301,84 @@ export default function DownloadPage() {
             </p>
           </div>
         </div>
+
+        {/* Android Installation Guidance Modal */}
+        <AnimatePresence>
+          {showAndroidModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-slate-200 relative"
+              >
+                <button
+                  onClick={() => setShowAndroidModal(false)}
+                  className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+                    <Smartphone size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 leading-tight">Install on Android Phone</h3>
+                    <p className="text-xs text-slate-500 font-medium">Fast, offline & instant install</p>
+                  </div>
+                </div>
+
+                {/* QR Code for Desktop Users to Scan with Phone */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-5 flex flex-col items-center justify-center text-center">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 shadow-sm">
+                    <QRCodeSVG value="https://invocentric.in/login" size={130} />
+                  </div>
+                  <p className="text-[11px] font-bold text-slate-700 mt-2.5 flex items-center gap-1.5">
+                    <QrCode size={13} className="text-teal-600" /> Scan with your phone camera to open
+                  </p>
+                  <p className="text-[10px] text-slate-500">Opens https://invocentric.in directly on your phone</p>
+                </div>
+
+                {/* 3 Step Instructions */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-start gap-2.5 text-xs text-slate-700">
+                    <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 font-black flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</div>
+                    <p>Phone ke <strong>Google Chrome</strong> browser me <strong>invocentric.in</strong> kholein.</p>
+                  </div>
+                  <div className="flex items-start gap-2.5 text-xs text-slate-700">
+                    <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 font-black flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</div>
+                    <p>Top right me <strong>3 dots (⋮)</strong> menu tap karein aur <strong>"Install app"</strong> ya <strong>"Add to Home Screen"</strong> chunein.</p>
+                  </div>
+                  <div className="flex items-start gap-2.5 text-xs text-slate-700">
+                    <div className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 font-black flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</div>
+                    <p>InvoCentric app aapke phone me install ho jayegi — Camera barcode scanner aur offline billing ready!</p>
+                  </div>
+                </div>
+
+                {/* Direct Action Buttons */}
+                <div className="space-y-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setShowAndroidModal(false)}
+                    className="w-full py-3 px-4 bg-teal-700 hover:bg-teal-800 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md shadow-teal-900/10 flex items-center justify-center gap-2"
+                  >
+                    <Zap size={15} />
+                    <span>Open Mobile App Now</span>
+                  </Link>
+
+                  <button
+                    onClick={() => setShowAndroidModal(false)}
+                    className="w-full py-2 px-4 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Footer */}

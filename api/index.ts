@@ -254,20 +254,18 @@ app.get("/api/download", async (req, res) => {
     });
 
     if (!asset) {
-      const displayFileName = isAndroid ? 'InvoCentric.apk' : 'InvoCentric-Setup.exe';
-      return res.status(404).send(`
-        <html>
-          <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-            <h2>${displayFileName} is preparing for download...</h2>
-            <p>The release asset is currently processing. Please check back in a moment or visit <a href="/download">InvoCentric Download</a>.</p>
-          </body>
-        </html>
-      `);
+      if (isAndroid) {
+        return res.redirect(302, "/download?platform=android&guide=open");
+      }
+      return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric-Setup.exe`);
     }
 
     return res.redirect(302, asset.browser_download_url);
   } catch (err: any) {
     console.error('[Download Route Error]:', err);
+    if (platform.includes('android') || platform.includes('apk') || platform.includes('mobile')) {
+      return res.redirect(302, "/download?platform=android&guide=open");
+    }
     return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric-Setup.exe`);
   }
 });
