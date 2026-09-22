@@ -561,6 +561,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isAdminEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
         setIsAdmin(isAdminEmail || !!profile.is_admin);
 
+        // Mark weekly Monday plan verification as completed since server sync was successful
+        try {
+          const now = new Date();
+          const day = now.getDay();
+          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+          const monday = new Date(now.getFullYear(), now.getMonth(), diff);
+          const currentMondayKey = monday.toISOString().split('T')[0];
+          localStorage.setItem('last_plan_check_monday', currentMondayKey);
+          localStorage.setItem('last_plan_check_date', now.toDateString());
+        } catch (e) {}
+
         // Update last login timestamp without overwriting other data
         try {
           await setDoc(userDocRef, {

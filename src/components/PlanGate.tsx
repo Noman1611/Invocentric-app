@@ -6,28 +6,71 @@ import { ShieldAlert, RefreshCw, LogIn, Globe, Wifi, WifiOff } from 'lucide-reac
 import { Logo } from './Logo';
 
 export function PlanGate({ children }: { children: React.ReactNode }) {
-  const { user, planStatus, loading, refreshUserData, logout, isOfflineMode } = useAuth();
+  const { user, isAdmin, isOwner, planStatus, loading, refreshUserData, logout, isOfflineMode } = useAuth();
   const location = useLocation();
   const [mustCheckOnline, setMustCheckOnline] = useState(false);
   const [checking, setChecking] = useState(false);
 
+  // Helper to compute Monday date key for current week (YYYY-MM-DD)
+  const getMondayKey = () => {
+    const d = new Date();
+    const day = d.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.getFullYear(), d.getMonth(), diff);
+    return monday.toISOString().split('T')[0];
+  };
+
   useEffect(() => {
     if (!user) return;
 
-    const checkDailyReauth = () => {
-      const today = new Date().toDateString();
-      const lastCheck = localStorage.getItem('last_plan_check_date');
-      
-      if (lastCheck !== today) {
-        setMustCheckOnline(true);
+    // Exempt admin or owner
+    if (isOwner || isAdmin || user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com') {
+      setMustCheckOnline(false);
+      return;
+    }
+
+    const checkMondayReauth = async () => {
+      const now = new Date();
+      // Check if today is Monday (1)
+      const isMonday = now.getDay() === 1;
+
+      // If today is NOT Monday, do NOT block the user
+      if (!isMonday) {
+        setMustCheckOnline(false);
+        return;
       }
+
+      const currentMondayKey = getMondayKey();
+      const lastCheckMonday = localStorage.getItem('last_plan_check_monday');
+
+      // If already verified this Monday, do not block and do not ask again
+      if (lastCheckMonday === currentMondayKey) {
+        setMustCheckOnline(false);
+        return;
+      }
+
+      // If user is online on Monday, attempt silent background auto-verification
+      if (navigator.onLine) {
+        try {
+          await refreshUserData();
+          localStorage.setItem('last_plan_check_monday', currentMondayKey);
+          localStorage.setItem('last_plan_check_date', now.toDateString());
+          setMustCheckOnline(false);
+          return;
+        } catch (e) {
+          console.warn("Silent Monday verification notice:", e);
+        }
+      }
+
+      // If offline or silent check failed on Monday, prompt verification
+      setMustCheckOnline(true);
     };
 
-    checkDailyReauth();
-    // Re-check every hour while app is open
-    const interval = setInterval(checkDailyReauth, 3600000);
+    checkMondayReauth();
+    // Re-check periodically (every hour) while app is open
+    const interval = setInterval(checkMondayReauth, 3600000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, isOwner, isAdmin]);
 
   const handleVerify = async () => {
     setChecking(true);
@@ -38,6 +81,9 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
         return;
       }
       await refreshUserData();
+      const currentMondayKey = getMondayKey();
+      localStorage.setItem('last_plan_check_monday', currentMondayKey);
+      localStorage.setItem('last_plan_check_date', new Date().toDateString());
       setMustCheckOnline(false);
     } catch (err) {
       console.error(err);
@@ -65,9 +111,9 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
           <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-600/20">
             <RefreshCw className={checking ? "animate-spin text-white" : "text-white"} size={40} />
           </div>
-          <h2 className="text-2xl font-black text-neutral-900 uppercase tracking-tight mb-2">Daily Verification</h2>
+          <h2 className="text-2xl font-black text-neutral-900 uppercase tracking-tight mb-2">Weekly Verification</h2>
           <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] mb-8 leading-relaxed">
-            Naya din, naya check! Aapka plan verify karne ke liye 1 baar online aana zaroori hai.
+            Har Monday ko aapka plan verify karne ke liye 1 baar online aana zaroori hai.
           </p>
 
           <button

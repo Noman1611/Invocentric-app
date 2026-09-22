@@ -453,6 +453,7 @@ export default function SettingsPage() {
         `offline_deletions_${userId}`,
         `offline_upserts_${userId}`,
         'last_plan_check_date',
+        'last_plan_check_monday',
         'app_mode'
       ];
 
