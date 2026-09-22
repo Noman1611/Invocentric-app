@@ -4,7 +4,7 @@
  */
 
 import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { StorageModeProvider } from './contexts/StorageModeContext';
 import { TrialBanner } from './components/TrialBanner';
@@ -780,10 +780,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    if (typeof window !== 'undefined' && localStorage.getItem('invocentric_auth_active') === 'true') {
-      return <PageLoader />;
-    }
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
   if (isProfileIncomplete) {
@@ -1699,16 +1696,13 @@ function HomeRoute() {
   }
 
   if (!user) {
-    if (typeof window !== 'undefined' && localStorage.getItem('invocentric_auth_active') === 'true') {
-      return <PageLoader />;
-    }
-
     // In Native Android APK, Standalone PWA, or Desktop Electron App:
     // NEVER show marketing landing page! Go directly to login.
     const isAppEnvironment = typeof window !== 'undefined' && (
       (window as any).Capacitor?.isNativePlatform?.() ||
       window.location.protocol === 'capacitor:' ||
       window.location.protocol === 'ionic:' ||
+      window.location.protocol === 'file:' ||
       (window as any).electronAPI !== undefined ||
       navigator.userAgent.includes('Electron') ||
       window.matchMedia('(display-mode: standalone)').matches ||
@@ -1752,10 +1746,17 @@ export default function App() {
     }
   }, []);
 
+  const isDesktopApp = typeof window !== 'undefined' && (
+    window.location.protocol === 'file:' || 
+    (window as any).electronAPI !== undefined ||
+    navigator.userAgent.includes('Electron')
+  );
+  const AppRouter = isDesktopApp ? HashRouter : BrowserRouter;
+
   return (
     <StorageModeProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <AppRouter>
           <GlobalShortcutsManager />
           <MigrationModal />
           <AutoBackup />
@@ -1817,7 +1818,7 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
+        </AppRouter>
       </AuthProvider>
     </StorageModeProvider>
   );

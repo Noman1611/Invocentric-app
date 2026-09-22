@@ -71,6 +71,17 @@ export default function LandingPage() {
   const GITHUB_WINDOWS_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric-Setup.exe';
   const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
 
+  const triggerDirectDownload = (e: React.MouseEvent, url: string, filename: string) => {
+    e.preventDefault();
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = url;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      try { document.body.removeChild(iframe); } catch (err) {}
+    }, 10000);
+  };
+
   // New states for interactive modals
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [isBlogsOpen, setIsBlogsOpen] = useState(false);
@@ -384,8 +395,7 @@ export default function LandingPage() {
                     <a
                       href={GITHUB_WINDOWS_URL}
                       download="InvoCentric-Setup.exe"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')}
                       className="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer text-center"
                     >
                       <Monitor size={14} />
@@ -394,8 +404,7 @@ export default function LandingPage() {
                     <a
                       href={GITHUB_ANDROID_URL}
                       download="InvoCentric.apk"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')}
                       className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer text-center"
                     >
                       <Smartphone size={14} />
@@ -1700,8 +1709,7 @@ export default function LandingPage() {
                 <a
                   href={GITHUB_WINDOWS_URL}
                   download="InvoCentric-Setup.exe"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')}
                   className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-800/20 transition-all active:scale-95 cursor-pointer text-center"
                 >
                   <Download size={16} />
@@ -1737,8 +1745,7 @@ export default function LandingPage() {
                 <a
                   href={GITHUB_ANDROID_URL}
                   download="InvoCentric.apk"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')}
                   className="w-full py-3.5 bg-slate-900 hover:bg-slate-950 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer text-center"
                 >
                   <Download size={16} />
@@ -1884,8 +1891,8 @@ export default function LandingPage() {
                     <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-black uppercase">Free</span>
                   </Link>
                 </li>
-                <li><a href={GITHUB_WINDOWS_URL} download="InvoCentric-Setup.exe" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Windows PC Software (.exe)</a></li>
-                <li><a href={GITHUB_ANDROID_URL} download="InvoCentric.apk" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Android Mobile App (.apk)</a></li>
+                <li><a href={GITHUB_WINDOWS_URL} download="InvoCentric-Setup.exe" onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium cursor-pointer">Windows PC Software (.exe)</a></li>
+                <li><a href={GITHUB_ANDROID_URL} download="InvoCentric.apk" onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium cursor-pointer">Android Mobile App (.apk)</a></li>
                 <li><Link to="/invoice-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Invoice Software</Link></li>
                 <li><Link to="/free-invoice-maker" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Free Invoice Maker</Link></li>
                 <li><Link to="/gst-billing-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">GST Billing Software</Link></li>

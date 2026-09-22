@@ -7,8 +7,8 @@ import './index.css';
 // --- Domain Redirection Fallback ---
 // Handled gracefully inside App.tsx via MigrationModal for cache cleaning and session logout.
 
-// --- PWA Auto-Update Logic ---
-if ('serviceWorker' in navigator) {
+// --- PWA Auto-Update Logic (Only on HTTP/HTTPS, never file://) ---
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
   const hasController = !!navigator.serviceWorker.controller;
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {

@@ -3,6 +3,29 @@
   <head>
     <script>
       (function() {
+        // Safe ServiceWorker Mock in Electron to prevent cache lockups and undefined errors
+        if (typeof navigator !== 'undefined' && (navigator.userAgent.indexOf('Electron') !== -1 || window.location.protocol === 'file:')) {
+          var noopPromise = function() { return Promise.resolve([]); };
+          var mockSW = {
+            controller: null,
+            ready: new Promise(function() {}),
+            register: function() { return Promise.resolve({}); },
+            getRegistration: function() { return Promise.resolve(null); },
+            getRegistrations: noopPromise,
+            addEventListener: function() {},
+            removeEventListener: function() {},
+            dispatchEvent: function() { return false; }
+          };
+          try {
+            Object.defineProperty(navigator, 'serviceWorker', {
+              get: function() { return mockSW; },
+              configurable: true
+            });
+          } catch (e) {
+            navigator.serviceWorker = mockSW;
+          }
+        }
+
         var ignorePattern = /should only be loaded in a browser extension|chrome-extension|moz-extension/i;
         
         // 1. Mock chrome and browser environment to satisfy extension script checks and prevent throws
@@ -297,16 +320,16 @@
     <meta name="twitter:creator" content="@InvoCentric" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/192x192.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/512x512.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/192x192.png" />
+    <link rel="icon" type="image/x-icon" href="./favicon.ico" />
+    <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico" />
+    <link rel="icon" type="image/png" sizes="48x48" href="./favicon-48x48.png" />
+    <link rel="icon" type="image/svg+xml" href="./logo.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./512x512.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./192x192.png" />
     
     <!-- Progressive Web App Manifest -->
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     
     <meta name="theme-color" content="#0F645D" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#0F645D" />
@@ -318,13 +341,13 @@
     <meta name="application-name" content="InvoCentric" />
     <meta name="msapplication-TileColor" content="#0F645D" />
     <meta name="msapplication-navbutton-color" content="#0F645D" />
-    <script type="module" crossorigin src="/assets/index-CXZ2CLVK.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/vendor-icons-B1rGypud.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-charts-CwlqGIb8.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-export-DyfCupAC.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-firebase-BckE2lbq.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-CBiiG0gL.css">
-  <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:inline-sw">if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/sw.js', { scope: '/' })})}</script></head>
+    <script type="module" crossorigin src="./assets/index-afBMg3tE.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/vendor-icons-B1rGypud.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-charts-CwlqGIb8.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-export-CVbgk6Mb.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-firebase-BckE2lbq.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-CBiiG0gL.css">
+  <link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:inline-sw">if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('./sw.js', { scope: './' })})}</script></head>
   <body>
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MR8PVKXT"

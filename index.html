@@ -3,6 +3,29 @@
   <head>
     <script>
       (function() {
+        // Safe ServiceWorker Mock in Electron to prevent cache lockups and undefined errors
+        if (typeof navigator !== 'undefined' && (navigator.userAgent.indexOf('Electron') !== -1 || window.location.protocol === 'file:')) {
+          var noopPromise = function() { return Promise.resolve([]); };
+          var mockSW = {
+            controller: null,
+            ready: new Promise(function() {}),
+            register: function() { return Promise.resolve({}); },
+            getRegistration: function() { return Promise.resolve(null); },
+            getRegistrations: noopPromise,
+            addEventListener: function() {},
+            removeEventListener: function() {},
+            dispatchEvent: function() { return false; }
+          };
+          try {
+            Object.defineProperty(navigator, 'serviceWorker', {
+              get: function() { return mockSW; },
+              configurable: true
+            });
+          } catch (e) {
+            navigator.serviceWorker = mockSW;
+          }
+        }
+
         var ignorePattern = /should only be loaded in a browser extension|chrome-extension|moz-extension/i;
         
         // 1. Mock chrome and browser environment to satisfy extension script checks and prevent throws

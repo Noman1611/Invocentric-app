@@ -18,10 +18,82 @@ try {
 
 let mainWindow = null;
 
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+}
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
 // Ensure local app data directory exists for 100% private offline storage
 const localDbDir = path.join(app.getPath('userData'), 'local_db');
 if (!fs.existsSync(localDbDir)) {
   fs.mkdirSync(localDbDir, { recursive: true });
+}
+
+const http = require('http');
+
+let localHttpServer = null;
+
+function startLocalServer(distDir) {
+  return new Promise((resolve) => {
+    if (localHttpServer && localHttpServer.listening) {
+      return resolve(localHttpServer.address().port);
+    }
+
+    const mimeTypes = {
+      '.html': 'text/html; charset=utf-8',
+      '.js': 'application/javascript; charset=utf-8',
+      '.css': 'text/css; charset=utf-8',
+      '.json': 'application/json; charset=utf-8',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.svg': 'image/svg+xml',
+      '.ico': 'image/x-icon',
+      '.woff2': 'font/woff2',
+      '.webmanifest': 'application/manifest+json'
+    };
+
+    const server = http.createServer((req, res) => {
+      let reqPath = decodeURIComponent(req.url.split('?')[0]);
+      if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
+
+      let filePath = path.join(distDir, reqPath);
+      if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+        filePath = path.join(distDir, 'index.html');
+      }
+
+      const ext = path.extname(filePath).toLowerCase();
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('Not Found');
+        } else {
+          res.writeHead(200, {
+            'Content-Type': contentType,
+            'Access-Control-Allow-Origin': '*'
+          });
+          res.end(data);
+        }
+      });
+    });
+
+    server.listen(0, '127.0.0.1', () => {
+      const port = server.address().port;
+      localHttpServer = server;
+      console.log(`[Local Server] Serving offline app on http://127.0.0.1:${port}`);
+      resolve(port);
+    });
+  });
 }
 
 function createWindow() {
@@ -44,22 +116,44 @@ function createWindow() {
   // Remove standard default menu bar for sleek modern desktop look
   mainWindow.setMenuBarVisibility(false);
 
-  // In development, or if packaged dist exists
   const isDev = process.env.NODE_ENV === 'development' || process.env.ELECTRON_DEV === '1';
-  const distIndexPath = path.join(__dirname, '../dist/index.html');
+  const distDir = path.join(__dirname, '../dist');
 
   if (isDev && !app.isPackaged) {
-    mainWindow.loadURL('http://localhost:5173').catch(() => {
-      if (fs.existsSync(distIndexPath)) {
-        mainWindow.loadFile(distIndexPath);
+    mainWindow.loadURL('http://localhost:5173').catch(async () => {
+      try {
+        const port = await startLocalServer(distDir);
+        mainWindow.loadURL(`http://127.0.0.1:${port}/?source=app`);
+      } catch (err) {
+        mainWindow.loadFile(path.join(distDir, 'index.html'));
       }
     });
   } else {
-    mainWindow.loadFile(distIndexPath);
+    startLocalServer(distDir).then((port) => {
+      mainWindow.loadURL(`http://127.0.0.1:${port}/?source=app`);
+    }).catch(() => {
+      mainWindow.loadFile(path.join(distDir, 'index.html'));
+    });
   }
+
+  mainWindow.webContents.on('console-message', (event) => {
+    console.log('[Renderer Console]', event.message);
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    setTimeout(async () => {
+      try {
+        const pageInfo = await mainWindow.webContents.executeJavaScript('({ url: window.location.href, title: document.title, text: document.body.innerText.slice(0, 100).replace(/\\s+/g, " ") })');
+        console.log('[ELECTRON VERIFIED READY]', JSON.stringify(pageInfo));
+      } catch (err) {}
+    }, 1500);
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    if (localHttpServer) {
+      try { localHttpServer.close(); } catch (e) {}
+    }
   });
 }
 

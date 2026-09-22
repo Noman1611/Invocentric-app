@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
+    base: './',
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
     plugins: [
       react(), 

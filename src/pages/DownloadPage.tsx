@@ -26,6 +26,17 @@ export default function DownloadPage() {
   const GITHUB_WINDOWS_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric-Setup.exe';
   const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
 
+  const triggerDirectDownload = (e: React.MouseEvent, url: string, filename: string) => {
+    e.preventDefault();
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = url;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      try { document.body.removeChild(iframe); } catch (err) {}
+    }, 10000);
+  };
+
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
       return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || '');
@@ -110,8 +121,7 @@ export default function DownloadPage() {
             <a
               href={isMobile ? GITHUB_ANDROID_URL : GITHUB_WINDOWS_URL}
               download={isMobile ? 'InvoCentric.apk' : 'InvoCentric-Setup.exe'}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={(e) => triggerDirectDownload(e, isMobile ? GITHUB_ANDROID_URL : GITHUB_WINDOWS_URL, isMobile ? 'InvoCentric.apk' : 'InvoCentric-Setup.exe')}
               className="w-full md:w-auto px-7 py-4 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs sm:text-sm font-black uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-emerald-900/20 active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer text-center"
             >
               <Download size={18} />
@@ -169,8 +179,7 @@ export default function DownloadPage() {
               <a
                 href={GITHUB_ANDROID_URL}
                 download="InvoCentric.apk"
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')}
                 className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer text-center"
               >
                 <Download size={16} />
@@ -183,7 +192,8 @@ export default function DownloadPage() {
                 <a 
                   href={GITHUB_ANDROID_URL} 
                   download="InvoCentric.apk" 
-                  className="text-[10px] text-emerald-800 hover:text-emerald-950 font-bold underline"
+                  onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')}
+                  className="text-[10px] text-emerald-800 hover:text-emerald-950 font-bold underline cursor-pointer"
                 >
                   Direct Link: InvoCentric.apk
                 </a>
@@ -234,8 +244,7 @@ export default function DownloadPage() {
               <a
                 href={GITHUB_WINDOWS_URL}
                 download="InvoCentric-Setup.exe"
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')}
                 className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer text-center"
               >
                 <Download size={16} />
@@ -248,7 +257,8 @@ export default function DownloadPage() {
                 <a 
                   href={GITHUB_WINDOWS_URL} 
                   download="InvoCentric-Setup.exe" 
-                  className="text-[10px] text-emerald-800 hover:text-emerald-950 font-bold underline"
+                  onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')}
+                  className="text-[10px] text-emerald-800 hover:text-emerald-950 font-bold underline cursor-pointer"
                 >
                   Direct Link: InvoCentric-Setup.exe
                 </a>
