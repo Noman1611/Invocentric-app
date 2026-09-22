@@ -1758,7 +1758,21 @@ import UpgradeModal from './components/UpgradeModal';
 import { GlobalShortcutsManager } from './components/GlobalShortcutsManager';
 
 export default function App() {
+  // Splash screen only for Desktop (Electron) and Android/Capacitor native app — NOT for website
+  const isElectronApp = typeof window !== 'undefined' && (
+    window.location.protocol === 'file:' ||
+    (window as any).electronAPI !== undefined ||
+    navigator.userAgent.includes('Electron')
+  );
+  const isNativeApp = typeof window !== 'undefined' && (
+    window.location.protocol === 'capacitor:' ||
+    window.location.protocol === 'ionic:' ||
+    (window as any).Capacitor !== undefined
+  );
+  const shouldShowSplash = isElectronApp || isNativeApp;
+
   const [showWelcomeSplash, setShowWelcomeSplash] = React.useState<boolean>(() => {
+    if (!shouldShowSplash) return false;
     if (typeof window !== 'undefined') {
       const hasShown = sessionStorage.getItem('invocentric_welcome_splash_shown');
       return !hasShown;
