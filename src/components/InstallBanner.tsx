@@ -9,9 +9,20 @@ export default function InstallBanner() {
   const [closedThisSession, setClosedThisSession] = useState(false);
 
   useEffect(() => {
-    // Check if running as standalone PWA
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+    // Check if running as native app or standalone PWA
+    const isApp = 
+      (window as any).Capacitor?.isNativePlatform?.() ||
+      window.location.protocol === 'capacitor:' ||
+      window.location.protocol === 'ionic:' ||
+      (window as any).electronAPI !== undefined ||
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (window.navigator as any).standalone === true ||
+      window.location.search.includes('source=app') ||
+      window.location.search.includes('mode=app');
+
+    if (isApp) {
       setIsInstalled(true);
+      return;
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {

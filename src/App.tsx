@@ -1702,6 +1702,25 @@ function HomeRoute() {
     if (typeof window !== 'undefined' && localStorage.getItem('invocentric_auth_active') === 'true') {
       return <PageLoader />;
     }
+
+    // In Native Android APK, Standalone PWA, or Desktop Electron App:
+    // NEVER show marketing landing page! Go directly to login.
+    const isAppEnvironment = typeof window !== 'undefined' && (
+      (window as any).Capacitor?.isNativePlatform?.() ||
+      window.location.protocol === 'capacitor:' ||
+      window.location.protocol === 'ionic:' ||
+      (window as any).electronAPI !== undefined ||
+      navigator.userAgent.includes('Electron') ||
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true ||
+      window.location.search.includes('source=app') ||
+      window.location.search.includes('mode=app')
+    );
+
+    if (isAppEnvironment) {
+      return <Navigate to="/login" replace />;
+    }
+
     return (
       <Suspense fallback={<PageLoader />}>
         <LandingPage />
@@ -1709,7 +1728,7 @@ function HomeRoute() {
     );
   }
 
-  return <Navigate to="/dashboard" />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 import InstallBanner from './components/InstallBanner';

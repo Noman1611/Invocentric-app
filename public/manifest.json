@@ -3,9 +3,9 @@
   "name": "InvoCentric",
   "short_name": "InvoCentric",
   "description": "Free professional GST billing and inventory management tool.",
-  "start_url": "/",
+  "start_url": "/?source=app",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#0F645D",
   "theme_color": "#0F645D",
   "icons": [
     {
