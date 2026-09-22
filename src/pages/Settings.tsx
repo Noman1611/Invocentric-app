@@ -636,8 +636,8 @@ export default function SettingsPage() {
   return (
     <div className="max-w-4xl mx-auto pb-10">
       <header className="flex flex-col items-center text-center mb-10">
-        <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-4 shadow-xl shadow-gray-200/50 overflow-hidden border border-gray-100">
-           <Logo size={80} />
+        <div className="mb-4 flex items-center justify-center">
+           <Logo size={72} />
         </div>
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Business Settings</h1>
         <p className="text-gray-500 mt-2 font-medium">Update your shop's details — they appear on every invoice and quote.</p>
@@ -846,7 +846,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               {formData.logo_url && (
                 <div className="relative group">
-                  <img src={formData.logo_url} alt="Logo Preview" className="w-16 h-16 object-contain rounded-lg border border-gray-100 p-1" />
+                  <img src={formData.logo_url} alt="Logo Preview" className="w-16 h-16 object-contain rounded-lg p-0.5" />
                   {!isOfflineMode && (
                     <button 
                       type="button" 
@@ -1098,7 +1098,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               {formData.social_qr_url && (
                 <div className="relative group">
-                  <img src={formData.social_qr_url} alt="QR Preview" className="w-16 h-16 object-contain rounded-lg border border-gray-100 p-1 bg-white" />
+                  <img src={formData.social_qr_url} alt="QR Preview" className="w-16 h-16 object-contain rounded-lg p-0.5" />
                   {!isOfflineMode && (
                     <button 
                       type="button" 
@@ -1179,7 +1179,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               {formData.signature_url && (
                 <div className="relative group">
-                  <img src={formData.signature_url} alt="Signature Preview" className="h-12 w-32 object-contain rounded-lg border border-gray-100 p-1 bg-white" />
+                  <img src={formData.signature_url} alt="Signature Preview" className="h-12 w-32 object-contain rounded-lg p-0.5" />
                   {!isOfflineMode && (
                     <button 
                       type="button" 
