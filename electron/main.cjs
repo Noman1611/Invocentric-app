@@ -16194,7 +16194,8 @@ ipcMain.handle("check-for-updates", async () => {
 ipcMain.handle("restart-and-install", () => {
   if (autoUpdater) {
     try {
-      autoUpdater.quitAndInstall();
+      console.log("[AutoUpdater] Initiating restart and in-place install...");
+      autoUpdater.quitAndInstall(false, true);
     } catch (err) {
       console.error("[AutoUpdater] Error during quitAndInstall:", err);
     }

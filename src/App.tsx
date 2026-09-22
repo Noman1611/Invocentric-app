@@ -1752,6 +1752,7 @@ function HomeRoute() {
 }
 
 import InstallBanner from './components/InstallBanner';
+import { AppUpdateBanner } from './components/AppUpdateBanner';
 import OfflineSyncManager from './components/OfflineSyncManager';
 import UpgradeModal from './components/UpgradeModal';
 import { GlobalShortcutsManager } from './components/GlobalShortcutsManager';
@@ -1801,6 +1802,7 @@ export default function App() {
           <AppWelcomeSplash onComplete={handleWelcomeSplashComplete} durationSeconds={10} />
         )}
         <AppRouter>
+          <AppUpdateBanner />
           <GlobalShortcutsManager />
           <MigrationModal />
           <AutoBackup />

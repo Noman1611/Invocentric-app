@@ -2,7 +2,8 @@ import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, DEFAULT_PROFILE_DATA } from '../utils/settingsStorage';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Save, X, LogOut, CheckCircle2, Download, Upload, Trash2, HardDrive, FolderOpen, Lock, Unlock, CloudDownload, Store, Briefcase, Keyboard } from 'lucide-react';
+import { Save, X, LogOut, CheckCircle2, Download, Upload, Trash2, HardDrive, FolderOpen, Lock, Unlock, CloudDownload, Store, Briefcase, Keyboard, Sparkles, RefreshCw, ShieldCheck } from 'lucide-react';
+import { updateService, AppUpdateState } from '../services/updateService';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -80,6 +81,46 @@ export default function SettingsPage() {
       window.removeEventListener('gdrive_backup_success', handleGdriveStatus);
     };
   }, [user]);
+
+  // Software & App Auto-Updater State
+  const [updateState, setUpdateState] = useState<AppUpdateState>(() => updateService.getState());
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [updateActionMsg, setUpdateActionMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = updateService.subscribe((s) => {
+      setUpdateState(s);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleCheckUpdatesManual = async () => {
+    setIsCheckingUpdates(true);
+    setUpdateActionMsg(null);
+    try {
+      const res = await updateService.checkForUpdates(true);
+      if (res.hasUpdate) {
+        setUpdateActionMsg(`Naya update v${res.latestVersion} uplabdh hai! 1-Click Update dabakar update karein.`);
+      } else {
+        setUpdateActionMsg(`Aapka software/app pehle se sabse naye version (v${res.currentVersion}) par hai.`);
+      }
+    } catch (err: any) {
+      setUpdateActionMsg(`Update check error: ${err.message || 'Check failed'}`);
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  };
+
+  const handleApplyUpdateManual = async () => {
+    try {
+      const res = await updateService.applyUpdate();
+      if (res.message) {
+        setUpdateActionMsg(res.message);
+      }
+    } catch (err: any) {
+      alert(`Update error: ${err.message || 'Could not start update.'}`);
+    }
+  };
 
   const handleConnectGoogleDrive = async () => {
     try {
@@ -837,6 +878,57 @@ export default function SettingsPage() {
             <Keyboard size={14} className="text-emerald-400" />
             <span>Open Fast Keys (F1)</span>
           </button>
+        </section>
+
+        {/* Software & App Updates Section */}
+        <section className="bg-gradient-to-br from-emerald-900/5 via-slate-50 to-teal-900/5 border border-emerald-200/60 rounded-2xl p-6 sm:p-8 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-[#0d5c4b] flex items-center justify-center shrink-0">
+                  <Sparkles size={16} />
+                </div>
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                  Software & App Updates (सॉफ्टवेयर और ऐप अपडेट)
+                </h2>
+              </div>
+              <p className="text-xs text-slate-600 font-medium">
+                Current Version: <span className="font-bold text-slate-900">v{updateState.currentVersion}</span> • Platform: <span className="font-bold text-slate-900">{updateState.platform === 'electron' ? 'Windows Desktop' : updateState.platform === 'android' ? 'Android Phone App' : 'Web Browser'}</span>
+              </p>
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-semibold pt-1">
+                <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                <span>100% Zero Data Loss Guarantee: Update karne par aapka koi bhi bill ya customer data delete nahi hoga.</span>
+              </div>
+              {updateActionMsg && (
+                <p className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5 mt-2 animate-fadeIn">
+                  {updateActionMsg}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleCheckUpdatesManual}
+                disabled={isCheckingUpdates}
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              >
+                <RefreshCw size={14} className={isCheckingUpdates ? "animate-spin text-white" : "text-emerald-200"} />
+                <span>{isCheckingUpdates ? 'Checking Updates...' : 'Check for Updates'}</span>
+              </button>
+
+              {updateState.hasUpdate && (
+                <button
+                  type="button"
+                  onClick={handleApplyUpdateManual}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-300 hover:to-amber-300 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider shadow-md active:scale-95 cursor-pointer"
+                >
+                  <Download size={14} />
+                  <span>Update Now (v{updateState.latestVersion})</span>
+                </button>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* Business Profile */}

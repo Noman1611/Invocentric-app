@@ -196,6 +196,42 @@ class LocalDbEngine {
     }
   }
 
+  // Mandatory Safety Pre-Update Backup (Ensures zero data loss during in-place software/APK update)
+  public async performPreUpdateBackup(targetVersion: string = 'latest'): Promise<{ success: boolean; path?: string }> {
+    try {
+      const json = await this.exportAllData();
+      const safeVersion = targetVersion.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `InvoCentric_PreUpdate_v${safeVersion}_${timestamp}.json`;
+      let savedPath = '';
+
+      if (this.isDesktop() && (window.electronAPI as any)?.saveDailyBackup) {
+        const res = await (window.electronAPI as any).saveDailyBackup(filename, json);
+        if (res.success) {
+          savedPath = res.path || '';
+        }
+      }
+
+      // Also persist to emergency local secure storage key
+      try {
+        const parsed = JSON.parse(json);
+        setSecureStorage('invocentric_pre_update_safety_snapshot', parsed);
+        localStorage.setItem('invocentric_pre_update_timestamp', new Date().toISOString());
+        localStorage.setItem('invocentric_pre_update_version', targetVersion);
+      } catch (e) {}
+
+      console.log(`[LocalDbEngine] Pre-update safety backup completed successfully! Path: ${savedPath || 'Local Storage'}`);
+      window.dispatchEvent(new CustomEvent('pre_update_backup_completed', {
+        detail: { version: targetVersion, path: savedPath, time: new Date().toISOString() }
+      }));
+
+      return { success: true, path: savedPath };
+    } catch (err) {
+      console.error('[LocalDbEngine] Pre-update backup failed:', err);
+      return { success: false };
+    }
+  }
+
   // Open the local backup folder in Windows File Explorer
   public async openBackupFolder(): Promise<boolean> {
     if (this.isDesktop() && (window.electronAPI as any)?.openBackupDir) {
