@@ -2040,9 +2040,34 @@ async function updateUserInactivityReminderFields(uid: string, fields: {
   }
 }
 
-let etherealTransporter: any = null;
+let customSmtpConfig: {
+  host: string;
+  port: number;
+  secure?: boolean;
+  user: string;
+  pass: string;
+  fromName?: string;
+} | null = null;
 
 async function getSmtpTransporter(): Promise<{ transporter: nodemailer.Transporter; from: string } | null> {
+  // 1. Custom in-app SMTP configuration entered by admin
+  if (customSmtpConfig?.user && customSmtpConfig?.pass) {
+    const port = Number(customSmtpConfig.port || 587);
+    return {
+      transporter: nodemailer.createTransport({
+        host: customSmtpConfig.host || "smtp.gmail.com",
+        port,
+        secure: port === 465,
+        auth: {
+          user: customSmtpConfig.user,
+          pass: customSmtpConfig.pass
+        }
+      }),
+      from: `"${customSmtpConfig.fromName || 'InvoCentric'}" <${customSmtpConfig.user}>`
+    };
+  }
+
+  // 2. Standard environment variables
   const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
   const smtpPort = Number(process.env.SMTP_PORT || 587);
   const smtpUser = process.env.SMTP_USER;
@@ -2060,32 +2085,6 @@ async function getSmtpTransporter(): Promise<{ transporter: nodemailer.Transport
         }
       }),
       from: `"InvoCentric" <${smtpUser}>`
-    };
-  }
-
-  // Fallback: Lazy create an Ethereal test account so email sending always succeeds without configuration
-  if (!etherealTransporter) {
-    try {
-      const testAccount = await nodemailer.createTestAccount();
-      etherealTransporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass
-        }
-      });
-      console.log("[SMTP] Initialized fallback Ethereal test email account:", testAccount.user);
-    } catch (err) {
-      console.error("[SMTP] Failed to create Ethereal test account:", err);
-    }
-  }
-
-  if (etherealTransporter) {
-    return {
-      transporter: etherealTransporter,
-      from: `"InvoCentric Demo" <no-reply@invocentric.app>`
     };
   }
 
@@ -2757,6 +2756,128 @@ app.get("/api/preview/inactivity-email", (req, res) => {
   });
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.send(html);
+});
+
+app.get("/api/admin/smtp-status", checkAuth, async (req, res) => {
+  const isConfigured = Boolean(
+    (customSmtpConfig?.user && customSmtpConfig?.pass) ||
+    (process.env.SMTP_USER && process.env.SMTP_PASSWORD) ||
+    process.env.RESEND_API_KEY
+  );
+
+  const activeEmail = customSmtpConfig?.user || process.env.SMTP_USER || (process.env.RESEND_API_KEY ? "Resend API Active" : "");
+  const activeHost = customSmtpConfig?.host || process.env.SMTP_HOST || "smtp.gmail.com";
+
+  return res.status(200).json({
+    configured: isConfigured,
+    email: activeEmail,
+    host: activeHost
+  });
+});
+
+app.post("/api/admin/save-smtp-config", checkAuth, async (req, res) => {
+  const adminEmail = "nomanshaikh1999@gmail.com";
+  const userEmail = (req as any).user?.email?.toLowerCase();
+  if (userEmail !== adminEmail) {
+    return res.status(403).json({ error: "FORBIDDEN: Admin privileges required." });
+  }
+
+  const { host, port, user, pass, fromName } = req.body;
+  if (!user || !pass) {
+    return res.status(400).json({ error: "SMTP Username/Email and Password are required." });
+  }
+
+  customSmtpConfig = {
+    host: host || "smtp.gmail.com",
+    port: Number(port || 587),
+    secure: Number(port) === 465,
+    user: user.trim(),
+    pass: pass.trim(),
+    fromName: fromName || "InvoCentric"
+  };
+
+  return res.status(200).json({ success: true, message: "SMTP configuration updated successfully." });
+});
+
+app.post("/api/admin/test-smtp-connection", checkAuth, async (req, res) => {
+  const adminEmail = "nomanshaikh1999@gmail.com";
+  const userEmail = (req as any).user?.email?.toLowerCase();
+  if (userEmail !== adminEmail) {
+    return res.status(403).json({ error: "FORBIDDEN: Admin privileges required." });
+  }
+
+  const { host, port, user, pass, fromName, testRecipient } = req.body;
+  const targetUser = (user || customSmtpConfig?.user || process.env.SMTP_USER || "").trim();
+  const targetPass = (pass || customSmtpConfig?.pass || process.env.SMTP_PASSWORD || "").trim();
+  const targetHost = (host || customSmtpConfig?.host || process.env.SMTP_HOST || "smtp.gmail.com").trim();
+  const targetPort = Number(port || customSmtpConfig?.port || process.env.SMTP_PORT || 587);
+
+  if (!targetUser || !targetPass) {
+    return res.status(400).json({ 
+      success: false, 
+      error: "SMTP Credentials Missing: Please provide SMTP Email/Username and App Password." 
+    });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: targetHost,
+      port: targetPort,
+      secure: targetPort === 465,
+      auth: {
+        user: targetUser,
+        pass: targetPass
+      },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000
+    });
+
+    // 1. Verify handshake
+    await transporter.verify();
+
+    // 2. If test recipient provided, send a live test message
+    if (testRecipient && testRecipient.includes("@")) {
+      await transporter.sendMail({
+        from: `"${fromName || 'InvoCentric'}" <${targetUser}>`,
+        to: testRecipient,
+        subject: "InvoCentric SMTP Connection Test - Success!",
+        html: `
+          <div style="font-family: sans-serif; padding: 24px; color: #1e293b; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <h2 style="color: #0d5c4b; margin-top: 0;">✓ SMTP Live Connection Verified</h2>
+            <p>Your InvoCentric billing mail engine is now fully functional and connected to <strong>${targetHost}</strong>.</p>
+            <p>From Account: <strong>${targetUser}</strong></p>
+            <p>Dispatched At: <strong>${new Date().toLocaleString('en-IN')}</strong></p>
+            <div style="margin-top: 20px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; color: #15803d; font-size: 13px;">
+              System Reminders, Customer Invoices, and Automated Notifications will now be sent seamlessly.
+            </div>
+          </div>
+        `
+      });
+    }
+
+    // Persist to active custom configuration
+    customSmtpConfig = {
+      host: targetHost,
+      port: targetPort,
+      secure: targetPort === 465,
+      user: targetUser,
+      pass: targetPass,
+      fromName: fromName || "InvoCentric"
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: testRecipient
+        ? `SMTP Connected! Test email successfully delivered to ${testRecipient}.`
+        : "SMTP handshake verified successfully!"
+    });
+  } catch (err: any) {
+    console.error("SMTP Connection Test Failed:", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || "Failed to authenticate with SMTP server. Check credentials or App Password."
+    });
+  }
 });
 
 app.post("/api/admin/check-inactivity", checkAuth, async (req, res) => {

@@ -11,6 +11,11 @@ interface StorageModeContextType {
   refreshStats: () => Promise<void>;
   exportBackup: () => Promise<void>;
   importBackup: (jsonContent: string) => Promise<boolean>;
+  triggerDailyBackup: (force?: boolean) => Promise<{ success: boolean; path?: string; skipped?: boolean }>;
+  openBackupFolder: () => Promise<boolean>;
+  lastBackupDate: string | null;
+  lastBackupTime: string | null;
+  backupFolder: string;
 }
 
 const StorageModeContext = createContext<StorageModeContextType | undefined>(undefined);
@@ -23,6 +28,16 @@ export function StorageModeProvider({ children }: { children: React.ReactNode })
     return window.electronAPI?.isElectron ? 'local_pc' : 'cloud';
   });
 
+  const [lastBackupDate, setLastBackupDate] = useState<string | null>(() => {
+    return localStorage.getItem('invocentric_last_daily_backup') || null;
+  });
+
+  const [lastBackupTime, setLastBackupTime] = useState<string | null>(() => {
+    return localStorage.getItem('invocentric_last_daily_backup_time') || null;
+  });
+
+  const [backupFolder, setBackupFolder] = useState<string>('Documents/InvoCentric_Backups');
+
   const [localStats, setLocalStats] = useState<LocalDbStats>({
     invoicesCount: 0,
     itemsCount: 0,
@@ -31,6 +46,15 @@ export function StorageModeProvider({ children }: { children: React.ReactNode })
     purchasesCount: 0,
     lastUpdated: null
   });
+
+  // Resolve desktop backup directory name
+  useEffect(() => {
+    if (window.electronAPI?.isElectron && (window.electronAPI as any)?.getBackupDir) {
+      (window.electronAPI as any).getBackupDir().then((dir: string) => {
+        if (dir) setBackupFolder(dir);
+      }).catch(() => {});
+    }
+  }, []);
 
   const refreshStats = useCallback(async () => {
     try {
@@ -41,12 +65,36 @@ export function StorageModeProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
+  const triggerDailyBackup = useCallback(async (force: boolean = false) => {
+    const res = await localDbEngine.performDailyBackup(force);
+    if (res.success) {
+      const today = new Date().toISOString().split('T')[0];
+      setLastBackupDate(today);
+      setLastBackupTime(new Date().toISOString());
+    }
+    return res;
+  }, []);
+
+  const openBackupFolder = useCallback(async () => {
+    return await localDbEngine.openBackupFolder();
+  }, []);
+
+  // Run automated daily backup on startup
   useEffect(() => {
     refreshStats();
     const handleUpdate = () => refreshStats();
     window.addEventListener('local_db_updated', handleUpdate);
-    return () => window.removeEventListener('local_db_updated', handleUpdate);
-  }, [refreshStats]);
+
+    // Run automated daily backup silently
+    const timer = setTimeout(() => {
+      triggerDailyBackup(false).catch(err => console.warn('Daily backup auto-run error:', err));
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('local_db_updated', handleUpdate);
+    };
+  }, [refreshStats, triggerDailyBackup]);
 
   const setStorageMode = (mode: StorageMode) => {
     setStorageModeState(mode);
@@ -54,6 +102,8 @@ export function StorageModeProvider({ children }: { children: React.ReactNode })
     // Also toggle the isOfflineMode flag in localStorage so existing offline helpers align
     if (mode === 'local_pc') {
       localStorage.setItem('is_offline_mode', 'true');
+      // Trigger daily backup immediately when switching to local PC mode
+      triggerDailyBackup(false).catch(() => {});
     } else {
       localStorage.removeItem('is_offline_mode');
     }
@@ -95,7 +145,12 @@ export function StorageModeProvider({ children }: { children: React.ReactNode })
         localStats,
         refreshStats,
         exportBackup,
-        importBackup
+        importBackup,
+        triggerDailyBackup,
+        openBackupFolder,
+        lastBackupDate,
+        lastBackupTime,
+        backupFolder
       }}
     >
       {children}

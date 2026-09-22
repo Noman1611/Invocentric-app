@@ -158,6 +158,53 @@ class LocalDbEngine {
     }
   }
 
+  // Automated Daily Backup into specific folder
+  public async performDailyBackup(force: boolean = false): Promise<{ success: boolean; path?: string; skipped?: boolean }> {
+    const today = new Date().toISOString().split('T')[0];
+    const lastBackup = localStorage.getItem('invocentric_last_daily_backup');
+    if (!force && lastBackup === today) {
+      return { success: true, skipped: true };
+    }
+
+    try {
+      const json = await this.exportAllData();
+      const filename = `InvoCentric_Backup_${today}.json`;
+      let savedPath = '';
+
+      if (this.isDesktop() && (window.electronAPI as any)?.saveDailyBackup) {
+        const res = await (window.electronAPI as any).saveDailyBackup(filename, json);
+        if (res.success) {
+          savedPath = res.path || '';
+        }
+      }
+
+      // Also store snapshot in secure local backup registry
+      localStorage.setItem('invocentric_last_daily_backup', today);
+      localStorage.setItem('invocentric_last_daily_backup_time', new Date().toISOString());
+      try {
+        setSecureStorage(`daily_backup_snapshot_${today}`, JSON.parse(json));
+      } catch (e) {}
+
+      window.dispatchEvent(new CustomEvent('daily_backup_completed', { 
+        detail: { date: today, path: savedPath } 
+      }));
+
+      return { success: true, path: savedPath };
+    } catch (err) {
+      console.error('[LocalDbEngine] Daily backup error:', err);
+      return { success: false };
+    }
+  }
+
+  // Open the local backup folder in Windows File Explorer
+  public async openBackupFolder(): Promise<boolean> {
+    if (this.isDesktop() && (window.electronAPI as any)?.openBackupDir) {
+      const res = await (window.electronAPI as any).openBackupDir();
+      return Boolean(res.success);
+    }
+    return false;
+  }
+
   // Get local statistics
   public async getStats(): Promise<LocalDbStats> {
     const invoices = await this.getCollection('invoices');

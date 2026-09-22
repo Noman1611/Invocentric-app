@@ -15944,7 +15944,7 @@ var require_main2 = __commonJS({
 });
 
 // electron/main.src.cjs
-var { app, BrowserWindow, ipcMain, dialog } = require("electron");
+var { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 var path = require("path");
 var fs = require("fs");
 var autoUpdater = null;
@@ -15974,6 +15974,13 @@ app.on("second-instance", () => {
 var localDbDir = path.join(app.getPath("userData"), "local_db");
 if (!fs.existsSync(localDbDir)) {
   fs.mkdirSync(localDbDir, { recursive: true });
+}
+var backupDir = path.join(app.getPath("documents"), "InvoCentric_Backups");
+if (!fs.existsSync(backupDir)) {
+  try {
+    fs.mkdirSync(backupDir, { recursive: true });
+  } catch (e) {
+  }
 }
 var http = require("http");
 var localHttpServer = null;
@@ -16118,6 +16125,32 @@ ipcMain.handle("list-local-files", async () => {
   } catch (err) {
     return { success: false, error: err.message };
   }
+});
+ipcMain.handle("save-daily-backup", async (event, filename, content) => {
+  try {
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+    const safeFilename = path.basename(filename);
+    const targetPath = path.join(backupDir, safeFilename);
+    fs.writeFileSync(targetPath, typeof content === "string" ? content : JSON.stringify(content, null, 2), "utf8");
+    return { success: true, path: targetPath };
+  } catch (err) {
+    console.error("Error saving daily backup in Electron:", err);
+    return { success: false, error: err.message };
+  }
+});
+ipcMain.handle("get-backup-dir", () => backupDir);
+ipcMain.handle("open-backup-dir", () => {
+  try {
+    if (fs.existsSync(backupDir)) {
+      shell.openPath(backupDir);
+      return { success: true, path: backupDir };
+    }
+  } catch (e) {
+    console.error("Error opening backup directory:", e);
+  }
+  return { success: false };
 });
 ipcMain.handle("print-silent", async (event, options = {}) => {
   if (!mainWindow) return { success: false };

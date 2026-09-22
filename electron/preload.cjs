@@ -1,4 +1,4 @@
-﻿const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveLocalFile: (filename, content) => ipcRenderer.invoke('save-local-file', filename, content),
   readLocalFile: (filename) => ipcRenderer.invoke('read-local-file', filename),
   listLocalFiles: (dirName) => ipcRenderer.invoke('list-local-files', dirName),
+  saveDailyBackup: (filename, content) => ipcRenderer.invoke('save-daily-backup', filename, content),
+  getBackupDir: () => ipcRenderer.invoke('get-backup-dir'),
+  openBackupDir: () => ipcRenderer.invoke('open-backup-dir'),
   printToPdf: (options) => ipcRenderer.invoke('print-to-pdf', options),
   printSilent: (options) => ipcRenderer.invoke('print-silent', options),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

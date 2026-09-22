@@ -6,7 +6,9 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, HashRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { StorageModeProvider } from './contexts/StorageModeContext';
+import { StorageModeProvider, useStorageMode } from './contexts/StorageModeContext';
+import { StorageModeModal } from './components/StorageModeModal';
+import { AppWelcomeSplash } from './components/AppWelcomeSplash';
 import { TrialBanner } from './components/TrialBanner';
 import { motion, AnimatePresence } from 'motion/react';
 import { Logo } from './components/Logo';
@@ -62,7 +64,7 @@ function PageLoader() {
   );
 }
 
-import { Store, Briefcase, Search, Bell, ChevronDown, CheckCircle, Settings, User as UserIcon, LogOut, X, Loader, Phone, Building, Globe, FileText, Package, Users, TrendingDown, HelpCircle, Sparkles, Play, Check, CheckSquare, Square, ArrowRight, AlertCircle, Info, Landmark, QrCode, Video, Copy, ScanLine, Plus } from 'lucide-react';
+import { Store, Briefcase, Search, Bell, ChevronDown, CheckCircle, Settings, User as UserIcon, LogOut, X, Loader, Phone, Building, Globe, FileText, Package, Users, TrendingDown, HelpCircle, Sparkles, Play, Check, CheckSquare, Square, ArrowRight, AlertCircle, Info, Landmark, QrCode, Video, Copy, ScanLine, Plus, HardDrive, Cloud } from 'lucide-react';
 import { initializeUsbScanner, registerScanListener, registerStatusListener, getScannerSessionId } from './utils/usbScanner';
 import { playScanBeepSound } from './utils/cameraUtils';
 import { QRCodeSVG } from 'qrcode.react';
@@ -98,6 +100,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { isLocalPc } = useStorageMode();
+  const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
 
   // Global Mobile Scanner State & Listener
   const [isGlobalScannerModalOpen, setIsGlobalScannerModalOpen] = useState(false);
@@ -883,6 +887,22 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
             {/* Right Side: Active Controls & Profile */}
             <div className="flex items-center gap-1.5 sm:gap-3 md:gap-5 shrink-0 relative">
+              {/* Storage Mode & Daily Backup Button */}
+              <button
+                onClick={() => setIsStorageModalOpen(true)}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 border shrink-0 cursor-pointer",
+                  isLocalPc
+                    ? "bg-emerald-50 border-emerald-300 text-[#0d5c4b] hover:bg-emerald-100 shadow-xs"
+                    : "bg-teal-50 border-teal-200 text-teal-800 hover:bg-teal-100 shadow-xs"
+                )}
+                title="Database Storage Mode & Automated Daily Backups"
+              >
+                {isLocalPc ? <HardDrive size={13} className="text-[#0d5c4b] shrink-0" /> : <Cloud size={13} className="text-teal-700 shrink-0" />}
+                <span className="hidden sm:inline">{isLocalPc ? 'Local PC Storage' : 'Cloud Synced'}</span>
+                <span className="sm:hidden">{isLocalPc ? 'Local PC' : 'Cloud'}</span>
+              </button>
+
               {/* Active Mode Pill Button */}
               <button
                 onClick={() => setAppMode(appMode === 'shop' ? 'freelancer' : 'shop')}
@@ -1481,6 +1501,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
+      {/* STORAGE MODE & DAILY BACKUP MODAL */}
+      <StorageModeModal
+        isOpen={isStorageModalOpen}
+        onClose={() => setIsStorageModalOpen(false)}
+      />
+
       {/* DEMO RECORDING SCRIPT & PDF GUIDE MODAL */}
       <DemoScriptModal 
         isOpen={isDemoScriptOpen}
@@ -1731,6 +1757,21 @@ import UpgradeModal from './components/UpgradeModal';
 import { GlobalShortcutsManager } from './components/GlobalShortcutsManager';
 
 export default function App() {
+  const [showWelcomeSplash, setShowWelcomeSplash] = React.useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const hasShown = sessionStorage.getItem('invocentric_welcome_splash_shown');
+      return !hasShown;
+    }
+    return false;
+  });
+
+  const handleWelcomeSplashComplete = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('invocentric_welcome_splash_shown', 'true');
+    }
+    setShowWelcomeSplash(false);
+  };
+
   React.useEffect(() => {
     // Dynamically enforce theme-color across all matching meta tags
     const themeColor = '#0D635D';
@@ -1756,6 +1797,9 @@ export default function App() {
   return (
     <StorageModeProvider>
       <AuthProvider>
+        {showWelcomeSplash && (
+          <AppWelcomeSplash onComplete={handleWelcomeSplashComplete} durationSeconds={10} />
+        )}
         <AppRouter>
           <GlobalShortcutsManager />
           <MigrationModal />
