@@ -277,6 +277,27 @@ public class MainActivity extends BridgeActivity {
 
     class AppUpdateInterface {
         @android.webkit.JavascriptInterface
+        public void openAuthCustomTab(final String url) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        androidx.browser.customtabs.CustomTabsIntent.Builder builder = new androidx.browser.customtabs.CustomTabsIntent.Builder();
+                        builder.setShowTitle(true);
+                        builder.setToolbarColor(0xFF0F645D); // Brand green
+                        androidx.browser.customtabs.CustomTabsIntent customTabsIntent = builder.build();
+                        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        customTabsIntent.launchUrl(MainActivity.this, Uri.parse(url));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        openExternalUrl(url);
+                    }
+                }
+            });
+        }
+
+        @android.webkit.JavascriptInterface
         public void openExternalUrl(final String url) {
             runOnUiThread(new Runnable() {
                 @Override

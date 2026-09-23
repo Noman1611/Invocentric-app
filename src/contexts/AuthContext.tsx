@@ -891,10 +891,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.warn("Firestore unauthenticated write notice (using server API bridge instead):", fsIgnored);
         }
 
-        const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}`;
+        const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}&auto_google=1`;
 
-        // Launch external Google Chrome browser
-        if ((window as any).AndroidAppUpdater?.openExternalUrl) {
+        // Launch in-app Custom Tab popup (sliding sheet with green brand header)
+        if ((window as any).AndroidAppUpdater?.openAuthCustomTab) {
+          (window as any).AndroidAppUpdater.openAuthCustomTab(authUrl);
+        } else if ((window as any).AndroidAppUpdater?.openExternalUrl) {
           (window as any).AndroidAppUpdater.openExternalUrl(authUrl);
         } else {
           window.open(authUrl, '_system');

@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
 import { motion, AnimatePresence } from 'motion/react';
-import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { Link, Navigate } from 'react-router-dom';
@@ -186,6 +186,98 @@ export default function LoginPage() {
     window.location.protocol === 'capacitor:' ||
     (/android/i.test(navigator.userAgent) && (window as any).Capacitor)
   );
+
+  useEffect(() => {
+    if (!isMobileAuth || !mobileSessionId) return;
+
+    let isCancelled = false;
+
+    // Check if user just returned from Google Redirect
+    getRedirectResult(auth).then(async (result) => {
+      if (isCancelled) return;
+      if (result?.user) {
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const idToken = credential?.idToken;
+        const accessToken = credential?.accessToken;
+
+        // 1. Post to Server-side session API (immune to Firestore permissions)
+        try {
+          await fetch('/api/auth/mobile-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: mobileSessionId,
+              status: 'authenticated',
+              idToken: idToken || null,
+              accessToken: accessToken || null,
+              uid: result.user.uid,
+              email: result.user.email || '',
+              displayName: result.user.displayName || '',
+              photoURL: result.user.photoURL || ''
+            })
+          });
+        } catch (e) {}
+
+        // 2. Auxiliary Firestore write (safely caught)
+        try {
+          const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
+          await setDoc(sessionRef, {
+            status: 'authenticated',
+            idToken: idToken || null,
+            accessToken: accessToken || null,
+            uid: result.user.uid,
+            email: result.user.email || '',
+            displayName: result.user.displayName || '',
+            photoURL: result.user.photoURL || '',
+            completedAt: Date.now()
+          });
+        } catch (e) {}
+
+        setHandshakeCompleted(true);
+        const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(result.user.uid)}&email=${encodeURIComponent(result.user.email || '')}`;
+        window.location.href = deepLink;
+        return;
+      }
+
+      // If auto_google=1 is requested and not redirected yet:
+      if (searchParams.get('auto_google') === '1' && !handshakeCompleted) {
+        if (auth.currentUser) {
+          // If already signed in in this browser session, transfer immediately!
+          const currUser = auth.currentUser;
+          const token = await currUser.getIdToken(true).catch(() => null);
+          try {
+            await fetch('/api/auth/mobile-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sessionId: mobileSessionId,
+                status: 'authenticated',
+                idToken: token || null,
+                uid: currUser.uid,
+                email: currUser.email || '',
+                displayName: currUser.displayName || '',
+                photoURL: currUser.photoURL || ''
+              })
+            });
+          } catch (e) {}
+
+          setHandshakeCompleted(true);
+          const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(token || '')}&uid=${encodeURIComponent(currUser.uid)}&email=${encodeURIComponent(currUser.email || '')}`;
+          window.location.href = deepLink;
+          return;
+        }
+
+        // Direct Google Sign In redirect to trigger account chooser popup immediately
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        signInWithRedirect(auth, provider);
+      }
+    }).catch(err => {
+      console.warn("Mobile auth redirect handling:", err);
+    });
+
+    return () => { isCancelled = true; };
+  }, [isMobileAuth, mobileSessionId]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -534,6 +626,33 @@ export default function LoginPage() {
             className="w-full h-10 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all"
           >
             Switch Google Account
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Handle auto_google redirection screen
+  if (isMobileAuth && searchParams.get('auto_google') === '1' && !handshakeCompleted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-900 font-sans">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-sm bg-white rounded-3xl p-8 shadow-xl border border-slate-200 text-center"
+        >
+          <Logo size={56} className="mx-auto mb-4" />
+          <div className="w-10 h-10 border-3 border-[#0F645D] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-slate-900 mb-1">Opening Google Sign-In...</h2>
+          <p className="text-xs text-slate-500 mb-6">
+            Please choose your Google account to log into InvoCentric.
+          </p>
+          <button
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full h-11 flex items-center justify-center gap-2 bg-[#0F645D] hover:bg-[#0c524c] text-white text-xs font-semibold rounded-xl shadow transition-all active:scale-95"
+          >
+            {loading ? "Connecting..." : "Tap here if account list didn't open"}
           </button>
         </motion.div>
       </div>
