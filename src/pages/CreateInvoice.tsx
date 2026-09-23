@@ -74,6 +74,9 @@ export default function CreateInvoicePage() {
 
   const [focusedItemIndex, setFocusedItemIndex] = useState<number | null>(null);
   const [focusedRowField, setFocusedRowField] = useState<{ index: number; field: 'brand' | 'category' | 'serialNumber' } | null>(null);
+  const isInteractingWithSuggestionsRef = useRef(false);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
+  const isTouchScrollingRef = useRef(false);
   const [openMobileDetails, setOpenMobileDetails] = useState<Record<number, boolean>>({});
   const [showCustomizationPanel, setShowCustomizationPanel] = useState(false);
 
@@ -1222,38 +1225,6 @@ export default function CreateInvoicePage() {
             await dbService.delete('payments', p.id, { offlineMode: isOfflineMode, userId: user.uid });
           }
         }
-        
-        // Auto-save any new item to catalog since it does not exist
-        for (const item of formData.items) {
-          if (!item.description) continue;
-          const inventoryItem = inventoryItems.find(i => i.name.trim().toLowerCase() === item.description.trim().toLowerCase());
-          if (!inventoryItem) {
-            try {
-              const newItemData = {
-                name: item.description.trim(),
-                price: Number(item.price) || 0,
-                mrp: Number(item.mrp) || Number(item.price) || 0,
-                costPrice: 0,
-                brand: (item.brand || '').trim(),
-                category: (item.category || '').trim() || 'General Inventory',
-                barcode: '',
-                hsn: (item.hsn || '').trim(),
-                size: (item.size || '').trim(),
-                serialNumber: (item.serialNumber || '').trim(),
-                custom_box: (item.custom_box || '').trim(),
-                gstPercent: Number(item.gstPercent) || 0,
-                stock: 0,
-                minStock: 0,
-                active: true,
-                user_id: user.uid,
-                createdAt: new Date().toISOString()
-              };
-              await dbService.add('items', newItemData, { offlineMode: isOfflineMode, userId: user.uid });
-            } catch (err) {
-              console.error("Failed to auto-save item to catalog during edit", item.description, err);
-            }
-          }
-        }
 
         if (printAfterSave) {
           navigate(`/invoices/${id}?print=true`);
@@ -1340,32 +1311,6 @@ export default function CreateInvoicePage() {
                   console.error("Failed to deduct stock for", item.description, err);
                 }
               }
-            }
-          } else {
-            try {
-              const newItemData = {
-                name: item.description.trim(),
-                price: Number(item.price) || 0,
-                mrp: Number(item.mrp) || Number(item.price) || 0,
-                costPrice: 0,
-                brand: (item.brand || '').trim(),
-                category: (item.category || '').trim() || 'General Inventory',
-                barcode: '',
-                hsn: (item.hsn || '').trim(),
-                size: (item.size || '').trim(),
-                serialNumber: (item.serialNumber || '').trim(),
-                serials: item.serialNumber ? [item.serialNumber.trim()] : [],
-                custom_box: (item.custom_box || '').trim(),
-                gstPercent: Number(item.gstPercent) || 0,
-                stock: 0,
-                minStock: 0,
-                active: true,
-                user_id: user.uid,
-                createdAt: new Date().toISOString()
-              };
-              await dbService.add('items', newItemData, { offlineMode: isOfflineMode, userId: user.uid });
-            } catch (err) {
-              console.error("Failed to auto-save item to catalog during creation", item.description, err);
             }
           }
         }
@@ -1678,7 +1623,13 @@ export default function CreateInvoicePage() {
                         placeholder={appMode === 'freelancer' ? 'e.g. Website Design...' : 'Start typing item name...'}
                         value={item.description}
                         onFocus={() => setFocusedItemIndex(index)}
-                        onBlur={() => setTimeout(() => setFocusedItemIndex(null), 350)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            if (!isInteractingWithSuggestionsRef.current) {
+                              setFocusedItemIndex(null);
+                            }
+                          }, 250);
+                        }}
                         onChange={(e) => updateItem(index, 'description', e.target.value)}
                       />
                       {item.serialNumber && (
@@ -1690,7 +1641,12 @@ export default function CreateInvoicePage() {
                         </div>
                       )}
                       {focusedItemIndex === index && (
-                        <div className="absolute left-0 right-0 sm:left-0 sm:right-auto top-full z-[150] mt-1 sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl py-1 divide-y divide-slate-100">
+                        <div 
+                          onMouseDown={(e) => e.preventDefault()}
+                          onTouchStart={() => { isInteractingWithSuggestionsRef.current = true; }}
+                          onTouchEnd={() => { setTimeout(() => { isInteractingWithSuggestionsRef.current = false; }, 300); }}
+                          className="absolute left-0 right-0 sm:left-0 sm:right-auto top-full z-[150] mt-1 sm:min-w-[420px] sm:max-w-[540px] max-h-72 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl py-1 divide-y divide-slate-100"
+                        >
                           {inventoryItems
                             .filter(invItem => {
                               const term = (item.description || '').toLowerCase();
@@ -1708,16 +1664,34 @@ export default function CreateInvoicePage() {
                                 <button
                                   key={invItem.id}
                                   type="button"
-                                  onPointerDown={(e) => {
-                                    e.preventDefault();
-                                    handleSelectInventoryItem(index, invItem);
+                                  onTouchStart={(e) => {
+                                    touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                                    isTouchScrollingRef.current = false;
                                   }}
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
+                                  onTouchMove={(e) => {
+                                    if (touchStartPosRef.current) {
+                                      const deltaY = Math.abs(e.touches[0].clientY - touchStartPosRef.current.y);
+                                      const deltaX = Math.abs(e.touches[0].clientX - touchStartPosRef.current.x);
+                                      if (deltaY > 6 || deltaX > 6) {
+                                        isTouchScrollingRef.current = true;
+                                      }
+                                    }
+                                  }}
+                                  onTouchEnd={() => {
+                                    setTimeout(() => {
+                                      isTouchScrollingRef.current = false;
+                                      touchStartPosRef.current = null;
+                                    }, 100);
+                                  }}
+                                  onClick={(e) => {
+                                    if (isTouchScrollingRef.current) {
+                                      e.preventDefault();
+                                      return;
+                                    }
                                     handleSelectInventoryItem(index, invItem);
                                   }}
                                   className={cn(
-                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 transition-colors font-medium text-xs",
+                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 transition-colors font-medium text-xs cursor-pointer",
                                     isOutOfStock && appMode !== 'freelancer' ? "opacity-60 bg-gray-50/50" : ""
                                   )}
                                 >
@@ -2057,7 +2031,13 @@ export default function CreateInvoicePage() {
                         placeholder={appMode === 'freelancer' ? 'e.g. Website Design, Consulting...' : 'Start typing item name...'}
                         value={item.description}
                         onFocus={() => setFocusedItemIndex(index)}
-                        onBlur={() => setTimeout(() => setFocusedItemIndex(null), 350)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            if (!isInteractingWithSuggestionsRef.current) {
+                              setFocusedItemIndex(null);
+                            }
+                          }, 250);
+                        }}
                         onChange={(e) => updateItem(index, 'description', e.target.value)}
                       />
                       {item.serialNumber && (
@@ -2069,7 +2049,12 @@ export default function CreateInvoicePage() {
                         </div>
                       )}
                       {focusedItemIndex === index && (
-                        <div className="absolute left-0 top-full z-[150] mt-1.5 min-w-[380px] w-full sm:min-w-[460px] sm:max-w-[560px] max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl py-1 divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+                        <div 
+                          onMouseDown={(e) => e.preventDefault()}
+                          onTouchStart={() => { isInteractingWithSuggestionsRef.current = true; }}
+                          onTouchEnd={() => { setTimeout(() => { isInteractingWithSuggestionsRef.current = false; }, 300); }}
+                          className="absolute left-0 top-full z-[150] mt-1.5 min-w-[380px] w-full sm:min-w-[460px] sm:max-w-[560px] max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl py-1 divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100"
+                        >
                           {inventoryItems
                             .filter(invItem => {
                               const term = (item.description || '').toLowerCase();
@@ -2087,16 +2072,34 @@ export default function CreateInvoicePage() {
                                 <button
                                   key={invItem.id}
                                   type="button"
-                                  onPointerDown={(e) => {
-                                    e.preventDefault();
-                                    handleSelectInventoryItem(index, invItem);
+                                  onTouchStart={(e) => {
+                                    touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                                    isTouchScrollingRef.current = false;
                                   }}
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
+                                  onTouchMove={(e) => {
+                                    if (touchStartPosRef.current) {
+                                      const deltaY = Math.abs(e.touches[0].clientY - touchStartPosRef.current.y);
+                                      const deltaX = Math.abs(e.touches[0].clientX - touchStartPosRef.current.x);
+                                      if (deltaY > 6 || deltaX > 6) {
+                                        isTouchScrollingRef.current = true;
+                                      }
+                                    }
+                                  }}
+                                  onTouchEnd={() => {
+                                    setTimeout(() => {
+                                      isTouchScrollingRef.current = false;
+                                      touchStartPosRef.current = null;
+                                    }, 100);
+                                  }}
+                                  onClick={(e) => {
+                                    if (isTouchScrollingRef.current) {
+                                      e.preventDefault();
+                                      return;
+                                    }
                                     handleSelectInventoryItem(index, invItem);
                                   }}
                                   className={cn(
-                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 transition-colors font-medium text-xs",
+                                    "w-full px-4 py-3 text-left flex items-center justify-between hover:bg-slate-50 transition-colors font-medium text-xs cursor-pointer",
                                     isOutOfStock && appMode !== 'freelancer' ? "opacity-60 bg-gray-50/50" : ""
                                   )}
                                 >
@@ -2171,21 +2174,52 @@ export default function CreateInvoicePage() {
                           value={item.brand || ''}
                           onChange={(e) => updateItem(index, 'brand', e.target.value)}
                           onFocus={() => setFocusedRowField({ index, field: 'brand' })}
-                          onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              if (!isInteractingWithSuggestionsRef.current) {
+                                setFocusedRowField(null);
+                              }
+                            }, 250);
+                          }}
                         />
                         {focusedRowField?.index === index && focusedRowField?.field === 'brand' && (
-                          <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white shadow-xl py-1 text-[11px]">
+                          <div 
+                            onMouseDown={(e) => e.preventDefault()}
+                            onTouchStart={() => { isInteractingWithSuggestionsRef.current = true; }}
+                            onTouchEnd={() => { setTimeout(() => { isInteractingWithSuggestionsRef.current = false; }, 300); }}
+                            className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white shadow-xl py-1 text-[11px]"
+                          >
                             {uniqueBrands
                               .filter(b => b.toLowerCase().includes((item.brand || '').toLowerCase()))
                               .map((bName, bIdx) => (
                                 <button
                                   key={bIdx}
                                   type="button"
-                                  onMouseDown={() => {
+                                  onTouchStart={(e) => {
+                                    touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                                    isTouchScrollingRef.current = false;
+                                  }}
+                                  onTouchMove={(e) => {
+                                    if (touchStartPosRef.current) {
+                                      const deltaY = Math.abs(e.touches[0].clientY - touchStartPosRef.current.y);
+                                      if (deltaY > 6) isTouchScrollingRef.current = true;
+                                    }
+                                  }}
+                                  onTouchEnd={() => {
+                                    setTimeout(() => {
+                                      isTouchScrollingRef.current = false;
+                                      touchStartPosRef.current = null;
+                                    }, 100);
+                                  }}
+                                  onClick={(e) => {
+                                    if (isTouchScrollingRef.current) {
+                                      e.preventDefault();
+                                      return;
+                                    }
                                     updateItem(index, 'brand', bName);
                                     setFocusedRowField(null);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50 transition-colors font-medium"
+                                  className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50 transition-colors font-medium cursor-pointer"
                                 >
                                   {bName}
                                 </button>
@@ -2208,21 +2242,52 @@ export default function CreateInvoicePage() {
                           value={item.category || ''}
                           onChange={(e) => updateItem(index, 'category', e.target.value)}
                           onFocus={() => setFocusedRowField({ index, field: 'category' })}
-                          onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              if (!isInteractingWithSuggestionsRef.current) {
+                                setFocusedRowField(null);
+                              }
+                            }, 250);
+                          }}
                         />
                         {focusedRowField?.index === index && focusedRowField?.field === 'category' && (
-                          <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white shadow-xl py-1 text-[11px]">
+                          <div 
+                            onMouseDown={(e) => e.preventDefault()}
+                            onTouchStart={() => { isInteractingWithSuggestionsRef.current = true; }}
+                            onTouchEnd={() => { setTimeout(() => { isInteractingWithSuggestionsRef.current = false; }, 300); }}
+                            className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white shadow-xl py-1 text-[11px]"
+                          >
                             {uniqueCategories
                               .filter(c => c.toLowerCase().includes((item.category || '').toLowerCase()))
                               .map((cName, cIdx) => (
                                 <button
                                   key={cIdx}
                                   type="button"
-                                  onMouseDown={() => {
+                                  onTouchStart={(e) => {
+                                    touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                                    isTouchScrollingRef.current = false;
+                                  }}
+                                  onTouchMove={(e) => {
+                                    if (touchStartPosRef.current) {
+                                      const deltaY = Math.abs(e.touches[0].clientY - touchStartPosRef.current.y);
+                                      if (deltaY > 6) isTouchScrollingRef.current = true;
+                                    }
+                                  }}
+                                  onTouchEnd={() => {
+                                    setTimeout(() => {
+                                      isTouchScrollingRef.current = false;
+                                      touchStartPosRef.current = null;
+                                    }, 100);
+                                  }}
+                                  onClick={(e) => {
+                                    if (isTouchScrollingRef.current) {
+                                      e.preventDefault();
+                                      return;
+                                    }
                                     updateItem(index, 'category', cName);
                                     setFocusedRowField(null);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50 transition-colors font-medium"
+                                  className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-slate-50 transition-colors font-medium cursor-pointer"
                                 >
                                   {cName}
                                 </button>
@@ -2250,7 +2315,13 @@ export default function CreateInvoicePage() {
                           value={item.serialNumber || ''}
                           onChange={(e) => updateItem(index, 'serialNumber', e.target.value)}
                           onFocus={() => setFocusedRowField({ index, field: 'serialNumber' })}
-                          onBlur={() => setTimeout(() => setFocusedRowField(null), 250)}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              if (!isInteractingWithSuggestionsRef.current) {
+                                setFocusedRowField(null);
+                              }
+                            }, 250);
+                          }}
                         />
                         {focusedRowField?.index === index && focusedRowField?.field === 'serialNumber' && (() => {
                           const matchedInvItem = inventoryItems.find(i => i.name.trim().toLowerCase() === (item.description || '').trim().toLowerCase());
@@ -2280,7 +2351,12 @@ export default function CreateInvoicePage() {
                           const filtered = candidateSerials.filter(s => s.toLowerCase().includes((item.serialNumber || '').toLowerCase()));
 
                           return (
-                            <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white shadow-xl py-1 text-[11px]">
+                            <div 
+                              onMouseDown={(e) => e.preventDefault()}
+                              onTouchStart={() => { isInteractingWithSuggestionsRef.current = true; }}
+                              onTouchEnd={() => { setTimeout(() => { isInteractingWithSuggestionsRef.current = false; }, 300); }}
+                              className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-150 bg-white shadow-xl py-1 text-[11px]"
+                            >
                               {availableSerials.length > 0 && (
                                 <div className="px-3 py-1 bg-emerald-50 text-[10px] font-bold text-emerald-700 border-b border-emerald-100 flex items-center justify-between">
                                   <span>In-Stock Serials ({availableSerials.length})</span>
@@ -2291,11 +2367,31 @@ export default function CreateInvoicePage() {
                                 <button
                                   key={sIdx}
                                   type="button"
-                                  onMouseDown={() => {
+                                  onTouchStart={(e) => {
+                                    touchStartPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                                    isTouchScrollingRef.current = false;
+                                  }}
+                                  onTouchMove={(e) => {
+                                    if (touchStartPosRef.current) {
+                                      const deltaY = Math.abs(e.touches[0].clientY - touchStartPosRef.current.y);
+                                      if (deltaY > 6) isTouchScrollingRef.current = true;
+                                    }
+                                  }}
+                                  onTouchEnd={() => {
+                                    setTimeout(() => {
+                                      isTouchScrollingRef.current = false;
+                                      touchStartPosRef.current = null;
+                                    }, 100);
+                                  }}
+                                  onClick={(e) => {
+                                    if (isTouchScrollingRef.current) {
+                                      e.preventDefault();
+                                      return;
+                                    }
                                     updateItem(index, 'serialNumber', sn);
                                     setFocusedRowField(null);
                                   }}
-                                  className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors font-mono font-bold flex items-center justify-between"
+                                  className="w-full px-3 py-1.5 text-left text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors font-mono font-bold flex items-center justify-between cursor-pointer"
                                 >
                                   <span>{sn}</span>
                                   <span className="text-[9px] font-sans font-semibold text-emerald-600 bg-emerald-100/60 px-1.5 py-0.5 rounded">in_stock</span>

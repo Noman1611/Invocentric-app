@@ -24,7 +24,7 @@ export interface AppUpdateState {
   autoApplying?: boolean;
 }
 
-export const APP_CURRENT_VERSION = pkg.version || '1.0.10';
+export const APP_CURRENT_VERSION = pkg.version || '1.0.11';
 
 // Compare two semver strings (e.g. "1.0.5" vs "1.0.4")
 export function isNewerVersion(latest: string, current: string): boolean {
