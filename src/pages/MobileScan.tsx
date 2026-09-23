@@ -230,10 +230,10 @@ export default function MobileScan() {
               <AlertCircle size={14} /> Connecting to Computer...
             </p>
             <p className="text-slate-300 font-semibold text-[11px]">
-              Aapke computer screen se connect kiya jaa raha hai...
+              Connecting to your computer screen...
             </p>
             <p className="text-slate-400 font-medium text-[10px]">
-              Agar connect nahi ho raha, toh check karein ki aapka phone aur computer dono ek hi Wi-Fi se connected hain, ya computer ka hotspot phone me connected hai.
+              If connection fails, please ensure your phone and computer are on the same Wi-Fi network or connected via personal hotspot.
             </p>
           </div>
         )}

@@ -131,24 +131,16 @@ export default function MigrationModal() {
             We Have Migrated to InvoCentric.in!
           </h1>
           <h2 className="text-sm sm:text-base font-extrabold text-green-700 mb-6">
-            हमारी वेबसाइट अब नए डोमेन पर आ चुकी है!
+            Our platform is now live on our official permanent domain.
           </h2>
 
           <div className="w-full border-t border-slate-100 my-4" />
 
-          {/* Explanations (Hinglish & English) */}
+          {/* Explanation */}
           <div className="space-y-4 text-left max-h-[220px] overflow-y-auto pr-2 mb-8">
             <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
-              <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">हिंदी / HINGLISH</p>
               <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
-                प्रिय यूजर, हमारी वेबसाइट अब सुरक्षित और तेज़ गति के साथ <strong className="text-slate-900 font-bold">invocentric.in</strong> पर शिफ्ट हो गई है। पुराने डेटा या लॉगिन की किसी भी समस्या (Session Conflict) से बचने के लिए, नीचे दिए गए बटन पर क्लिक करें। यह आपके ब्राउज़र का पुराना कैश साफ़ करके आपको नए डोमेन पर ले जाएगा।
-              </p>
-            </div>
-
-            <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-100">
-              <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1">ENGLISH</p>
-              <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
-                InvoCentric has migrated to our official custom domain: <strong className="text-slate-900 font-bold">invocentric.in</strong>. To ensure a seamless migration and avoid duplicate cache issues, click below to automatically purge the old session tables, cookies, local storage, and transition instantly.
+                InvoCentric has migrated to our official custom domain: <strong className="text-slate-900 font-bold">invocentric.in</strong>. To ensure a seamless transition and avoid duplicate cache issues, click below to automatically purge old session cookies, clear obsolete cache, and transition smoothly.
               </p>
             </div>
           </div>
@@ -170,7 +162,6 @@ export default function MigrationModal() {
                 className="w-full bg-[#166534] hover:bg-[#14532D] text-white py-4.5 px-6 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-widest transition-all shadow-xl shadow-green-700/10 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
               >
                 Clear Cache & Switch Domain
-                <span className="text-[10px] opacity-75 font-medium tracking-normal">(कैश साफ करें और वेबसाइट बदलें)</span>
               </button>
             )}
 

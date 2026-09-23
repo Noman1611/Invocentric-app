@@ -131,7 +131,7 @@ export default function DataBackupRecoveryModal() {
     setErrorMessage(null);
     try {
       applyDataToLocalCache(user.uid, autoBackup.data);
-      setSuccessMessage("Automatic backup restored successfully! (डेटा सफलतापूर्वक रिस्टोर हो गया)");
+      setSuccessMessage("Automatic backup restored successfully!");
       setTimeout(() => {
         setIsOpen(false);
         setIsRestoring(false);
@@ -263,7 +263,7 @@ export default function DataBackupRecoveryModal() {
 
         {/* Informative Alert Banner */}
         <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed font-medium">
-          Aapki local database cache clear ho gayi hai. Agar aapke paas backup file hai to restore karein, ya fir niche <strong>Start Fresh</strong> click karke clean shuru karein.
+          Your local database cache has been cleared. If you have a backup file, you can restore it, or click <strong>Start Fresh</strong> below to start clean.
         </div>
 
         {errorMessage && (

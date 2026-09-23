@@ -805,10 +805,10 @@ export default function Reports() {
               </span>
             </div>
             <h3 className="text-sm sm:text-base font-bold text-white mt-1">
-              CA ko pura financial & GST return data 1-click me bhejo
+              Send Complete Financial & GST Return Data to CA in 1-Click
             </h3>
             <p className="text-xs text-indigo-200/80 mt-0.5">
-              Multi-sheet Excel workbook automatic generate karein aur WhatsApp / Email se direct share karein.
+              Automatically generate multi-sheet Excel workbook and share directly via WhatsApp or Email.
             </p>
           </div>
         </div>

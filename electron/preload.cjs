@@ -41,5 +41,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('auto-updating-restart', listener);
     return () => ipcRenderer.removeListener('auto-updating-restart', listener);
   },
+  onUpdateError: (callback) => {
+    const listener = (event, err) => callback(err);
+    ipcRenderer.on('update-error', listener);
+    return () => ipcRenderer.removeListener('update-error', listener);
+  },
   restartAndInstallUpdate: () => ipcRenderer.invoke('restart-and-install')
 });

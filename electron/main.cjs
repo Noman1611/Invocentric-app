@@ -16297,6 +16297,7 @@ ipcMain.handle("print-to-pdf", async (event, defaultName = "Invoice.pdf") => {
     return { success: false, error: err.message };
   }
 });
+var isUpdateDownloaded = false;
 ipcMain.handle("check-for-updates", async () => {
   if (!autoUpdater) {
     return { status: "disabled", message: "Auto-updater is not available" };
@@ -16313,14 +16314,21 @@ ipcMain.handle("check-for-updates", async () => {
   }
 });
 ipcMain.handle("restart-and-install", () => {
+  if (!isUpdateDownloaded) {
+    console.warn("[AutoUpdater] Refusing restart-and-install: No update has been downloaded yet.");
+    return { success: false, error: "Update is not downloaded yet." };
+  }
   if (autoUpdater) {
     try {
       console.log("[AutoUpdater] Initiating restart and in-place install...");
       autoUpdater.quitAndInstall(false, true);
+      return { success: true };
     } catch (err) {
       console.error("[AutoUpdater] Error during quitAndInstall:", err);
+      return { success: false, error: err?.message || String(err) };
     }
   }
+  return { success: false, error: "autoUpdater not available" };
 });
 if (autoUpdater) {
   autoUpdater.on("checking-for-update", () => {
@@ -16333,6 +16341,7 @@ if (autoUpdater) {
     }
   });
   autoUpdater.on("update-not-available", (info) => {
+    isUpdateDownloaded = false;
     console.log("[AutoUpdater] Software is up to date.");
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("update-not-available", info);
@@ -16345,25 +16354,18 @@ if (autoUpdater) {
     }
   });
   autoUpdater.on("update-downloaded", (info) => {
+    isUpdateDownloaded = true;
     console.log("[AutoUpdater] Update downloaded successfully:", info?.version);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("update-downloaded", info);
-      mainWindow.webContents.send("auto-updating-restart", {
-        version: info?.version,
-        message: `Version ${info?.version} is ready! Restarting software automatically to apply update...`
-      });
     }
-    setTimeout(() => {
-      try {
-        console.log("[AutoUpdater] Applying update silently and auto-restarting InvoCentric...");
-        autoUpdater.quitAndInstall(true, true);
-      } catch (err) {
-        console.error("[AutoUpdater] Error during auto quitAndInstall:", err);
-      }
-    }, 2e3);
   });
   autoUpdater.on("error", (err) => {
+    isUpdateDownloaded = false;
     console.error("[AutoUpdater] Update error:", err?.message || err);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("update-error", { message: err?.message || String(err) });
+    }
   });
 }
 app.on("web-contents-created", (event, contents) => {

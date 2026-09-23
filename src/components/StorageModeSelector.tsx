@@ -1,4 +1,4 @@
-﻿import React, { useRef } from 'react';
+import React, { useRef } from 'react';
 import { useStorageMode } from '../contexts/StorageModeContext';
 import { HardDrive, Cloud, ShieldCheck, Download, Upload, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -31,7 +31,7 @@ export function StorageModeSelector({ className }: { className?: string }) {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-              Data Storage & Privacy Engine (डेटा संग्रहण)
+              Data Storage & Privacy Engine
             </h2>
             <span className={cn(
               "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
@@ -91,7 +91,7 @@ export function StorageModeSelector({ className }: { className?: string }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900">Local PC Offline (लोकल हार्ड डिस्क)</h3>
+              <h3 className="text-sm font-bold text-slate-900">Local PC Offline</h3>
               {isLocalPc && <CheckCircle2 size={16} className="text-emerald-600" />}
             </div>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
@@ -123,7 +123,7 @@ export function StorageModeSelector({ className }: { className?: string }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900">Cloud Sync Edition (क्लाउड सिंक)</h3>
+              <h3 className="text-sm font-bold text-slate-900">Cloud Sync Edition</h3>
               {!isLocalPc && <CheckCircle2 size={16} className="text-blue-600" />}
             </div>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">

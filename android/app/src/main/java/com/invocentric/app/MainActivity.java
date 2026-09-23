@@ -277,6 +277,11 @@ public class MainActivity extends BridgeActivity {
 
     class AppUpdateInterface {
         @android.webkit.JavascriptInterface
+        public String getAppVersion() {
+            return BuildConfig.VERSION_NAME;
+        }
+
+        @android.webkit.JavascriptInterface
         public void openAuthCustomTab(final String url) {
             runOnUiThread(new Runnable() {
                 @Override

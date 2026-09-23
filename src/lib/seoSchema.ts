@@ -78,7 +78,7 @@ export const DEFAULT_HOME_SCHEMA = {
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "Does InvoCentric offer a free plan? (क्या InvoCentric में फ्री प्लान उपलब्ध है?)",
+          "name": "Does InvoCentric offer a free plan?",
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Yes! InvoCentric offers a Free Plan with no credit card required, allowing you to create invoices, manage up to 30 customers and 50 items, and use offline storage. A Pro Plan is available at ₹199/month for unlimited items, cloud sync, and advanced features."
@@ -102,7 +102,7 @@ export const DEFAULT_HOME_SCHEMA = {
         },
         {
           "@type": "Question",
-          "name": "Does InvoCentric work offline without internet? (क्या यह ऑफलाइन बिना इंटरनेट के काम करता है?)",
+          "name": "Does InvoCentric work offline without internet?",
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Yes! InvoCentric is designed offline-first, saving sales, invoices, and customer records locally in your browser storage so you can work without an internet connection. Pro users can also enable cloud backup and multi-device sync."
@@ -110,10 +110,10 @@ export const DEFAULT_HOME_SCHEMA = {
         },
         {
           "@type": "Question",
-          "name": "Can I manage customer credit (Bahi Khata/Udhar Ledger) in InvoCentric?",
+          "name": "Can I manage customer credit and party ledgers in InvoCentric?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. It has a built-in Customer Ledger and Statement Generator (Khata Book). You can track credit (Udhaar) and payments (Jama) for each customer, generate professional PDF ledgers, and share client statements on WhatsApp."
+            "text": "Yes. It has a built-in Customer Ledger and Statement Generator. You can track credit and payments for each customer, generate professional PDF ledgers, and share client statements on WhatsApp."
           }
         }
       ]

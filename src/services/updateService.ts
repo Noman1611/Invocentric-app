@@ -6,6 +6,7 @@
 
 import { localDbEngine } from './localDbEngine';
 import pkg from '../../package.json';
+import { DEFAULT_WINDOWS_DOWNLOAD_URL, DEFAULT_ANDROID_DOWNLOAD_URL } from '../config/downloadLinks';
 
 export interface AppUpdateState {
   currentVersion: string;
@@ -61,14 +62,13 @@ class UniversalUpdateService {
     autoApplying: false
   };
   private checkIntervalTimer: any = null;
-  private hasAutoTriggered: boolean = false;
 
   constructor() {
     this.initPlatformHandlers();
-    // Automatically check for updates immediately on startup (1 second after launch)
+    // Check for updates on startup (2.5s after launch)
     if (typeof window !== 'undefined') {
-      setTimeout(() => this.checkForUpdates(false), 1200);
-      this.checkIntervalTimer = setInterval(() => this.checkForUpdates(false), 30 * 60 * 1000);
+      setTimeout(() => this.checkForUpdates(false), 2500);
+      this.checkIntervalTimer = setInterval(() => this.checkForUpdates(false), 60 * 60 * 1000);
     }
   }
 
@@ -117,6 +117,15 @@ class UniversalUpdateService {
   private async initPlatformHandlers() {
     if (typeof window === 'undefined') return;
 
+    if (this.state.platform === 'android' && (window as any).AndroidAppUpdater?.getAppVersion) {
+      try {
+        const androidVer = (window as any).AndroidAppUpdater.getAppVersion();
+        if (androidVer) {
+          this.updateState({ currentVersion: androidVer });
+        }
+      } catch (e) {}
+    }
+
     if (this.state.platform === 'electron' && (window as any).electronAPI) {
       const electronAPI = (window as any).electronAPI;
       
@@ -157,21 +166,20 @@ class UniversalUpdateService {
             latestVersion: info?.version || this.state.latestVersion,
             status: 'downloaded',
             progress: 100,
-            autoApplying: true
+            autoApplying: false
           });
         });
       }
 
-      if (electronAPI.onAutoUpdatingRestart) {
-        electronAPI.onAutoUpdatingRestart((data: any) => {
-          console.log('[UpdateService] Electron auto-updating restart signal:', data);
-          this.updateState({
-            hasUpdate: true,
-            latestVersion: data?.version || this.state.latestVersion,
-            status: 'downloaded',
-            progress: 100,
-            autoApplying: true
-          });
+      if (electronAPI.onUpdateError) {
+        electronAPI.onUpdateError((err: any) => {
+          console.warn('[UpdateService] Electron update error received:', err);
+          if (this.state.status === 'downloading') {
+            this.updateState({
+              status: 'available',
+              error: err?.message || 'Download was interrupted or artifact missing.'
+            });
+          }
         });
       }
 
@@ -220,10 +228,10 @@ class UniversalUpdateService {
       let apkAsset = releaseData.assets?.find((a: any) => a.name?.endsWith('.apk'))?.browser_download_url;
 
       if (!exeAsset) {
-        exeAsset = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric-Setup.exe';
+        exeAsset = DEFAULT_WINDOWS_DOWNLOAD_URL;
       }
       if (!apkAsset) {
-        apkAsset = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
+        apkAsset = DEFAULT_ANDROID_DOWNLOAD_URL;
       }
 
       const hasUpdate = isNewerVersion(latestVer, this.state.currentVersion);
@@ -236,24 +244,13 @@ class UniversalUpdateService {
         publishedAt: releaseData.published_at,
         exeDownloadUrl: exeAsset,
         apkDownloadUrl: apkAsset,
-        status: hasUpdate ? (this.state.status === 'downloaded' ? 'downloaded' : 'available') : 'up-to-date'
+        status: hasUpdate ? (this.state.status === 'downloaded' ? 'downloaded' : 'available') : 'up-to-date',
+        autoApplying: false
       });
-
-      // AUTO-UPDATE ON STARTUP (Zero-click requirement)
-      // As soon as an update is detected, automatically initiate the update flow without requiring user click!
-      if (hasUpdate && !this.hasAutoTriggered) {
-        this.hasAutoTriggered = true;
-        console.log(`[UpdateService] Newer version v${latestVer} detected. Auto-applying update in background...`);
-        this.updateState({ autoApplying: true });
-        setTimeout(() => {
-          this.applyUpdate().catch((e) => console.warn('[UpdateService] Auto apply error:', e));
-        }, 1200);
-      }
 
       return this.getState();
     } catch (err: any) {
       console.warn('[UpdateService] Update check failed:', err);
-      // If error occurs during background check, do not alarm the user
       this.updateState({
         status: isUserInitiated ? 'error' : 'idle',
         error: isUserInitiated ? (err?.message || 'Could not verify update status.') : undefined
@@ -263,14 +260,14 @@ class UniversalUpdateService {
   }
 
   /**
-   * 1-Click / Zero-Click Update Action
-   * Automatically executes pre-update safety backup first, then installs/applies the update.
+   * Safe Update Action
+   * Backs up data first, then applies or downloads the update without loops.
    */
   public async applyUpdate(): Promise<{ success: boolean; message?: string }> {
     const { status, platform, latestVersion, apkDownloadUrl, exeDownloadUrl } = this.state;
 
     // Step 1: Pre-Update Automated Safety Backup (GUARANTEES ZERO DATA LOSS)
-    this.updateState({ status: 'downloading', progress: 5, autoApplying: true });
+    this.updateState({ progress: 15 });
     try {
       console.log('[UpdateService] Creating automated pre-update safety backup...');
       const backupResult = await localDbEngine.performPreUpdateBackup(latestVersion);
@@ -281,50 +278,66 @@ class UniversalUpdateService {
       console.warn('[UpdateService] Pre-update backup warning:', backupErr);
     }
 
-    this.updateState({ progress: 20 });
-
     // Step 2: Platform-specific execution
     if (platform === 'electron') {
       const electronAPI = (window as any).electronAPI;
 
-      // If already downloaded by autoUpdater, restart immediately
+      // If already downloaded and verified by autoUpdater, restart to apply
       if (status === 'downloaded' && electronAPI?.restartAndInstallUpdate) {
-        electronAPI.restartAndInstallUpdate();
+        const res = await electronAPI.restartAndInstallUpdate();
+        if (res && res.success === false) {
+          return { success: false, message: res.error || 'Update failed to restart.' };
+        }
         return { success: true, message: 'Restarting InvoCentric to apply update...' };
       }
 
-      // If autoUpdater is available, trigger restart and install
-      if (electronAPI?.restartAndInstallUpdate) {
-        this.updateState({ progress: 50 });
-        setTimeout(() => {
-          try {
-            electronAPI.restartAndInstallUpdate();
-          } catch (e) {
-            if (exeDownloadUrl) window.open(exeDownloadUrl, '_blank');
-          }
-        }, 1500);
-        return { success: true, message: 'Update prepared. Applying update in-place...' };
+      // If already actively downloading
+      if (status === 'downloading') {
+        return { success: true, message: `Downloading update (${this.state.progress}%)... Please wait.` };
       }
 
-      // Fallback in electron dev or direct mode
+      // If update is available but not yet downloaded
+      if (electronAPI?.checkForUpdates) {
+        this.updateState({ status: 'downloading', progress: 10 });
+        try {
+          const checkRes = await electronAPI.checkForUpdates();
+          if (checkRes?.status === 'error' || checkRes?.status === 'disabled') {
+            if (exeDownloadUrl) {
+              if (electronAPI.openInChrome) {
+                electronAPI.openInChrome(exeDownloadUrl);
+              } else {
+                window.open(exeDownloadUrl, '_blank');
+              }
+              this.updateState({ status: 'available', progress: 0 });
+              return { success: true, message: 'Opening InvoCentric-Setup.exe download in browser...' };
+            }
+          }
+        } catch (e) {
+          if (exeDownloadUrl) {
+            window.open(exeDownloadUrl, '_blank');
+            return { success: true, message: 'Opening InvoCentric-Setup.exe download in browser...' };
+          }
+        }
+        return { success: true, message: 'Downloading latest update package in background...' };
+      }
+
+      // Fallback
       if (exeDownloadUrl) {
         window.open(exeDownloadUrl, '_blank');
-        this.updateState({ status: 'available', progress: 100 });
+        this.updateState({ status: 'available', progress: 0 });
         return { success: true, message: 'Downloading InvoCentric-Setup.exe...' };
       }
     }
 
     if (platform === 'android') {
-      // Native Android Background Download & System Package Installer Trigger
       const url = apkDownloadUrl || 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
-      this.updateState({ progress: 65, autoApplying: true });
+      this.updateState({ status: 'downloading', progress: 50 });
 
       // Check if native AndroidAppUpdater bridge is available
       if ((window as any).AndroidAppUpdater?.downloadAndInstallApk) {
-        console.log('[UpdateService] Using native AndroidAppUpdater bridge for automated download and installation...');
         try {
           (window as any).AndroidAppUpdater.downloadAndInstallApk(url);
-          this.updateState({ status: 'downloaded', progress: 100, autoApplying: false });
+          this.updateState({ status: 'downloaded', progress: 100 });
           return {
             success: true,
             message: 'InvoCentric APK downloading. System installer will open automatically.'
@@ -334,7 +347,7 @@ class UniversalUpdateService {
         }
       }
       
-      // Fallback: system browser download manager
+      // Fallback: browser download
       const downloadLink = document.createElement('a');
       downloadLink.href = url;
       downloadLink.download = 'InvoCentric.apk';
@@ -343,10 +356,10 @@ class UniversalUpdateService {
       downloadLink.click();
       document.body.removeChild(downloadLink);
 
-      this.updateState({ status: 'downloaded', progress: 100, autoApplying: false });
+      this.updateState({ status: 'downloaded', progress: 100 });
       return { 
         success: true, 
-        message: 'InvoCentric.apk download started! Tap notification to update. Your data will remain 100% safe.' 
+        message: 'InvoCentric.apk download started! Tap notification when complete to install.' 
       };
     }
 

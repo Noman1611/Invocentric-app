@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Logo } from '../components/Logo';
@@ -16,40 +16,30 @@ import {
   Printer, 
   Zap, 
   Lock,
-  ChevronDown,
+  ChevronDown, 
   ExternalLink
 } from 'lucide-react';
+import {
+  DEFAULT_WINDOWS_DOWNLOAD_URL,
+  DEFAULT_ANDROID_DOWNLOAD_URL,
+  resolveWorkingDownloadUrls,
+  triggerDirectDownload
+} from '../config/downloadLinks';
 
 export default function DownloadPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'windows' | 'android' | 'web'>('windows');
-  const GITHUB_WINDOWS_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric-Setup.exe';
-  const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
 
-  const triggerDirectDownload = (e: React.MouseEvent, url: string, filename: string) => {
-    // On mobile devices, window.location.href or direct window.open triggers the native browser download prompt smoothly
-    const isMobileDevice = typeof navigator !== 'undefined' && /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || '');
-    if (isMobileDevice) {
-      window.location.href = url;
-      return;
-    }
+  const [downloadUrls, setDownloadUrls] = useState({
+    windows: DEFAULT_WINDOWS_DOWNLOAD_URL,
+    android: DEFAULT_ANDROID_DOWNLOAD_URL
+  });
 
-    // On desktop, trigger download via anchor element
-    try {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        try { document.body.removeChild(a); } catch (err) {}
-      }, 3000);
-    } catch (_) {
-      window.location.href = url;
-    }
-  };
+  useEffect(() => {
+    resolveWorkingDownloadUrls().then(urls => {
+      setDownloadUrls(urls);
+    });
+  }, []);
 
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -133,9 +123,9 @@ export default function DownloadPage() {
           </div>
           <div className="w-full md:w-auto shrink-0 flex flex-col items-center">
             <a
-              href={isMobile ? GITHUB_ANDROID_URL : GITHUB_WINDOWS_URL}
+              href={isMobile ? downloadUrls.android : downloadUrls.windows}
               download={isMobile ? 'InvoCentric.apk' : 'InvoCentric-Setup.exe'}
-              onClick={(e) => triggerDirectDownload(e, isMobile ? GITHUB_ANDROID_URL : GITHUB_WINDOWS_URL, isMobile ? 'InvoCentric.apk' : 'InvoCentric-Setup.exe')}
+              onClick={(e) => triggerDirectDownload(e, isMobile ? downloadUrls.android : downloadUrls.windows, isMobile ? 'InvoCentric.apk' : 'InvoCentric-Setup.exe')}
               className="w-full md:w-auto px-7 py-4 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs sm:text-sm font-black uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-emerald-900/20 active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer text-center"
             >
               <Download size={18} />
@@ -191,9 +181,9 @@ export default function DownloadPage() {
 
             <div className="mt-8 pt-6 border-t border-slate-100">
               <a
-                href={GITHUB_ANDROID_URL}
+                href={downloadUrls.android}
                 download="InvoCentric.apk"
-                onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')}
+                onClick={(e) => triggerDirectDownload(e, downloadUrls.android, 'InvoCentric.apk')}
                 className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer text-center"
               >
                 <Download size={16} />
@@ -204,9 +194,9 @@ export default function DownloadPage() {
               </p>
               <div className="text-center mt-1.5">
                 <a 
-                  href={GITHUB_ANDROID_URL} 
+                  href={downloadUrls.android} 
                   download="InvoCentric.apk" 
-                  onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')}
+                  onClick={(e) => triggerDirectDownload(e, downloadUrls.android, 'InvoCentric.apk')}
                   className="text-[10px] text-emerald-800 hover:text-emerald-950 font-bold underline cursor-pointer"
                 >
                   Direct Link: InvoCentric.apk
@@ -256,22 +246,22 @@ export default function DownloadPage() {
 
             <div className="mt-8 pt-6 border-t border-slate-100">
               <a
-                href={GITHUB_WINDOWS_URL}
+                href={downloadUrls.windows}
                 download="InvoCentric-Setup.exe"
-                onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')}
+                onClick={(e) => triggerDirectDownload(e, downloadUrls.windows, 'InvoCentric-Setup.exe')}
                 className="w-full py-3.5 px-5 bg-[#0d5c4b] hover:bg-[#09473a] text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-800/20 active:scale-95 flex items-center justify-center gap-2 cursor-pointer text-center"
               >
                 <Download size={16} />
                 <span>Download for Windows (.exe)</span>
               </a>
               <p className="text-[10px] text-center text-slate-400 mt-2 font-mono">
-                Version 1.0.1 • Size ~112MB • Windows Installer
+                Size ~112MB • Windows Installer
               </p>
               <div className="text-center mt-1.5">
                 <a 
-                  href={GITHUB_WINDOWS_URL} 
+                  href={downloadUrls.windows} 
                   download="InvoCentric-Setup.exe" 
-                  onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')}
+                  onClick={(e) => triggerDirectDownload(e, downloadUrls.windows, 'InvoCentric-Setup.exe')}
                   className="text-[10px] text-emerald-800 hover:text-emerald-950 font-bold underline cursor-pointer"
                 >
                   Direct Link: InvoCentric-Setup.exe

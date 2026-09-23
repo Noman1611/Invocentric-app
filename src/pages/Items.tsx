@@ -1928,7 +1928,7 @@ export default function ItemsPage() {
                           Scan QR Code to Connect
                         </h3>
                         <p className="text-[11px] text-slate-500 font-bold max-w-[290px] leading-snug mb-3">
-                          Apne phone ka camera open karke is QR code ko scan karein. Camera open hote hi scanning shuru ho jayegi!
+                          Open your phone camera to scan this QR code. Scanning will begin automatically!
                         </p>
 
                         <div className="w-full max-w-sm mt-1">

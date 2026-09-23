@@ -2747,7 +2747,7 @@ export default function AdminPage() {
                 Automatic 24-Hour Inactivity Email Dispatcher
               </h3>
               <p className="text-xs text-emerald-100/90 leading-relaxed font-medium">
-                Jaise hi koi user 24 ghante tak login nahi karta, system automatically background me bina kisi manual button click ke reminder email bhej deta hai. Saare dispatched emails real-time me niche System Reminders audit log me user aur business name ke sath record hote hain.
+                When a user is inactive for 24 hours, the system automatically dispatches a reminder email in the background. All dispatched emails are logged below in real-time in the System Reminders audit log with user and business details.
               </p>
 
               <div className="flex flex-wrap items-center gap-4 pt-1 text-[11px] text-emerald-200/80 font-semibold">

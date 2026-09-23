@@ -86,16 +86,16 @@ export function AppUpdateBanner() {
                   />
                 </div>
                 <span className="text-[9px] text-emerald-300 font-mono mt-0.5 block font-semibold">
-                  Auto-updating {updateState.progress}%
+                  Downloading {updateState.progress}%
                 </span>
               </div>
             ) : updateState.status === 'downloaded' ? (
               <span className="text-[10px] text-yellow-300 font-bold block max-w-[160px]">
-                {updateState.platform === 'electron' ? 'Auto-restarting in 2s...' : 'Opening installer...'}
+                {updateState.platform === 'electron' ? 'Update ready to install' : 'Ready to install'}
               </span>
             ) : (
               <span className="text-[10px] text-slate-300 truncate block max-w-[140px]">
-                {updateState.autoApplying ? 'Auto-updating...' : '100% Data Safe'}
+                {updateState.autoApplying ? 'Preparing...' : '100% Data Safe'}
               </span>
             )}
           </div>
@@ -108,12 +108,12 @@ export function AppUpdateBanner() {
               className="flex items-center gap-1 px-2.5 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-slate-950 rounded-xl text-[11px] font-black uppercase tracking-wider shadow cursor-pointer transition-transform active:scale-95"
             >
               <CheckCircle2 size={12} />
-              <span>{updateState.platform === 'electron' ? 'Restart' : 'Install'}</span>
+              <span>{updateState.platform === 'electron' ? 'Restart Now' : 'Install'}</span>
             </button>
           ) : updateState.status === 'downloading' ? (
             <div className="flex items-center gap-1 text-[10px] text-emerald-300 font-medium px-2 py-1 bg-emerald-500/10 rounded-lg">
               <RefreshCw size={11} className="animate-spin text-emerald-400" />
-              <span>Auto</span>
+              <span>Downloading</span>
             </div>
           ) : (
             <button

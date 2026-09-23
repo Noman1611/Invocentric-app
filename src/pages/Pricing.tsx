@@ -273,7 +273,7 @@ export default function PricingPage() {
               user_id: user.uid,
             }, { offlineMode: isOfflineMode, userId: user.uid });
 
-            // Add an expense record for the business subscription purchase (खर्च)
+            // Add an expense record for the business subscription purchase
             await dbService.add('expenses', {
               description: `InvoCentric Pro Subscription (${billingCycle === 'monthly' ? 'Monthly' : 'Yearly'})`,
               amount: currentPrice,

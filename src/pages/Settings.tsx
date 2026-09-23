@@ -100,9 +100,9 @@ export default function SettingsPage() {
     try {
       const res = await updateService.checkForUpdates(true);
       if (res.hasUpdate) {
-        setUpdateActionMsg(`Naya update v${res.latestVersion} uplabdh hai! 1-Click Update dabakar update karein.`);
+        setUpdateActionMsg(`New update v${res.latestVersion} is available! Click Update Now to install.`);
       } else {
-        setUpdateActionMsg(`Aapka software/app pehle se sabse naye version (v${res.currentVersion}) par hai.`);
+        setUpdateActionMsg(`Your software/app is up to date (v${res.currentVersion}).`);
       }
     } catch (err: any) {
       setUpdateActionMsg(`Update check error: ${err.message || 'Check failed'}`);
@@ -367,7 +367,7 @@ export default function SettingsPage() {
       try {
         const data = JSON.parse(event.target?.result as string);
         applyDataToLocalCache(user.uid, data);
-        alert("Offline data restored successfully! (डेटा सफलतापूर्वक रिस्टोर हो गया)");
+        alert("Offline data restored successfully!");
         window.location.reload();
       } catch (err) {
         alert("Invalid backup file format.");
@@ -384,11 +384,11 @@ export default function SettingsPage() {
   const handleImportCloudData = async () => {
     if (!user) return;
     if (!navigator.onLine) {
-      alert("इसके लिए इंटरनेट कनेक्शन (Internet Connection) आवश्यक है! कृपया ऑनलाइन जाएँ।");
+      alert("An internet connection is required for this action! Please connect to the internet.");
       return;
     }
 
-    const confirmImport = window.confirm("क्या आप Firebase क्लाउड (Cloud) से अपना सारा पुराना डेटा डाउनलोड करके पीसी (Local PC) और ब्राउज़र में मर्ज करना चाहते हैं?");
+    const confirmImport = window.confirm("Do you want to download and merge your previous cloud data into your local PC and browser storage?");
     if (!confirmImport) return;
 
     setImportingCloudData(true);
@@ -453,11 +453,11 @@ export default function SettingsPage() {
 
       setSecureStorage(`cloud_data_imported_${user.uid}`, true);
 
-      alert(`बधाई हो! क्लाउड से कुल ${importedCount} डेटा सफलतापूर्वक डाउनलोड करके आपके PC/Browser Storage में मर्ज कर दिया गया है।`);
+      alert(`Success! A total of ${importedCount} records were downloaded and merged into your PC/Browser Storage.`);
       window.location.reload();
     } catch (err: any) {
       console.error("Cloud data migration failed:", err);
-      alert("डेटा डाउनलोड करने में त्रुटि आई: " + err.message);
+      alert("Error downloading data: " + err.message);
     } finally {
       setImportingCloudData(false);
     }
@@ -656,7 +656,7 @@ export default function SettingsPage() {
     try {
       await persistSettings(formData);
       setSaveStatus('saved');
-      alert("Settings saved successfully! (सेटिंग्स सुरक्षित रूप से सहेज ली गई हैं)");
+      alert("Settings saved successfully!");
       setTimeout(() => {
         setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
       }, 3000);
@@ -745,7 +745,7 @@ export default function SettingsPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                  Operating Mode (व्यवसाय प्रकार)
+                  Operating Mode
                 </h2>
                 <span className={cn(
                   "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
@@ -805,7 +805,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">Shop Mode (दुकान / रिटेल)</h3>
+                  <h3 className="text-sm font-bold text-slate-900">Shop Mode</h3>
                   {appMode === 'shop' && (
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
                   )}
@@ -839,7 +839,7 @@ export default function SettingsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">Freelancer Mode (फ्रीलांसर / सेवा)</h3>
+                  <h3 className="text-sm font-bold text-slate-900">Freelancer Mode</h3>
                   {appMode === 'freelancer' && (
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
                   )}
@@ -863,7 +863,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2">
               <Keyboard size={18} className="text-[#166534]" />
               <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                Fast Keys & Shortcuts (कीबोर्ड शॉर्टकट)
+                Fast Keys & Shortcuts
               </h2>
             </div>
             <p className="text-xs text-slate-500 font-medium">
@@ -889,7 +889,7 @@ export default function SettingsPage() {
                   <Sparkles size={16} />
                 </div>
                 <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                  Software & App Updates (सॉफ्टवेयर और ऐप अपडेट)
+                  Software & App Updates
                 </h2>
               </div>
               <p className="text-xs text-slate-600 font-medium">
@@ -897,7 +897,7 @@ export default function SettingsPage() {
               </p>
               <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-semibold pt-1">
                 <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-                <span>100% Zero Data Loss Guarantee: Update karne par aapka koi bhi bill ya customer data delete nahi hoga.</span>
+                <span>100% Zero Data Loss Guarantee: Your invoices, stock, and customer data remain completely safe during updates.</span>
               </div>
               {updateActionMsg && (
                 <p className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5 mt-2 animate-fadeIn">
@@ -1505,7 +1505,7 @@ export default function SettingsPage() {
                   <div className="space-y-1">
                     <p className="text-xs font-black text-sky-900 uppercase tracking-widest">Firebase Cloud Data Recovery</p>
                     <p className="text-[11px] text-sky-700 font-bold uppercase tracking-wide leading-relaxed">
-                      क्लाउड पर बचा हुआ पुराना डेटा आपके PC/Browser Storage में डाउनलोड और मर्ज करने के लिए यहाँ क्लिक करें।
+                      Click here to download and merge your previous cloud data into your local PC and browser storage.
                     </p>
                   </div>
                   <button

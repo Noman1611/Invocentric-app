@@ -243,7 +243,7 @@ export const BLOG_POSTS: Record<string, BlogPostData> = {
     metaTitle: 'Free GST Billing Software for Small Shops in India (2026) | InvoCentric',
     metaDescription: 'Looking for a free GST billing app with no watermark? InvoCentric helps Kirana stores, retailers & freelancers create GST invoices, manage stock & print bills offline. 100% free.',
     focusKeyword: 'free GST billing software',
-    secondaryKeywords: ['free bill book app without watermark', 'GST invoice generator', 'billing app for small shop', 'dukan ka bill banane wala app'],
+    secondaryKeywords: ['free bill book app without watermark', 'GST invoice generator', 'billing app for small shop', 'retail invoice billing software'],
     title: 'Free GST Billing Software for Small Shops in India: Why InvoCentric is the Best Choice in 2026',
     subtitle: 'If you run a Kirana store, retail shop, wholesale business, or work as a freelancer in India, creating a proper GST invoice for every sale is no longer optional — it\'s essential. But most billing software either charges a monthly fee or stamps your bills with an ugly "watermark." That\'s where InvoCentric, a 100% free GST billing app, changes the game.',
     date: 'July 27, 2026',

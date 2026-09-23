@@ -15,6 +15,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { BLOG_POSTS } from './BlogPage';
 import { cn, openInBrowser } from '../lib/utils';
 import { UniversalAccountingExportDashboard } from '../components/UniversalAccountingExportDashboard';
+import {
+  DEFAULT_WINDOWS_DOWNLOAD_URL,
+  DEFAULT_ANDROID_DOWNLOAD_URL,
+  resolveWorkingDownloadUrls,
+  triggerDirectDownload
+} from '../config/downloadLinks';
 
 const FADE_UP_ANIMATION_VARIANTS = {
   hidden: { opacity: 0, y: 30 },
@@ -69,33 +75,16 @@ export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [landingBillingCycle, setLandingBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
-  const GITHUB_WINDOWS_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric-Setup.exe';
-  const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
+  const [downloadUrls, setDownloadUrls] = useState({
+    windows: DEFAULT_WINDOWS_DOWNLOAD_URL,
+    android: DEFAULT_ANDROID_DOWNLOAD_URL
+  });
 
-  const triggerDirectDownload = (e: React.MouseEvent, url: string, filename: string) => {
-    // On mobile devices, trigger direct native download
-    const isMobileDevice = typeof navigator !== 'undefined' && /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || '');
-    if (isMobileDevice) {
-      window.location.href = url;
-      return;
-    }
-
-    // On desktop, trigger download via anchor element
-    try {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        try { document.body.removeChild(a); } catch (err) {}
-      }, 3000);
-    } catch (_) {
-      window.location.href = url;
-    }
-  };
+  useEffect(() => {
+    resolveWorkingDownloadUrls().then(urls => {
+      setDownloadUrls(urls);
+    });
+  }, []);
 
   // New states for interactive modals
   const [isAboutOpen, setIsAboutOpen] = useState(false);
@@ -417,18 +406,18 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <a
-                      href={GITHUB_WINDOWS_URL}
+                      href={downloadUrls.windows}
                       download="InvoCentric-Setup.exe"
-                      onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')}
+                      onClick={(e) => triggerDirectDownload(e, downloadUrls.windows, 'InvoCentric-Setup.exe')}
                       className="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer text-center"
                     >
                       <Monitor size={14} />
                       Windows (.exe)
                     </a>
                     <a
-                      href={GITHUB_ANDROID_URL}
+                      href={downloadUrls.android}
                       download="InvoCentric.apk"
-                      onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')}
+                      onClick={(e) => triggerDirectDownload(e, downloadUrls.android, 'InvoCentric.apk')}
                       className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer text-center"
                     >
                       <Smartphone size={14} />
@@ -1731,9 +1720,9 @@ export default function LandingPage() {
                   </ul>
                 </div>
                 <a
-                  href={GITHUB_WINDOWS_URL}
+                  href={downloadUrls.windows}
                   download="InvoCentric-Setup.exe"
-                  onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')}
+                  onClick={(e) => triggerDirectDownload(e, downloadUrls.windows, 'InvoCentric-Setup.exe')}
                   className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-800/20 transition-all active:scale-95 cursor-pointer text-center"
                 >
                   <Download size={16} />
@@ -1767,9 +1756,9 @@ export default function LandingPage() {
                   </ul>
                 </div>
                 <a
-                  href={GITHUB_ANDROID_URL}
+                  href={downloadUrls.android}
                   download="InvoCentric.apk"
-                  onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')}
+                  onClick={(e) => triggerDirectDownload(e, downloadUrls.android, 'InvoCentric.apk')}
                   className="w-full py-3.5 bg-slate-900 hover:bg-slate-950 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer text-center"
                 >
                   <Download size={16} />
@@ -1938,8 +1927,8 @@ export default function LandingPage() {
                     <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-black uppercase">Free</span>
                   </Link>
                 </li>
-                <li><a href={GITHUB_WINDOWS_URL} download="InvoCentric-Setup.exe" onClick={(e) => triggerDirectDownload(e, GITHUB_WINDOWS_URL, 'InvoCentric-Setup.exe')} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium cursor-pointer">Windows PC Software (.exe)</a></li>
-                <li><a href={GITHUB_ANDROID_URL} download="InvoCentric.apk" onClick={(e) => triggerDirectDownload(e, GITHUB_ANDROID_URL, 'InvoCentric.apk')} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium cursor-pointer">Android Mobile App (.apk)</a></li>
+                <li><a href={downloadUrls.windows} download="InvoCentric-Setup.exe" onClick={(e) => triggerDirectDownload(e, downloadUrls.windows, 'InvoCentric-Setup.exe')} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium cursor-pointer">Windows PC Software (.exe)</a></li>
+                <li><a href={downloadUrls.android} download="InvoCentric.apk" onClick={(e) => triggerDirectDownload(e, downloadUrls.android, 'InvoCentric.apk')} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium cursor-pointer">Android Mobile App (.apk)</a></li>
                 <li><Link to="/invoice-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Invoice Software</Link></li>
                 <li><Link to="/free-invoice-maker" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Free Invoice Maker</Link></li>
                 <li><Link to="/gst-billing-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">GST Billing Software</Link></li>
@@ -1956,7 +1945,7 @@ export default function LandingPage() {
                 <li><Link to="/gst-calculator" className="text-sm text-left text-emerald-400 hover:text-emerald-300 transition-colors font-bold flex items-center gap-1.5"><span>Free GST Calculator</span> <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-full font-black uppercase">Free Tool</span></Link></li>
                 <li><Link to="/barcode-billing" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Barcode Billing & Labels</Link></li>
                 <li><Link to="/inventory-management" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Inventory & Live Stock</Link></li>
-                <li><Link to="/ledger-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Customer Khata Ledger</Link></li>
+                <li><Link to="/ledger-software" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">Customer Account Ledger</Link></li>
                 <li><button onClick={() => setIsGstinOpen(true)} className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors cursor-pointer font-medium">Find GSTIN Number</button></li>
                 <li><button onClick={() => setIsHsnOpen(true)} className="text-sm text-left text-green-300 hover:text-green-400 font-semibold transition-colors cursor-pointer">HSN / SAC Code Directory</button></li>
                 <li><Link to="/blog" className="text-sm text-left text-gray-400 hover:text-green-400 transition-colors font-medium">GST Knowledge Base</Link></li>
