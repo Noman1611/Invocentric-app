@@ -16135,18 +16135,56 @@ function createWindow() {
   } catch (uaErr) {
     console.warn("[UserAgent] Failed to sanitize user agent:", uaErr);
   }
+  function isAuthOrOAuthUrl(url) {
+    if (!url || typeof url !== "string") return false;
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
+      const pathname = parsed.pathname.toLowerCase();
+      if (host.includes("accounts.google.com") || host.includes("apis.google.com") || host.includes("firebaseapp.com") || host.includes("googleapis.com") || host.includes("google.com") || pathname.includes("/__/auth") || pathname.includes("/oauth")) {
+        return true;
+      }
+    } catch (e) {
+      if (url.includes("accounts.google.com") || url.includes("firebaseapp.com")) {
+        return true;
+      }
+    }
+    return false;
+  }
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    console.log("[WindowOpenHandler] Intercepted external window request:", url);
+    console.log("[WindowOpenHandler] Intercepted window request:", url);
+    if (isAuthOrOAuthUrl(url)) {
+      console.log("[WindowOpenHandler] Allowing Google/Firebase OAuth popup window in Electron:", url);
+      return {
+        action: "allow",
+        overrideBrowserWindowOptions: {
+          width: 520,
+          height: 680,
+          minWidth: 420,
+          minHeight: 500,
+          title: "Sign in with Google - InvoCentric",
+          autoHideMenuBar: true,
+          parent: mainWindow,
+          modal: false,
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true
+          }
+        }
+      };
+    }
     openInChrome(url);
     return { action: "deny" };
   });
   mainWindow.webContents.on("will-navigate", (event, url) => {
     const isLocal = url.startsWith("http://127.0.0.1") || url.startsWith("http://localhost") || url.startsWith("file://");
-    if (!isLocal) {
-      event.preventDefault();
-      console.log("[WillNavigate] Prevented in-app navigation and redirecting to Chrome:", url);
-      openInChrome(url);
+    if (isLocal || isAuthOrOAuthUrl(url)) {
+      return;
     }
+    event.preventDefault();
+    console.log("[WillNavigate] Prevented in-app navigation and redirecting to Chrome:", url);
+    openInChrome(url);
   });
   mainWindow.webContents.on("console-message", (event) => {
     console.log("[Renderer Console]", event.message);
@@ -16316,6 +16354,15 @@ if (autoUpdater) {
     console.error("[AutoUpdater] Update error:", err?.message || err);
   });
 }
+app.on("web-contents-created", (event, contents) => {
+  try {
+    const rawUA = contents.getUserAgent();
+    const cleanUA = rawUA.replace(/Electron\/[0-9\.]+\s?/g, "");
+    contents.setUserAgent(cleanUA);
+  } catch (err) {
+    console.warn("[WebContents] Error sanitizing user agent:", err);
+  }
+});
 app.whenReady().then(() => {
   createWindow();
   if (app.isPackaged && autoUpdater) {

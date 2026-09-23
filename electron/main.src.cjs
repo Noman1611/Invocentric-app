@@ -224,10 +224,62 @@ function createWindow() {
     console.warn('[UserAgent] Failed to sanitize user agent:', uaErr);
   }
 
-  // Intercept all window.open and target="_blank" links (WhatsApp, Payment, Login, External URLs)
-  // Strictly prevent Electron from opening weird headless child windows and launch directly in Google Chrome
+  // Helper to identify Google OAuth and Firebase Auth URLs
+  function isAuthOrOAuthUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
+      const pathname = parsed.pathname.toLowerCase();
+      
+      if (
+        host.includes('accounts.google.com') ||
+        host.includes('apis.google.com') ||
+        host.includes('firebaseapp.com') ||
+        host.includes('googleapis.com') ||
+        host.includes('google.com') ||
+        pathname.includes('/__/auth') ||
+        pathname.includes('/oauth')
+      ) {
+        return true;
+      }
+    } catch (e) {
+      if (url.includes('accounts.google.com') || url.includes('firebaseapp.com')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Intercept all window.open and target="_blank" links
+  // 1. Google OAuth & Firebase Auth: Allow clean embedded popup window so desktop app gets logged in directly!
+  // 2. All other external links (WhatsApp, external portals, help, downloads): Open in Google Chrome
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    console.log('[WindowOpenHandler] Intercepted external window request:', url);
+    console.log('[WindowOpenHandler] Intercepted window request:', url);
+
+    if (isAuthOrOAuthUrl(url)) {
+      console.log('[WindowOpenHandler] Allowing Google/Firebase OAuth popup window in Electron:', url);
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 520,
+          height: 680,
+          minWidth: 420,
+          minHeight: 500,
+          title: 'Sign in with Google - InvoCentric',
+          autoHideMenuBar: true,
+          parent: mainWindow,
+          modal: false,
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true
+          }
+        }
+      };
+    }
+
+    // External URLs (WhatsApp, websites, docs) open directly in Google Chrome
     openInChrome(url);
     return { action: 'deny' };
   });
@@ -237,11 +289,15 @@ function createWindow() {
     const isLocal = url.startsWith('http://127.0.0.1') || 
                     url.startsWith('http://localhost') || 
                     url.startsWith('file://');
-    if (!isLocal) {
-      event.preventDefault();
-      console.log('[WillNavigate] Prevented in-app navigation and redirecting to Chrome:', url);
-      openInChrome(url);
+    
+    // Allow local navigation and OAuth redirects within the app
+    if (isLocal || isAuthOrOAuthUrl(url)) {
+      return;
     }
+
+    event.preventDefault();
+    console.log('[WillNavigate] Prevented in-app navigation and redirecting to Chrome:', url);
+    openInChrome(url);
   });
 
   mainWindow.webContents.on('console-message', (event) => {
@@ -435,6 +491,17 @@ if (autoUpdater) {
     console.error('[AutoUpdater] Update error:', err?.message || err);
   });
 }
+
+// Ensure all webContents (including OAuth popup windows) use genuine Chrome User Agent
+app.on('web-contents-created', (event, contents) => {
+  try {
+    const rawUA = contents.getUserAgent();
+    const cleanUA = rawUA.replace(/Electron\/[0-9\.]+\s?/g, '');
+    contents.setUserAgent(cleanUA);
+  } catch (err) {
+    console.warn('[WebContents] Error sanitizing user agent:', err);
+  }
+});
 
 // App lifecycle
 app.whenReady().then(() => {

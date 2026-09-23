@@ -751,14 +751,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("Initiating Google Sign-In...");
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+
+      const isElectron = typeof window !== 'undefined' && Boolean((window as any).electronAPI);
+
       try {
         await signInWithPopup(auth, provider);
         console.log("Popup login success");
       } catch (popupError: any) {
-        console.warn("Popup login failed, attempting redirect login...", popupError);
+        console.warn("Popup login failed:", popupError);
+
+        // If user cancelled or manually closed popup, exit gracefully
+        if (
+          popupError.code === 'auth/popup-closed-by-user' ||
+          popupError.code === 'auth/cancelled-popup-request'
+        ) {
+          return;
+        }
+
+        // On desktop software (Electron), never navigate the main application away
+        if (isElectron) {
+          throw popupError;
+        }
+
+        // On web/mobile if popup was blocked, fall back to redirect
         if (
           popupError.code === 'auth/popup-blocked' || 
-          popupError.code === 'auth/popup-closed-by-user' || 
+          popupError.code === 'auth/operation-not-supported-in-this-environment' ||
           popupError.code === 'auth/network-request-failed' || 
           popupError.code === 'auth/internal-error' || 
           popupError.message?.includes('Pending promise') ||
