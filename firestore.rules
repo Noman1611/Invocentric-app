@@ -212,5 +212,9 @@ service cloud.firestore {
                     isValidTemplate(incoming());
       allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
     }
+    // Collection: Mobile Auth Handshake Sessions (Chrome OAuth to APK bridge)
+    match /app_auth_sessions/{sessionId} {
+      allow read, create, update, delete: if true;
+    }
   }
 }

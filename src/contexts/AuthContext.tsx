@@ -28,14 +28,16 @@ import {
   sendPasswordResetEmail,
   RecaptchaVerifier,
   signInWithPhoneNumber,
-  ConfirmationResult
+  ConfirmationResult,
+  signInWithCredential
 } from 'firebase/auth';
 import { 
   doc, 
   getDoc, 
   setDoc, 
   serverTimestamp,
-  onSnapshot
+  onSnapshot,
+  deleteDoc
 } from 'firebase/firestore';
 
 interface AuthContextType {
@@ -737,6 +739,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const applyExternalSessionUser = async (data: any) => {
+    try {
+      const syntheticUser = {
+        uid: data.uid,
+        email: data.email || null,
+        displayName: data.displayName || (data.email ? data.email.split('@')[0] : 'User'),
+        photoURL: data.photoURL || null,
+        emailVerified: true,
+        isAnonymous: false,
+        metadata: {},
+        providerData: [],
+        refreshToken: '',
+        tenantId: null,
+        delete: async () => {},
+        getIdToken: async () => '',
+        getIdTokenResult: async () => ({
+          token: '',
+          claims: {},
+          authTime: '',
+          issuedAtTime: '',
+          expirationTime: '',
+          signInProvider: 'google.com'
+        } as any),
+        reload: async () => {},
+        toJSON: () => ({})
+      } as unknown as User;
+
+      await handleUserChange(syntheticUser);
+    } catch (e) {
+      console.warn("Failed to apply synthetic session user:", e);
+    }
+  };
+
   useEffect(() => {
     getRedirectResult(auth).then((result) => {
       if (result?.user) {
@@ -745,6 +780,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }).catch((err) => {
       console.warn("Redirect result handle warning:", err);
     });
+
+    // Global listener for deep link callbacks (invocentric://auth?session=...&idToken=...)
+    const handleDeepLinkAuth = async (event: any) => {
+      const urlStr = event?.detail?.url || '';
+      if (!urlStr) return;
+      if (urlStr.includes('invocentric://') || urlStr.includes('com.invocentric.app://')) {
+        try {
+          const dummy = new URL(
+            urlStr
+              .replace('invocentric://auth', 'http://localhost/auth')
+              .replace('invocentric://', 'http://localhost/')
+              .replace('com.invocentric.app://auth', 'http://localhost/auth')
+              .replace('com.invocentric.app://', 'http://localhost/')
+          );
+          const sessionId = dummy.searchParams.get('session');
+          const idToken = dummy.searchParams.get('idToken');
+          const accessToken = dummy.searchParams.get('accessToken');
+          const uid = dummy.searchParams.get('uid');
+          const email = dummy.searchParams.get('email');
+          const displayName = dummy.searchParams.get('displayName');
+
+          if (idToken) {
+            const cred = GoogleAuthProvider.credential(idToken, accessToken || undefined);
+            await signInWithCredential(auth, cred);
+          } else if (sessionId) {
+            const snap = await getDoc(doc(db, 'app_auth_sessions', sessionId));
+            if (snap.exists()) {
+              const d = snap.data();
+              if (d.idToken) {
+                const cred = GoogleAuthProvider.credential(d.idToken, d.accessToken || undefined);
+                await signInWithCredential(auth, cred);
+              } else if (d.uid) {
+                await applyExternalSessionUser(d);
+              }
+              await deleteDoc(doc(db, 'app_auth_sessions', sessionId)).catch(() => {});
+            }
+          } else if (uid) {
+            await applyExternalSessionUser({ uid, email, displayName });
+          }
+        } catch (e) {
+          console.warn("Error handling deep link auth event:", e);
+        }
+      }
+    };
+
+    window.addEventListener('app-deep-link', handleDeepLinkAuth);
+    return () => window.removeEventListener('app-deep-link', handleDeepLinkAuth);
   }, []);
 
   const signInWithGoogle = async () => {
@@ -759,9 +841,135 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isNativeAndroid = typeof window !== 'undefined' && Boolean(
         (window as any).AndroidAppUpdater || 
         (window as any).Capacitor?.isNativePlatform?.() ||
-        window.location.protocol === 'capacitor:'
+        window.location.protocol === 'capacitor:' ||
+        (/android/i.test(navigator.userAgent) && (window as any).Capacitor)
       );
 
+      // --- NATIVE ANDROID CHROME OAUTH BRIDGE ---
+      if (isNativeAndroid) {
+        console.log("Native Android detected. Launching Google Chrome OAuth bridge...");
+        const sessionId = 'mob_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        const sessionRef = doc(db, 'app_auth_sessions', sessionId);
+
+        // Pre-create session document
+        await setDoc(sessionRef, {
+          status: 'pending',
+          created_at: Date.now()
+        });
+
+        const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}`;
+
+        // Launch external Google Chrome browser
+        if ((window as any).AndroidAppUpdater?.openExternalUrl) {
+          (window as any).AndroidAppUpdater.openExternalUrl(authUrl);
+        } else {
+          window.open(authUrl, '_system');
+        }
+
+        // Return a promise that resolves once authentication is completed in Chrome
+        return new Promise<void>((resolve, reject) => {
+          let resolved = false;
+          let cleanupFns: Array<() => void> = [];
+
+          const cleanup = () => {
+            cleanupFns.forEach(fn => {
+              try { fn(); } catch (e) {}
+            });
+            cleanupFns = [];
+          };
+
+          // 5 minute timeout for user to complete login in Chrome
+          const timer = setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              cleanup();
+              deleteDoc(sessionRef).catch(() => {});
+              reject(new Error("Login in Chrome timed out. Please try again."));
+            }
+          }, 5 * 60 * 1000);
+          cleanupFns.push(() => clearTimeout(timer));
+
+          const handleAuthPayload = async (data: any) => {
+            if (resolved) return;
+            resolved = true;
+            cleanup();
+
+            try {
+              if (data.idToken) {
+                // Real Google ID Token from Chrome: Authenticate the native Firebase instance!
+                const cred = GoogleAuthProvider.credential(data.idToken, data.accessToken || undefined);
+                await signInWithCredential(auth, cred);
+              } else if (data.uid) {
+                await applyExternalSessionUser(data);
+              }
+              deleteDoc(sessionRef).catch(() => {});
+              resolve();
+            } catch (err: any) {
+              console.error("Failed to authenticate session in APK:", err);
+              if (data.uid) {
+                await applyExternalSessionUser(data);
+                deleteDoc(sessionRef).catch(() => {});
+                resolve();
+              } else {
+                reject(err);
+              }
+            }
+          };
+
+          // 1. Real-time Firestore session listener
+          const unsubSnapshot = onSnapshot(sessionRef, (snap) => {
+            if (snap.exists()) {
+              const data = snap.data();
+              if (data?.status === 'authenticated') {
+                handleAuthPayload(data);
+              }
+            }
+          }, (err) => {
+            console.warn("Session snapshot listener warning:", err);
+          });
+          cleanupFns.push(unsubSnapshot);
+
+          // 2. Deep link listener for instant foreground callback
+          const onDeepLink = (event: any) => {
+            const urlStr = event?.detail?.url || '';
+            if (urlStr.includes('session=') || urlStr.includes(sessionId)) {
+              try {
+                const dummy = new URL(
+                  urlStr
+                    .replace('invocentric://auth', 'http://localhost/auth')
+                    .replace('invocentric://', 'http://localhost/')
+                    .replace('com.invocentric.app://auth', 'http://localhost/auth')
+                    .replace('com.invocentric.app://', 'http://localhost/')
+                );
+                const sId = dummy.searchParams.get('session');
+                const idToken = dummy.searchParams.get('idToken');
+                const accessToken = dummy.searchParams.get('accessToken');
+                const uid = dummy.searchParams.get('uid');
+                const email = dummy.searchParams.get('email');
+                const displayName = dummy.searchParams.get('displayName');
+
+                if (sId === sessionId || !sId) {
+                  if (idToken || uid) {
+                    handleAuthPayload({
+                      idToken,
+                      accessToken,
+                      uid,
+                      email: email || '',
+                      displayName: displayName || ''
+                    });
+                  }
+                }
+              } catch (e) {
+                console.warn("Deep link parse error:", e);
+              }
+            }
+          };
+          window.addEventListener('app-deep-link', onDeepLink);
+          cleanupFns.push(() => window.removeEventListener('app-deep-link', onDeepLink));
+        });
+      }
+
+      // Non-Android environments (Web / Desktop Electron)
       try {
         await signInWithPopup(auth, provider);
         console.log("Popup login success");
@@ -776,12 +984,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // On desktop software (Electron) and native Android APK, never navigate the main application away
-        if (isElectron || isNativeAndroid) {
+        // On desktop software (Electron), never navigate the main application away
+        if (isElectron) {
           throw popupError;
         }
 
-        // On web/mobile if popup was blocked, fall back to redirect
+        // On web if popup was blocked, fall back to redirect
         if (
           popupError.code === 'auth/popup-blocked' || 
           popupError.code === 'auth/operation-not-supported-in-this-environment' ||

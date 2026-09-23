@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
 import { motion, AnimatePresence } from 'motion/react';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth, db } from '../lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { Link, Navigate } from 'react-router-dom';
 import { 
   AlertCircle, 
@@ -174,11 +175,49 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [handshakeCompleted, setHandshakeCompleted] = useState(false);
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const isMobileAuth = searchParams.get('mobile_auth') === '1';
+  const mobileSessionId = searchParams.get('session');
+  const isNativeAndroid = typeof window !== 'undefined' && Boolean(
+    (window as any).AndroidAppUpdater || 
+    (window as any).Capacitor?.isNativePlatform?.() ||
+    window.location.protocol === 'capacitor:' ||
+    (/android/i.test(navigator.userAgent) && (window as any).Capacitor)
+  );
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError(null);
     try {
+      if (isMobileAuth && mobileSessionId) {
+        // Authenticate in Chrome and bridge back to APK
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const result = await signInWithPopup(auth, provider);
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const idToken = credential?.idToken;
+        const accessToken = credential?.accessToken;
+
+        const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
+        await setDoc(sessionRef, {
+          status: 'authenticated',
+          idToken: idToken || null,
+          accessToken: accessToken || null,
+          uid: result.user.uid,
+          email: result.user.email || '',
+          displayName: result.user.displayName || '',
+          photoURL: result.user.photoURL || '',
+          completedAt: Date.now()
+        });
+
+        setHandshakeCompleted(true);
+        const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(result.user.uid)}&email=${encodeURIComponent(result.user.email || '')}`;
+        window.location.href = deepLink;
+        return;
+      }
+
       await signInWithGoogle();
     } catch (err: any) {
       console.error("Google Login Error:", err);
@@ -187,6 +226,56 @@ export default function LoginPage() {
         message = "Login popup was blocked by your browser. Please allow popups for this site and try again.";
       }
       setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAuthorizeApp = async () => {
+    if (!mobileSessionId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const idToken = credential?.idToken;
+      const accessToken = credential?.accessToken;
+
+      const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
+      await setDoc(sessionRef, {
+        status: 'authenticated',
+        idToken: idToken || null,
+        accessToken: accessToken || null,
+        uid: result.user.uid,
+        email: result.user.email || '',
+        displayName: result.user.displayName || '',
+        photoURL: result.user.photoURL || '',
+        completedAt: Date.now()
+      });
+
+      setHandshakeCompleted(true);
+      const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(result.user.uid)}&email=${encodeURIComponent(result.user.email || '')}`;
+      window.location.href = deepLink;
+    } catch (err: any) {
+      console.warn("Popup error during app authorize, transferring existing user data:", err);
+      if (user) {
+        const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
+        await setDoc(sessionRef, {
+          status: 'authenticated',
+          uid: user.uid,
+          email: user.email || '',
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          completedAt: Date.now()
+        });
+        setHandshakeCompleted(true);
+        const deepLink = `invocentric://auth?session=${mobileSessionId}&uid=${encodeURIComponent(user.uid)}&email=${encodeURIComponent(user.email || '')}`;
+        window.location.href = deepLink;
+      } else {
+        setError(err.message || "Failed to authorize app.");
+      }
     } finally {
       setLoading(false);
     }
@@ -320,6 +409,69 @@ export default function LoginPage() {
     return null; // Let the global PageLoader handle this
   }
 
+  // Handle Chrome Mobile Handshake Success Screen (Web Chrome)
+  if (isMobileAuth && mobileSessionId && handshakeCompleted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-900 font-sans">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-slate-200 text-center"
+        >
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 size={36} />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Login Successful!</h2>
+          <p className="text-sm text-slate-600 mb-6">
+            Your login was successfully sent to the InvoCentric app on your phone.
+          </p>
+          <a
+            href={`invocentric://auth?session=${mobileSessionId}`}
+            className="w-full h-12 flex items-center justify-center gap-2 bg-[#0F645D] hover:bg-[#0c524c] text-white font-semibold rounded-xl shadow-md transition-all active:scale-[0.98] mb-3"
+          >
+            Open InvoCentric App
+          </a>
+          <p className="text-xs text-slate-400">
+            You can now safely close this browser tab.
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Handle already logged in in Chrome with mobile_auth=1
+  if (isMobileAuth && mobileSessionId && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-900 font-sans">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-slate-200 text-center"
+        >
+          <Logo size={54} className="mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-900 mb-1">Connect to InvoCentric App</h2>
+          <p className="text-xs text-slate-500 mb-6">
+            You are currently signed in as <strong className="text-slate-800">{user.email}</strong>. Tap below to send this login to your app.
+          </p>
+          <button
+            onClick={handleAuthorizeApp}
+            disabled={loading}
+            className="w-full h-12 flex items-center justify-center gap-2 bg-[#0F645D] hover:bg-[#0c524c] text-white font-semibold rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 mb-3"
+          >
+            {loading ? "Connecting..." : "Authorize App Login with Google"}
+          </button>
+          <button
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="w-full h-10 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all"
+          >
+            Switch Google Account
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -396,6 +548,25 @@ export default function LoginPage() {
           {/* Social Google Login Button (Shown on Login & Signup) */}
           {authMode !== 'forgot' && (
             <div className="mb-6">
+              {loading && isNativeAndroid && (
+                <div className="mb-4 p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-center animate-fadeIn">
+                  <div className="flex items-center justify-center gap-2 font-bold text-xs text-teal-800 mb-1">
+                    <Globe size={16} className="animate-spin text-teal-600" />
+                    <span>Google Chrome Opened for Secure Login</span>
+                  </div>
+                  <p className="text-[11px] text-teal-700 leading-relaxed mb-2.5">
+                    Please complete your Google Sign-In in Chrome. You will automatically be returned and signed in!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setLoading(false)}
+                    className="text-xs font-semibold text-teal-800 bg-white px-3 py-1 rounded-md border border-teal-200 hover:bg-teal-100 transition-colors"
+                  >
+                    ✕ Cancel Wait
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={handleGoogleLogin}
                 disabled={loading}

@@ -2,10 +2,13 @@ package com.invocentric.app;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Message;
 import android.webkit.CookieManager;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -15,7 +18,6 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import com.getcapacitor.BridgeActivity;
-import com.getcapacitor.BridgeWebChromeClient;
 
 public class MainActivity extends BridgeActivity {
     @Override
@@ -49,8 +51,9 @@ public class MainActivity extends BridgeActivity {
                 cookieManager.setAcceptCookie(true);
                 cookieManager.setAcceptThirdPartyCookies(webView, true);
 
-                // Handle Google OAuth popups directly within an in-app dialog window
-                webView.setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
+                // Safely wrap the existing WebChromeClient without causing ActivityResultRegistry lifecycle errors
+                final WebChromeClient defaultChromeClient = webView.getWebChromeClient();
+                webView.setWebChromeClient(new WebChromeClient() {
                     private Dialog authDialog;
                     private WebView authWebView;
 
@@ -150,7 +153,17 @@ public class MainActivity extends BridgeActivity {
                             authWebView.setWebViewClient(new WebViewClient() {
                                 @Override
                                 public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                                    // Retain OAuth navigation within popup dialog
+                                    Uri requestUri = request.getUrl();
+                                    if (requestUri != null) {
+                                        String s = requestUri.toString();
+                                        if (s.startsWith("invocentric://") || s.startsWith("com.invocentric.app://")) {
+                                            handleDeepLinkUri(requestUri);
+                                            if (authDialog != null && authDialog.isShowing()) {
+                                                authDialog.dismiss();
+                                            }
+                                            return true;
+                                        }
+                                    }
                                     return false;
                                 }
                             });
@@ -172,7 +185,50 @@ public class MainActivity extends BridgeActivity {
                         if (authDialog != null && authDialog.isShowing()) {
                             authDialog.dismiss();
                         }
-                        super.onCloseWindow(window);
+                        if (defaultChromeClient != null) {
+                            defaultChromeClient.onCloseWindow(window);
+                        }
+                    }
+
+                    @Override
+                    public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+                        if (defaultChromeClient != null) {
+                            return defaultChromeClient.onShowFileChooser(webView, filePathCallback, fileChooserParams);
+                        }
+                        return super.onShowFileChooser(webView, filePathCallback, fileChooserParams);
+                    }
+
+                    @Override
+                    public boolean onJsAlert(WebView view, String url, String message, android.webkit.JsResult result) {
+                        if (defaultChromeClient != null) {
+                            return defaultChromeClient.onJsAlert(view, url, message, result);
+                        }
+                        return super.onJsAlert(view, url, message, result);
+                    }
+
+                    @Override
+                    public boolean onJsConfirm(WebView view, String url, String message, android.webkit.JsResult result) {
+                        if (defaultChromeClient != null) {
+                            return defaultChromeClient.onJsConfirm(view, url, message, result);
+                        }
+                        return super.onJsConfirm(view, url, message, result);
+                    }
+
+                    @Override
+                    public boolean onJsPrompt(WebView view, String url, String message, String defaultValue, android.webkit.JsPromptResult result) {
+                        if (defaultChromeClient != null) {
+                            return defaultChromeClient.onJsPrompt(view, url, message, defaultValue, result);
+                        }
+                        return super.onJsPrompt(view, url, message, defaultValue, result);
+                    }
+
+                    @Override
+                    public void onPermissionRequest(android.webkit.PermissionRequest request) {
+                        if (defaultChromeClient != null) {
+                            defaultChromeClient.onPermissionRequest(request);
+                            return;
+                        }
+                        super.onPermissionRequest(request);
                     }
                 });
 
@@ -182,9 +238,60 @@ public class MainActivity extends BridgeActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        handleDeepLink(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleDeepLink(intent);
+    }
+
+    private void handleDeepLink(Intent intent) {
+        if (intent != null && intent.getData() != null) {
+            handleDeepLinkUri(intent.getData());
+        }
+    }
+
+    private void handleDeepLinkUri(final Uri uri) {
+        if (uri == null) return;
+        final String uriString = uri.toString();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    WebView webView = getBridge().getWebView();
+                    if (webView != null) {
+                        webView.evaluateJavascript(
+                            "(function(){ window.dispatchEvent(new CustomEvent('app-deep-link', { detail: { url: '" + uriString + "' } })); })();",
+                            null
+                        );
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     class AppUpdateInterface {
+        @android.webkit.JavascriptInterface
+        public void openExternalUrl(final String url) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(browserIntent);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+
         @android.webkit.JavascriptInterface
         public void downloadAndInstallApk(final String downloadUrl) {
             runOnUiThread(new Runnable() {

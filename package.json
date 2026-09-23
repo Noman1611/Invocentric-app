@@ -1,7 +1,7 @@
 {
   "name": "invocentric",
   "private": true,
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "InvoCentric - Professional GST Billing, Inventory & Accounting Software",
   "author": "InvoCentric <support@invocentric.com>",
   "type": "module",
