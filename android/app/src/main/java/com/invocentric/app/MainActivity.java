@@ -278,7 +278,11 @@ public class MainActivity extends BridgeActivity {
     class AppUpdateInterface {
         @android.webkit.JavascriptInterface
         public String getAppVersion() {
-            return BuildConfig.VERSION_NAME;
+            try {
+                return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            } catch (Exception e) {
+                return "1.0.12";
+            }
         }
 
         @android.webkit.JavascriptInterface
