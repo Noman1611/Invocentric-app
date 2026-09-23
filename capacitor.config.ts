@@ -6,6 +6,7 @@ interface CapacitorConfig {
   server?: {
     androidScheme?: string;
     cleartext?: boolean;
+    allowNavigation?: string[];
   };
   plugins?: Record<string, any>;
 }
@@ -17,7 +18,14 @@ const config: CapacitorConfig = {
   bundledWebRuntime: false,
   server: {
     androidScheme: 'https',
-    cleartext: true
+    cleartext: true,
+    allowNavigation: [
+      '*.firebaseapp.com',
+      'accounts.google.com',
+      '*.google.com',
+      '*.googleapis.com',
+      '*.gstatic.com'
+    ]
   },
   plugins: {
     SplashScreen: {

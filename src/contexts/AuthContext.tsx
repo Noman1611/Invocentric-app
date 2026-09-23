@@ -756,6 +756,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       const isElectron = typeof window !== 'undefined' && Boolean((window as any).electronAPI);
+      const isNativeAndroid = typeof window !== 'undefined' && Boolean(
+        (window as any).AndroidAppUpdater || 
+        (window as any).Capacitor?.isNativePlatform?.() ||
+        window.location.protocol === 'capacitor:'
+      );
 
       try {
         await signInWithPopup(auth, provider);
@@ -771,8 +776,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // On desktop software (Electron), never navigate the main application away
-        if (isElectron) {
+        // On desktop software (Electron) and native Android APK, never navigate the main application away
+        if (isElectron || isNativeAndroid) {
           throw popupError;
         }
 
