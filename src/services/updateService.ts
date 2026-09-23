@@ -5,6 +5,7 @@
  */
 
 import { localDbEngine } from './localDbEngine';
+import pkg from '../../package.json';
 
 export interface AppUpdateState {
   currentVersion: string;
@@ -20,11 +21,12 @@ export interface AppUpdateState {
   error?: string;
   backupPath?: string;
   platform: 'electron' | 'android' | 'web';
+  autoApplying?: boolean;
 }
 
-export const APP_CURRENT_VERSION = '1.0.3';
+export const APP_CURRENT_VERSION = pkg.version || '1.0.5';
 
-// Compare two semver strings (e.g. "1.0.3" vs "1.0.2")
+// Compare two semver strings (e.g. "1.0.5" vs "1.0.4")
 export function isNewerVersion(latest: string, current: string): boolean {
   const cleanLatest = latest.replace(/^[^\d]*/, '').trim();
   const cleanCurrent = current.replace(/^[^\d]*/, '').trim();
@@ -55,16 +57,18 @@ class UniversalUpdateService {
     hasUpdate: false,
     status: 'idle',
     progress: 0,
-    platform: this.detectPlatform()
+    platform: this.detectPlatform(),
+    autoApplying: false
   };
   private checkIntervalTimer: any = null;
+  private hasAutoTriggered: boolean = false;
 
   constructor() {
     this.initPlatformHandlers();
-    // Periodically check every 45 minutes silently
+    // Automatically check for updates immediately on startup (1 second after launch)
     if (typeof window !== 'undefined') {
-      setTimeout(() => this.checkForUpdates(false), 5000);
-      this.checkIntervalTimer = setInterval(() => this.checkForUpdates(false), 45 * 60 * 1000);
+      setTimeout(() => this.checkForUpdates(false), 1200);
+      this.checkIntervalTimer = setInterval(() => this.checkForUpdates(false), 30 * 60 * 1000);
     }
   }
 
@@ -152,7 +156,21 @@ class UniversalUpdateService {
             hasUpdate: true,
             latestVersion: info?.version || this.state.latestVersion,
             status: 'downloaded',
-            progress: 100
+            progress: 100,
+            autoApplying: true
+          });
+        });
+      }
+
+      if (electronAPI.onAutoUpdatingRestart) {
+        electronAPI.onAutoUpdatingRestart((data: any) => {
+          console.log('[UpdateService] Electron auto-updating restart signal:', data);
+          this.updateState({
+            hasUpdate: true,
+            latestVersion: data?.version || this.state.latestVersion,
+            status: 'downloaded',
+            progress: 100,
+            autoApplying: true
           });
         });
       }
@@ -221,6 +239,17 @@ class UniversalUpdateService {
         status: hasUpdate ? (this.state.status === 'downloaded' ? 'downloaded' : 'available') : 'up-to-date'
       });
 
+      // AUTO-UPDATE ON STARTUP (Zero-click requirement)
+      // As soon as an update is detected, automatically initiate the update flow without requiring user click!
+      if (hasUpdate && !this.hasAutoTriggered) {
+        this.hasAutoTriggered = true;
+        console.log(`[UpdateService] Newer version v${latestVer} detected. Auto-applying update in background...`);
+        this.updateState({ autoApplying: true });
+        setTimeout(() => {
+          this.applyUpdate().catch((e) => console.warn('[UpdateService] Auto apply error:', e));
+        }, 1200);
+      }
+
       return this.getState();
     } catch (err: any) {
       console.warn('[UpdateService] Update check failed:', err);
@@ -234,14 +263,14 @@ class UniversalUpdateService {
   }
 
   /**
-   * 1-Click Update Action
+   * 1-Click / Zero-Click Update Action
    * Automatically executes pre-update safety backup first, then installs/applies the update.
    */
   public async applyUpdate(): Promise<{ success: boolean; message?: string }> {
     const { status, platform, latestVersion, apkDownloadUrl, exeDownloadUrl } = this.state;
 
     // Step 1: Pre-Update Automated Safety Backup (GUARANTEES ZERO DATA LOSS)
-    this.updateState({ status: 'downloading', progress: 5 });
+    this.updateState({ status: 'downloading', progress: 5, autoApplying: true });
     try {
       console.log('[UpdateService] Creating automated pre-update safety backup...');
       const backupResult = await localDbEngine.performPreUpdateBackup(latestVersion);
@@ -264,15 +293,13 @@ class UniversalUpdateService {
         return { success: true, message: 'Restarting InvoCentric to apply update...' };
       }
 
-      // If autoUpdater is available, prompt install or trigger download
+      // If autoUpdater is available, trigger restart and install
       if (electronAPI?.restartAndInstallUpdate) {
         this.updateState({ progress: 50 });
-        // Trigger electron-updater or direct fallback
         setTimeout(() => {
           try {
             electronAPI.restartAndInstallUpdate();
           } catch (e) {
-            // Fallback: direct download setup installer
             if (exeDownloadUrl) window.open(exeDownloadUrl, '_blank');
           }
         }, 1500);
@@ -288,12 +315,26 @@ class UniversalUpdateService {
     }
 
     if (platform === 'android') {
-      // Direct APK download and install intent
+      // Native Android Background Download & System Package Installer Trigger
       const url = apkDownloadUrl || 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
-      this.updateState({ progress: 75 });
+      this.updateState({ progress: 65, autoApplying: true });
+
+      // Check if native AndroidAppUpdater bridge is available
+      if ((window as any).AndroidAppUpdater?.downloadAndInstallApk) {
+        console.log('[UpdateService] Using native AndroidAppUpdater bridge for automated download and installation...');
+        try {
+          (window as any).AndroidAppUpdater.downloadAndInstallApk(url);
+          this.updateState({ status: 'downloaded', progress: 100, autoApplying: false });
+          return {
+            success: true,
+            message: 'InvoCentric APK downloading. System installer will open automatically.'
+          };
+        } catch (bridgeErr) {
+          console.warn('[UpdateService] Native Android bridge error, using web fallback:', bridgeErr);
+        }
+      }
       
-      // Open direct download link in Android system download manager
-      // Android will notify "Download complete. Tap to install", and update in-place preserving all user data!
+      // Fallback: system browser download manager
       const downloadLink = document.createElement('a');
       downloadLink.href = url;
       downloadLink.download = 'InvoCentric.apk';
@@ -302,10 +343,10 @@ class UniversalUpdateService {
       downloadLink.click();
       document.body.removeChild(downloadLink);
 
-      this.updateState({ status: 'downloaded', progress: 100 });
+      this.updateState({ status: 'downloaded', progress: 100, autoApplying: false });
       return { 
         success: true, 
-        message: 'InvoCentric.apk download started! Tap the notification to update. Your data will remain 100% safe.' 
+        message: 'InvoCentric.apk download started! Tap notification to update. Your data will remain 100% safe.' 
       };
     }
 

@@ -484,7 +484,22 @@ if (autoUpdater) {
     console.log('[AutoUpdater] Update downloaded successfully:', info?.version);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('update-downloaded', info);
+      mainWindow.webContents.send('auto-updating-restart', {
+        version: info?.version,
+        message: `Version ${info?.version} is ready! Restarting software automatically to apply update...`
+      });
     }
+
+    // Auto-update requirement: Quit and install silently without user having to click or install manually,
+    // and automatically relaunch the software!
+    setTimeout(() => {
+      try {
+        console.log('[AutoUpdater] Applying update silently and auto-restarting InvoCentric...');
+        autoUpdater.quitAndInstall(true, true);
+      } catch (err) {
+        console.error('[AutoUpdater] Error during auto quitAndInstall:', err);
+      }
+    }, 2000);
   });
 
   autoUpdater.on('error', (err) => {
@@ -508,15 +523,17 @@ app.whenReady().then(() => {
   createWindow();
 
   if (app.isPackaged && autoUpdater) {
+    // Check for updates immediately on startup (1.5 seconds after launch)
     setTimeout(() => {
       try {
+        console.log('[AutoUpdater] Checking for updates immediately on software startup...');
         autoUpdater.checkForUpdatesAndNotify().catch((err) => {
-          console.error('[AutoUpdater] Initial check failed:', err?.message || err);
+          console.error('[AutoUpdater] Startup update check failed:', err?.message || err);
         });
       } catch (err) {
-        console.error('[AutoUpdater] Error initiating auto update check:', err);
+        console.error('[AutoUpdater] Error initiating startup auto update check:', err);
       }
-    }, 4000);
+    }, 1500);
   }
 
   app.on('activate', () => {

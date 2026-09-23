@@ -79,24 +79,28 @@ export function AppUpdateBanner() {
             </div>
             {updateState.status === 'downloading' ? (
               <div className="mt-1">
-                <div className="w-24 bg-slate-800 rounded-full h-1 overflow-hidden">
+                <div className="w-28 bg-slate-800 rounded-full h-1.5 overflow-hidden">
                   <div
-                    className="bg-emerald-400 h-1 rounded-full transition-all duration-200"
-                    style={{ width: `${updateState.progress}%` }}
+                    className="bg-emerald-400 h-1.5 rounded-full transition-all duration-200 animate-pulse"
+                    style={{ width: `${Math.max(5, updateState.progress)}%` }}
                   />
                 </div>
-                <span className="text-[9px] text-emerald-300 font-mono mt-0.5 block">
-                  Downloading {updateState.progress}%
+                <span className="text-[9px] text-emerald-300 font-mono mt-0.5 block font-semibold">
+                  Auto-updating {updateState.progress}%
                 </span>
               </div>
+            ) : updateState.status === 'downloaded' ? (
+              <span className="text-[10px] text-yellow-300 font-bold block max-w-[160px]">
+                {updateState.platform === 'electron' ? 'Auto-restarting in 2s...' : 'Opening installer...'}
+              </span>
             ) : (
               <span className="text-[10px] text-slate-300 truncate block max-w-[140px]">
-                100% Data Safe
+                {updateState.autoApplying ? 'Auto-updating...' : '100% Data Safe'}
               </span>
             )}
           </div>
 
-          {/* Action Button */}
+          {/* Action Button (shown as fallback or manual force trigger) */}
           {updateState.status === 'downloaded' ? (
             <button
               onClick={handleApplyUpdate}
@@ -104,9 +108,14 @@ export function AppUpdateBanner() {
               className="flex items-center gap-1 px-2.5 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-slate-950 rounded-xl text-[11px] font-black uppercase tracking-wider shadow cursor-pointer transition-transform active:scale-95"
             >
               <CheckCircle2 size={12} />
-              <span>Apply</span>
+              <span>{updateState.platform === 'electron' ? 'Restart' : 'Install'}</span>
             </button>
-          ) : updateState.status === 'downloading' ? null : (
+          ) : updateState.status === 'downloading' ? (
+            <div className="flex items-center gap-1 text-[10px] text-emerald-300 font-medium px-2 py-1 bg-emerald-500/10 rounded-lg">
+              <RefreshCw size={11} className="animate-spin text-emerald-400" />
+              <span>Auto</span>
+            </div>
+          ) : (
             <button
               onClick={handleApplyUpdate}
               disabled={isUpdating}
