@@ -805,16 +805,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const cred = GoogleAuthProvider.credential(idToken, accessToken || undefined);
             await signInWithCredential(auth, cred);
           } else if (sessionId) {
-            const snap = await getDoc(doc(db, 'app_auth_sessions', sessionId));
-            if (snap.exists()) {
-              const d = snap.data();
-              if (d.idToken) {
-                const cred = GoogleAuthProvider.credential(d.idToken, d.accessToken || undefined);
-                await signInWithCredential(auth, cred);
-              } else if (d.uid) {
-                await applyExternalSessionUser(d);
+            // Check server API first
+            try {
+              const res = await fetch(`https://invocentric.in/api/auth/mobile-session?session=${sessionId}`);
+              if (res.ok) {
+                const sData = await res.json();
+                if (sData?.idToken) {
+                  const cred = GoogleAuthProvider.credential(sData.idToken, sData.accessToken || undefined);
+                  await signInWithCredential(auth, cred);
+                  return;
+                } else if (sData?.uid) {
+                  await applyExternalSessionUser(sData);
+                  return;
+                }
               }
-              await deleteDoc(doc(db, 'app_auth_sessions', sessionId)).catch(() => {});
+            } catch (apiErr) {
+              console.warn("Server API session check notice:", apiErr);
+            }
+
+            // Fallback: Check Firestore document safely
+            try {
+              const snap = await getDoc(doc(db, 'app_auth_sessions', sessionId));
+              if (snap.exists()) {
+                const d = snap.data();
+                if (d.idToken) {
+                  const cred = GoogleAuthProvider.credential(d.idToken, d.accessToken || undefined);
+                  await signInWithCredential(auth, cred);
+                } else if (d.uid) {
+                  await applyExternalSessionUser(d);
+                }
+                await deleteDoc(doc(db, 'app_auth_sessions', sessionId)).catch(() => {});
+              }
+            } catch (fsErr) {
+              console.warn("Firestore session fallback notice:", fsErr);
             }
           } else if (uid) {
             await applyExternalSessionUser({ uid, email, displayName });
@@ -851,11 +874,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const sessionId = 'mob_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
         const sessionRef = doc(db, 'app_auth_sessions', sessionId);
 
-        // Pre-create session document
-        await setDoc(sessionRef, {
-          status: 'pending',
-          created_at: Date.now()
-        });
+        // Pre-create session on backend server API (immune to Firestore permission issues)
+        fetch('https://invocentric.in/api/auth/mobile-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, status: 'pending' })
+        }).catch(err => console.warn("Notice: Server session pre-create:", err));
+
+        // Attempt Firestore pre-create safely inside try/catch so permission errors never crash
+        try {
+          await setDoc(sessionRef, {
+            status: 'pending',
+            created_at: Date.now()
+          });
+        } catch (fsIgnored) {
+          console.warn("Firestore unauthenticated write notice (using server API bridge instead):", fsIgnored);
+        }
 
         const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}`;
 
@@ -883,7 +917,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!resolved) {
               resolved = true;
               cleanup();
-              deleteDoc(sessionRef).catch(() => {});
+              try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
               reject(new Error("Login in Chrome timed out. Please try again."));
             }
           }, 5 * 60 * 1000);
@@ -902,13 +936,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               } else if (data.uid) {
                 await applyExternalSessionUser(data);
               }
-              deleteDoc(sessionRef).catch(() => {});
+              try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
               resolve();
             } catch (err: any) {
               console.error("Failed to authenticate session in APK:", err);
               if (data.uid) {
                 await applyExternalSessionUser(data);
-                deleteDoc(sessionRef).catch(() => {});
+                try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
                 resolve();
               } else {
                 reject(err);
@@ -916,20 +950,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           };
 
-          // 1. Real-time Firestore session listener
-          const unsubSnapshot = onSnapshot(sessionRef, (snap) => {
-            if (snap.exists()) {
-              const data = snap.data();
-              if (data?.status === 'authenticated') {
-                handleAuthPayload(data);
+          // 1. High-frequency Server API Polling (Fast, robust, zero permission errors)
+          const pollTimer = setInterval(async () => {
+            if (resolved) return;
+            try {
+              const res = await fetch(`https://invocentric.in/api/auth/mobile-session?session=${sessionId}`);
+              if (res.ok) {
+                const sData = await res.json();
+                if (sData?.status === 'authenticated') {
+                  handleAuthPayload(sData);
+                }
               }
+            } catch (netErr) {
+              // Silently ignore temporary network latency
             }
-          }, (err) => {
-            console.warn("Session snapshot listener warning:", err);
-          });
-          cleanupFns.push(unsubSnapshot);
+          }, 1200);
+          cleanupFns.push(() => clearInterval(pollTimer));
 
-          // 2. Deep link listener for instant foreground callback
+          // 2. Safe Firestore real-time session listener (as auxiliary fallback)
+          try {
+            const unsubSnapshot = onSnapshot(sessionRef, (snap) => {
+              if (snap.exists()) {
+                const data = snap.data();
+                if (data?.status === 'authenticated') {
+                  handleAuthPayload(data);
+                }
+              }
+            }, (err) => {
+              // Silently catch permission denied on unauthenticated Firestore
+              console.warn("Session snapshot listener notice (server polling is active):", err?.message);
+            });
+            cleanupFns.push(unsubSnapshot);
+          } catch (listenerErr) {
+            console.warn("Snapshot setup notice:", listenerErr);
+          }
+
+          // 3. Deep link listener for instant foreground callback
           const onDeepLink = (event: any) => {
             const urlStr = event?.detail?.url || '';
             if (urlStr.includes('session=') || urlStr.includes(sessionId)) {

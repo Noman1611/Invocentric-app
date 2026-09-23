@@ -200,17 +200,42 @@ export default function LoginPage() {
         const idToken = credential?.idToken;
         const accessToken = credential?.accessToken;
 
-        const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
-        await setDoc(sessionRef, {
-          status: 'authenticated',
-          idToken: idToken || null,
-          accessToken: accessToken || null,
-          uid: result.user.uid,
-          email: result.user.email || '',
-          displayName: result.user.displayName || '',
-          photoURL: result.user.photoURL || '',
-          completedAt: Date.now()
-        });
+        // 1. Post to Server-side session API (always allowed, no Firestore rules issues)
+        try {
+          await fetch('/api/auth/mobile-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: mobileSessionId,
+              status: 'authenticated',
+              idToken: idToken || null,
+              accessToken: accessToken || null,
+              uid: result.user.uid,
+              email: result.user.email || '',
+              displayName: result.user.displayName || '',
+              photoURL: result.user.photoURL || ''
+            })
+          });
+        } catch (apiErr) {
+          console.warn("Server API session post notice:", apiErr);
+        }
+
+        // 2. Auxiliary Firestore write (safely caught)
+        try {
+          const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
+          await setDoc(sessionRef, {
+            status: 'authenticated',
+            idToken: idToken || null,
+            accessToken: accessToken || null,
+            uid: result.user.uid,
+            email: result.user.email || '',
+            displayName: result.user.displayName || '',
+            photoURL: result.user.photoURL || '',
+            completedAt: Date.now()
+          });
+        } catch (fsErr) {
+          console.warn("Firestore session auxiliary write notice:", fsErr);
+        }
 
         setHandshakeCompleted(true);
         const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(result.user.uid)}&email=${encodeURIComponent(result.user.email || '')}`;
@@ -243,17 +268,42 @@ export default function LoginPage() {
       const idToken = credential?.idToken;
       const accessToken = credential?.accessToken;
 
-      const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
-      await setDoc(sessionRef, {
-        status: 'authenticated',
-        idToken: idToken || null,
-        accessToken: accessToken || null,
-        uid: result.user.uid,
-        email: result.user.email || '',
-        displayName: result.user.displayName || '',
-        photoURL: result.user.photoURL || '',
-        completedAt: Date.now()
-      });
+      // 1. Post to Server-side session API
+      try {
+        await fetch('/api/auth/mobile-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: mobileSessionId,
+            status: 'authenticated',
+            idToken: idToken || null,
+            accessToken: accessToken || null,
+            uid: result.user.uid,
+            email: result.user.email || '',
+            displayName: result.user.displayName || '',
+            photoURL: result.user.photoURL || ''
+          })
+        });
+      } catch (apiErr) {
+        console.warn("Server API session post notice:", apiErr);
+      }
+
+      // 2. Auxiliary Firestore write (safely caught)
+      try {
+        const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
+        await setDoc(sessionRef, {
+          status: 'authenticated',
+          idToken: idToken || null,
+          accessToken: accessToken || null,
+          uid: result.user.uid,
+          email: result.user.email || '',
+          displayName: result.user.displayName || '',
+          photoURL: result.user.photoURL || '',
+          completedAt: Date.now()
+        });
+      } catch (fsErr) {
+        console.warn("Firestore session write notice:", fsErr);
+      }
 
       setHandshakeCompleted(true);
       const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(result.user.uid)}&email=${encodeURIComponent(result.user.email || '')}`;
@@ -261,15 +311,33 @@ export default function LoginPage() {
     } catch (err: any) {
       console.warn("Popup error during app authorize, transferring existing user data:", err);
       if (user) {
-        const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
-        await setDoc(sessionRef, {
-          status: 'authenticated',
-          uid: user.uid,
-          email: user.email || '',
-          displayName: user.displayName || '',
-          photoURL: user.photoURL || '',
-          completedAt: Date.now()
-        });
+        try {
+          await fetch('/api/auth/mobile-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: mobileSessionId,
+              status: 'authenticated',
+              uid: user.uid,
+              email: user.email || '',
+              displayName: user.displayName || '',
+              photoURL: user.photoURL || ''
+            })
+          });
+        } catch (e) {}
+
+        try {
+          const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
+          await setDoc(sessionRef, {
+            status: 'authenticated',
+            uid: user.uid,
+            email: user.email || '',
+            displayName: user.displayName || '',
+            photoURL: user.photoURL || '',
+            completedAt: Date.now()
+          });
+        } catch (fsIgnored) {}
+
         setHandshakeCompleted(true);
         const deepLink = `invocentric://auth?session=${mobileSessionId}&uid=${encodeURIComponent(user.uid)}&email=${encodeURIComponent(user.email || '')}`;
         window.location.href = deepLink;

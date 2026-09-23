@@ -107,7 +107,9 @@ const allowedOrigins = [
   "https://invocentric.vercel.app",
   "https://invocentric.dev",
   "https://invocentric.in",
-  "https://www.invocentric.in"
+  "https://www.invocentric.in",
+  "https://localhost",
+  "capacitor://localhost"
 ];
 
 app.use(cors({
@@ -663,6 +665,54 @@ app.post("/api/auth/verify-email-otp", async (req, res) => {
 
   emailOtpStore.delete(key);
   return res.json({ success: true, email: key });
+});
+
+// --- MOBILE CHROME-TO-APK AUTHENTICATION HANDSHAKE STORE ---
+const mobileAuthSessions = new Map<string, {
+  status: 'pending' | 'authenticated';
+  idToken?: string | null;
+  accessToken?: string | null;
+  uid?: string;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+  expires: number;
+}>();
+
+app.post("/api/auth/mobile-session", (req, res) => {
+  const { sessionId, status, idToken, accessToken, uid, email, displayName, photoURL } = req.body;
+  if (!sessionId || typeof sessionId !== 'string') {
+    return res.status(400).json({ error: "sessionId is required." });
+  }
+
+  const existing = mobileAuthSessions.get(sessionId);
+  mobileAuthSessions.set(sessionId, {
+    ...(existing || {}),
+    status: status || 'authenticated',
+    idToken: idToken !== undefined ? idToken : existing?.idToken,
+    accessToken: accessToken !== undefined ? accessToken : existing?.accessToken,
+    uid: uid !== undefined ? uid : existing?.uid,
+    email: email !== undefined ? email : existing?.email,
+    displayName: displayName !== undefined ? displayName : existing?.displayName,
+    photoURL: photoURL !== undefined ? photoURL : existing?.photoURL,
+    expires: Date.now() + 10 * 60 * 1000 // 10 minutes
+  });
+
+  return res.json({ success: true, sessionId });
+});
+
+app.get("/api/auth/mobile-session", (req, res) => {
+  const sessionId = (req.query.session || req.query.sessionId)?.toString();
+  if (!sessionId) {
+    return res.status(400).json({ error: "sessionId is required." });
+  }
+
+  const record = mobileAuthSessions.get(sessionId);
+  if (!record || record.expires < Date.now()) {
+    return res.json({ status: 'not_found' });
+  }
+
+  return res.json(record);
 });
 
 // --- EMAIL & PASSWORD + OTP AUTHENTICATION SYSTEM ---

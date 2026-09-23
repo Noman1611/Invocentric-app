@@ -108,7 +108,9 @@ var allowedOrigins = [
   "https://invocentric.vercel.app",
   "https://invocentric.dev",
   "https://invocentric.in",
-  "https://www.invocentric.in"
+  "https://www.invocentric.in",
+  "https://localhost",
+  "capacitor://localhost"
 ];
 app.use((0, import_cors.default)({
   origin: (origin, callback) => {
@@ -609,6 +611,38 @@ app.post("/api/auth/verify-email-otp", async (req, res) => {
   }
   emailOtpStore.delete(key);
   return res.json({ success: true, email: key });
+});
+var mobileAuthSessions = /* @__PURE__ */ new Map();
+app.post("/api/auth/mobile-session", (req, res) => {
+  const { sessionId, status, idToken, accessToken, uid, email, displayName, photoURL } = req.body;
+  if (!sessionId || typeof sessionId !== "string") {
+    return res.status(400).json({ error: "sessionId is required." });
+  }
+  const existing = mobileAuthSessions.get(sessionId);
+  mobileAuthSessions.set(sessionId, {
+    ...existing || {},
+    status: status || "authenticated",
+    idToken: idToken !== void 0 ? idToken : existing?.idToken,
+    accessToken: accessToken !== void 0 ? accessToken : existing?.accessToken,
+    uid: uid !== void 0 ? uid : existing?.uid,
+    email: email !== void 0 ? email : existing?.email,
+    displayName: displayName !== void 0 ? displayName : existing?.displayName,
+    photoURL: photoURL !== void 0 ? photoURL : existing?.photoURL,
+    expires: Date.now() + 10 * 60 * 1e3
+    // 10 minutes
+  });
+  return res.json({ success: true, sessionId });
+});
+app.get("/api/auth/mobile-session", (req, res) => {
+  const sessionId = (req.query.session || req.query.sessionId)?.toString();
+  if (!sessionId) {
+    return res.status(400).json({ error: "sessionId is required." });
+  }
+  const record = mobileAuthSessions.get(sessionId);
+  if (!record || record.expires < Date.now()) {
+    return res.json({ status: "not_found" });
+  }
+  return res.json(record);
 });
 var usersDbPath = import_path.default.resolve(process.cwd(), "users_db.json");
 function loadUsersDb() {
