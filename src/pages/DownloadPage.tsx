@@ -27,14 +27,28 @@ export default function DownloadPage() {
   const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
 
   const triggerDirectDownload = (e: React.MouseEvent, url: string, filename: string) => {
-    e.preventDefault();
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = url;
-    document.body.appendChild(iframe);
-    setTimeout(() => {
-      try { document.body.removeChild(iframe); } catch (err) {}
-    }, 10000);
+    // On mobile devices, window.location.href or direct window.open triggers the native browser download prompt smoothly
+    const isMobileDevice = typeof navigator !== 'undefined' && /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || '');
+    if (isMobileDevice) {
+      window.location.href = url;
+      return;
+    }
+
+    // On desktop, trigger download via anchor element
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        try { document.body.removeChild(a); } catch (err) {}
+      }, 3000);
+    } catch (_) {
+      window.location.href = url;
+    }
   };
 
   const [isMobile, setIsMobile] = useState<boolean>(() => {
@@ -91,8 +105,8 @@ export default function DownloadPage() {
             Choose how you want to run your billing: download the 100% private Local PC software for your computer, install the mobile app on your phone, or run directly in your browser.
           </p>
           <div className="mt-4 flex items-center justify-center gap-4 text-xs font-semibold text-emerald-800">
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> 14-Day Free Trial Auto-Unlocked</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> No License Keys Needed</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> 30-Day (1 Month) Free Pro Trial Auto-Unlocked</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-600" /> No Credit Card or License Keys Needed</span>
           </div>
         </div>
 
@@ -349,7 +363,7 @@ export default function DownloadPage() {
                 </div>
                 <h4 className="font-bold text-base text-slate-900 mb-2 tracking-tight">Login with your Email</h4>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Open InvoCentric on your desktop and enter your Email ID. Your <strong className="text-slate-800 font-semibold">14-Day Free Pro Trial</strong> activates instantly with zero license keys.
+                  Open InvoCentric on your desktop and enter your Email ID. Your <strong className="text-slate-800 font-semibold">30-Day (1 Month) Free Pro Trial</strong> activates instantly with zero license keys.
                 </p>
               </div>
             </div>

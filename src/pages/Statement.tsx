@@ -23,7 +23,7 @@ import {
   Send,
 } from "lucide-react";
 import { useCustomers, useInvoices, usePayments } from "../hooks/useData";
-import { formatCurrency, cn, normalizePhoneNumber, getWhatsAppShareUrl, getWhatsAppWebUrl, getWhatsAppAppUrl } from "../lib/utils";
+import { formatCurrency, cn, normalizePhoneNumber, getWhatsAppShareUrl, getWhatsAppWebUrl, getWhatsAppAppUrl, openInBrowser } from "../lib/utils";
 import { WhatsAppShareModal } from "../components/WhatsAppShareModal";
 import { WhatsAppIcon } from "../components/WhatsAppIcon";
 import {
@@ -424,7 +424,7 @@ export default function StatementPage() {
       if (isMobileDevice) {
         window.location.href = whatsappUrl;
       } else {
-        window.open(whatsappUrl, '_blank');
+        openInBrowser(whatsappUrl);
       }
 
       setShowWhatsAppModal(true);

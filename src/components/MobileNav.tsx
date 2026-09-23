@@ -35,6 +35,15 @@ export default function MobileNav() {
   
   const isHardcodedAdmin = user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
   const showAdmin = isAdmin || isHardcodedAdmin;
+
+  // Do not render bottom nav on document viewer, fullscreen scanner, or POS routes
+  if (
+    location.pathname.startsWith('/invoices/view') ||
+    location.pathname.startsWith('/mobile-scan') ||
+    location.pathname.startsWith('/pos')
+  ) {
+    return null;
+  }
   
   // Main bottom bar items (Max 4-5 including FAB)
   const navItems = [

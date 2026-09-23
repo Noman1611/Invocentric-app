@@ -40,7 +40,8 @@ import {
   Server,
   Eye,
   EyeOff,
-  CheckCircle2
+  CheckCircle2,
+  Settings
 } from 'lucide-react';
 import { db, auth, OperationType, handleFirestoreError } from '../lib/firebase';
 import { dbService } from '../services/dbService';

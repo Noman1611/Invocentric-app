@@ -21,6 +21,16 @@ import {
   Printer,
   Phone,
   Lock,
+  Building2,
+  Mail,
+  FileSpreadsheet,
+  Send,
+  Copy,
+  Sparkles,
+  X,
+  Check,
+  Share2,
+  FileCode,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -28,8 +38,10 @@ import {
   usePayments,
   useCustomers,
   useSettings,
+  useExpenses,
+  usePurchases,
 } from "../hooks/useData";
-import { formatCurrency, cn, getWhatsAppShareUrl, isMobile } from "../lib/utils";
+import { formatCurrency, cn, getWhatsAppShareUrl, isMobile, openInBrowser } from "../lib/utils";
 import { WhatsAppShareModal } from "../components/WhatsAppShareModal";
 import { WhatsAppIcon } from "../components/WhatsAppIcon";
 import {
@@ -57,7 +69,27 @@ export default function Reports() {
   const { payments } = usePayments();
   const { customers } = useCustomers();
   const { settings } = useSettings();
+  const { expenses = [] } = useExpenses();
+  const { purchases = [] } = usePurchases();
   const { isPro, triggerUpgradeModal } = useAuth();
+
+  // CA (Chartered Accountant) Hub States
+  const [showCaModal, setShowCaModal] = useState(false);
+  const [caPeriod, setCaPeriod] = useState<"this_month" | "last_month" | "this_quarter" | "fy" | "all">("this_month");
+  const [caPhone, setCaPhone] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("ca_phone_number") || "";
+    }
+    return "";
+  });
+  const [caEmail, setCaEmail] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("ca_email_address") || "";
+    }
+    return "";
+  });
+  const [caSuccessMsg, setCaSuccessMsg] = useState<string | null>(null);
+  const [caCopied, setCaCopied] = useState(false);
 
   const [timeRange, setTimeRange] = useState(isPro ? "6m" : "1m");
   const [searchTerm, setSearchTerm] = useState("");
@@ -356,11 +388,10 @@ export default function Reports() {
     setWhatsAppUrlState(whatsappUrl);
     setGeneratedPdfFileName(fileName);
 
-    // 1. OPEN WHATSAPP IMMEDIATELY without waiting for async image/PDF rendering!
     if (isMobile()) {
       window.location.href = whatsappUrl;
     } else {
-      window.open(whatsappUrl, "_blank");
+      openInBrowser(whatsappUrl);
     }
 
     setShowWhatsAppModal(true);
@@ -403,6 +434,190 @@ export default function Reports() {
 
   const handlePrintReport = () => {
     window.print();
+  };
+
+  // CA (Chartered Accountant) Filtered Data and Aggregates
+  const caFilteredData = useMemo(() => {
+    const now = new Date();
+    let start = new Date(0);
+    let end = new Date(2100, 0, 1);
+    let label = "All Time";
+
+    if (caPeriod === "this_month") {
+      start = startOfMonth(now);
+      end = endOfMonth(now);
+      label = format(now, "MMMM yyyy");
+    } else if (caPeriod === "last_month") {
+      const prev = subMonths(now, 1);
+      start = startOfMonth(prev);
+      end = endOfMonth(prev);
+      label = format(prev, "MMMM yyyy");
+    } else if (caPeriod === "this_quarter") {
+      const m = now.getMonth();
+      const qStartMonth = Math.floor(m / 3) * 3;
+      start = new Date(now.getFullYear(), qStartMonth, 1);
+      end = new Date(now.getFullYear(), qStartMonth + 3, 0, 23, 59, 59);
+      label = `Quarter ${Math.floor(m / 3) + 1} (${format(start, "MMM")} - ${format(end, "MMM yyyy")})`;
+    } else if (caPeriod === "fy") {
+      const yr = now.getFullYear();
+      const isPostMarch = now.getMonth() >= 3;
+      const fyStartYear = isPostMarch ? yr : yr - 1;
+      start = new Date(fyStartYear, 3, 1); // 1st April
+      end = new Date(fyStartYear + 1, 2, 31, 23, 59, 59); // 31st March
+      label = `FY ${fyStartYear}-${(fyStartYear + 1).toString().slice(2)}`;
+    }
+
+    const periodInvoices = invoices.filter(inv => {
+      const d = parseDateSafe(inv.created_at || inv.createdAt);
+      return d >= start && d <= end;
+    });
+
+    const periodPurchases = purchases.filter(pur => {
+      const d = parseDateSafe(pur.date || pur.created_at);
+      return d >= start && d <= end;
+    });
+
+    const periodExpenses = expenses.filter(exp => {
+      const d = parseDateSafe(exp.date || exp.created_at);
+      return d >= start && d <= end;
+    });
+
+    const periodPayments = payments.filter(pay => {
+      const d = parseDateSafe(pay.date);
+      return d >= start && d <= end;
+    });
+
+    let totalSalesGross = 0;
+    let totalSalesTaxable = 0;
+    let totalOutputTax = 0;
+    periodInvoices.forEach(inv => {
+      const g = Number(inv.amount || inv.total || 0);
+      const t = Number(inv.tax || inv.total_tax || 0);
+      totalSalesGross += g;
+      totalOutputTax += t;
+      totalSalesTaxable += Number(inv.subtotal || (g - t) || 0);
+    });
+
+    let totalPurchasesGross = 0;
+    let totalPurchasesTaxable = 0;
+    let totalInputTax = 0;
+    periodPurchases.forEach(pur => {
+      const g = Number(pur.total || pur.amount || 0);
+      const t = Number(pur.tax || 0);
+      totalPurchasesGross += g;
+      totalInputTax += t;
+      totalPurchasesTaxable += Number(pur.subtotal || (g - t) || 0);
+    });
+
+    let totalExpenseAmount = 0;
+    periodExpenses.forEach(exp => {
+      totalExpenseAmount += Number(exp.amount || 0);
+    });
+
+    const netGstPayable = Math.max(0, totalOutputTax - totalInputTax);
+    const itcBalance = Math.max(0, totalInputTax - totalOutputTax);
+
+    return {
+      label,
+      invoices: periodInvoices,
+      purchases: periodPurchases,
+      expenses: periodExpenses,
+      payments: periodPayments,
+      totalSalesGross,
+      totalSalesTaxable,
+      totalOutputTax,
+      totalPurchasesGross,
+      totalPurchasesTaxable,
+      totalInputTax,
+      totalExpenseAmount,
+      netGstPayable,
+      itcBalance
+    };
+  }, [caPeriod, invoices, purchases, expenses, payments]);
+
+  const handleDownloadCaPackage = async () => {
+    try {
+      const { exportCompleteCaPackage } = await import("../services/excelService");
+      const fileName = exportCompleteCaPackage({
+        invoices: caFilteredData.invoices,
+        purchases: caFilteredData.purchases,
+        expenses: caFilteredData.expenses,
+        customers,
+        payments: caFilteredData.payments,
+        businessProfile: {
+          businessName: settings?.business_name,
+          gstin: settings?.gstin,
+          phone: settings?.phone,
+          email: settings?.email,
+          state: settings?.state
+        },
+        periodLabel: caFilteredData.label
+      });
+      setCaSuccessMsg(`Excel package downloaded! 5 audit sheets generated.`);
+      setTimeout(() => setCaSuccessMsg(null), 5000);
+    } catch (err: any) {
+      alert(`Could not generate CA Excel: ${err?.message || err}`);
+    }
+  };
+
+  const getCaWhatsAppText = () => {
+    const biz = settings?.business_name || "My Business";
+    const gstin = settings?.gstin || "Unregistered";
+    return `*GST & AUDIT DATA PACKAGE FOR CA*\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n` +
+      `*Business:* ${biz}\n` +
+      `*GSTIN:* ${gstin}\n` +
+      `*Period:* ${caFilteredData.label}\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n` +
+      `*1. OUTWARD SUPPLIES (GSTR-1 SALES):*\n` +
+      `• Invoices Count: ${caFilteredData.invoices.length}\n` +
+      `• Taxable Turnover: ${formatCurrency(caFilteredData.totalSalesTaxable, "INR")}\n` +
+      `• Output GST: ${formatCurrency(caFilteredData.totalOutputTax, "INR")}\n` +
+      `• Gross Sales: ${formatCurrency(caFilteredData.totalSalesGross, "INR")}\n\n` +
+      `*2. INWARD SUPPLIES (GSTR-2B PURCHASES):*\n` +
+      `• Purchase Bills: ${caFilteredData.purchases.length}\n` +
+      `• Taxable Purchases: ${formatCurrency(caFilteredData.totalPurchasesTaxable, "INR")}\n` +
+      `• Eligible ITC (Input Tax): ${formatCurrency(caFilteredData.totalInputTax, "INR")}\n` +
+      `• Gross Purchases: ${formatCurrency(caFilteredData.totalPurchasesGross, "INR")}\n\n` +
+      `*3. TAX POSITION & EXPENSES:*\n` +
+      `• Net GST Payable: ${formatCurrency(caFilteredData.netGstPayable, "INR")}\n` +
+      `• ITC Available to Carry: ${formatCurrency(caFilteredData.itcBalance, "INR")}\n` +
+      `• Indirect Expenses: ${formatCurrency(caFilteredData.totalExpenseAmount, "INR")}\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n` +
+      `_Detailed 5-sheet Excel workbook (Tax Summary, GSTR-1, GSTR-2B, Expenses, Debtors) generated via InvoCentric._`;
+  };
+
+  const handleCaWhatsApp = () => {
+    if (caPhone && typeof window !== 'undefined') {
+      localStorage.setItem("ca_phone_number", caPhone);
+    }
+    const text = getCaWhatsAppText();
+    const url = getWhatsAppShareUrl(caPhone, text);
+    if (isMobile()) {
+      window.location.href = url;
+    } else {
+      openInBrowser(url);
+    }
+  };
+
+  const handleCaEmail = () => {
+    if (caEmail && typeof window !== 'undefined') {
+      localStorage.setItem("ca_email_address", caEmail);
+    }
+    const biz = settings?.business_name || "Business";
+    const subject = encodeURIComponent(`GST & Financial Audit Data: ${biz} - ${caFilteredData.label}`);
+    const body = encodeURIComponent(getCaWhatsAppText().replace(/\*/g, ''));
+    openInBrowser(`mailto:${caEmail}?subject=${subject}&body=${body}`);
+  };
+
+  const handleCopyCaSummary = async () => {
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(getCaWhatsAppText());
+        setCaCopied(true);
+        setTimeout(() => setCaCopied(false), 3000);
+      }
+    } catch (e) {}
   };
 
   return (
@@ -544,6 +759,24 @@ export default function Reports() {
               {!isPro && <Lock size={11} className="text-amber-500 shrink-0 ml-0.5" />}
             </button>
 
+            <Link
+              to="/accounting-export"
+              className="px-3.5 py-2 text-xs font-black uppercase tracking-wider text-green-900 bg-green-50 hover:bg-green-100 border border-green-200/80 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Universal Double-Entry Accounting Export (Tally / QuickBooks / Zoho / SAP)"
+            >
+              <FileCode size={15} className="text-green-700" />
+              <span>Universal ERP</span>
+            </Link>
+
+            <button
+              onClick={() => setShowCaModal(true)}
+              className="px-3.5 py-2 text-xs font-black uppercase tracking-wider text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Send Complete Financial & GST Data to CA"
+            >
+              <Building2 size={15} className="text-indigo-600" />
+              <span>CA Package</span>
+            </button>
+
             <button
               onClick={handleWhatsAppShare}
               className="px-4 py-2 text-xs font-black uppercase tracking-wider text-white bg-[#25D366] hover:bg-[#128C7E] rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
@@ -553,6 +786,41 @@ export default function Reports() {
               <span>WhatsApp</span>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* CA Audit Hub Highlight Banner */}
+      <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 rounded-3xl p-4 sm:p-5 text-white border border-indigo-500/30 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center shrink-0 shadow-inner">
+            <Building2 size={24} className="text-indigo-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-md border border-indigo-400/30">
+                CA & Tax Audit Hub
+              </span>
+              <span className="text-[11px] text-indigo-300 hidden sm:inline font-medium">
+                GSTR-1 · GSTR-2B · Expenses · Debtors Ledger
+              </span>
+            </div>
+            <h3 className="text-sm sm:text-base font-bold text-white mt-1">
+              CA ko pura financial & GST return data 1-click me bhejo
+            </h3>
+            <p className="text-xs text-indigo-200/80 mt-0.5">
+              Multi-sheet Excel workbook automatic generate karein aur WhatsApp / Email se direct share karein.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end">
+          <button
+            onClick={() => setShowCaModal(true)}
+            className="w-full md:w-auto px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-400 hover:to-emerald-400 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
+          >
+            <FileSpreadsheet size={15} />
+            <span>Open CA Package</span>
+          </button>
         </div>
       </div>
 
@@ -1393,6 +1661,235 @@ export default function Reports() {
         fileName={generatedPdfFileName || `Report_${timeRange}.pdf`}
         onDirectSharePdf={generatedPdfBlob ? handleDirectPdfShare : undefined}
       />
+
+      {/* CA & Tax Audit Package Modal */}
+      <AnimatePresence>
+        {showCaModal && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden my-auto"
+            >
+              {/* Modal Header */}
+              <div className="p-4 sm:p-6 bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center shadow-inner">
+                    <Building2 size={20} className="text-indigo-300" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-black tracking-tight text-white uppercase">
+                      CA Data & Tax Audit Package
+                    </h2>
+                    <p className="text-xs text-indigo-200/80">
+                      GSTR-1, GSTR-2B, Expenses & Debtors ledger in multi-sheet Excel
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCaModal(false)}
+                  className="p-1.5 text-indigo-300 hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-5 text-slate-800">
+                
+                {/* Period Selector Tabs */}
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-600 mb-2">
+                    Select Filing / Audit Period:
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1 bg-slate-100 rounded-2xl">
+                    {[
+                      { id: "this_month", label: "This Month" },
+                      { id: "last_month", label: "Last Month" },
+                      { id: "this_quarter", label: "This Quarter" },
+                      { id: "fy", label: "Full FY" },
+                      { id: "all", label: "All Time" },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setCaPeriod(tab.id as any)}
+                        className={cn(
+                          "py-2 px-2 text-xs font-bold rounded-xl transition-all cursor-pointer text-center",
+                          caPeriod === tab.id
+                            ? "bg-white text-indigo-900 shadow-sm font-black"
+                            : "text-slate-600 hover:text-slate-900"
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1.5 font-medium">
+                    Active Period: <span className="font-bold text-indigo-700">{caFilteredData.label}</span>
+                  </p>
+                </div>
+
+                {/* Audit Key Metrics Summary Card */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
+                    <span>Tax & Accounting Snapshot</span>
+                    <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Audit Ready
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-xs">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">Taxable Sales</span>
+                      <span className="text-xs sm:text-sm font-black text-slate-900">
+                        {formatCurrency(caFilteredData.totalSalesTaxable, "INR")}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block mt-0.5">{caFilteredData.invoices.length} invoices</span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-xs">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">Output GST</span>
+                      <span className="text-xs sm:text-sm font-black text-indigo-700">
+                        {formatCurrency(caFilteredData.totalOutputTax, "INR")}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block mt-0.5">Sales tax liability</span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-xs">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">Eligible ITC</span>
+                      <span className="text-xs sm:text-sm font-black text-emerald-700">
+                        {formatCurrency(caFilteredData.totalInputTax, "INR")}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block mt-0.5">{caFilteredData.purchases.length} purchase bills</span>
+                    </div>
+
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-xs">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold block">Net Tax Payable</span>
+                      <span className="text-xs sm:text-sm font-black text-amber-600">
+                        {formatCurrency(caFilteredData.netGstPayable, "INR")}
+                      </span>
+                      <span className="text-[9px] text-slate-400 block mt-0.5">
+                        {caFilteredData.itcBalance > 0 ? `ITC Bal: ${formatCurrency(caFilteredData.itcBalance, "INR")}` : 'After ITC set-off'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5 Sheets Included Breakdown */}
+                <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-3.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-900 block mb-2">
+                    5 Audit-Grade Tabs Inside The Excel (.xlsx):
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-indigo-600 shrink-0" />
+                      <span><strong>Sheet 1:</strong> GST & Financial Summary</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-indigo-600 shrink-0" />
+                      <span><strong>Sheet 2:</strong> GSTR-1 Sales Register</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-indigo-600 shrink-0" />
+                      <span><strong>Sheet 3:</strong> GSTR-2B Purchases Register</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-indigo-600 shrink-0" />
+                      <span><strong>Sheet 4:</strong> Operating Expenses Register</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:col-span-2">
+                      <CheckCircle2 size={13} className="text-indigo-600 shrink-0" />
+                      <span><strong>Sheet 5:</strong> Debtors Ledger & Receivables Aging</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Inputs for CA */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      CA / Tax Consultant Mobile No. (WhatsApp):
+                    </label>
+                    <div className="relative">
+                      <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="tel"
+                        value={caPhone}
+                        onChange={(e) => setCaPhone(e.target.value)}
+                        placeholder="e.g. 9876543210"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      CA Email Address (Optional):
+                    </label>
+                    <div className="relative">
+                      <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="email"
+                        value={caEmail}
+                        onChange={(e) => setCaEmail(e.target.value)}
+                        placeholder="ca.name@example.com"
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Success Message Banner */}
+                {caSuccessMsg && (
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs font-bold text-emerald-800 animate-fadeIn">
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <span>{caSuccessMsg}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <button
+                  onClick={handleCopyCaSummary}
+                  className="w-full sm:w-auto px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 bg-white border border-slate-200 rounded-xl shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {caCopied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                  <span>{caCopied ? "Summary Copied!" : "Copy Summary"}</span>
+                </button>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    onClick={handleCaWhatsApp}
+                    className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+                  >
+                    <WhatsAppIcon size={15} />
+                    <span>WhatsApp CA</span>
+                  </button>
+
+                  <button
+                    onClick={handleCaEmail}
+                    className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+                  >
+                    <Mail size={15} />
+                    <span>Email CA</span>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadCaPackage}
+                    className="flex-1 sm:flex-initial px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:scale-95"
+                  >
+                    <Download size={15} />
+                    <span>Download Excel</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

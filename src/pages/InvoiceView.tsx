@@ -6,7 +6,7 @@ import { getSecureStorage } from '../utils/cryptoUtils';
 import { formatCurrency, cn, normalizePhoneNumber } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { toWords } from 'number-to-words';
-import { ArrowLeft, Edit3, Printer, Download, Loader2, X, Sliders, Settings2, Upload, Trash2, Check, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, Edit3, Printer, Download, Loader2, X, Sliders, Settings2, Upload, Trash2, Check, FileSpreadsheet, ZoomIn, ZoomOut, Maximize2, RotateCcw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../contexts/AuthContext';
 import { WhatsAppShareModal } from '../components/WhatsAppShareModal';
@@ -68,6 +68,27 @@ export default function InvoiceViewPage() {
   // Responsive Auto-Fit Scaling on Mobile Devices (< 768px) - Hook called unconditionally at top level
   const [fitToScreen, setFitToScreen] = useState(true);
   const [scaleFactor, setScaleFactor] = useState(1);
+  const [customZoom, setCustomZoom] = useState<number | null>(null);
+
+  const handleZoomIn = () => {
+    setFitToScreen(false);
+    setCustomZoom(prev => Math.min(2.2, Number(((prev ?? (fitToScreen ? scaleFactor : 1)) + 0.15).toFixed(2))));
+  };
+
+  const handleZoomOut = () => {
+    setFitToScreen(false);
+    setCustomZoom(prev => Math.max(0.35, Number(((prev ?? (fitToScreen ? scaleFactor : 1)) - 0.15).toFixed(2))));
+  };
+
+  const handleResetFit = () => {
+    setFitToScreen(true);
+    setCustomZoom(null);
+  };
+
+  const handleSet100 = () => {
+    setFitToScreen(false);
+    setCustomZoom(1.0);
+  };
 
   useEffect(() => {
     const computeScale = () => {
@@ -1618,7 +1639,7 @@ export default function InvoiceViewPage() {
     WebkitOverflowScrolling: 'touch' as any,
   };
 
-  const activeScale = isPOS ? 1 : (fitToScreen ? scaleFactor : 1);
+  const activeScale = isPOS ? 1 : (fitToScreen ? scaleFactor : (customZoom ?? 1));
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center pb-24 md:pb-16 pb-safe print:bg-white print:p-0 print:m-0 print:pb-0">
@@ -1674,21 +1695,36 @@ export default function InvoiceViewPage() {
                   </button>
                 </div>
 
-                {/* Mobile Fit/Zoom toggle */}
-                {scaleFactor < 1 && (
+                {/* Mobile & Desktop Fit/Zoom Controls */}
+                <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 shrink-0">
                   <button
-                    onClick={() => setFitToScreen(!fitToScreen)}
-                    className={cn(
-                      "md:hidden h-8 px-2 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95",
-                      fitToScreen 
-                        ? "bg-slate-100 text-slate-700 border-slate-300" 
-                        : "bg-emerald-50 text-emerald-700 border-emerald-300"
-                    )}
-                    title={fitToScreen ? "Switch to 100% Zoom" : "Fit to Phone Screen"}
+                    type="button"
+                    onClick={handleZoomOut}
+                    className="p-1 text-slate-600 hover:text-slate-900 rounded-md transition-all active:scale-90"
+                    title="Zoom Out"
                   >
-                    {fitToScreen ? "Fit" : "100%"}
+                    <ZoomOut size={12} />
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={fitToScreen ? handleSet100 : handleResetFit}
+                    className={cn(
+                      "px-1.5 py-0.5 text-[10px] font-black rounded-md transition-all min-w-[34px] text-center",
+                      fitToScreen ? "bg-emerald-100 text-emerald-800" : "bg-white text-slate-900 shadow-xs"
+                    )}
+                    title={fitToScreen ? "Currently Fit to Screen (Click for 100%)" : "Click to Fit to Screen"}
+                  >
+                    {fitToScreen ? "FIT" : `${Math.round(activeScale * 100)}%`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleZoomIn}
+                    className="p-1 text-slate-600 hover:text-slate-900 rounded-md transition-all active:scale-90"
+                    title="Zoom In"
+                  >
+                    <ZoomIn size={12} />
+                  </button>
+                </div>
               </>
             )}
 
@@ -1769,17 +1805,17 @@ export default function InvoiceViewPage() {
                     key={idx}
                     className="w-full flex flex-col items-center"
                     style={{
-                      // Scale container height smoothly so there is no huge empty white gap under scaled document
-                      height: activeScale < 1 ? `calc(${isA5 ? '148mm' : '297mm'} * ${activeScale} + 12px)` : 'auto',
-                      marginBottom: activeScale < 1 ? '8px' : '0px',
-                      overflow: activeScale < 1 ? 'visible' : 'auto'
+                      // Scale container height smoothly so there is no huge empty white gap or clipping under scaled document
+                      height: activeScale !== 1 ? `calc(${isA5 ? '148mm' : '297mm'} * ${activeScale} + 24px)` : 'auto',
+                      marginBottom: activeScale < 1 ? '8px' : '16px',
+                      overflow: 'visible'
                     }}
                   >
                     <div
                       style={{
-                        transform: activeScale < 1 ? `scale(${activeScale})` : 'none',
+                        transform: activeScale !== 1 ? `scale(${activeScale})` : 'none',
                         transformOrigin: 'top center',
-                        transition: 'transform 0.2s ease-in-out'
+                        transition: 'transform 0.15s ease-out'
                       }}
                     >
                       <div
@@ -1822,12 +1858,12 @@ export default function InvoiceViewPage() {
                         <div
                           style={{
                             position: 'relative',
-                            zIndex: 10,
+                            zIndex: 1,
                             width: '100%',
                             height: '100%',
-                            boxSizing: 'border-box',
                             display: 'flex',
                             flexDirection: 'column',
+                            boxSizing: 'border-box',
                             paddingTop: useLetterhead ? `${letterheadTop}mm` : 0,
                             paddingBottom: useLetterhead ? `${letterheadBottom}mm` : 0,
                             paddingLeft: useLetterhead ? '10mm' : 0,
@@ -1845,6 +1881,57 @@ export default function InvoiceViewPage() {
           </div>
         </div>
       </main>
+
+      {/* Floating Mobile Zoom & Pan Helper Pill (For Smartphone & APK invoice inspection) */}
+      {!isPOS && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-2xl border border-slate-700 md:hidden print:hidden">
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            className="p-1 text-slate-300 hover:text-white active:scale-90"
+            title="Zoom Out"
+          >
+            <ZoomOut size={15} />
+          </button>
+          
+          <span className="text-[11px] font-mono font-black px-1 text-emerald-300 min-w-[36px] text-center">
+            {Math.round(activeScale * 100)}%
+          </span>
+
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            className="p-1 text-slate-300 hover:text-white active:scale-90"
+            title="Zoom In"
+          >
+            <ZoomIn size={15} />
+          </button>
+
+          <div className="w-[1px] h-3 bg-slate-700 mx-0.5" />
+
+          <button
+            type="button"
+            onClick={handleResetFit}
+            className={cn(
+              "px-2 py-0.5 text-[10px] font-black rounded-full uppercase tracking-wider transition-all",
+              fitToScreen ? "bg-emerald-500 text-slate-950 font-extrabold" : "text-slate-300 hover:text-white"
+            )}
+          >
+            Fit
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSet100}
+            className={cn(
+              "px-2 py-0.5 text-[10px] font-black rounded-full uppercase tracking-wider transition-all",
+              !fitToScreen && Math.round(activeScale * 100) === 100 ? "bg-emerald-500 text-slate-950 font-extrabold" : "text-slate-300 hover:text-white"
+            )}
+          >
+            100%
+          </button>
+        </div>
+      )}
 
       {/* Accessible Letterhead Settings & Alignment Live Side Panel */}
       {showLetterheadSlider && (

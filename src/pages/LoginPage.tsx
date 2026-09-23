@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
+import { openInBrowser } from '../lib/utils';
 
 const InvoiceMockup = () => {
   return (
@@ -752,6 +753,10 @@ export default function LoginPage() {
                   href="https://wa.me/919824194869?text=Hello%20InvoCentric%20Support,%20I%20need%20help%20with%20my%20account"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openInBrowser("https://wa.me/919824194869?text=Hello%20InvoCentric%20Support,%20I%20need%20help%20with%20my%20account");
+                  }}
                   className="flex items-center justify-between p-3 bg-slate-50 hover:bg-emerald-50 active:scale-[0.98] border border-slate-100 hover:border-emerald-200 rounded-xl transition-all cursor-pointer group shadow-2xs"
                 >
                   <div className="flex items-center gap-3">
@@ -768,6 +773,10 @@ export default function LoginPage() {
 
                 <a 
                   href="mailto:support@invocentric.in?subject=InvoCentric%20Login%20Support%20Request"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openInBrowser("mailto:support@invocentric.in?subject=InvoCentric%20Login%20Support%20Request");
+                  }}
                   className="flex items-center justify-between p-3 bg-slate-50 hover:bg-blue-50 active:scale-[0.98] border border-slate-100 hover:border-blue-200 rounded-xl transition-all cursor-pointer group shadow-2xs"
                 >
                   <div className="flex items-center gap-3">
@@ -786,6 +795,10 @@ export default function LoginPage() {
                   href="https://invocentric.in"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openInBrowser("https://invocentric.in");
+                  }}
                   className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 active:scale-[0.98] border border-slate-100 hover:border-slate-300 rounded-xl transition-all cursor-pointer group shadow-2xs"
                 >
                   <div className="flex items-center gap-3">

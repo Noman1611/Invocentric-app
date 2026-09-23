@@ -33,12 +33,13 @@ import RecycleBinModal from '../components/RecycleBinModal';
 import { format, subDays, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 import { parseDateSafe } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAutoReminders } from '../hooks/useAutoReminders';
 import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, AreaChart, Area } from 'recharts';
 import { exportInvoicesAsMultiSheet } from '../services/excelService';
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const { user, isOfflineMode, appMode } = useAuth();
   const { invoices, loading: invoicesLoading } = useInvoices();
   const { customers, loading: customersLoading } = useCustomers();
@@ -300,16 +301,30 @@ export default function DashboardPage() {
               <h3 className="text-base font-black text-slate-900">Revenue Trends</h3>
               <p className="text-xs font-semibold text-slate-500 mt-1">Monthly performance analytics</p>
             </div>
-            <div className="flex items-center gap-3">
-              {/* TimeFilter selector replica of screenshot */}
-              <div className="flex items-center gap-1.5 bg-[#F8FAFB] border border-slate-200/60 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-600 cursor-pointer ">
-                <Calendar size={13} className="text-slate-500" />
-                <span>{timeFilter}</span>
-                <ChevronDown size={12} className="text-slate-500" />
+            <div className="flex items-center gap-2.5">
+              {/* TimeFilter dropdown selector */}
+              <div className="relative flex items-center">
+                <select
+                  value={timeFilter}
+                  onChange={(e) => setTimeFilter(e.target.value)}
+                  className="appearance-none bg-[#F8FAFB] hover:bg-slate-100 border border-slate-200/80 rounded-xl pl-8 pr-7 py-1.5 text-xs font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                  title="Filter Revenue Analytics"
+                >
+                  <option value="This Year">This Year</option>
+                  <option value="This Month">This Month</option>
+                  <option value="Last 30 Days">Last 30 Days</option>
+                  <option value="All Time">All Time</option>
+                </select>
+                <Calendar size={13} className="text-slate-500 absolute left-2.5 pointer-events-none" />
+                <ChevronDown size={12} className="text-slate-500 absolute right-2.5 pointer-events-none" />
               </div>
 
-              {/* Three dot action button */}
-              <button className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg ">
+              {/* Three dot action button - Navigate to full reports */}
+              <button 
+                onClick={() => navigate('/reports')}
+                title="View Full Financial Reports & Analytics"
+                className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 rounded-lg cursor-pointer transition-all active:scale-95"
+              >
                 <MoreVertical size={16} />
               </button>
             </div>
@@ -521,7 +536,11 @@ export default function DashboardPage() {
                           </span>
                         </td>
                         <td className="py-3.5 px-2 text-right">
-                          <button className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-50 border border-transparent hover:border-slate-100 rounded-lg  inline-flex items-center justify-center">
+                          <button 
+                            onClick={() => navigate(`/invoices/${inv.id}`)}
+                            title="View Invoice Details"
+                            className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 rounded-lg inline-flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                          >
                             <MoreHorizontal size={15} />
                           </button>
                         </td>

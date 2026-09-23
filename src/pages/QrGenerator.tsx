@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'motion/react';
 import { QrCode, ExternalLink, ShieldCheck, Sparkles, ArrowUpRight } from 'lucide-react';
+import { openInBrowser } from '../lib/utils';
 
 export default function QrGenerator() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function QrGenerator() {
   }, [isPro, navigate]);
 
   const handleLaunch = () => {
-    window.open('https://ns-fixed-qr.vercel.app/', '_blank', 'noopener,noreferrer');
+    openInBrowser('https://ns-fixed-qr.vercel.app/');
   };
 
   return (

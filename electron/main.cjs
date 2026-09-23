@@ -15947,6 +15947,67 @@ var require_main2 = __commonJS({
 var { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 var path = require("path");
 var fs = require("fs");
+var { exec, spawn } = require("child_process");
+function getChromePath() {
+  const localAppData = process.env.LOCALAPPDATA || "";
+  const programFiles = process.env.ProgramFiles || "C:\\Program Files";
+  const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+  const candidatePaths = [
+    path.join(programFiles, "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(programFilesX86, "Google", "Chrome", "Application", "chrome.exe"),
+    path.join(localAppData, "Google", "Chrome", "Application", "chrome.exe"),
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+  ];
+  for (const p of candidatePaths) {
+    if (p && fs.existsSync(p)) {
+      return p;
+    }
+  }
+  return null;
+}
+function openInChrome(url) {
+  if (!url || typeof url !== "string") return false;
+  console.log("[ChromeLauncher] Request to open in Chrome:", url);
+  try {
+    const chromePath = getChromePath();
+    if (chromePath) {
+      console.log(`[ChromeLauncher] Launching via binary: "${chromePath}"`);
+      const child = spawn(chromePath, [url], {
+        detached: true,
+        stdio: "ignore"
+      });
+      child.unref();
+      return true;
+    }
+    if (process.platform === "win32") {
+      console.log('[ChromeLauncher] Spawning via Windows "start chrome" command...');
+      exec(`start chrome "${url.replace(/"/g, '\\"')}"`, (err) => {
+        if (err) {
+          console.warn('[ChromeLauncher] "start chrome" failed, falling back to shell.openExternal:', err);
+          shell.openExternal(url);
+        }
+      });
+      return true;
+    }
+    if (process.platform === "darwin") {
+      exec(`open -a "Google Chrome" "${url}"`, (err) => {
+        if (err) shell.openExternal(url);
+      });
+      return true;
+    }
+    if (process.platform === "linux") {
+      exec(`google-chrome "${url}" || google-chrome-stable "${url}"`, (err) => {
+        if (err) shell.openExternal(url);
+      });
+      return true;
+    }
+  } catch (err) {
+    console.error("[ChromeLauncher] Unexpected error launching Chrome:", err);
+  }
+  shell.openExternal(url);
+  return true;
+}
 var autoUpdater = null;
 try {
   const updaterModule = require_main2();
@@ -16067,6 +16128,26 @@ function createWindow() {
       mainWindow.loadFile(path.join(distDir, "index.html"));
     });
   }
+  try {
+    const defaultUserAgent = mainWindow.webContents.getUserAgent();
+    const chromeUserAgent = defaultUserAgent.replace(/Electron\/[0-9\.]+\s?/, "");
+    mainWindow.webContents.setUserAgent(chromeUserAgent);
+  } catch (uaErr) {
+    console.warn("[UserAgent] Failed to sanitize user agent:", uaErr);
+  }
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    console.log("[WindowOpenHandler] Intercepted external window request:", url);
+    openInChrome(url);
+    return { action: "deny" };
+  });
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    const isLocal = url.startsWith("http://127.0.0.1") || url.startsWith("http://localhost") || url.startsWith("file://");
+    if (!isLocal) {
+      event.preventDefault();
+      console.log("[WillNavigate] Prevented in-app navigation and redirecting to Chrome:", url);
+      openInChrome(url);
+    }
+  });
   mainWindow.webContents.on("console-message", (event) => {
     console.log("[Renderer Console]", event.message);
   });
@@ -16089,6 +16170,8 @@ function createWindow() {
     }
   });
 }
+ipcMain.handle("open-external-url", (event, url) => openInChrome(url));
+ipcMain.handle("open-in-chrome", (event, url) => openInChrome(url));
 ipcMain.handle("get-app-version", () => app.getVersion());
 ipcMain.handle("get-app-path", (event, name) => {
   if (name === "userData") return app.getPath("userData");

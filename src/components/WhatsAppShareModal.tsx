@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Share2, CheckCircle2 } from 'lucide-react';
 import { WhatsAppIcon } from './WhatsAppIcon';
+import { openInBrowser } from '../lib/utils';
 
 interface WhatsAppShareModalProps {
   isOpen: boolean;
@@ -104,10 +105,14 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
                     href={whatsAppWebUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openInBrowser(whatsAppWebUrl);
+                    }}
                     className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border-none cursor-pointer no-underline text-sm"
                   >
                     <WhatsAppIcon size={20} />
-                    Open in WhatsApp Web
+                    Open in WhatsApp Web (Chrome)
                   </a>
                 )}
                 {whatsAppAppUrl && (
@@ -115,6 +120,10 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
                     href={whatsAppAppUrl}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openInBrowser(whatsAppAppUrl);
+                    }}
                     className="w-full py-2.5 bg-[#F0FDF4] hover:bg-[#F0FDF4] text-[#166534] font-bold rounded-xl transition-all flex items-center justify-center gap-2 border border-emerald-100 cursor-pointer no-underline text-xs"
                   >
                     <WhatsAppIcon size={16} />
@@ -127,12 +136,17 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
                 href={whatsAppUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openInBrowser(whatsAppUrl);
+                }}
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border-none cursor-pointer no-underline text-sm"
               >
                 <WhatsAppIcon size={20} />
                 Open WhatsApp Chat Now
               </a>
             )}
+
             <button
               type="button"
               onClick={onClose}

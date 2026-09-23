@@ -37,8 +37,24 @@ function mergeOfflineQueue(data: any[], collectionName: string, userId: string) 
 
 export function useInvoices() {
   const { user, isOfflineMode } = useAuth();
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = getSecureStorage(`offline_invoices_${user.uid}`, []);
+      return mergeOfflineQueue(cached, "invoices", user.uid);
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (!user) return false;
+    try {
+      const cached = getSecureStorage(`offline_invoices_${user.uid}`, null);
+      return cached === null;
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (!user) {
@@ -102,8 +118,25 @@ export function useInvoices() {
 
 export function useCustomers() {
   const { user, isOfflineMode } = useAuth();
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = getSecureStorage(`offline_customers_${user.uid}`, []);
+      const merged = mergeOfflineQueue(cached, "customers", user.uid);
+      return merged.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (!user) return false;
+    try {
+      const cached = getSecureStorage(`offline_customers_${user.uid}`, null);
+      return cached === null;
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (!user) {
@@ -164,8 +197,25 @@ export function useCustomers() {
 
 export function useItems() {
   const { user, isOfflineMode } = useAuth();
-  const [items, setItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = getSecureStorage(`offline_items_${user.uid}`, []);
+      const merged = mergeOfflineQueue(cached, "items", user.uid);
+      return merged.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (!user) return false;
+    try {
+      const cached = getSecureStorage(`offline_items_${user.uid}`, null);
+      return cached === null;
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (!user) {
@@ -424,8 +474,28 @@ export function usePurchases() {
 
 export function useSettings() {
   const { user, isOfflineMode } = useAuth();
-  const [settings, setSettings] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState<any>(() => {
+    if (!user) return null;
+    try {
+      const isLocallyCompleted = localStorage.getItem(`wizard_completed_${user.uid}`) === 'true';
+      const cachedProfile = getStoredUserProfile(user.uid);
+      if (cachedProfile) {
+        return { id: user.uid, ...cachedProfile, ...(isLocallyCompleted ? { wizard_completed: true } : {}) };
+      } else if (isLocallyCompleted) {
+        return { id: user.uid, wizard_completed: true };
+      }
+    } catch (_) {}
+    return null;
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (!user) return false;
+    try {
+      const cachedProfile = getStoredUserProfile(user.uid);
+      return !cachedProfile;
+    } catch (_) {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (!user) {

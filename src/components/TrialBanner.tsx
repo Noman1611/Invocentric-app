@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Sparkles, Clock, ArrowRight, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -19,7 +19,7 @@ export function TrialBanner() {
             <Sparkles size={12} className="text-yellow-300 animate-pulse" />
           </div>
           <p className="text-[11px] sm:text-xs font-semibold truncate">
-            <span className="font-extrabold uppercase tracking-wide">14-Day Free Trial:</span>{' '}
+            <span className="font-extrabold uppercase tracking-wide">1 Month Free Pro Trial:</span>{' '}
             <span className="font-bold text-yellow-200">{daysLeftInTrial} day{daysLeftInTrial > 1 ? 's' : ''} remaining</span> with all Pro features unlocked.
           </p>
         </div>
@@ -28,7 +28,7 @@ export function TrialBanner() {
           to="/pricing"
           className="flex items-center gap-1.5 px-3 py-1 bg-white text-[#0d5c4b] hover:bg-emerald-50 rounded-lg text-[11px] font-extrabold shadow-sm transition-all hover:scale-105 active:scale-95 shrink-0 ml-2"
         >
-          <span>Activate Pro</span>
+          <span>Upgrade Pro</span>
           <ArrowRight size={12} />
         </Link>
       </div>
@@ -41,7 +41,7 @@ export function TrialBanner() {
         <div className="flex items-center gap-2 sm:gap-2.5">
           <Clock size={15} className="text-yellow-300 shrink-0" />
           <p className="text-[11px] sm:text-xs font-bold">
-            Your 14-day free trial has expired. Activate a Pro plan to keep all premium accounting features.
+            Your 1-month free trial has expired. Activate a Pro plan to keep all premium accounting features.
           </p>
         </div>
         <Link

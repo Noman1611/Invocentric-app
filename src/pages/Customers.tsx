@@ -2,10 +2,9 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Mail, Phone, MapPin, UserPlus, X, Trash2, Edit2, Mic, Contact, Tag, Sliders, Camera, Upload, User } from 'lucide-react';
-import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { useCustomers } from '../hooks/useData';
 import { useAuth } from '../contexts/AuthContext';
-import { cn } from '../lib/utils';
+import { cn, openInBrowser } from '../lib/utils';
 
 import { dbService } from '../services/dbService';
 import { parseContactFromText } from '../services/aiService';
@@ -391,7 +390,7 @@ export default function CustomersPage() {
                       e.stopPropagation();
                       const num = (customer.phone || '').replace(/[^0-9]/g, '');
                       const msg = encodeURIComponent(`Dear ${customer.name}, gentle reminder regarding your outstanding balance with us. Please clear the pending dues. Thank you!`);
-                      window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+                      openInBrowser(`https://wa.me/${num}?text=${msg}`);
                     }}
                     className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all flex items-center justify-center cursor-pointer"
                     title="1-Click WhatsApp Payment Reminder"

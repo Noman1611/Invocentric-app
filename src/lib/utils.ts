@@ -54,6 +54,33 @@ export function getWhatsAppAppUrl(phone?: string, text: string = '') {
   return `whatsapp://send?text=${encodedText}`;
 }
 
+/**
+ * Universally opens any external link, WhatsApp Web, payment URL, or portal directly in Google Chrome.
+ * When running inside the desktop software (Electron), triggers the native Chrome process launcher.
+ */
+export function openInBrowser(url: string) {
+  if (!url || typeof url !== 'string') return;
+
+  if (typeof window !== 'undefined' && (window as any).electronAPI?.openExternalUrl) {
+    try {
+      (window as any).electronAPI.openExternalUrl(url);
+      return;
+    } catch (err) {
+      console.warn('[Browser Launcher] Error calling electronAPI.openExternalUrl:', err);
+    }
+  }
+
+  // Web and Smartphone fallback
+  try {
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      window.location.href = url;
+    }
+  } catch (_) {
+    window.location.href = url;
+  }
+}
+
 export function formatCurrency(amount: number | null | undefined, currency: string = 'USD') {
   const safeAmount = typeof amount === 'number' ? amount : 0;
   try {

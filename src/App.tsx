@@ -47,6 +47,7 @@ const MobileScanPage = lazy(() => import('./pages/MobileScan'));
 const SeoLandingPage = lazy(() => import('./pages/SeoLandingPage'));
 const GstCalculatorPage = lazy(() => import('./pages/GstCalculatorPage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));
+const AccountingExportPage = lazy(() => import('./pages/AccountingExportPage'));
 
 function PageLoader() {
   return (
@@ -729,11 +730,13 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return { steps, completedCount, percentage };
   }, [isProfileIncomplete, customers, items, invoices]);
 
-  // Auto-open guide for new users with 0 invoices once they complete profile setup
+  // Auto-open guide for new users with 0 invoices once they complete profile setup (strictly only once per session)
   useEffect(() => {
     if (!settingsLoading && !isProfileIncomplete && (invoices?.length || 0) === 0) {
       const guideDismissed = localStorage.getItem('onboarding_guide_dismissed');
-      if (!guideDismissed) {
+      const alreadyShownThisSession = sessionStorage.getItem('onboarding_guide_shown_session');
+      if (!guideDismissed && !alreadyShownThisSession) {
+        sessionStorage.setItem('onboarding_guide_shown_session', 'true');
         setIsGuideOpen(true);
       }
     }
@@ -1874,6 +1877,8 @@ export default function App() {
               <Route path="/pos" element={<PrivateRoute><QuickPOSPage /></PrivateRoute>} />
               <Route path="/qr-generator" element={<PrivateRoute><QrGeneratorPage /></PrivateRoute>} />
               <Route path="/barcode-generator" element={<PrivateRoute><BarcodeGeneratorPage /></PrivateRoute>} />
+              <Route path="/accounting-export" element={<PrivateRoute><AccountingExportPage /></PrivateRoute>} />
+              <Route path="/accounting-preview" element={<AccountingExportPage />} />
               
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

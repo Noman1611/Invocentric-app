@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { BLOG_POSTS } from './BlogPage';
-import { cn } from '../lib/utils';
+import { cn, openInBrowser } from '../lib/utils';
+import { UniversalAccountingExportDashboard } from '../components/UniversalAccountingExportDashboard';
 
 const FADE_UP_ANIMATION_VARIANTS = {
   hidden: { opacity: 0, y: 30 },
@@ -72,14 +73,28 @@ export default function LandingPage() {
   const GITHUB_ANDROID_URL = 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
 
   const triggerDirectDownload = (e: React.MouseEvent, url: string, filename: string) => {
-    e.preventDefault();
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = url;
-    document.body.appendChild(iframe);
-    setTimeout(() => {
-      try { document.body.removeChild(iframe); } catch (err) {}
-    }, 10000);
+    // On mobile devices, trigger direct native download
+    const isMobileDevice = typeof navigator !== 'undefined' && /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent || '');
+    if (isMobileDevice) {
+      window.location.href = url;
+      return;
+    }
+
+    // On desktop, trigger download via anchor element
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        try { document.body.removeChild(a); } catch (err) {}
+      }, 3000);
+    } catch (_) {
+      window.location.href = url;
+    }
   };
 
   // New states for interactive modals
@@ -348,7 +363,16 @@ export default function LandingPage() {
                 variants={STAGGER_CONTAINER}
                 initial="hidden"
                 animate="show"
-              >
+              >                {/* 1 Month Free Trial High-Impact Special Offer Pill */}
+                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="inline-flex flex-wrap items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-teal-500/15 border border-emerald-500/40 text-emerald-950 text-xs sm:text-sm font-black mb-4 shadow-xs">
+                  <span className="bg-gradient-to-r from-emerald-700 to-[#166534] text-white px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                    🎉 Special Offer
+                  </span>
+                  <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                    First-Time Login Par Pura <span className="text-[#166534] font-black underline decoration-emerald-400 decoration-2">1 Month Free Pro Access</span> Unlocked!
+                  </span>
+                </motion.div>
+
                 <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-100 text-green-700 text-xs font-bold uppercase tracking-wider mb-6">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
                   Free GST Billing Software for Indian Small Businesses
@@ -366,9 +390,9 @@ export default function LandingPage() {
                 <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="flex flex-col sm:flex-row items-center gap-4">
                   <button 
                     onClick={() => navigate('/login')}
-                    className="w-full sm:w-auto px-8 py-4 bg-gray-900 text-white text-sm font-bold rounded-full hover:bg-gray-800 transition-all flex items-center justify-center gap-2 group active:scale-95 shadow-xl shadow-gray-900/20"
+                    className="w-full sm:w-auto px-8 py-4 bg-green-600 text-white text-sm font-bold rounded-full hover:bg-green-700 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-xl shadow-green-600/30 group cursor-pointer"
                   >
-                    Create Your Free Account
+                    Claim 1 Month Free Pro Trial
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </button>
                   <button 
@@ -388,7 +412,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-900 leading-tight">Install Offline PC Software &amp; Android App</p>
-                      <p className="text-[11px] text-emerald-800 font-medium">100% Free 14-Day Pro Trial • No Cloud Dependency</p>
+                      <p className="text-[11px] text-emerald-800 font-medium">100% Free 30-Day (1 Month) Pro Trial • No Credit Card Required</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1008,7 +1032,7 @@ export default function LandingPage() {
                           type="button"
                           onClick={() => {
                             const text = encodeURIComponent(`📊 GST Calculation Summary:\n• Base Price: ₹${calculatedGst.base.toFixed(2)}\n• GST (${calcGstRate}%): ₹${calculatedGst.tax.toFixed(2)} (CGST: ₹${(calculatedGst.tax/2).toFixed(2)} + SGST: ₹${(calculatedGst.tax/2).toFixed(2)})\n• Total Value: ₹${calculatedGst.total.toFixed(2)}\n\nCalculated with InvoCentric Free GST Tool: https://invocentric.in/gst-calculator`);
-                            window.open(`https://wa.me/?text=${text}`, '_blank');
+                            openInBrowser(`https://wa.me/?text=${text}`);
                           }}
                           className="px-3.5 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                           title="Share breakdown on WhatsApp"
@@ -1065,7 +1089,7 @@ export default function LandingPage() {
               </button>
 
               <button 
-                onClick={() => window.open("https://ns-fixed-qr.vercel.app/", "_blank", "noopener,noreferrer")}
+                onClick={() => openInBrowser("https://ns-fixed-qr.vercel.app/")}
                 className="p-6 bg-white rounded-2xl border border-gray-100 hover:border-green-500 hover:shadow-lg transition-all text-center flex flex-col items-center justify-center gap-3 cursor-pointer group"
               >
                 <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-colors">
@@ -1694,7 +1718,7 @@ export default function LandingPage() {
                   <ul className="space-y-2.5 text-xs text-gray-700 font-semibold mb-8">
                     <li className="flex items-center gap-2 text-emerald-800">
                       <Check size={16} className="text-emerald-600 shrink-0" />
-                      14-Day Free Pro Trial Auto-Unlocked
+                      30-Day (1 Month) Free Pro Trial Auto-Unlocked
                     </li>
                     <li className="flex items-center gap-2">
                       <Check size={16} className="text-emerald-600 shrink-0" />
@@ -1797,6 +1821,29 @@ export default function LandingPage() {
                 <ArrowRight size={14} />
               </button>
             </div>
+          </div>
+        </section>
+
+        {/* Universal ERP & Accounting Integration Showcase */}
+        <section className="py-20 bg-slate-100/70 border-t border-slate-200">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-bold uppercase tracking-wider mb-3">
+                Universal Double-Entry Export Engine
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+                Integrate with Tally, QuickBooks, Zoho & SAP
+              </h2>
+              <p className="text-slate-600 mt-3 text-sm sm:text-base">
+                Try the live interactive export preview below. Filter by date, inspect the strict double-entry ledger mappings, and download Excel, CSV, or integration-ready JSON.
+              </p>
+            </div>
+
+            <UniversalAccountingExportDashboard
+              useDemoData={true}
+              title="Live Accounting Data Preview (Interactive Demo)"
+              subtitle="Test the double-entry transformation engine directly from your browser"
+            />
           </div>
         </section>
 

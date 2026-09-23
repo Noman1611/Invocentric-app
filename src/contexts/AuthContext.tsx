@@ -334,7 +334,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isOfflineMode = false;
   const isOwner = role === 'owner' || user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
 
-  // 14-Day Free Trial Logic
+  // 30-Day (1 Month) Free Pro Trial Logic
   const [trialStartDate, setTrialStartDate] = useState<string | null>(() => {
     return localStorage.getItem('invocentric_trial_start');
   });
@@ -351,7 +351,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setTrialStartDate(savedStart);
   }, [user]);
 
-  const trialDurationMs = 14 * 24 * 60 * 60 * 1000;
+  const trialDurationMs = 30 * 24 * 60 * 60 * 1000;
   const trialStartTime = trialStartDate ? new Date(trialStartDate).getTime() : Date.now();
   const trialElapsed = Date.now() - trialStartTime;
   const isTrialActive = !isOwner && planTier !== 'pro' && trialElapsed < trialDurationMs;

@@ -19,7 +19,7 @@ import {
   Printer,
   Phone,
 } from "lucide-react";
-import { formatCurrency, cn, getWhatsAppShareUrl, isMobile } from "../lib/utils";
+import { formatCurrency, cn, getWhatsAppShareUrl, isMobile, openInBrowser } from "../lib/utils";
 import { WhatsAppShareModal } from "../components/WhatsAppShareModal";
 import { WhatsAppIcon } from "../components/WhatsAppIcon";
 import { format, parseISO } from "date-fns";
@@ -226,11 +226,10 @@ export default function Purchases() {
     setWhatsAppShareText(shareText);
     setWhatsAppUrlState(whatsappUrl);
 
-    // 1. Launch WhatsApp immediately
     if (isMobile()) {
       window.location.href = whatsappUrl;
     } else {
-      window.open(whatsappUrl, "_blank");
+      openInBrowser(whatsappUrl);
     }
 
     setShowWhatsAppModal(true);

@@ -22,9 +22,9 @@ export interface AppUpdateState {
   platform: 'electron' | 'android' | 'web';
 }
 
-export const APP_CURRENT_VERSION = '1.0.2';
+export const APP_CURRENT_VERSION = '1.0.3';
 
-// Compare two semver strings (e.g. "1.0.2" vs "1.0.1")
+// Compare two semver strings (e.g. "1.0.3" vs "1.0.2")
 export function isNewerVersion(latest: string, current: string): boolean {
   const cleanLatest = latest.replace(/^[^\d]*/, '').trim();
   const cleanCurrent = current.replace(/^[^\d]*/, '').trim();
@@ -74,8 +74,7 @@ class UniversalUpdateService {
     if (
       (window as any).Capacitor?.isNativePlatform?.() ||
       window.location.protocol === 'capacitor:' ||
-      window.location.protocol === 'ionic:' ||
-      /Android.*Version\/[\d.]+/i.test(navigator.userAgent)
+      window.location.protocol === 'ionic:'
     ) {
       return 'android';
     }

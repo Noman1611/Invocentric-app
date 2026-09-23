@@ -19,7 +19,7 @@ import {
   Share2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { formatCurrency, getWhatsAppShareUrl, isMobile } from "../lib/utils";
+import { formatCurrency, getWhatsAppShareUrl, isMobile, openInBrowser } from "../lib/utils";
 import { useData, useSettings } from "../hooks/useData";
 import { exportToExcel } from "../services/excelService";
 import { WhatsAppShareModal } from "../components/WhatsAppShareModal";
@@ -448,7 +448,7 @@ export default function DailyBook() {
     if (isMobile()) {
       window.location.href = whatsappUrl;
     } else {
-      window.open(whatsappUrl, "_blank");
+      openInBrowser(whatsappUrl);
     }
 
     setShowWhatsAppModal(true);

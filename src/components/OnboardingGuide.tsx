@@ -118,8 +118,12 @@ export default function OnboardingGuide({
               </div>
             </div>
             <button
-              onClick={() => setIsGuideOpen(false)}
-              className="p-1 hover:bg-slate-200/50 rounded-lg transition-all text-slate-400 hover:text-slate-600"
+              onClick={() => {
+                localStorage.setItem('onboarding_guide_dismissed', 'true');
+                setIsGuideOpen(false);
+              }}
+              className="p-1 hover:bg-slate-200/50 rounded-lg transition-all text-slate-400 hover:text-slate-600 cursor-pointer"
+              title="Close Guide"
             >
               <X size={15} />
             </button>
