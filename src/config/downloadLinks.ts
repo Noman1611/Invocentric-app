@@ -9,7 +9,7 @@ export const DEFAULT_WINDOWS_DOWNLOAD_URL =
   'https://github.com/Noman1611/Invocentric-app/releases/download/v1.0.12/InvoCentric-Setup.exe';
 
 export const DEFAULT_ANDROID_DOWNLOAD_URL =
-  'https://github.com/Noman1611/Invocentric-app/releases/download/v1.0.12/InvoCentric.apk';
+  'https://github.com/Noman1611/Invocentric-app/releases/download/v1.0.13/InvoCentric.apk';
 
 let cachedUrls: { windows: string; android: string } | null = null;
 
