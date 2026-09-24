@@ -1,5 +1,5 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
-import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload } from '../utils/settingsStorage';
+import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, clearGlobalProfileBackup } from '../utils/settingsStorage';
 import { apiUrl } from '../utils/apiConfig';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
@@ -30,7 +30,8 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   ConfirmationResult,
-  signInWithCredential
+  signInWithCredential,
+  updateProfile
 } from 'firebase/auth';
 import { 
   doc, 
@@ -422,14 +423,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('app_mode', profile.app_mode);
         }
         const isOwnerEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-        setRole(isOwnerEmail ? 'owner' : (profile?.role || 'user'));
+        setRole(isOwnerEmail ? 'owner' : (profile?.role === 'owner' ? 'user' : (profile?.role || 'user')));
         setBillingCycle(profile?.billing_cycle || profile?.billingCycle || null);
         setPlanRenewsAt(profile?.plan_renews_at || profile?.planRenewsAt || null);
         setSubscriptionPending(!!profile?.subscription_pending);
         setSubscriptionStatus(profile?.subscription_status || null);
         setSubscriptionRequestRef(profile?.subscription_request_ref || null);
-        const isAdminEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-        setIsAdmin(isAdminEmail || !!profile?.is_admin);
+        setIsAdmin(isOwnerEmail);
       }
       return;
     }
@@ -471,15 +471,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       const isOwnerEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-      setRole(isOwnerEmail ? 'owner' : (profile?.role || 'user'));
+      setRole(isOwnerEmail ? 'owner' : (profile?.role === 'owner' ? 'user' : (profile?.role || 'user')));
       setBillingCycle(profile?.billing_cycle || profile?.billingCycle || null);
       setPlanRenewsAt(profile?.plan_renews_at || profile?.planRenewsAt || null);
       setSubscriptionPending(!!profile?.subscription_pending);
       setSubscriptionStatus(profile?.subscription_status || null);
       setSubscriptionRequestRef(profile?.subscription_request_ref || null);
       
-      const isAdminEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-      setIsAdmin(isAdminEmail || !!profile?.is_admin);
+      setIsAdmin(isOwnerEmail);
     }, (error) => {
       console.error("Error listening to user profile in AuthContext:", error);
       try {
@@ -498,17 +497,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
       const cached = getStoredUserProfile(firebaseUser.uid);
       
+      const emailPrefix = firebaseUser.email ? firebaseUser.email.split('@')[0] : 'User';
+      const formattedDefaultName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+      const safeDisplayName = (firebaseUser.displayName && !firebaseUser.displayName.toLowerCase().includes('noman') && !firebaseUser.displayName.toLowerCase().includes('shekh'))
+        ? firebaseUser.displayName
+        : (isOwnerEmail ? 'Shekh Mahammad Noman' : formattedDefaultName);
+
       const profileData: any = {
         id: firebaseUser.uid,
         email: firebaseUser.email || null,
-        display_name: firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : 'User'),
+        display_name: safeDisplayName,
+        owner_name: isOwnerEmail ? 'Shekh Mahammad Noman' : safeDisplayName,
         photo_url: firebaseUser.photoURL || null,
-        is_admin: isOwnerEmail || !!cached?.is_admin,
+        is_admin: isOwnerEmail,
         status: 'active',
         plan_status: cached?.plan_status || 'active',
-        plan_tier: cached?.plan_tier || 'free',
-        plan: cached?.plan || 'free',
-        role: isOwnerEmail ? 'owner' : (cached?.role || 'user'),
+        plan_tier: isOwnerEmail ? 'pro' : (cached?.plan_tier || 'free'),
+        plan: isOwnerEmail ? 'pro' : (cached?.plan || 'free'),
+        role: isOwnerEmail ? 'owner' : 'user',
         billing_cycle: cached?.billing_cycle || null,
         plan_renews_at: cached?.plan_renews_at || null,
         is_offline_mode: false,
@@ -555,14 +561,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('app_mode', profile.app_mode);
         }
         const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-        setRole(isOwnerEmail ? 'owner' : (profile.role || 'user'));
+        setRole(isOwnerEmail ? 'owner' : (profile.role === 'owner' ? 'user' : (profile.role || 'user')));
         setBillingCycle(profile.billing_cycle || profile.billingCycle || null);
         setPlanRenewsAt(profile.plan_renews_at || profile.planRenewsAt || null);
         setSubscriptionPending(!!profile.subscription_pending);
         setSubscriptionStatus(profile.subscription_status || null);
         setSubscriptionRequestRef(profile.subscription_request_ref || null);
-        const isAdminEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-        setIsAdmin(isAdminEmail || !!profile.is_admin);
+        setIsAdmin(isOwnerEmail);
+
+        // Self-Healing Sanitation for contaminated non-admin profiles
+        if (!isOwnerEmail) {
+          let needsSanitization = false;
+          const updates: any = {};
+          if (profile.is_admin) {
+            updates.is_admin = false;
+            profile.is_admin = false;
+            needsSanitization = true;
+          }
+          if (profile.role === 'owner') {
+            updates.role = 'user';
+            profile.role = 'user';
+            needsSanitization = true;
+          }
+          const defaultSafeName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : '');
+          if (profile.owner_name && (profile.owner_name.toLowerCase().includes('noman') || profile.owner_name.toLowerCase().includes('shekh'))) {
+            updates.owner_name = defaultSafeName;
+            profile.owner_name = defaultSafeName;
+            needsSanitization = true;
+          }
+          if (profile.display_name && (profile.display_name.toLowerCase().includes('noman') || profile.display_name.toLowerCase().includes('shekh'))) {
+            updates.display_name = defaultSafeName;
+            profile.display_name = defaultSafeName;
+            needsSanitization = true;
+          }
+          if (profile.business_name && (profile.business_name.toLowerCase().includes('noman') || profile.business_name.toLowerCase().includes('invocentric main'))) {
+            updates.business_name = '';
+            profile.business_name = '';
+            needsSanitization = true;
+          }
+          if (needsSanitization) {
+            saveStoredUserProfile(firebaseUser.uid, profile);
+            if (navigator.onLine) {
+              setDoc(userDocRef, updates, { merge: true }).catch(() => {});
+            }
+          }
+        }
 
         // Mark weekly Monday plan verification as completed since server sync was successful
         try {
@@ -646,14 +689,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('app_mode', cachedProfile.app_mode);
           }
           const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-          setRole(isOwnerEmail ? 'owner' : (cachedProfile.role || 'user'));
+          setRole(isOwnerEmail ? 'owner' : (cachedProfile.role === 'owner' ? 'user' : (cachedProfile.role || 'user')));
           setBillingCycle(cachedProfile.billing_cycle || cachedProfile.billingCycle || null);
           setPlanRenewsAt(cachedProfile.plan_renews_at || cachedProfile.planRenewsAt || null);
           setSubscriptionPending(!!cachedProfile.subscription_pending);
           setSubscriptionStatus(cachedProfile.subscription_status || null);
           setSubscriptionRequestRef(cachedProfile.subscription_request_ref || null);
-          const isAdminEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-          setIsAdmin(isAdminEmail || !!cachedProfile.is_admin);
+          setIsAdmin(isOwnerEmail);
         } else {
           const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
           setRole(isOwnerEmail ? 'owner' : 'user');
@@ -1131,7 +1173,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUpWithEmail = async (email: string, password: string) => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const cleanEmail = email.trim().toLowerCase();
+      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      if (cred.user) {
+        const rawPrefix = cleanEmail.split('@')[0];
+        const formattedName = rawPrefix.charAt(0).toUpperCase() + rawPrefix.slice(1);
+        await updateProfile(cred.user, { displayName: formattedName }).catch(() => {});
+      }
     } catch (error) {
       console.error("Error signing up with email:", error);
       throw error;
@@ -1175,7 +1223,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Create Firebase Auth account
     try {
-      await createUserWithEmailAndPassword(auth, cleanEmail, rawPass);
+      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, rawPass);
+      if (cred.user) {
+        const rawPrefix = cleanEmail.split('@')[0];
+        const formattedName = rawPrefix.charAt(0).toUpperCase() + rawPrefix.slice(1);
+        await updateProfile(cred.user, { displayName: formattedName }).catch(() => {});
+      }
       // Firebase's onAuthStateChanged will fire and handleUserChange will set up the profile
     } catch (error: any) {
       const code = error?.code || '';
@@ -1235,6 +1288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('invocentric_last_email');
       localStorage.removeItem('local_guest_session');
       localStorage.removeItem('email_otp_session');
+      clearGlobalProfileBackup();
       if (typeof window !== 'undefined') {
         try {
           const { registerPlugin } = await import('@capacitor/core');

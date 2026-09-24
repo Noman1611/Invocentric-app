@@ -201,7 +201,7 @@ export default function DashboardPage() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            {greeting}, {user?.displayName?.split(' ')[0] || 'Noman'} <span className="origin-bottom-right inline-block">👋</span>
+            {greeting}, {user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Partner'} <span className="origin-bottom-right inline-block">👋</span>
           </h1>
           <p className="text-xs md:text-sm text-slate-500 mt-1 font-medium font-bold">Here's what's happening with your business today.</p>
         </div>

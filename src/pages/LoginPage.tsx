@@ -243,33 +243,7 @@ export default function LoginPage() {
 
       // If auto_google=1 is requested and not redirected yet:
       if (searchParams.get('auto_google') === '1' && !handshakeCompleted) {
-        if (auth.currentUser) {
-          // If already signed in in this browser session, transfer immediately!
-          const currUser = auth.currentUser;
-          const token = await currUser.getIdToken(true).catch(() => null);
-          try {
-            await fetch(apiUrl('/api/auth/mobile-session'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                sessionId: mobileSessionId,
-                status: 'authenticated',
-                idToken: token || null,
-                uid: currUser.uid,
-                email: currUser.email || '',
-                displayName: currUser.displayName || '',
-                photoURL: currUser.photoURL || ''
-              })
-            });
-          } catch (e) {}
-
-          setHandshakeCompleted(true);
-          const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(token || '')}&uid=${encodeURIComponent(currUser.uid)}&email=${encodeURIComponent(currUser.email || '')}`;
-          window.location.href = deepLink;
-          return;
-        }
-
-        // Direct Google Sign In redirect to trigger account chooser popup immediately
+        // Direct Google Sign In redirect with select_account prompt so user always chooses their own account
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
         signInWithRedirect(auth, provider);

@@ -122,8 +122,19 @@ export function mergeProfileData(current: any, incoming: any): UserProfileData {
 const GLOBAL_LAST_KNOWN_PROFILE_KEY = 'invocentric_last_known_business_profile';
 
 /**
- * Retrieves the user profile from multiple redundant local storage layers.
- * Checks primary secure storage -> unencrypted raw backup -> permanent backup -> global browser backup.
+ * Purges global temporary profile cache to ensure clean isolation between account switches.
+ */
+export function clearGlobalProfileBackup(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(GLOBAL_LAST_KNOWN_PROFILE_KEY);
+  } catch (e) {}
+}
+
+/**
+ * Retrieves the user profile from local storage layers strictly isolated by userId.
+ * Checks primary secure storage -> unencrypted raw backup -> permanent backup.
+ * Cross-account profile sharing is strictly blocked.
  */
 export function getStoredUserProfile(userId?: string | null): UserProfileData {
   let profile: any = {};
@@ -132,32 +143,18 @@ export function getStoredUserProfile(userId?: string | null): UserProfileData {
     return { ...DEFAULT_PROFILE_DATA };
   }
 
-  // 1. Layer 1: Universal global last known profile
-  try {
-    const globalRaw = localStorage.getItem(GLOBAL_LAST_KNOWN_PROFILE_KEY);
-    if (globalRaw) {
-      const parsed = JSON.parse(globalRaw);
-      if (parsed && typeof parsed === 'object') {
-        profile = mergeProfileData(profile, parsed);
-      }
-    }
-  } catch (e) {
-    // ignore parse error
-  }
+  const isRealUser = Boolean(userId && userId !== 'guest' && userId !== 'offline_guest');
 
-  if (userId) {
-    // 2. Layer 2: Permanent backup key for this specific user ID
+  if (isRealUser && userId) {
+    // 1. Layer 1: Encrypted secure storage for this specific user ID
     try {
-      const permanentRaw = localStorage.getItem(`user_profile_permanent_backup_${userId}`);
-      if (permanentRaw) {
-        const parsed = JSON.parse(permanentRaw);
-        if (parsed && typeof parsed === 'object') {
-          profile = mergeProfileData(profile, parsed);
-        }
+      const secureCache = getSecureStorage(`user_profile_${userId}`, null);
+      if (secureCache && typeof secureCache === 'object') {
+        profile = mergeProfileData(profile, secureCache);
       }
     } catch (e) {}
 
-    // 3. Layer 3: Unencrypted raw cache for this user ID
+    // 2. Layer 2: Raw cache for this specific user ID
     try {
       const rawCache = localStorage.getItem(`user_profile_${userId}`);
       if (rawCache && (rawCache.startsWith('{') || rawCache.startsWith('['))) {
@@ -168,57 +165,79 @@ export function getStoredUserProfile(userId?: string | null): UserProfileData {
       }
     } catch (e) {}
 
-    // 4. Layer 4: Encrypted secure storage
+    // 3. Layer 3: Permanent backup for this specific user ID
     try {
-      const secureCache = getSecureStorage(`user_profile_${userId}`, null);
-      if (secureCache && typeof secureCache === 'object') {
-        profile = mergeProfileData(profile, secureCache);
+      const permanentRaw = localStorage.getItem(`user_profile_permanent_backup_${userId}`);
+      if (permanentRaw) {
+        const parsed = JSON.parse(permanentRaw);
+        if (parsed && typeof parsed === 'object') {
+          profile = mergeProfileData(profile, parsed);
+        }
       }
     } catch (e) {}
+
+    // Return strictly user-scoped profile (never fall back to previous user's global profile)
+    return { ...DEFAULT_PROFILE_DATA, ...profile, id: userId };
   }
+
+  // Only for guest / unauthenticated mode:
+  try {
+    const globalRaw = localStorage.getItem(GLOBAL_LAST_KNOWN_PROFILE_KEY);
+    if (globalRaw) {
+      const parsed = JSON.parse(globalRaw);
+      if (parsed && typeof parsed === 'object') {
+        // Strip any accidental admin or sensitive privileges from guest cache
+        delete parsed.is_admin;
+        delete parsed.role;
+        profile = mergeProfileData(profile, parsed);
+      }
+    }
+  } catch (e) {}
 
   return { ...DEFAULT_PROFILE_DATA, ...profile };
 }
 
 /**
- * Persists the user profile across all redundant local storage layers.
+ * Persists the user profile across isolated storage layers for this user ID.
  * 1. user_profile_${userId} (both secure & raw localStorage)
  * 2. user_profile_permanent_backup_${userId}
- * 3. invocentric_last_known_business_profile (global cross-session backup)
  */
 export function saveStoredUserProfile(userId: string | null | undefined, data: any): UserProfileData {
   if (typeof window === 'undefined') return data;
 
   const existing = getStoredUserProfile(userId);
   const toSave = mergeProfileData(existing, data);
+  const isRealUser = Boolean(userId && userId !== 'guest' && userId !== 'offline_guest');
+
+  if (isRealUser && userId) {
+    toSave.id = userId;
+  }
 
   const serialized = JSON.stringify(toSave);
 
-  // 1. Global browser layer
-  try {
-    localStorage.setItem(GLOBAL_LAST_KNOWN_PROFILE_KEY, serialized);
-  } catch (e) {
-    console.warn("Failed saving global profile backup:", e);
-  }
-
-  if (userId) {
-    // 2. Permanent user backup layer
+  if (isRealUser && userId) {
+    // 1. Permanent user backup layer
     try {
       localStorage.setItem(`user_profile_permanent_backup_${userId}`, serialized);
     } catch (e) {}
 
-    // 3. Raw localStorage cache (for instant sync across tabs)
+    // 2. Raw localStorage cache (for instant sync across tabs)
     try {
       localStorage.setItem(`user_profile_${userId}`, serialized);
     } catch (e) {}
 
-    // 4. Encrypted secure storage
+    // 3. Encrypted secure storage
     try {
       setSecureStorage(`user_profile_${userId}`, toSave, true);
     } catch (e) {}
+  } else {
+    // Guest-only backup layer
+    try {
+      localStorage.setItem(GLOBAL_LAST_KNOWN_PROFILE_KEY, serialized);
+    } catch (e) {}
   }
 
-  // 5. Broadcast update event so all listening components update immediately
+  // Broadcast update event so all listening components update immediately
   try {
     window.dispatchEvent(new CustomEvent('invocentric_profile_updated', { detail: toSave }));
     window.dispatchEvent(new StorageEvent('storage', { 

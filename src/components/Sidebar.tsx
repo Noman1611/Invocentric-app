@@ -284,11 +284,11 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                 {user?.photoURL ? (
                   <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-sm font-black text-green-600">{user?.displayName?.[0] || 'N'}</span>
+                  <span className="text-sm font-black text-green-600">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13.5px] font-black truncate leading-tight text-slate-800">{user?.displayName || 'Noman Shaikh'}</p>
+                <p className="text-[13.5px] font-black truncate leading-tight text-slate-800">{user?.displayName || user?.email?.split('@')[0] || 'Business Owner'}</p>
                 <p className="text-[10px] font-extrabold text-slate-500 leading-none mt-1 uppercase tracking-wider">{planTier === 'pro' ? 'Pro Account' : 'Free Account'}</p>
               </div>
             </div>

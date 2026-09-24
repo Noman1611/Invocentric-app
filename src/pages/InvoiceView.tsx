@@ -154,18 +154,7 @@ export default function InvoiceViewPage() {
           // Robust multi-layer Fetch for Seller / Business details
           let mergedSeller: any = {};
           
-          // Layer 1: Universal global last known profile
-          try {
-            const globalRaw = localStorage.getItem('invocentric_last_known_business_profile');
-            if (globalRaw) {
-              const parsed = JSON.parse(globalRaw);
-              if (parsed && typeof parsed === 'object') {
-                mergedSeller = mergeProfileData(mergedSeller, parsed);
-              }
-            }
-          } catch (_) {}
-
-          // Layer 2: Specific profile keys for invData.user_id, user?.uid, and 'guest'
+          // Specific profile keys for invData.user_id, user?.uid, or 'guest'
           const candidateUids = [invData.user_id, user?.uid, 'guest'].filter(Boolean) as string[];
           for (const uid of candidateUids) {
             try {
@@ -1214,7 +1203,7 @@ export default function InvoiceViewPage() {
       >
         {/* 1. Header: Business Information (Centered Bold) */}
         <div style={{ fontWeight: 700, fontSize: headerTitleSize, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '3px' }}>
-          {co.name || 'NOMAN SHAIKH'}
+          {co.name || 'TAX INVOICE'}
         </div>
         {co.address && (
           <div style={{ fontSize: baseFontSize, marginBottom: '1px' }}>

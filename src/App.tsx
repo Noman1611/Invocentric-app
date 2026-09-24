@@ -985,12 +985,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                   {user?.photoURL ? (
                     <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs font-black text-green-600">{user?.displayName?.[0] || 'N'}</span>
+                    <span className="text-xs font-black text-green-600">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                   )}
                 </div>
                 <div className="hidden md:block text-left">
                   <p className="text-[13px] font-bold text-slate-900 leading-tight">
-                    {user?.displayName || 'Noman Shaikh'}
+                    {user?.displayName || user?.email?.split('@')[0] || 'User'}
                   </p>
                   <p className="text-[9px] font-bold text-slate-500 tracking-wider">
                     {planTier === 'pro' ? 'Pro Account' : 'Free Account'}
@@ -1171,11 +1171,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                       {user?.photoURL ? (
                         <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-sm font-black text-green-600">{user?.displayName?.[0] || 'N'}</span>
+                        <span className="text-sm font-black text-green-600">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                       )}
                     </div>
                     <div className="text-left min-w-0">
-                      <p className="text-xs font-black text-slate-800 truncate">{user?.displayName || 'Noman Shaikh'}</p>
+                      <p className="text-xs font-black text-slate-800 truncate">{user?.displayName || user?.email?.split('@')[0] || 'User'}</p>
                       <p className="text-[10px] font-bold text-slate-500 truncate">{user?.email}</p>
                     </div>
                   </div>
@@ -1430,7 +1430,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                     className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFB] border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/5 focus:border-green-500 transition-all text-xs font-semibold text-slate-800"
                     value={profileForm.displayName}
                     onChange={(e) => setProfileForm(p => ({ ...p, displayName: e.target.value }))}
-                    placeholder="E.g. Noman Shaikh"
+                    placeholder="E.g. Rajesh Kumar"
                   />
                 </div>
               </div>
