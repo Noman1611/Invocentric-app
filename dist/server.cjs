@@ -557,16 +557,55 @@ function reprint() {
 </body>
 </html>`;
 }
+var OTP_SECRET = process.env.VITE_ENCRYPTION_KEY || process.env.FIREBASE_API_KEY || "invocentric-otp-secure-key-2026";
+function generateOtpToken(email, otp, expires) {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanOtp = otp.trim();
+  const payload = `${cleanEmail}:${cleanOtp}:${expires}`;
+  const hmac = import_crypto.default.createHmac("sha256", OTP_SECRET).update(payload).digest("hex");
+  return `${expires}.${hmac}`;
+}
+function verifyOtpToken(email, otp, token) {
+  try {
+    if (!token || typeof token !== "string") {
+      return { valid: false, error: "OTP expired or invalid. Please request a new code." };
+    }
+    const parts = token.split(".");
+    if (parts.length !== 2) {
+      return { valid: false, error: "OTP expired or invalid. Please request a new code." };
+    }
+    const expires = parseInt(parts[0], 10);
+    const tokenHmac = parts[1];
+    if (isNaN(expires) || !tokenHmac) {
+      return { valid: false, error: "OTP expired or invalid. Please request a new code." };
+    }
+    if (Date.now() > expires) {
+      return { valid: false, error: "OTP expired or invalid. Please request a new code." };
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+    const payload = `${cleanEmail}:${cleanOtp}:${expires}`;
+    const expectedHmac = import_crypto.default.createHmac("sha256", OTP_SECRET).update(payload).digest("hex");
+    const expectedBuf = Buffer.from(expectedHmac, "hex");
+    const tokenBuf = Buffer.from(tokenHmac, "hex");
+    if (expectedBuf.length !== tokenBuf.length || !import_crypto.default.timingSafeEqual(expectedBuf, tokenBuf)) {
+      return { valid: false, error: "Incorrect verification code. Please try again." };
+    }
+    return { valid: true };
+  } catch (err) {
+    return { valid: false, error: "OTP expired or invalid. Please request a new code." };
+  }
+}
 app.post("/api/auth/send-email-otp", async (req, res) => {
   const { email } = req.body;
   if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: "Please enter a valid email address." });
   }
+  const key = email.trim().toLowerCase();
   const otp = import_crypto.default.randomInt(1e5, 1e6).toString();
-  emailOtpStore.set(email.trim().toLowerCase(), {
-    otp,
-    expires: Date.now() + 10 * 60 * 1e3
-  });
+  const expires = Date.now() + 10 * 60 * 1e3;
+  emailOtpStore.set(key, { otp, expires });
+  const otpToken = generateOtpToken(key, otp, expires);
   const businessName = email.split("@")[0] || "Business Partner";
   const html = generateOtpEmailTemplate({
     otp,
@@ -586,27 +625,41 @@ This code is valid for 10 minutes. Do not share this with anyone.
     text
   });
   if (result.success) {
-    return res.json({ success: true, message: "OTP sent successfully to your email! Valid for 10 minutes." });
+    return res.json({
+      success: true,
+      message: "OTP sent successfully to your email! Valid for 10 minutes.",
+      otpToken
+    });
   } else {
     console.log(`[Development OTP Fallback] Email: ${email}, OTP: ${otp}`);
     return res.json({
       success: true,
       message: "OTP generated successfully!",
-      devOtp: otp
+      devOtp: otp,
+      otpToken
     });
   }
 });
 app.post("/api/auth/verify-email-otp", async (req, res) => {
-  const { email, otp } = req.body;
+  const { email, otp, otpToken } = req.body;
   if (!email || !otp) {
     return res.status(400).json({ error: "Email and OTP are required." });
   }
   const key = email.trim().toLowerCase();
+  const cleanOtp = String(otp).trim();
+  if (otpToken && typeof otpToken === "string") {
+    const verification = verifyOtpToken(key, cleanOtp, otpToken);
+    if (!verification.valid) {
+      return res.status(400).json({ error: verification.error || "OTP expired or invalid. Please request a new code." });
+    }
+    emailOtpStore.delete(key);
+    return res.json({ success: true, email: key });
+  }
   const record = emailOtpStore.get(key);
   if (!record || record.expires < Date.now()) {
     return res.status(400).json({ error: "OTP expired or invalid. Please request a new code." });
   }
-  if (record.otp !== otp.trim()) {
+  if (record.otp !== cleanOtp) {
     return res.status(400).json({ error: "Incorrect verification code. Please try again." });
   }
   emailOtpStore.delete(key);
@@ -670,17 +723,25 @@ app.post("/api/auth/check-user", (req, res) => {
   res.json({ exists });
 });
 app.post("/api/auth/register-password", async (req, res) => {
-  const { email, password, otp } = req.body;
+  const { email, password, otp, otpToken } = req.body;
   if (!email || !password || !otp) {
     return res.status(400).json({ error: "Email, password, and OTP are required." });
   }
   const key = email.trim().toLowerCase();
-  const record = emailOtpStore.get(key);
-  if (!record || record.expires < Date.now()) {
-    return res.status(400).json({ error: "OTP expired or invalid. Please request a new code." });
-  }
-  if (record.otp !== otp.trim()) {
-    return res.status(400).json({ error: "Incorrect verification code. Please try again." });
+  const cleanOtp = String(otp).trim();
+  if (otpToken && typeof otpToken === "string") {
+    const verification = verifyOtpToken(key, cleanOtp, otpToken);
+    if (!verification.valid) {
+      return res.status(400).json({ error: verification.error || "OTP expired or invalid. Please request a new code." });
+    }
+  } else {
+    const record = emailOtpStore.get(key);
+    if (!record || record.expires < Date.now()) {
+      return res.status(400).json({ error: "OTP expired or invalid. Please request a new code." });
+    }
+    if (record.otp !== cleanOtp) {
+      return res.status(400).json({ error: "Incorrect verification code. Please try again." });
+    }
   }
   const db = loadUsersDb();
   db[key] = {
@@ -723,17 +784,25 @@ app.post("/api/auth/login-password", (req, res) => {
   });
 });
 app.post("/api/auth/reset-password", async (req, res) => {
-  const { email, password, otp } = req.body;
+  const { email, password, otp, otpToken } = req.body;
   if (!email || !password || !otp) {
     return res.status(400).json({ error: "Email, new password, and OTP are required." });
   }
   const key = email.trim().toLowerCase();
-  const record = emailOtpStore.get(key);
-  if (!record || record.expires < Date.now()) {
-    return res.status(400).json({ error: "OTP expired or invalid. Please request a new code." });
-  }
-  if (record.otp !== otp.trim()) {
-    return res.status(400).json({ error: "Incorrect verification code. Please try again." });
+  const cleanOtp = String(otp).trim();
+  if (otpToken && typeof otpToken === "string") {
+    const verification = verifyOtpToken(key, cleanOtp, otpToken);
+    if (!verification.valid) {
+      return res.status(400).json({ error: verification.error || "OTP expired or invalid. Please request a new code." });
+    }
+  } else {
+    const record = emailOtpStore.get(key);
+    if (!record || record.expires < Date.now()) {
+      return res.status(400).json({ error: "OTP expired or invalid. Please request a new code." });
+    }
+    if (record.otp !== cleanOtp) {
+      return res.status(400).json({ error: "Incorrect verification code. Please try again." });
+    }
   }
   const db = loadUsersDb();
   db[key] = {

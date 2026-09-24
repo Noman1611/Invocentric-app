@@ -4,6 +4,7 @@ import { getStoredUserProfile, saveStoredUserProfile } from '../utils/settingsSt
 import { parseDateSafe } from '../utils/dateUtils';
 import { isGoogleDriveConnected, syncDataToGoogleDrive, getGoogleDriveLastBackupTime } from '../utils/googleDriveSync';
 import { getDirectoryHandleFromIndexedDB, writeAllDataToPcDirectory, packageAllLocalData } from '../utils/fileSystemDb';
+import { apiUrl } from '../utils/apiConfig';
 
 export default function AutoBackup() {
   const { user } = useAuth();
@@ -38,7 +39,7 @@ export default function AutoBackup() {
       ].join('\n');
 
       const token = user ? await user.getIdToken() : '';
-      const response = await fetch('/api/send-email', {
+      const response = await fetch(apiUrl('/api/send-email'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

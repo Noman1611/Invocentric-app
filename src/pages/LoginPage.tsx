@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
 import { openInBrowser } from '../lib/utils';
+import { apiUrl } from '../utils/apiConfig';
 
 const InvoiceMockup = () => {
   return (
@@ -170,6 +171,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [otpToken, setOtpToken] = useState<string | null>(null);
   const [devOtpNotice, setDevOtpNotice] = useState<string | null>(null);
   
   const [error, setError] = useState<string | null>(null);
@@ -202,7 +204,7 @@ export default function LoginPage() {
 
         // 1. Post to Server-side session API (immune to Firestore permissions)
         try {
-          await fetch('/api/auth/mobile-session', {
+          await fetch(apiUrl('/api/auth/mobile-session'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -246,7 +248,7 @@ export default function LoginPage() {
           const currUser = auth.currentUser;
           const token = await currUser.getIdToken(true).catch(() => null);
           try {
-            await fetch('/api/auth/mobile-session', {
+            await fetch(apiUrl('/api/auth/mobile-session'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -294,7 +296,7 @@ export default function LoginPage() {
 
         // 1. Post to Server-side session API (always allowed, no Firestore rules issues)
         try {
-          await fetch('/api/auth/mobile-session', {
+          await fetch(apiUrl('/api/auth/mobile-session'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -362,7 +364,7 @@ export default function LoginPage() {
 
       // 1. Post to Server-side session API
       try {
-        await fetch('/api/auth/mobile-session', {
+        await fetch(apiUrl('/api/auth/mobile-session'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -404,7 +406,7 @@ export default function LoginPage() {
       console.warn("Popup error during app authorize, transferring existing user data:", err);
       if (user) {
         try {
-          await fetch('/api/auth/mobile-session', {
+          await fetch(apiUrl('/api/auth/mobile-session'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -502,8 +504,9 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     setDevOtpNotice(null);
+    setOtpToken(null);
     try {
-      const res = await fetch('/api/auth/send-email-otp', {
+      const res = await fetch(apiUrl('/api/auth/send-email-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailInput })
@@ -512,6 +515,9 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
       
       setOtpSent(true);
+      if (data.otpToken) {
+        setOtpToken(data.otpToken);
+      }
       if (data.devOtp) {
         setDevOtpNotice(`Test Verification Code: ${data.devOtp}`);
       }
@@ -531,7 +537,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await registerWithPasswordAndOtp(emailInput, passwordInput, otpCode);
+      await registerWithPasswordAndOtp(emailInput, passwordInput, otpCode, otpToken || undefined);
     } catch (err: any) {
       setError(err.message || "Account creation failed. Please check the verification code.");
     } finally {
@@ -554,7 +560,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await resetPasswordWithOtp(emailInput, passwordInput, otpCode);
+      await resetPasswordWithOtp(emailInput, passwordInput, otpCode, otpToken || undefined);
       // If user already exists in Firebase, a password reset link was sent to their email
       setResetEmailSent(true);
     } catch (err: any) {

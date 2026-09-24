@@ -1,5 +1,6 @@
 import { sanitizeString } from '../utils/sanitizeUtils';
 import { auth } from '../lib/firebase';
+import { apiUrl } from '../utils/apiConfig';
 
 interface EmailRequest {
   to: string;
@@ -16,7 +17,7 @@ export async function sendEmail(data: EmailRequest) {
     const user = auth.currentUser;
     const token = user ? await user.getIdToken() : '';
 
-    const response = await fetch('/api/send-email', {
+    const response = await fetch(apiUrl('/api/send-email'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

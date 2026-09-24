@@ -1,4 +1,5 @@
 import { auth } from '../lib/firebase';
+import { apiUrl } from '../utils/apiConfig';
 
 export interface ExtractedInvoice {
   customerName?: string;
@@ -37,7 +38,7 @@ export async function extractInvoiceFromImage(base64Image: string, mimeType: str
     const user = auth.currentUser;
     const token = user ? await user.getIdToken() : '';
 
-    const response = await fetch('/api/extract-invoice', {
+    const response = await fetch(apiUrl('/api/extract-invoice'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -80,7 +81,7 @@ export async function parseContactFromText(text: string): Promise<ParsedContact>
     const user = auth.currentUser;
     const token = user ? await user.getIdToken() : '';
 
-    const response = await fetch('/api/parse-contact', {
+    const response = await fetch(apiUrl('/api/parse-contact'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -134,7 +135,7 @@ export async function extractProductFromImage(base64Image: string, mimeType: str
     const user = auth.currentUser;
     const token = user ? await user.getIdToken() : '';
 
-    const response = await fetch('/api/extract-product', {
+    const response = await fetch(apiUrl('/api/extract-product'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
