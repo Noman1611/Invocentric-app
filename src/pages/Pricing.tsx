@@ -35,7 +35,10 @@ export default function PricingPage() {
     isOfflineMode,
     subscriptionPending,
     subscriptionStatus,
-    subscriptionRequestRef
+    subscriptionRequestRef,
+    isOwner,
+    freeTrialClaimed,
+    claimFreeProTrial
   } = useAuth();
   const navigate = useNavigate();
   const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
@@ -49,10 +52,31 @@ export default function PricingPage() {
   const [cardCvv, setCardCvv] = useState('');
   const [checkoutStep, setCheckoutStep] = useState<'details' | 'processing' | 'success'>('details');
   const [paymentError, setPaymentError] = useState('');
+  const [claimingTrial, setClaimingTrial] = useState(false);
+  const [claimTrialError, setClaimTrialError] = useState('');
+  const [claimTrialSuccess, setClaimTrialSuccess] = useState<string | null>(null);
 
   const monthlyPrice = 199;
   const yearlyPrice = 1999;
   const currentPrice = billingCycle === 'monthly' ? monthlyPrice : yearlyPrice;
+
+  const handleClaimOffer = async () => {
+    if (claimingTrial) return;
+    setClaimingTrial(true);
+    setClaimTrialError('');
+    try {
+      const res = await claimFreeProTrial();
+      if (res.success) {
+        setClaimTrialSuccess(res.receiptNumber || 'CLAIMED');
+      } else {
+        setClaimTrialError(res.message || 'Failed to claim offer. Please try again.');
+      }
+    } catch (err: any) {
+      setClaimTrialError(err.message || 'Error claiming offer.');
+    } finally {
+      setClaimingTrial(false);
+    }
+  };
 
   // Plan features definitions
   const freeFeatures = [
@@ -380,6 +404,44 @@ export default function PricingPage() {
           </span>
         </div>
       </div>
+
+      {/* Special 1-Month Free Pro Offer Card */}
+      {!freeTrialClaimed && planTier !== 'pro' && !isOwner && (
+        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white rounded-3xl p-6 shadow-xl border border-emerald-400/30 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-yellow-400/20 border border-yellow-300/40 flex items-center justify-center text-yellow-300 shadow-sm shrink-0">
+              <Sparkles size={24} className="animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="bg-yellow-400 text-slate-900 font-extrabold text-[10px] px-2 py-0.5 rounded-sm uppercase tracking-wider shadow-xs">
+                  Special Launch Offer
+                </span>
+                <h4 className="text-base font-black text-white uppercase tracking-tight">1 Month Free Pro Plan</h4>
+              </div>
+              <p className="text-xs text-emerald-100 mt-1">
+                Activate 30 days of full Pro access instantly with zero payment! Official receipt will be emailed immediately.
+              </p>
+              {claimTrialError && (
+                <p className="text-xs text-rose-200 font-bold mt-1">{claimTrialError}</p>
+              )}
+              {claimTrialSuccess && (
+                <p className="text-xs text-yellow-300 font-extrabold mt-1">
+                  🎉 Pro Activated! Receipt #{claimTrialSuccess} has been sent to your email.
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={handleClaimOffer}
+            disabled={claimingTrial || !!claimTrialSuccess}
+            className="px-6 py-3.5 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-300 hover:to-amber-300 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 disabled:opacity-60 cursor-pointer flex items-center gap-2"
+          >
+            {claimingTrial ? 'Activating...' : claimTrialSuccess ? 'Claimed!' : 'Claim Now (100% Free)'}
+            {!claimingTrial && !claimTrialSuccess && <ArrowRight size={14} />}
+          </button>
+        </div>
+      )}
 
       {/* Header Section */}
       <div className="text-center space-y-4 max-w-2xl mx-auto">

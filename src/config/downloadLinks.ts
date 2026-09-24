@@ -6,10 +6,10 @@ import React from 'react';
  * v1.0.11 is the latest published release containing InvoCentric.apk (6 MB).
  */
 export const DEFAULT_WINDOWS_DOWNLOAD_URL =
-  'https://github.com/Noman1611/Invocentric-app/releases/download/v1.0.18/InvoCentric-Setup.exe';
+  'https://github.com/Noman1611/Invocentric-app/releases/download/v1.0.19/InvoCentric-Setup.exe';
 
 export const DEFAULT_ANDROID_DOWNLOAD_URL =
-  'https://github.com/Noman1611/Invocentric-app/releases/download/v1.0.18/InvoCentric.apk';
+  'https://github.com/Noman1611/Invocentric-app/releases/download/v1.0.19/InvoCentric.apk';
 
 let cachedUrls: { windows: string; android: string } | null = null;
 

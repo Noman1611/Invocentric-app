@@ -83,7 +83,134 @@ interface AuthContextType {
   enablePcDriveMode: () => Promise<boolean>;
   disablePcDriveMode: () => Promise<void>;
   unlockPcDriveFile: () => Promise<boolean>;
+  freeTrialClaimed: boolean;
+  freeTrialClaimedAt: string | null;
+  claimFreeProTrial: () => Promise<{ success: boolean; message?: string; receiptNumber?: string }>;
 }
+
+export interface PlanEvaluationResult {
+  effectiveTier: 'free' | 'pro';
+  effectiveStatus: string;
+  isExpired: boolean;
+  daysRemaining: number;
+  renewsAt: string | null;
+  billingCycle: 'monthly' | 'yearly' | null;
+  freeTrialClaimed: boolean;
+  freeTrialClaimedAt: string | null;
+}
+
+export const evaluatePlanValidity = (
+  profile: any,
+  userEmail?: string | null
+): PlanEvaluationResult => {
+  const isOwnerEmail = userEmail?.toLowerCase() === 'nomanshaikh1999@gmail.com' || profile?.role === 'owner';
+  if (isOwnerEmail) {
+    return {
+      effectiveTier: 'pro',
+      effectiveStatus: 'active',
+      isExpired: false,
+      daysRemaining: 9999,
+      renewsAt: null,
+      billingCycle: 'yearly',
+      freeTrialClaimed: true,
+      freeTrialClaimedAt: null
+    };
+  }
+
+  const rawTier = (profile?.plan_tier || profile?.plan || 'free') as 'free' | 'pro';
+  const renewsAt = profile?.plan_renews_at || profile?.planRenewsAt || null;
+  const billingCycle = profile?.billing_cycle || profile?.billingCycle || null;
+  const freeTrialClaimed = !!(profile?.free_trial_claimed || profile?.freeTrialClaimed);
+  const freeTrialClaimedAt = profile?.free_trial_claimed_at || profile?.freeTrialClaimedAt || null;
+
+  if (rawTier === 'pro' || profile?.subscription_status === 'active') {
+    if (renewsAt) {
+      const expiryTime = new Date(renewsAt).getTime();
+      const now = Date.now();
+      if (!isNaN(expiryTime)) {
+        if (now > expiryTime) {
+          // EXPIRED! Cleanly downgrade to free tier
+          return {
+            effectiveTier: 'free',
+            effectiveStatus: 'expired',
+            isExpired: true,
+            daysRemaining: 0,
+            renewsAt,
+            billingCycle,
+            freeTrialClaimed,
+            freeTrialClaimedAt
+          };
+        } else {
+          // ACTIVE PRO
+          const daysRemaining = Math.max(1, Math.ceil((expiryTime - now) / (24 * 60 * 60 * 1000)));
+          return {
+            effectiveTier: 'pro',
+            effectiveStatus: 'active',
+            isExpired: false,
+            daysRemaining,
+            renewsAt,
+            billingCycle: billingCycle || 'monthly',
+            freeTrialClaimed,
+            freeTrialClaimedAt
+          };
+        }
+      }
+    }
+
+    if (freeTrialClaimed && freeTrialClaimedAt) {
+      const claimedTime = new Date(freeTrialClaimedAt).getTime();
+      const expiryTime = claimedTime + 30 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      if (now > expiryTime) {
+        return {
+          effectiveTier: 'free',
+          effectiveStatus: 'expired',
+          isExpired: true,
+          daysRemaining: 0,
+          renewsAt: new Date(expiryTime).toISOString(),
+          billingCycle,
+          freeTrialClaimed,
+          freeTrialClaimedAt
+        };
+      } else {
+        const daysRemaining = Math.max(1, Math.ceil((expiryTime - now) / (24 * 60 * 60 * 1000)));
+        return {
+          effectiveTier: 'pro',
+          effectiveStatus: 'active',
+          isExpired: false,
+          daysRemaining,
+          renewsAt: new Date(expiryTime).toISOString(),
+          billingCycle: 'monthly',
+          freeTrialClaimed,
+          freeTrialClaimedAt
+        };
+      }
+    }
+
+    // Pro with no valid renew date or corrupt data -> fallback to expired
+    return {
+      effectiveTier: 'free',
+      effectiveStatus: 'expired',
+      isExpired: true,
+      daysRemaining: 0,
+      renewsAt: null,
+      billingCycle,
+      freeTrialClaimed,
+      freeTrialClaimedAt
+    };
+  }
+
+  return {
+    effectiveTier: 'free',
+    effectiveStatus: profile?.plan_status || (profile?.subscription_status === 'expired' ? 'expired' : 'active'),
+    isExpired: profile?.plan_status === 'expired' || profile?.subscription_status === 'expired',
+    daysRemaining: 0,
+    renewsAt,
+    billingCycle,
+    freeTrialClaimed,
+    freeTrialClaimedAt
+  };
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -336,33 +463,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isOfflineMode = false;
-  const isOwner = role === 'owner' || user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
 
-  // 30-Day (1 Month) Free Pro Trial Logic
-  const [trialStartDate, setTrialStartDate] = useState<string | null>(() => {
-    return localStorage.getItem('invocentric_trial_start');
-  });
+  // Plan State & Free Trial Claim Tracking
+  const [freeTrialClaimed, setFreeTrialClaimed] = useState<boolean>(false);
+  const [freeTrialClaimedAt, setFreeTrialClaimedAt] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!user) return;
-    const key = `invocentric_trial_start_${user.uid}`;
-    let savedStart = localStorage.getItem(key) || localStorage.getItem('invocentric_trial_start');
-    if (!savedStart) {
-      savedStart = new Date().toISOString();
-      localStorage.setItem(key, savedStart);
-      localStorage.setItem('invocentric_trial_start', savedStart);
+  const applyPlanEvaluation = (evalResult: PlanEvaluationResult, userUid?: string) => {
+    setPlanTier(evalResult.effectiveTier);
+    setPlanStatus(evalResult.effectiveStatus);
+    setPlanRenewsAt(evalResult.renewsAt);
+    setBillingCycle(evalResult.billingCycle);
+    setFreeTrialClaimed(evalResult.freeTrialClaimed);
+    setFreeTrialClaimedAt(evalResult.freeTrialClaimedAt);
+
+    // If plan was recorded as pro but has now cleanly expired, heal Firestore and local cache
+    if (evalResult.isExpired && userUid && navigator.onLine) {
+      const userDocRef = doc(db, 'users', userUid);
+      setDoc(userDocRef, {
+        plan: 'free',
+        plan_tier: 'free',
+        plan_status: 'expired',
+        subscription_status: 'expired',
+        updated_at: serverTimestamp()
+      }, { merge: true }).catch(() => {});
     }
-    setTrialStartDate(savedStart);
-  }, [user]);
+  };
 
-  const trialDurationMs = 30 * 24 * 60 * 60 * 1000;
-  const trialStartTime = trialStartDate ? new Date(trialStartDate).getTime() : Date.now();
-  const trialElapsed = Date.now() - trialStartTime;
-  const isTrialActive = !isOwner && planTier !== 'pro' && trialElapsed < trialDurationMs;
-  const isTrialExpired = !isOwner && planTier !== 'pro' && trialElapsed >= trialDurationMs;
-  const daysLeftInTrial = isTrialActive ? Math.max(1, Math.ceil((trialDurationMs - trialElapsed) / (24 * 60 * 60 * 1000))) : 0;
-
-  const isPro = planTier === 'pro' || isOwner || isTrialActive;
+  const isOwner = role === 'owner' || user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+  const isPro = planTier === 'pro' || isOwner;
+  const daysLeftInTrial = (planTier === 'pro' && planRenewsAt)
+    ? Math.max(0, Math.ceil((new Date(planRenewsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    : 0;
+  const isTrialActive = !isOwner && planTier === 'pro' && freeTrialClaimed && daysLeftInTrial > 0;
+  const isTrialExpired = !isOwner && (planStatus === 'expired' || (freeTrialClaimed && planTier === 'free'));
+  const trialStartDate = freeTrialClaimedAt;
   const [loading, setLoading] = useState(true);
 
   const setOfflineMode = (offline: boolean) => {
@@ -413,19 +547,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isActuallyOffline) {
       const profile = getSecureStorage(`user_profile_${user.uid}`, null);
       if (profile) {
-        if (profile?.plan_status) {
-          setPlanStatus(profile.plan_status);
-        }
-        const isProOffline = profile?.plan_tier === 'pro' || profile?.plan === 'pro' || profile?.subscription_status === 'active';
-        setPlanTier(isProOffline ? 'pro' : 'free');
+        const planEval = evaluatePlanValidity(profile, user.email);
+        applyPlanEvaluation(planEval, user.uid);
         if (profile?.app_mode) {
           setAppModeState(profile.app_mode);
           localStorage.setItem('app_mode', profile.app_mode);
         }
         const isOwnerEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
         setRole(isOwnerEmail ? 'owner' : (profile?.role === 'owner' ? 'user' : (profile?.role || 'user')));
-        setBillingCycle(profile?.billing_cycle || profile?.billingCycle || null);
-        setPlanRenewsAt(profile?.plan_renews_at || profile?.planRenewsAt || null);
         setSubscriptionPending(!!profile?.subscription_pending);
         setSubscriptionStatus(profile?.subscription_status || null);
         setSubscriptionRequestRef(profile?.subscription_request_ref || null);
@@ -457,14 +586,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Safely merge with persistent local cache so empty Firestore fields never wipe local data
       if (profile) {
         saveStoredUserProfile(user.uid, profile);
+        const planEval = evaluatePlanValidity(profile, user.email);
+        applyPlanEvaluation(planEval, user.uid);
       }
 
-      // Synchronize key state values in real-time
-      if (profile?.plan_status) {
-        setPlanStatus(profile.plan_status);
-      }
-      const isProRealtime = profile?.plan_tier === 'pro' || profile?.plan === 'pro' || profile?.subscription_status === 'active';
-      setPlanTier(isProRealtime ? 'pro' : 'free');
       if (profile?.app_mode) {
         setAppModeState(profile.app_mode);
         localStorage.setItem('app_mode', profile.app_mode);
@@ -472,13 +597,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const isOwnerEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
       setRole(isOwnerEmail ? 'owner' : (profile?.role === 'owner' ? 'user' : (profile?.role || 'user')));
-      setBillingCycle(profile?.billing_cycle || profile?.billingCycle || null);
-      setPlanRenewsAt(profile?.plan_renews_at || profile?.planRenewsAt || null);
       setSubscriptionPending(!!profile?.subscription_pending);
       setSubscriptionStatus(profile?.subscription_status || null);
       setSubscriptionRequestRef(profile?.subscription_request_ref || null);
-      
       setIsAdmin(isOwnerEmail);
+
     }, (error) => {
       console.error("Error listening to user profile in AuthContext:", error);
       try {
@@ -518,6 +641,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: isOwnerEmail ? 'owner' : 'user',
         billing_cycle: cached?.billing_cycle || null,
         plan_renews_at: cached?.plan_renews_at || null,
+        free_trial_claimed: cached?.free_trial_claimed || false,
+        free_trial_claimed_at: cached?.free_trial_claimed_at || null,
         is_offline_mode: false,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
@@ -553,18 +678,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (profile) {
         // Save to local storage
         saveStoredUserProfile(firebaseUser.uid, profile, firebaseUser.email);
+        const planEval = evaluatePlanValidity(profile, firebaseUser.email);
+        applyPlanEvaluation(planEval, firebaseUser.uid);
 
-        if (profile.plan_status) setPlanStatus(profile.plan_status);
-        const isPro = profile.plan_tier === 'pro' || profile.plan === 'pro' || profile.subscription_status === 'active';
-        setPlanTier(isPro ? 'pro' : 'free');
         if (profile.app_mode) {
           setAppModeState(profile.app_mode);
           localStorage.setItem('app_mode', profile.app_mode);
         }
         const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
         setRole(isOwnerEmail ? 'owner' : (profile.role === 'owner' ? 'user' : (profile.role || 'user')));
-        setBillingCycle(profile.billing_cycle || profile.billingCycle || null);
-        setPlanRenewsAt(profile.plan_renews_at || profile.planRenewsAt || null);
         setSubscriptionPending(!!profile.subscription_pending);
         setSubscriptionStatus(profile.subscription_status || null);
         setSubscriptionRequestRef(profile.subscription_request_ref || null);
@@ -699,17 +821,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 3. Fast offline-first hydration from local storage (0ms - instantaneous)
         const cachedProfile = getStoredUserProfile(firebaseUser.uid);
         if (cachedProfile) {
-          if (cachedProfile.plan_status) setPlanStatus(cachedProfile.plan_status);
-          const isProOffline = cachedProfile.plan_tier === 'pro' || cachedProfile.plan === 'pro' || cachedProfile.subscription_status === 'active';
-          setPlanTier(isProOffline ? 'pro' : 'free');
+          const planEval = evaluatePlanValidity(cachedProfile, firebaseUser.email);
+          applyPlanEvaluation(planEval, firebaseUser.uid);
           if (cachedProfile.app_mode) {
             setAppModeState(cachedProfile.app_mode);
             localStorage.setItem('app_mode', cachedProfile.app_mode);
           }
           const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
           setRole(isOwnerEmail ? 'owner' : (cachedProfile.role === 'owner' ? 'user' : (cachedProfile.role || 'user')));
-          setBillingCycle(cachedProfile.billing_cycle || cachedProfile.billingCycle || null);
-          setPlanRenewsAt(cachedProfile.plan_renews_at || cachedProfile.planRenewsAt || null);
           setSubscriptionPending(!!cachedProfile.subscription_pending);
           setSubscriptionStatus(cachedProfile.subscription_status || null);
           setSubscriptionRequestRef(cachedProfile.subscription_request_ref || null);
@@ -797,6 +916,144 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Failed to update Firestore plan inside updatePlanTier:", err);
         }
       }
+    }
+  };
+
+  const claimFreeProTrial = async (): Promise<{ success: boolean; message?: string; receiptNumber?: string }> => {
+    if (!user) {
+      return { success: false, message: "Please log in to claim your 1-month free Pro plan." };
+    }
+    if (isOwner) {
+      return { success: false, message: "Admin/Owner account already has lifetime Pro access." };
+    }
+    if (freeTrialClaimed) {
+      return { success: false, message: "1-Month Free Pro Trial has already been claimed for this account." };
+    }
+
+    try {
+      const idToken = await user.getIdToken(true);
+      const response = await fetch(`${apiUrl}/subscription/claim-free-pro`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error === 'ALREADY_CLAIMED' ? data.message : (data.error || "Failed to claim free trial."));
+      }
+
+      const renewsAtISO = data.planRenewsAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const receiptNo = data.receiptNumber || `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      // 1. Update React state immediately
+      setPlanTier('pro');
+      setPlanStatus('active');
+      setBillingCycle('monthly');
+      setPlanRenewsAt(renewsAtISO);
+      setFreeTrialClaimed(true);
+      setFreeTrialClaimedAt(new Date().toISOString());
+
+      // 2. Update Firestore user document
+      if (navigator.onLine) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          await setDoc(userDocRef, {
+            plan: 'pro',
+            plan_tier: 'pro',
+            plan_status: 'active',
+            billing_cycle: 'monthly',
+            plan_renews_at: renewsAtISO,
+            free_trial_claimed: true,
+            free_trial_claimed_at: new Date().toISOString(),
+            subscription_status: 'active',
+            subscription_pending: false,
+            updated_at: serverTimestamp()
+          }, { merge: true });
+        } catch (fsErr) {
+          console.warn("Client Firestore update notice:", fsErr);
+        }
+      }
+
+      // 3. Update local storage cache
+      const cached = getStoredUserProfile(user.uid) || {};
+      const updatedProfile = {
+        ...cached,
+        plan: 'pro',
+        plan_tier: 'pro',
+        plan_status: 'active',
+        billing_cycle: 'monthly',
+        plan_renews_at: renewsAtISO,
+        free_trial_claimed: true,
+        free_trial_claimed_at: new Date().toISOString(),
+        subscription_status: 'active',
+        subscription_pending: false
+      };
+      saveStoredUserProfile(user.uid, updatedProfile, user.email);
+
+      // 4. Log subscription payment record (amount: 0, 100% off promotional offer)
+      await dbService.add('payments_subscription', {
+        user_id: user.uid,
+        user_email: user.email,
+        amount: 0,
+        billing_cycle: 'monthly',
+        payment_method: 'promotional_offer',
+        date: new Date().toISOString(),
+        status: 'success',
+        note: '1 Month Free Pro Promotional Claim'
+      }, { offlineMode: isOfflineMode, userId: user.uid });
+
+      // 5. Add subscription receipt invoice
+      const invoiceNum = `PRO-CLAIM-${Date.now().toString(36).substring(3, 7).toUpperCase()}`;
+      const expiryFormatted = new Date(renewsAtISO).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      const invoicePayload = {
+        invoice_number: invoiceNum,
+        customer_name: 'InvoCentric Pro Free Promotion',
+        customer_id: null,
+        amount: 0,
+        total: 0,
+        currency: 'INR',
+        bill_type: 'regular',
+        discount: 199,
+        sales_return: 0,
+        columnVisibility: {
+          size: false,
+          hsn: false,
+          mrp: false,
+          discount: false,
+          gstPercent: false
+        },
+        amount_words: 'ZERO RUPEES ONLY (100% DISCOUNT PROMOTIONAL OFFER)',
+        status: 'paid',
+        due_date: renewsAtISO,
+        items: [
+          {
+            description: 'InvoCentric Pro Plan - 1 Month Free Access Offer (30 Days)',
+            quantity: 1,
+            price: 0
+          }
+        ],
+        notes: `Congratulations! Your 1-Month Free InvoCentric Pro plan has been claimed successfully.\nOffer Ref: ${receiptNo}\nValid until: ${expiryFormatted}\nOfficial receipt has been delivered to your email.`,
+        is_subscription_receipt: true
+      };
+      await dbService.add('invoices', invoicePayload, { offlineMode: isOfflineMode, userId: user.uid });
+
+      // 6. Add congratulatory notification
+      await dbService.add('notifications', {
+        user_id: user.uid,
+        text: `🎉 1 Month Free Pro Plan Claimed! You now have 30 days of full Pro access with AI billing, unlimited invoices, barcode scanner & reports until ${expiryFormatted}. Receipt #${receiptNo} was sent to ${user.email}.`,
+        read: false,
+        category: 'other',
+        created_at: new Date().toISOString()
+      }, { offlineMode: isOfflineMode, userId: user.uid });
+
+      return { success: true, receiptNumber: receiptNo };
+    } catch (err: any) {
+      console.error("claimFreeProTrial error:", err);
+      return { success: false, message: err.message || "Failed to claim free trial." };
     }
   };
 
@@ -1373,7 +1630,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       pcFileName,
       enablePcDriveMode,
       disablePcDriveMode,
-      unlockPcDriveFile
+      unlockPcDriveFile,
+      freeTrialClaimed,
+      freeTrialClaimedAt,
+      claimFreeProTrial
     }}>
       {children}
     </AuthContext.Provider>

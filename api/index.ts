@@ -1252,10 +1252,20 @@ async function isUserPro(uid: string, email?: string, idToken?: string): Promise
   const userDoc = await fetchUserDoc(uid, idToken);
   if (!userDoc || !userDoc.fields) return false;
   
-  const plan = userDoc.fields.plan?.stringValue;
   const role = userDoc.fields.role?.stringValue;
-  
-  if (plan === "pro" || role === "owner") {
+  if (role === "owner") {
+    return true;
+  }
+
+  const plan = userDoc.fields.plan?.stringValue || userDoc.fields.plan_tier?.stringValue;
+  if (plan === "pro") {
+    const renewsAt = userDoc.fields.plan_renews_at?.stringValue;
+    if (renewsAt) {
+      const expiry = new Date(renewsAt).getTime();
+      if (!isNaN(expiry) && Date.now() > expiry) {
+        return false; // Plan duration has cleanly expired!
+      }
+    }
     return true;
   }
   return false;
@@ -2108,6 +2118,323 @@ app.post("/api/subscription/approve-receipt", checkAuth, async (req, res) => {
     });
   } catch (error: any) {
     console.error("Failed to approve subscription receipt:", error);
+    res.status(500).json({ error: "Internal server error: " + (error.message || error) });
+  }
+});
+
+// --- AUTOMATIC 1-MONTH FREE PRO CLAIM & RECEIPT DISPATCH ENGINE ---
+app.post("/api/subscription/claim-free-pro", checkAuth, async (req, res) => {
+  const user = (req as any).user;
+  const userId = user.uid;
+  const userEmail = user.email;
+  const idToken = user.idToken;
+
+  if (!userId || !userEmail) {
+    return res.status(400).json({ error: "Missing required user identity." });
+  }
+
+  try {
+    // 1. Fetch user doc to ensure they haven't already claimed the offer
+    const userDoc = await fetchUserDoc(userId, idToken);
+    const alreadyClaimed = userDoc?.fields?.free_trial_claimed?.booleanValue === true;
+    if (alreadyClaimed) {
+      return res.status(400).json({ 
+        error: "ALREADY_CLAIMED", 
+        message: "You have already claimed your 1-Month Free Pro Plan." 
+      });
+    }
+
+    const userName = userDoc?.fields?.display_name?.stringValue || userEmail.split('@')[0];
+    const now = new Date();
+    const durationDays = 30;
+    const renewsAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+    const renewsAtISO = renewsAt.toISOString();
+    const expiryFormatted = renewsAt.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+
+    // 2. Generate Unique Receipt Number (INV-YYYY-NNNNNN format)
+    const receiptNo = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+    const dateStr = now.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    });
+
+    // 3. Generate Official PDF Receipt Buffer via jsPDF
+    const { jsPDF } = await import("jspdf");
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4"
+    });
+
+    // Draw header accent band
+    doc.setFillColor(22, 101, 52); // #166534
+    doc.rect(0, 0, 210, 8, "F");
+
+    // InvoCentric logo and subtitle
+    doc.setTextColor(22, 101, 52);
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(26);
+    doc.text("InvoCentric", 15, 25);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont("Helvetica", "normal");
+    doc.text("Professional Billing & Invoicing Made Simple", 15, 31);
+
+    // Document Title
+    doc.setFontSize(18);
+    doc.setTextColor(15, 23, 42);
+    doc.setFont("Helvetica", "bold");
+    doc.text("PAYMENT RECEIPT", 135, 25);
+
+    // Intro Line
+    doc.setFontSize(10);
+    doc.setFont("Helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text("Thank you for activating InvoCentric Pro (1-Month Free Offer). Below is your official receipt.", 15, 42);
+
+    // 10 Standard Structured Fields
+    const receiptFields = [
+      { label: "Receipt No.", value: receiptNo },
+      { label: "Customer Name", value: userName },
+      { label: "Customer Email", value: userEmail },
+      { label: "Order / Reference No.", value: "OFFER-1M-FREE-PRO" },
+      { label: "Subscription Plan", value: "InvoCentric Pro Account (1-Month Free Trial)" },
+      { label: "Payment Type", value: "Promotional Offer (100% Free Access)" },
+      { label: "Activation Date & Time", value: dateStr },
+      { label: "Plan Expiry Date", value: expiryFormatted },
+      { label: "Payment Mode", value: "Promotional Voucher (100% Off)" },
+      { label: "Paid Amount", value: "INR 0.00 (Standard: INR 199.00 - Free Trial)" }
+    ];
+
+    let currentY = 48;
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.3);
+    doc.line(15, currentY, 195, currentY);
+
+    receiptFields.forEach((field, i) => {
+      const rowY = currentY + (i * 10);
+      
+      if (field.label === "Paid Amount") {
+        doc.setFillColor(220, 252, 231);
+        doc.rect(15, rowY, 180, 10, "F");
+      } else if (i % 2 === 0) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(15, rowY, 180, 10, "F");
+      }
+
+      doc.setDrawColor(241, 245, 249);
+      doc.line(15, rowY + 10, 195, rowY + 10);
+
+      doc.setFontSize(9.5);
+      doc.setFont("Helvetica", "bold");
+      if (field.label === "Paid Amount") {
+        doc.setTextColor(21, 128, 61);
+      } else {
+        doc.setTextColor(71, 85, 105);
+      }
+      doc.text(field.label, 18, rowY + 6.5);
+
+      doc.setFont("Helvetica", field.label === "Paid Amount" ? "bold" : "normal");
+      if (field.label === "Paid Amount") {
+        doc.setFontSize(11);
+        doc.setTextColor(21, 128, 61);
+      } else {
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+      }
+      doc.text(String(field.value), 80, rowY + 6.5);
+    });
+
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, currentY, 15, currentY + 100);
+    doc.line(195, currentY, 195, currentY + 100);
+    doc.line(15, currentY + 100, 195, currentY + 100);
+
+    // Terms & Conditions section
+    const termsY = currentY + 112;
+    doc.setFontSize(11);
+    doc.setFont("Helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text("Terms and Conditions:", 15, termsY);
+
+    const points = [
+      "1. Receipt confirms activation of 1-Month Free InvoCentric Pro Access.",
+      `2. All Pro features remain unlocked for 30 full days until ${expiryFormatted}.`,
+      "3. Account will gracefully switch to Free tier upon expiration unless renewed.",
+      "4. This is a system-generated receipt, no signature required."
+    ];
+
+    doc.setFontSize(8.5);
+    doc.setFont("Helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    points.forEach((point, idx) => {
+      doc.text(point, 15, termsY + 6 + (idx * 5.5));
+    });
+
+    const contactY = termsY + 34;
+    doc.setFontSize(9);
+    doc.setFont("Helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    const contactText = "For any inquiries or support, please contact our team at support@invocentric.in or call +91 9824194869.";
+    doc.text(contactText, 15, contactY, { maxWidth: 180 });
+
+    const footerY = 265;
+    doc.setDrawColor(241, 245, 249);
+    doc.line(15, footerY - 5, 195, footerY - 5);
+
+    doc.setFontSize(7.5);
+    doc.setFont("Helvetica", "normal");
+    doc.setTextColor(148, 163, 184);
+    const disclaimerText = "This is a system-generated receipt and does not require a signature. Any unauthorized disclosure, dissemination or copying of this receipt is strictly prohibited.";
+    doc.text(disclaimerText, 105, footerY, { align: "center", maxWidth: 170 });
+
+    const arrayBuffer = doc.output("arraybuffer");
+    const pdfBuffer = Buffer.from(arrayBuffer);
+    const pdfBase64 = pdfBuffer.toString("base64");
+
+    // 4. Save metadata and pdf_base64 to subscription_receipts inside Firestore
+    const projectId = firebaseConfig.projectId;
+    const databaseId = firebaseConfig.firestoreDatabaseId || "(default)";
+    const apiKey = firebaseConfig.apiKey;
+    const fsReceiptUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/subscription_receipts?key=${apiKey}`;
+
+    const receiptPayload = {
+      fields: {
+        receipt_number: { stringValue: receiptNo },
+        user_id: { stringValue: userId },
+        user_email: { stringValue: userEmail },
+        user_name: { stringValue: userName },
+        amount: { doubleValue: 0 },
+        billing_cycle: { stringValue: "monthly" },
+        payment_method: { stringValue: "free_trial_claim" },
+        upi_id_ref: { stringValue: "OFFER-1M-FREE-PRO" },
+        pdf_base64: { stringValue: pdfBase64 },
+        created_at: { stringValue: now.toISOString() },
+        plan_renews_at: { stringValue: renewsAtISO }
+      }
+    };
+
+    fetch(fsReceiptUrl, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+      },
+      body: JSON.stringify(receiptPayload)
+    }).catch(err => console.error("Failed to save claim receipt to Firestore REST:", err));
+
+    // 5. Update User Profile in Firestore REST API to Pro with 30-Day Expiry
+    const fsUserUpdateUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${userId}?updateMask.fieldPaths=plan&updateMask.fieldPaths=plan_tier&updateMask.fieldPaths=plan_status&updateMask.fieldPaths=billing_cycle&updateMask.fieldPaths=plan_renews_at&updateMask.fieldPaths=free_trial_claimed&updateMask.fieldPaths=free_trial_claimed_at&updateMask.fieldPaths=subscription_status&updateMask.fieldPaths=subscription_pending&key=${apiKey}`;
+
+    const userUpdatePayload = {
+      fields: {
+        plan: { stringValue: "pro" },
+        plan_tier: { stringValue: "pro" },
+        plan_status: { stringValue: "active" },
+        billing_cycle: { stringValue: "monthly" },
+        plan_renews_at: { stringValue: renewsAtISO },
+        free_trial_claimed: { booleanValue: true },
+        free_trial_claimed_at: { stringValue: now.toISOString() },
+        subscription_status: { stringValue: "active" },
+        subscription_pending: { booleanValue: false }
+      }
+    };
+
+    fetch(fsUserUpdateUrl, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+      },
+      body: JSON.stringify(userUpdatePayload)
+    }).catch(err => console.error("Failed to update user profile to Pro in Firestore REST:", err));
+
+    // 6. Send PDF Email Attachment to Customer via dispatchEmail
+    const receiptEmailResult = await dispatchEmail({
+      to: userEmail,
+      subject: `Your InvoCentric Pro 1-Month Free Plan Receipt (${receiptNo})`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <div style="display: inline-block; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 50%; padding: 12px; margin-bottom: 12px;">
+              <span style="font-size: 32px; color: #15803d; line-height: 1;">🎉</span>
+            </div>
+            <h2 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">1-Month Free Pro Plan Activated!</h2>
+            <p style="font-size: 14px; color: #64748b; margin: 0;">Welcome to InvoCentric Pro Access</p>
+          </div>
+          
+          <p style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
+            Dear <strong>${userName}</strong>,
+          </p>
+          
+          <p style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
+            Congratulations! Your special offer of <strong>1-Month Free InvoCentric Pro Access</strong> has been activated successfully without any admin delay. You now have full access to all premium features including AI Bill Scanning, Unlimited Invoices, Barcode Scanner, POS, and Complete Financial Reports.
+          </p>
+          
+          <p style="font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px;">
+            Your official <strong>Payment Receipt (${receiptNo})</strong> has been generated and attached to this email as a PDF.
+          </p>
+          
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Plan:</td>
+                <td style="padding: 6px 0; color: #0f172a; font-weight: 700; text-align: right; text-transform: uppercase;">InvoCentric Pro (1 Month Free Offer)</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Duration:</td>
+                <td style="padding: 6px 0; color: #0f172a; font-weight: 700; text-align: right;">30 Days</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Valid Until:</td>
+                <td style="padding: 6px 0; color: #166534; font-weight: 800; text-align: right;">${expiryFormatted}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Paid Amount:</td>
+                <td style="padding: 6px 0; color: #166534; font-weight: 800; text-align: right;">₹0.00 (100% Free Promotional Claim)</td>
+              </tr>
+            </table>
+          </div>
+          
+          <p style="font-size: 13px; line-height: 1.6; color: #64748b; text-align: center; margin-bottom: 24px;">
+            Thank you for choosing InvoCentric! Power your billing with ease.
+          </p>
+          
+          <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 20px;" />
+          
+          <p style="font-size: 11px; text-align: center; color: #94a3b8; margin: 0;">
+            InvoCentric © 2026. All rights reserved.<br/>
+            Need help? Write to <a href="mailto:support@invocentric.in" style="color: #166534; text-decoration: none; font-weight: 600;">support@invocentric.in</a> or call <strong style="color: #166534;">+91 9824194869</strong>.
+          </p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: `Receipt-${receiptNo}.pdf`,
+          content: pdfBuffer,
+        }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      receiptNumber: receiptNo,
+      planRenewsAt: renewsAtISO,
+      days: 30,
+      emailSent: receiptEmailResult.success
+    });
+  } catch (error: any) {
+    console.error("Failed to claim free Pro plan:", error);
     res.status(500).json({ error: "Internal server error: " + (error.message || error) });
   }
 });
