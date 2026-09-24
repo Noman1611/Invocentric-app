@@ -1,5 +1,5 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
-import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, DEFAULT_PROFILE_DATA } from '../utils/settingsStorage';
+import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, sanitizeUserProfile, DEFAULT_PROFILE_DATA } from '../utils/settingsStorage';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Save, X, LogOut, CheckCircle2, Download, Upload, Trash2, HardDrive, FolderOpen, Lock, Unlock, CloudDownload, Store, Briefcase, Keyboard, Sparkles, RefreshCw, ShieldCheck } from 'lucide-react';

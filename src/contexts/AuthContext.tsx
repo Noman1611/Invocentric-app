@@ -1,5 +1,5 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
-import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, clearGlobalProfileBackup } from '../utils/settingsStorage';
+import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, clearGlobalProfileBackup, sanitizeUserProfile } from '../utils/settingsStorage';
 import { apiUrl } from '../utils/apiConfig';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';

@@ -972,7 +972,9 @@ export default function InvoiceViewPage() {
                 {(showSec.signature || showSec.declaration) && (
                   <div style={{padding:'2px 5px',textAlign:'center',fontSize: isA5 ? 8 : 10, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
                     {showSec.declaration && (
-                      <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b,margin:'-2px -5px 2px'}}>Certified that particulars are true and correct.</div>
+                      <div style={{fontWeight:'bold',textAlign:'center',background:lb,padding:1,borderBottom:b,margin:'-2px -5px 2px'}}>
+                        {invoice?.declaration_text || sellerInfo?.declaration_text || 'Certified that particulars are true and correct.'}
+                      </div>
                     )}
                     {showSec.signature && (
                       <>
@@ -1152,7 +1154,19 @@ export default function InvoiceViewPage() {
               <div style={{marginTop:2,fontSize: isA5 ? 7.5 : 9.5}}><b>Terms &amp; Condition:</b> {termsText.slice(0, 2).join('. ')}</div>
             )}
 
+            {showSec.declaration && (
+              <div style={{marginTop:2,fontSize: isA5 ? 7.5 : 9.5, fontStyle: 'italic', color: '#475569'}}>
+                <b>Declaration:</b> {invoice?.declaration_text || sellerInfo?.declaration_text || 'Certified that particulars are true and correct.'}
+              </div>
+            )}
+
             {renderSocialStrip(blue, '#ffffff')}
+
+            {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
+              <div style={{borderTop:`1px solid ${blue}`, fontSize: isA5 ? 7.5 : 9.5, padding:'2px 4px', textAlign:'center', marginTop: 3, color: '#334155'}}>
+                {invoice.notes || sellerInfo?.footer_notes}
+              </div>
+            )}
           </div>
         ) : (
           <div style={{textAlign:'right',fontSize:9,fontWeight:'bold',padding:3,color:blue,borderTop:`1px solid ${blue}`,marginTop:'auto'}}>
@@ -1205,7 +1219,7 @@ export default function InvoiceViewPage() {
         <div style={{ fontWeight: 700, fontSize: headerTitleSize, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '3px' }}>
           {co.name || 'TAX INVOICE'}
         </div>
-        {co.address && (
+        {showSec.seller_address && co.address && (
           <div style={{ fontSize: baseFontSize, marginBottom: '1px' }}>
             {co.address}
           </div>
@@ -1246,7 +1260,7 @@ export default function InvoiceViewPage() {
               <span>{bu.phone}</span>
             </div>
           )}
-          {bu.gstin && (
+          {showSec.customer_gstin && bu.gstin && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
               <span style={{ fontWeight: 700 }}>GSTIN:</span>
               <span>{bu.gstin}</span>
@@ -1337,6 +1351,16 @@ export default function InvoiceViewPage() {
         {/* Dotted / Dashed Separator */}
         <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
 
+        {/* Bank Details for POS */}
+        {showSec.bank_details && (co.bank || co.acc) && (
+          <div style={{ textAlign: 'left', fontSize: subItalicSize, margin: '6px 0' }}>
+            {co.bank && <div><span style={{ fontWeight: 700 }}>BANK:</span> {co.bank}</div>}
+            {co.acc && <div><span style={{ fontWeight: 700 }}>A/C:</span> {co.acc}</div>}
+            {co.ifsc && <div><span style={{ fontWeight: 700 }}>IFSC:</span> {co.ifsc}</div>}
+            {co.branch && <div><span style={{ fontWeight: 700 }}>BRANCH:</span> {co.branch}</div>}
+          </div>
+        )}
+
         {/* 5. Scan to Pay with UPI */}
         {showSec.upi_qr && upiUrl && (
           <div style={{ margin: '8px 0 6px 0', textAlign: 'center' }}>
@@ -1368,6 +1392,11 @@ export default function InvoiceViewPage() {
 
         {/* 6. Footer: InvoCentric Branding & Visit Again */}
         <div style={{ marginTop: '6px', textAlign: 'center' }}>
+          {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
+            <div style={{ fontSize: subItalicSize, fontStyle: 'italic', margin: '4px 0', color: '#333333' }}>
+              {invoice.notes || sellerInfo?.footer_notes}
+            </div>
+          )}
           <div style={{ fontWeight: 700, fontSize: docTitleSize, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
             *** THANK YOU! VISIT AGAIN ***
           </div>
@@ -1444,10 +1473,13 @@ export default function InvoiceViewPage() {
                 <th style={{ padding: '6px 4px', textAlign: 'center', width: '30px', fontWeight: 700 }}>S.No.</th>
                 <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 700 }}>Item Description</th>
                 <th style={{ padding: '6px 8px', textAlign: 'left', width: '130px', fontWeight: 700 }}>Serial / Batch No.</th>
-                <th style={{ padding: '6px 6px', textAlign: 'center', width: '60px', fontWeight: 700 }}>HSN</th>
+                {colVis.size && <th style={{ padding: '6px 6px', textAlign: 'center', width: '50px', fontWeight: 700 }}>Size</th>}
+                {colVis.hsn && <th style={{ padding: '6px 6px', textAlign: 'center', width: '60px', fontWeight: 700 }}>HSN</th>}
                 <th style={{ padding: '6px 6px', textAlign: 'center', width: '45px', fontWeight: 700 }}>Qty</th>
+                {colVis.mrp && <th style={{ padding: '6px 8px', textAlign: 'right', width: '70px', fontWeight: 700 }}>MRP</th>}
                 <th style={{ padding: '6px 8px', textAlign: 'right', width: '75px', fontWeight: 700 }}>Rate ({cur === 'INR' ? '₹' : cur})</th>
-                <th style={{ padding: '6px 6px', textAlign: 'center', width: '50px', fontWeight: 700 }}>Tax</th>
+                {colVis.discount && <th style={{ padding: '6px 6px', textAlign: 'center', width: '50px', fontWeight: 700 }}>Disc%</th>}
+                {colVis.gstPercent && <th style={{ padding: '6px 6px', textAlign: 'center', width: '50px', fontWeight: 700 }}>Tax</th>}
                 <th style={{ padding: '6px 8px', textAlign: 'right', width: '85px', fontWeight: 700 }}>Total ({cur === 'INR' ? '₹' : cur})</th>
               </tr>
             </thead>
@@ -1467,10 +1499,13 @@ export default function InvoiceViewPage() {
                     <td style={{ padding: '6px 8px', verticalAlign: 'top', fontFamily: 'monospace', fontWeight: 700, color: '#334155' }}>
                       {serialOrBatch}
                     </td>
-                    <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top' }}>{it.hsn || '---'}</td>
+                    {colVis.size && <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top' }}>{it.size || '---'}</td>}
+                    {colVis.hsn && <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top' }}>{it.hsn || '---'}</td>}
                     <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top', fontWeight: 700 }}>{it.qty}</td>
+                    {colVis.mrp && <td style={{ textAlign: 'right', padding: '6px 8px', verticalAlign: 'top' }}>{it.mrp ? fc(it.mrp, cur) : '---'}</td>}
                     <td style={{ textAlign: 'right', padding: '6px 8px', verticalAlign: 'top' }}>{fc(it.price, cur)}</td>
-                    <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top' }}>{it.gstPct ? `${it.gstPct}%` : '0%'}</td>
+                    {colVis.discount && <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top' }}>{it.disc ? `${it.disc}%` : '0%'}</td>}
+                    {colVis.gstPercent && <td style={{ textAlign: 'center', padding: '6px 6px', verticalAlign: 'top' }}>{it.gstPct ? `${it.gstPct}%` : '0%'}</td>}
                     <td style={{ textAlign: 'right', padding: '6px 8px', verticalAlign: 'top', fontWeight: 700 }}>{fc(lineTotal, cur)}</td>
                   </tr>
                 );
@@ -1478,7 +1513,7 @@ export default function InvoiceViewPage() {
               {/* Flexible spacer row only when not using letterhead */}
               {!useLetterhead && (
                 <tr>
-                  <td colSpan={8} style={{ height: '100%' }}></td>
+                  <td colSpan={4 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0) + (colVis.mrp ? 1 : 0) + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0)} style={{ height: '100%' }}></td>
                 </tr>
               )}
             </tbody>
@@ -1562,6 +1597,56 @@ export default function InvoiceViewPage() {
               </div>
             )}
 
+            {/* HSN Summary Table */}
+            {showSec.hsn_summary && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: `1px solid ${borderGray}`, fontSize: isA5 ? 8 : 9.5, marginBottom: 10 }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc' }}>
+                    <th rowSpan={2} style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'center' }}>HSN / SAC</th>
+                    <th rowSpan={2} style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'center' }}>Taxable Value</th>
+                    <th colSpan={2} style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'center' }}>CGST</th>
+                    <th colSpan={2} style={{ border: `1px solid ${borderGray}`, padding: 2, textAlign: 'center' }}>SGST</th>
+                    <th rowSpan={2} style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'center' }}>Total Tax</th>
+                  </tr>
+                  <tr style={{ background: '#f8fafc' }}>
+                    <th style={{ border: `1px solid ${borderGray}`, padding: 2 }}>%</th>
+                    <th style={{ border: `1px solid ${borderGray}`, padding: 2 }}>Amount</th>
+                    <th style={{ border: `1px solid ${borderGray}`, padding: 2 }}>%</th>
+                    <th style={{ border: `1px solid ${borderGray}`, padding: 2 }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hsnEntries.map(([hsn, d]) => (
+                    <tr key={hsn}>
+                      <td style={{ border: `1px solid ${borderGray}`, padding: 3 }}>{hsn}</td>
+                      <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{fc(d.taxable, cur)}</td>
+                      <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{isIgst ? '0%' : `${d.pct / 2}%`}</td>
+                      <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{fc(isIgst ? 0 : d.cgst, cur)}</td>
+                      <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{isIgst ? '0%' : `${d.pct / 2}%`}</td>
+                      <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{fc(isIgst ? 0 : d.sgst, cur)}</td>
+                      <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{fc(d.tax, cur)}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ fontWeight: 700, background: '#f8fafc' }}>
+                    <td style={{ border: `1px solid ${borderGray}`, padding: 3 }}>Total</td>
+                    <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{fc(totalTaxable, cur)}</td>
+                    <td style={{ border: `1px solid ${borderGray}`, padding: 3 }}></td>
+                    <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{fc(isIgst ? 0 : cgstTotal, cur)}</td>
+                    <td style={{ border: `1px solid ${borderGray}`, padding: 3 }}></td>
+                    <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{fc(isIgst ? 0 : sgstTotal, cur)}</td>
+                    <td style={{ border: `1px solid ${borderGray}`, padding: 3, textAlign: 'right' }}>{fc(totalTax, cur)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
+
+            {/* Declaration Box */}
+            {showSec.declaration && (
+              <div style={{ fontSize: isA5 ? 7.5 : 9, color: '#475569', fontStyle: 'italic', marginBottom: 8, padding: '4px 8px', background: '#f8fafc', borderRadius: 4, border: `1px solid ${borderGray}` }}>
+                <b>Declaration:</b> {invoice?.declaration_text || sellerInfo?.declaration_text || 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.'}
+              </div>
+            )}
+
             {/* Terms and Signatory Footer */}
             <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, alignItems: 'flex-end', paddingTop: 6 }}>
               {/* Left: Terms & Conditions */}
@@ -1591,6 +1676,13 @@ export default function InvoiceViewPage() {
             </div>
 
             {renderSocialStrip(borderGray, '#f8fafc')}
+
+            {/* Footer Notes */}
+            {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
+              <div style={{ borderTop: `1px solid ${borderGray}`, fontSize: isA5 ? 7.5 : 9.5, padding: '4px 6px', textAlign: 'center', marginTop: 6, color: '#475569' }}>
+                {invoice.notes || sellerInfo?.footer_notes}
+              </div>
+            )}
 
           </div>
         ) : (

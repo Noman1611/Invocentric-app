@@ -8,4 +8,5 @@ dist_electron/
 .env*
 !.env.example
 *.apk
+*.exe
 .vscode/

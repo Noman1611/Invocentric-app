@@ -1024,6 +1024,36 @@ export default function CreateInvoicePage() {
     setFocusedItemIndex(null);
   };
 
+  const handlePriceTierChange = (newTier: 'retail' | 'wholesale') => {
+    setFormData(prev => {
+      const updatedItems = prev.items.map(item => {
+        if (!item.description) return item;
+        const invMatch = inventoryItems.find(i => 
+          i.name.trim().toLowerCase() === item.description.trim().toLowerCase()
+        );
+        if (invMatch) {
+          const wholesaleRate = Number((invMatch as any).wholesale_price || (invMatch as any).wholesalePrice);
+          const retailRate = Number(invMatch.price || invMatch.mrp || 0);
+          const newRate = (newTier === 'wholesale' && wholesaleRate > 0)
+            ? wholesaleRate
+            : retailRate;
+          if (newRate > 0) {
+            return {
+              ...item,
+              price: newRate
+            };
+          }
+        }
+        return item;
+      });
+      return {
+        ...prev,
+        price_tier: newTier,
+        items: updatedItems
+      };
+    });
+  };
+
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !newCustomer.name) return;
@@ -1511,7 +1541,7 @@ export default function CreateInvoicePage() {
                 <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                   <button
                     type="button"
-                    onClick={() => setFormData(p => ({ ...p, price_tier: 'retail' }))}
+                    onClick={() => handlePriceTierChange('retail')}
                     className={cn(
                       "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                       formData.price_tier !== 'wholesale'
@@ -1523,7 +1553,7 @@ export default function CreateInvoicePage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData(p => ({ ...p, price_tier: 'wholesale' }))}
+                    onClick={() => handlePriceTierChange('wholesale')}
                     className={cn(
                       "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                       formData.price_tier === 'wholesale'
@@ -1536,7 +1566,7 @@ export default function CreateInvoicePage() {
                 </div>
 
                 {/* Column Visibility Toggles */}
-                <div className="hidden sm:flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   {[
                     { key: 'size', label: 'Size' },
                     { key: 'hsn', label: 'HSN' },
