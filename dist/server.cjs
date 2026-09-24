@@ -32,6 +32,12 @@ var import_genai = require("@google/genai");
 var import_helmet = __toESM(require("helmet"), 1);
 var import_cors = __toESM(require("cors"), 1);
 var import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
+process.on("uncaughtException", (err) => {
+  console.error("[CRITICAL PROCESS CRASH GUARD] Prevented server shutdown from uncaught exception:", err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("[CRITICAL PROCESS CRASH GUARD] Prevented server shutdown from unhandled rejection:", reason);
+});
 var _filename = typeof __filename !== "undefined" ? __filename : "";
 var _dirname = typeof __dirname !== "undefined" ? __dirname : import_path.default.dirname(_filename);
 var loadFirebaseConfig = () => {
@@ -117,7 +123,7 @@ app.use((0, import_cors.default)({
     if (!origin || !isProd || allowedOrigins.includes(origin) || origin.startsWith("https://ais-dev-") || origin.startsWith("https://ais-pre-") || origin.startsWith("http://localhost") || origin.startsWith("http://127.0.0.1")) {
       callback(null, true);
     } else {
-      callback(new Error("CORS: Not allowed by security policy. Access denied."));
+      callback(null, false);
     }
   },
   credentials: true
@@ -125,24 +131,49 @@ app.use((0, import_cors.default)({
 var apiLimiter = (0, import_express_rate_limit.default)({
   windowMs: 15 * 60 * 1e3,
   // 15 minutes
-  max: 100,
-  // Limit each IP to 100 requests per windowMs
+  max: 150,
+  // Limit each IP to 150 requests per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
   validate: {
     xForwardedForHeader: false
   },
-  message: { error: "Too many requests from this IP, please try again after 15 minutes." }
+  message: { error: "Too many requests from this IP. Please try again after a few minutes." }
 });
 var authEmailLimiter = (0, import_express_rate_limit.default)({
   windowMs: 60 * 1e3,
   // 1 minute
-  max: 5,
-  // Limit 5 attempts per minute
+  max: 6,
+  // Limit 6 action attempts per minute
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many action requests. Please wait 1 minute before trying again." }
+  validate: {
+    xForwardedForHeader: false
+  },
+  message: { error: "Too many requests. Please wait 1 minute before trying again." }
 });
+var securityTracker = /* @__PURE__ */ new Map();
+function getSecurityRecord(key) {
+  const now = Date.now();
+  let record = securityTracker.get(key);
+  if (!record) {
+    record = { failedAttempts: 0, lockedUntil: 0, otpRequestsThisHour: 0, hourResetTime: now + 36e5 };
+    securityTracker.set(key, record);
+  }
+  if (now > (record.hourResetTime || 0)) {
+    record.otpRequestsThisHour = 0;
+    record.hourResetTime = now + 36e5;
+  }
+  return record;
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of securityTracker.entries()) {
+    if (record.lockedUntil < now && record.failedAttempts === 0 && (record.lastOtpRequestTime || 0) < now - 36e5) {
+      securityTracker.delete(key);
+    }
+  }
+}, 5 * 60 * 1e3);
 async function checkAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -183,6 +214,20 @@ async function checkAuth(req, res, next) {
 }
 app.use(import_express.default.json({ limit: "10mb" }));
 app.use(import_express.default.urlencoded({ limit: "10mb", extended: true }));
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === "object") {
+    delete req.body["__proto__"];
+    delete req.body["constructor"];
+    delete req.body["prototype"];
+  }
+  if (req.query && typeof req.query === "object") {
+    delete req.query["__proto__"];
+    delete req.query["constructor"];
+    delete req.query["prototype"];
+  }
+  next();
+});
+app.use("/api/auth/", authEmailLimiter);
 app.get("/robots.txt", (req, res) => {
   const robotsPath = import_path.default.resolve(_dirname, "../public/robots.txt");
   res.setHeader("Content-Type", "text/plain");
@@ -598,10 +643,27 @@ function verifyOtpToken(email, otp, token) {
 }
 app.post("/api/auth/send-email-otp", async (req, res) => {
   const { email } = req.body;
-  if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: "Please enter a valid email address." });
+  if (!email || typeof email !== "string" || email.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: "Please enter a valid email address (max 100 characters)." });
   }
   const key = email.trim().toLowerCase();
+  const clientIp = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").toString().split(",")[0].trim();
+  const emailTrack = getSecurityRecord(key);
+  const ipTrack = getSecurityRecord(clientIp);
+  if (emailTrack.lockedUntil > Date.now() || ipTrack.lockedUntil > Date.now()) {
+    const remainingMin = Math.ceil((Math.max(emailTrack.lockedUntil, ipTrack.lockedUntil) - Date.now()) / 6e4);
+    return res.status(429).json({ error: `Too many failed attempts. Temporary safety cooldown active for ${remainingMin} minute(s).` });
+  }
+  if (emailTrack.lastOtpRequestTime && Date.now() - emailTrack.lastOtpRequestTime < 6e4) {
+    const waitSec = Math.ceil((6e4 - (Date.now() - emailTrack.lastOtpRequestTime)) / 1e3);
+    return res.status(429).json({ error: `Please wait ${waitSec} seconds before requesting a new verification code.` });
+  }
+  if ((emailTrack.otpRequestsThisHour || 0) >= 5 || (ipTrack.otpRequestsThisHour || 0) >= 10) {
+    return res.status(429).json({ error: "Maximum verification code requests reached for this hour. Please try again later." });
+  }
+  emailTrack.lastOtpRequestTime = Date.now();
+  emailTrack.otpRequestsThisHour = (emailTrack.otpRequestsThisHour || 0) + 1;
+  ipTrack.otpRequestsThisHour = (ipTrack.otpRequestsThisHour || 0) + 1;
   const otp = import_crypto.default.randomInt(1e5, 1e6).toString();
   const expires = Date.now() + 10 * 60 * 1e3;
   emailOtpStore.set(key, { otp, expires });
@@ -642,26 +704,46 @@ This code is valid for 10 minutes. Do not share this with anyone.
 });
 app.post("/api/auth/verify-email-otp", async (req, res) => {
   const { email, otp, otpToken } = req.body;
-  if (!email || !otp) {
-    return res.status(400).json({ error: "Email and OTP are required." });
+  if (!email || !otp || typeof email !== "string" || typeof otp !== "string" || email.length > 100 || otp.length > 10) {
+    return res.status(400).json({ error: "Email and verification code are required." });
   }
   const key = email.trim().toLowerCase();
   const cleanOtp = String(otp).trim();
+  const clientIp = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").toString().split(",")[0].trim();
+  const emailTrack = getSecurityRecord(key);
+  const ipTrack = getSecurityRecord(clientIp);
+  if (emailTrack.lockedUntil > Date.now() || ipTrack.lockedUntil > Date.now()) {
+    const remainingMin = Math.ceil((Math.max(emailTrack.lockedUntil, ipTrack.lockedUntil) - Date.now()) / 6e4);
+    return res.status(429).json({ error: `Too many failed attempts. Security lockout active for ${remainingMin} minute(s).` });
+  }
+  let isValid = false;
+  let errorMsg = "OTP expired or invalid. Please request a new code.";
   if (otpToken && typeof otpToken === "string") {
     const verification = verifyOtpToken(key, cleanOtp, otpToken);
-    if (!verification.valid) {
-      return res.status(400).json({ error: verification.error || "OTP expired or invalid. Please request a new code." });
+    if (verification.valid) {
+      isValid = true;
+    } else {
+      errorMsg = verification.error || errorMsg;
     }
-    emailOtpStore.delete(key);
-    return res.json({ success: true, email: key });
+  } else {
+    const record = emailOtpStore.get(key);
+    if (record && record.expires >= Date.now() && record.otp === cleanOtp) {
+      isValid = true;
+    }
   }
-  const record = emailOtpStore.get(key);
-  if (!record || record.expires < Date.now()) {
-    return res.status(400).json({ error: "OTP expired or invalid. Please request a new code." });
+  if (!isValid) {
+    emailTrack.failedAttempts += 1;
+    ipTrack.failedAttempts += 1;
+    if (emailTrack.failedAttempts >= 5 || ipTrack.failedAttempts >= 5) {
+      emailTrack.lockedUntil = Date.now() + 15 * 60 * 1e3;
+      ipTrack.lockedUntil = Date.now() + 15 * 60 * 1e3;
+      return res.status(429).json({ error: "Too many incorrect verification attempts. Account locked for 15 minutes for your security." });
+    }
+    return res.status(400).json({ error: errorMsg });
   }
-  if (record.otp !== cleanOtp) {
-    return res.status(400).json({ error: "Incorrect verification code. Please try again." });
-  }
+  emailTrack.failedAttempts = 0;
+  emailTrack.lockedUntil = 0;
+  ipTrack.failedAttempts = 0;
   emailOtpStore.delete(key);
   return res.json({ success: true, email: key });
 });
@@ -698,6 +780,27 @@ app.get("/api/auth/mobile-session", (req, res) => {
   return res.json(record);
 });
 var usersDbPath = import_path.default.resolve(process.cwd(), "users_db.json");
+var PASSWORD_PEPPER = process.env.VITE_ENCRYPTION_KEY || process.env.FIREBASE_API_KEY || "invocentric-secure-pepper-2026";
+function hashPassword(password) {
+  return import_crypto.default.createHmac("sha256", PASSWORD_PEPPER).update(password.trim()).digest("hex");
+}
+function verifyPassword(inputPassword, storedHashOrPlain) {
+  if (!inputPassword || !storedHashOrPlain) return false;
+  const clean = inputPassword.trim();
+  const hashed = hashPassword(clean);
+  try {
+    const expectedBuf = Buffer.from(hashed, "hex");
+    const storedBuf = Buffer.from(storedHashOrPlain, "hex");
+    if (expectedBuf.length === storedBuf.length && import_crypto.default.timingSafeEqual(expectedBuf, storedBuf)) {
+      return true;
+    }
+  } catch (e) {
+  }
+  if (storedHashOrPlain === clean) {
+    return true;
+  }
+  return false;
+}
 function loadUsersDb() {
   try {
     if (import_fs.default.existsSync(usersDbPath)) {
@@ -717,15 +820,15 @@ function saveUsersDb(db) {
 }
 app.post("/api/auth/check-user", (req, res) => {
   const { email } = req.body;
-  if (!email) return res.status(400).json({ error: "Email required" });
+  if (!email || typeof email !== "string" || email.length > 100) return res.status(400).json({ error: "Email required" });
   const db = loadUsersDb();
   const exists = !!db[email.trim().toLowerCase()];
   res.json({ exists });
 });
 app.post("/api/auth/register-password", async (req, res) => {
   const { email, password, otp, otpToken } = req.body;
-  if (!email || !password || !otp) {
-    return res.status(400).json({ error: "Email, password, and OTP are required." });
+  if (!email || !password || !otp || typeof email !== "string" || typeof password !== "string" || email.length > 100 || password.length > 128) {
+    return res.status(400).json({ error: "Email, password, and verification code are required." });
   }
   const key = email.trim().toLowerCase();
   const cleanOtp = String(otp).trim();
@@ -746,7 +849,7 @@ app.post("/api/auth/register-password", async (req, res) => {
   const db = loadUsersDb();
   db[key] = {
     email: key,
-    passwordHash: String(password).trim(),
+    passwordHash: hashPassword(password),
     name: key.split("@")[0]
   };
   saveUsersDb(db);
@@ -763,16 +866,37 @@ app.post("/api/auth/register-password", async (req, res) => {
 });
 app.post("/api/auth/login-password", (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
+  if (!email || !password || typeof email !== "string" || typeof password !== "string" || email.length > 100 || password.length > 128) {
     return res.status(400).json({ error: "Email and password are required." });
   }
   const key = email.trim().toLowerCase();
   const rawPass = String(password).trim();
+  const clientIp = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").toString().split(",")[0].trim();
+  const emailTrack = getSecurityRecord(key);
+  const ipTrack = getSecurityRecord(clientIp);
+  if (emailTrack.lockedUntil > Date.now() || ipTrack.lockedUntil > Date.now()) {
+    const remainingMin = Math.ceil((Math.max(emailTrack.lockedUntil, ipTrack.lockedUntil) - Date.now()) / 6e4);
+    return res.status(429).json({ error: `Too many incorrect password attempts. Security lockout active for ${remainingMin} minute(s).` });
+  }
   const db = loadUsersDb();
   const userRecord = db[key];
-  if (!userRecord || userRecord.passwordHash !== rawPass) {
+  if (!userRecord || !verifyPassword(rawPass, userRecord.passwordHash)) {
+    emailTrack.failedAttempts += 1;
+    ipTrack.failedAttempts += 1;
+    if (emailTrack.failedAttempts >= 5 || ipTrack.failedAttempts >= 5) {
+      emailTrack.lockedUntil = Date.now() + 15 * 60 * 1e3;
+      ipTrack.lockedUntil = Date.now() + 15 * 60 * 1e3;
+      return res.status(429).json({ error: "Too many incorrect password attempts. Account locked for 15 minutes for your security." });
+    }
     return res.status(400).json({ error: "Invalid email or password. Click 'Forgot password?' to set or reset your password via OTP." });
   }
+  if (userRecord.passwordHash === rawPass) {
+    userRecord.passwordHash = hashPassword(rawPass);
+    saveUsersDb(db);
+  }
+  emailTrack.failedAttempts = 0;
+  emailTrack.lockedUntil = 0;
+  ipTrack.failedAttempts = 0;
   return res.json({
     success: true,
     user: {
@@ -785,8 +909,8 @@ app.post("/api/auth/login-password", (req, res) => {
 });
 app.post("/api/auth/reset-password", async (req, res) => {
   const { email, password, otp, otpToken } = req.body;
-  if (!email || !password || !otp) {
-    return res.status(400).json({ error: "Email, new password, and OTP are required." });
+  if (!email || !password || !otp || typeof email !== "string" || typeof password !== "string" || email.length > 100 || password.length > 128) {
+    return res.status(400).json({ error: "Email, new password, and verification code are required." });
   }
   const key = email.trim().toLowerCase();
   const cleanOtp = String(otp).trim();
@@ -807,7 +931,7 @@ app.post("/api/auth/reset-password", async (req, res) => {
   const db = loadUsersDb();
   db[key] = {
     email: key,
-    passwordHash: password,
+    passwordHash: hashPassword(password),
     name: key.split("@")[0]
   };
   saveUsersDb(db);
@@ -2884,6 +3008,21 @@ app.post("/api/usb-scanner/scan", (req, res) => {
   wasMobileConnectedMap.set(sid, true);
   broadcastToSse(sid, { type: "scan", code: code.trim() });
   res.status(200).json({ success: true });
+});
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+  const isCors = err.message && err.message.includes("CORS");
+  const isBadJson = err instanceof SyntaxError && "body" in err;
+  console.error(`[CrashShield Error Handled] [${req.method} ${req.url}] Status: ${status} -`, err.message || err);
+  if (isCors) {
+    return res.status(403).json({ error: "Security policy: Access not allowed from this origin." });
+  }
+  if (isBadJson) {
+    return res.status(400).json({ error: "Malformed JSON payload rejected by security filter." });
+  }
+  return res.status(status).json({
+    error: isProd ? "Request could not be processed due to a security protection check." : err.message || "Internal server error"
+  });
 });
 var api_default = app;
 
