@@ -301,7 +301,9 @@ export default function SettingsPage() {
   const debounceTimerRef = useRef<any>(null);
 
   const getInitialFormData = () => {
-    return getStoredUserProfile(user?.uid);
+    if (!user?.uid) return { ...DEFAULT_PROFILE_DATA };
+    const cached = getStoredUserProfile(user.uid);
+    return sanitizeUserProfile(cached, user.email, user.displayName);
   };
 
   const [formData, setFormData] = useState(getInitialFormData);
@@ -397,7 +399,7 @@ export default function SettingsPage() {
       const userDocRef = doc(db, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
       if (userDocSnap.exists()) {
-        const profileData = userDocSnap.data();
+        const profileData = sanitizeUserProfile(userDocSnap.data(), user.email, user.displayName);
         setFormData(prev => ({ ...prev, ...profileData }));
         setSecureStorage(`user_profile_${user.uid}`, profileData);
       }
@@ -517,15 +519,15 @@ export default function SettingsPage() {
       if (!user) return;
       setLoading(true);
       try {
+        const isOwnerEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+
         // 1. Immediately read persistent local cache from all redundant storage layers
         const cached = getStoredUserProfile(user.uid);
-        if (cached && Object.keys(cached).length > 0) {
-          setFormData(prev => ({
-            ...DEFAULT_PROFILE_DATA,
-            ...prev,
-            ...cached
-          }));
-        }
+        const safeLocal = sanitizeUserProfile(cached, user.email, user.displayName);
+        setFormData({
+          ...DEFAULT_PROFILE_DATA,
+          ...safeLocal
+        });
 
         if (isOfflineModeReal) {
           return;
@@ -537,24 +539,76 @@ export default function SettingsPage() {
         
         if (docSnap.exists()) {
           const cloudData = docSnap.data();
-          const merged = saveStoredUserProfile(user.uid, cloudData);
-          setFormData(prev => ({
-            ...DEFAULT_PROFILE_DATA,
-            ...prev,
-            ...merged
-          }));
+          const safeCloudData = sanitizeUserProfile(cloudData, user.email, user.displayName);
 
-          // If local cache had fields (like upi_id, letterhead, etc.) missing in Firestore, sync them up
+          // Self-healing: if Firestore doc of non-owner user has ANY of Noman's data or admin flag, wipe it immediately!
+          if (!isOwnerEmail) {
+            const rawOwner = String(cloudData.owner_name || '').toLowerCase();
+            const rawBusiness = String(cloudData.business_name || '').toLowerCase();
+            const rawPhone = String(cloudData.phone || '');
+            const rawAddress = String(cloudData.address || '').toLowerCase();
+            const rawUpi = String(cloudData.upi_id || '').toLowerCase();
+            
+            const isContaminated = 
+              rawOwner.includes('noman') ||
+              rawOwner.includes('shekh') ||
+              rawBusiness.includes('graphic designer') ||
+              rawBusiness.includes('noman') ||
+              rawBusiness.includes('invocentric main') ||
+              rawPhone.includes('9824194869') ||
+              rawAddress.includes('patan') ||
+              rawUpi.includes('shekhnoman') ||
+              rawUpi.includes('noman') ||
+              cloudData.is_admin ||
+              cloudData.role === 'owner';
+
+            if (isContaminated) {
+              const emailPrefix = user.email ? user.email.split('@')[0] : 'User';
+              const defaultSafeName = user.displayName || (emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1));
+              const wipeClean = sanitizeFirestorePayload({
+                business_name: '',
+                owner_name: defaultSafeName,
+                display_name: defaultSafeName,
+                phone: '',
+                address: '',
+                city: '',
+                state: '',
+                pincode: '',
+                gstin: '',
+                pan: '',
+                upi_id: '',
+                bank_name: '',
+                bank_branch: '',
+                account_number: '',
+                ifsc_code: '',
+                account_holder: '',
+                logo_url: '',
+                signature_url: '',
+                is_admin: false,
+                role: 'user',
+                updated_at: serverTimestamp()
+              });
+              setDoc(docRef, wipeClean, { merge: true }).catch(console.warn);
+            }
+          }
+
+          const merged = saveStoredUserProfile(user.uid, safeCloudData, user.email);
+          setFormData({
+            ...DEFAULT_PROFILE_DATA,
+            ...merged
+          });
+
+          // If local cache had clean non-admin fields, sync to Firestore
           const cleanToSync = sanitizeFirestorePayload({
             ...merged,
             updated_at: serverTimestamp()
           });
           setDoc(docRef, cleanToSync, { merge: true }).catch(console.warn);
         } else {
-          // Document does not exist yet in Firestore - seed it with current local profile
-          if (cached && (cached.business_name || cached.phone)) {
+          // Document does not exist yet in Firestore - seed it with clean local profile only
+          if (safeLocal && (safeLocal.business_name || safeLocal.phone)) {
             const cleanToSync = sanitizeFirestorePayload({
-              ...cached,
+              ...safeLocal,
               id: user.uid,
               email: user.email || null,
               created_at: serverTimestamp(),
@@ -577,8 +631,8 @@ export default function SettingsPage() {
   const persistSettings = async (dataToSave: typeof formData) => {
     if (!user) return;
     
-    // 1. Save across all redundant local storage layers (secure, raw, permanent, global)
-    saveStoredUserProfile(user.uid, dataToSave);
+    // 1. Save across all redundant local storage layers (secure, raw, permanent) strictly isolated by userId
+    saveStoredUserProfile(user.uid, dataToSave, user.email);
 
     // 2. Offline users collection mirror
     const cachedUsers = getSecureStorage(`offline_users_${user.uid}`, []);

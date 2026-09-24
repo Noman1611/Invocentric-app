@@ -81,11 +81,11 @@ export const DEFAULT_PROFILE_DATA: UserProfileData = {
 };
 
 /**
- * Intelligent non-destructive merge:
- * NEVER allows missing, undefined, or empty values from an incoming object
- * to overwrite existing populated values in the target object.
+ * Intelligent merge with support for explicit clearing when requested.
+ * When allowOverwriteEmpty is false, prevents accidental wipe of existing non-empty values.
+ * When allowOverwriteEmpty is true, accepts incoming clean/cleared values.
  */
-export function mergeProfileData(current: any, incoming: any): UserProfileData {
+export function mergeProfileData(current: any, incoming: any, allowOverwriteEmpty: boolean = false): UserProfileData {
   const base = { ...DEFAULT_PROFILE_DATA };
   const currentObj = (current && typeof current === 'object') ? current : {};
   const incomingObj = (incoming && typeof incoming === 'object') ? incoming : {};
@@ -98,13 +98,13 @@ export function mergeProfileData(current: any, incoming: any): UserProfileData {
       continue;
     }
 
-    // For string fields, do NOT overwrite an existing non-empty value with an empty string
+    // For string fields
     if (typeof value === 'string') {
       const trimmed = value.trim();
-      if (trimmed === '') {
+      if (!allowOverwriteEmpty && trimmed === '') {
         const existingVal = merged[key];
         if (typeof existingVal === 'string' && existingVal.trim() !== '') {
-          // Retain existing populated string
+          // Retain existing populated string only when not allowing explicit overwrite
           continue;
         }
       }
@@ -121,6 +121,13 @@ export function mergeProfileData(current: any, incoming: any): UserProfileData {
 
 const GLOBAL_LAST_KNOWN_PROFILE_KEY = 'invocentric_last_known_business_profile';
 
+// Immediately purge any stale global profile key from localStorage on module load
+if (typeof window !== 'undefined') {
+  try {
+    localStorage.removeItem(GLOBAL_LAST_KNOWN_PROFILE_KEY);
+  } catch (e) {}
+}
+
 /**
  * Purges global temporary profile cache to ensure clean isolation between account switches.
  */
@@ -129,6 +136,65 @@ export function clearGlobalProfileBackup(): void {
   try {
     localStorage.removeItem(GLOBAL_LAST_KNOWN_PROFILE_KEY);
   } catch (e) {}
+}
+
+/**
+ * Sanitizes user profile to guarantee that non-admin accounts never inherit admin privileges,
+ * owner roles, or Noman Shaikh's personal contact / business details.
+ */
+export function sanitizeUserProfile(profile: any, userEmail?: string | null, userDisplayName?: string | null): UserProfileData {
+  if (!profile || typeof profile !== 'object') return { ...DEFAULT_PROFILE_DATA };
+  const email = (userEmail || profile.email || '').toLowerCase().trim();
+  const isOwner = email === 'nomanshaikh1999@gmail.com';
+
+  const clean = { ...DEFAULT_PROFILE_DATA, ...profile };
+
+  if (!isOwner) {
+    clean.is_admin = false;
+    clean.role = 'user';
+
+    const rawOwner = String(clean.owner_name || '').toLowerCase();
+    const rawBusiness = String(clean.business_name || '').toLowerCase().trim();
+    const rawPhone = String(clean.phone || '').trim();
+    const rawAddress = String(clean.address || '').toLowerCase();
+    const rawUpi = String(clean.upi_id || '').toLowerCase();
+
+    // Detect if infected with Noman's profile data
+    if (
+      rawOwner.includes('noman') ||
+      rawOwner.includes('shekh') ||
+      rawBusiness.includes('graphic designer') ||
+      rawBusiness.includes('noman') ||
+      rawBusiness.includes('invocentric main') ||
+      rawPhone.includes('9824194869') ||
+      rawAddress.includes('patan') ||
+      rawUpi.includes('shekhnoman') ||
+      rawUpi.includes('noman')
+    ) {
+      const emailUsername = email ? email.split('@')[0] : '';
+      const fallbackName = userDisplayName || (emailUsername ? emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1) : '');
+      clean.owner_name = fallbackName;
+      clean.display_name = fallbackName;
+      clean.business_name = '';
+      clean.phone = '';
+      clean.address = '';
+      clean.city = '';
+      clean.state = '';
+      clean.pincode = '';
+      clean.gstin = '';
+      clean.pan = '';
+      clean.upi_id = '';
+      clean.bank_name = '';
+      clean.bank_branch = '';
+      clean.account_number = '';
+      clean.ifsc_code = '';
+      clean.account_holder = '';
+      clean.logo_url = '';
+      clean.signature_url = '';
+    }
+  }
+
+  return clean;
 }
 
 /**
@@ -176,25 +242,12 @@ export function getStoredUserProfile(userId?: string | null): UserProfileData {
       }
     } catch (e) {}
 
-    // Return strictly user-scoped profile (never fall back to previous user's global profile)
-    return { ...DEFAULT_PROFILE_DATA, ...profile, id: userId };
+    const fullProfile = { ...DEFAULT_PROFILE_DATA, ...profile, id: userId };
+    return sanitizeUserProfile(fullProfile, fullProfile.email);
   }
 
-  // Only for guest / unauthenticated mode:
-  try {
-    const globalRaw = localStorage.getItem(GLOBAL_LAST_KNOWN_PROFILE_KEY);
-    if (globalRaw) {
-      const parsed = JSON.parse(globalRaw);
-      if (parsed && typeof parsed === 'object') {
-        // Strip any accidental admin or sensitive privileges from guest cache
-        delete parsed.is_admin;
-        delete parsed.role;
-        profile = mergeProfileData(profile, parsed);
-      }
-    }
-  } catch (e) {}
-
-  return { ...DEFAULT_PROFILE_DATA, ...profile };
+  // Pure guest / unauthenticated mode returns clean defaults
+  return { ...DEFAULT_PROFILE_DATA };
 }
 
 /**
@@ -202,15 +255,17 @@ export function getStoredUserProfile(userId?: string | null): UserProfileData {
  * 1. user_profile_${userId} (both secure & raw localStorage)
  * 2. user_profile_permanent_backup_${userId}
  */
-export function saveStoredUserProfile(userId: string | null | undefined, data: any): UserProfileData {
+export function saveStoredUserProfile(userId: string | null | undefined, data: any, userEmail?: string | null): UserProfileData {
   if (typeof window === 'undefined') return data;
 
   const existing = getStoredUserProfile(userId);
-  const toSave = mergeProfileData(existing, data);
+  let toSave = mergeProfileData(existing, data, true);
   const isRealUser = Boolean(userId && userId !== 'guest' && userId !== 'offline_guest');
 
   if (isRealUser && userId) {
     toSave.id = userId;
+    const effectiveEmail = userEmail || toSave.email;
+    toSave = sanitizeUserProfile(toSave, effectiveEmail);
   }
 
   const serialized = JSON.stringify(toSave);
@@ -230,18 +285,13 @@ export function saveStoredUserProfile(userId: string | null | undefined, data: a
     try {
       setSecureStorage(`user_profile_${userId}`, toSave, true);
     } catch (e) {}
-  } else {
-    // Guest-only backup layer
-    try {
-      localStorage.setItem(GLOBAL_LAST_KNOWN_PROFILE_KEY, serialized);
-    } catch (e) {}
   }
 
   // Broadcast update event so all listening components update immediately
   try {
     window.dispatchEvent(new CustomEvent('invocentric_profile_updated', { detail: toSave }));
     window.dispatchEvent(new StorageEvent('storage', { 
-      key: userId ? `user_profile_${userId}` : GLOBAL_LAST_KNOWN_PROFILE_KEY, 
+      key: userId ? `user_profile_${userId}` : 'user_profile_guest', 
       newValue: serialized 
     }));
   } catch (e) {}

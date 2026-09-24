@@ -143,14 +143,20 @@ var apiLimiter = (0, import_express_rate_limit.default)({
 var authEmailLimiter = (0, import_express_rate_limit.default)({
   windowMs: 60 * 1e3,
   // 1 minute
-  max: 6,
-  // Limit 6 action attempts per minute
+  max: 15,
+  // Limit 15 action attempts per minute to avoid accidental lockouts
   standardHeaders: true,
   legacyHeaders: false,
   validate: {
     xForwardedForHeader: false
   },
-  message: { error: "Too many requests. Please wait 1 minute before trying again." }
+  handler: (req, res, next, options) => {
+    const retryAfter = Number(res.getHeader("Retry-After")) || 60;
+    res.status(429).json({
+      error: `Too many requests. Please wait ${retryAfter} seconds before trying again.`,
+      retryAfter
+    });
+  }
 });
 var securityTracker = /* @__PURE__ */ new Map();
 function getSecurityRecord(key) {

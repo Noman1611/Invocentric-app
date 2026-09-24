@@ -495,7 +495,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-      const cached = getStoredUserProfile(firebaseUser.uid);
+      const rawCached = getStoredUserProfile(firebaseUser.uid);
+      const cached = sanitizeUserProfile(rawCached, firebaseUser.email, firebaseUser.displayName);
       
       const emailPrefix = firebaseUser.email ? firebaseUser.email.split('@')[0] : 'User';
       const formattedDefaultName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
@@ -526,7 +527,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       
       await setDoc(userDocRef, sanitizeFirestorePayload(profileData), { merge: true });
-      saveStoredUserProfile(firebaseUser.uid, profileData);
+      saveStoredUserProfile(firebaseUser.uid, profileData, firebaseUser.email);
       console.log("Profile ensured in Firestore successfully");
     } catch (err) {
       console.warn("Could not ensure profile in Firestore (safe fallback active):", err);
@@ -551,7 +552,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (profile) {
         // Save to local storage
-        saveStoredUserProfile(firebaseUser.uid, profile);
+        saveStoredUserProfile(firebaseUser.uid, profile, firebaseUser.email);
 
         if (profile.plan_status) setPlanStatus(profile.plan_status);
         const isPro = profile.plan_tier === 'pro' || profile.plan === 'pro' || profile.subscription_status === 'active';
@@ -571,38 +572,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Self-Healing Sanitation for contaminated non-admin profiles
         if (!isOwnerEmail) {
-          let needsSanitization = false;
-          const updates: any = {};
-          if (profile.is_admin) {
-            updates.is_admin = false;
-            profile.is_admin = false;
-            needsSanitization = true;
-          }
-          if (profile.role === 'owner') {
-            updates.role = 'user';
-            profile.role = 'user';
-            needsSanitization = true;
-          }
-          const defaultSafeName = firebaseUser.displayName || (firebaseUser.email ? firebaseUser.email.split('@')[0] : '');
-          if (profile.owner_name && (profile.owner_name.toLowerCase().includes('noman') || profile.owner_name.toLowerCase().includes('shekh'))) {
-            updates.owner_name = defaultSafeName;
-            profile.owner_name = defaultSafeName;
-            needsSanitization = true;
-          }
-          if (profile.display_name && (profile.display_name.toLowerCase().includes('noman') || profile.display_name.toLowerCase().includes('shekh'))) {
-            updates.display_name = defaultSafeName;
-            profile.display_name = defaultSafeName;
-            needsSanitization = true;
-          }
-          if (profile.business_name && (profile.business_name.toLowerCase().includes('noman') || profile.business_name.toLowerCase().includes('invocentric main'))) {
-            updates.business_name = '';
-            profile.business_name = '';
-            needsSanitization = true;
-          }
-          if (needsSanitization) {
-            saveStoredUserProfile(firebaseUser.uid, profile);
+          const rawOwner = String(profile.owner_name || '').toLowerCase();
+          const rawBusiness = String(profile.business_name || '').toLowerCase();
+          const rawPhone = String(profile.phone || '');
+          const rawAddress = String(profile.address || '').toLowerCase();
+          const rawUpi = String(profile.upi_id || '').toLowerCase();
+
+          const isContaminated = 
+            profile.is_admin ||
+            profile.role === 'owner' ||
+            rawOwner.includes('noman') ||
+            rawOwner.includes('shekh') ||
+            rawBusiness.includes('graphic designer') ||
+            rawBusiness.includes('noman') ||
+            rawBusiness.includes('invocentric main') ||
+            rawPhone.includes('9824194869') ||
+            rawAddress.includes('patan') ||
+            rawUpi.includes('shekhnoman') ||
+            rawUpi.includes('noman');
+
+          if (isContaminated) {
+            const emailPrefix = firebaseUser.email ? firebaseUser.email.split('@')[0] : 'User';
+            const defaultSafeName = firebaseUser.displayName || (emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1));
+            const sanitizedFields = {
+              business_name: '',
+              owner_name: defaultSafeName,
+              display_name: defaultSafeName,
+              phone: '',
+              address: '',
+              city: '',
+              state: '',
+              pincode: '',
+              gstin: '',
+              pan: '',
+              upi_id: '',
+              bank_name: '',
+              bank_branch: '',
+              account_number: '',
+              ifsc_code: '',
+              account_holder: '',
+              logo_url: '',
+              signature_url: '',
+              is_admin: false,
+              role: 'user',
+              updated_at: serverTimestamp()
+            };
+            Object.assign(profile, sanitizedFields);
+            saveStoredUserProfile(firebaseUser.uid, profile, firebaseUser.email);
             if (navigator.onLine) {
-              setDoc(userDocRef, updates, { merge: true }).catch(() => {});
+              setDoc(userDocRef, sanitizeFirestorePayload(sanitizedFields), { merge: true }).catch(() => {});
             }
           }
         }

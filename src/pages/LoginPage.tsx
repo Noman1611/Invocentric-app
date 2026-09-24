@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Sparkles,
   ExternalLink,
+  Clock,
   X
 } from 'lucide-react';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
@@ -178,6 +179,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [handshakeCompleted, setHandshakeCompleted] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCooldownSeconds(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cooldownSeconds]);
 
   const searchParams = new URLSearchParams(window.location.search);
   const isMobileAuth = searchParams.get('mobile_auth') === '1';
@@ -436,6 +446,7 @@ export default function LoginPage() {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldownSeconds > 0) return;
     if (!emailInput || !emailInput.includes('@')) {
       setError("Please enter a valid email address.");
       return;
@@ -454,7 +465,8 @@ export default function LoginPage() {
         } else if (code === 'auth/invalid-email') {
           setError("Please enter a valid email address.");
         } else if (code === 'auth/too-many-requests') {
-          setError("Too many password reset attempts. Please wait a few minutes before trying again.");
+          setCooldownSeconds(60);
+          setError("Too many password reset attempts. Please wait 1 minute before trying again.");
         } else {
           setError(err.message || "Unable to send password reset email. Please try again.");
         }
@@ -486,7 +498,12 @@ export default function LoginPage() {
         body: JSON.stringify({ email: emailInput })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+      if (!res.ok) {
+        if (res.status === 429 || (data.error && data.error.toLowerCase().includes('wait'))) {
+          setCooldownSeconds(data.retryAfter || 60);
+        }
+        throw new Error(data.error || 'Failed to send OTP');
+      }
       
       setOtpSent(true);
       if (data.otpToken) {
@@ -496,6 +513,9 @@ export default function LoginPage() {
         setDevOtpNotice(`Test Verification Code: ${data.devOtp}`);
       }
     } catch (err: any) {
+      if (err.message && (err.message.includes('Too many requests') || err.message.toLowerCase().includes('wait'))) {
+        setCooldownSeconds(prev => (prev > 0 ? prev : 60));
+      }
       setError(err.message || "Unable to send verification code. Please try again.");
     } finally {
       setLoading(false);
@@ -504,6 +524,7 @@ export default function LoginPage() {
 
   const handleCompleteSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldownSeconds > 0) return;
     if (!otpCode || otpCode.length !== 6) {
       setError("Please enter the complete 6-digit verification code.");
       return;
@@ -513,6 +534,9 @@ export default function LoginPage() {
     try {
       await registerWithPasswordAndOtp(emailInput, passwordInput, otpCode, otpToken || undefined);
     } catch (err: any) {
+      if (err.message && (err.message.includes('Too many requests') || err.message.toLowerCase().includes('wait'))) {
+        setCooldownSeconds(prev => (prev > 0 ? prev : 60));
+      }
       setError(err.message || "Account creation failed. Please check the verification code.");
     } finally {
       setLoading(false);
@@ -523,6 +547,7 @@ export default function LoginPage() {
 
   const handleCompleteReset = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldownSeconds > 0) return;
     if (!otpCode || otpCode.length !== 6) {
       setError("Please enter the complete 6-digit verification code.");
       return;
@@ -538,6 +563,9 @@ export default function LoginPage() {
       // If user already exists in Firebase, a password reset link was sent to their email
       setResetEmailSent(true);
     } catch (err: any) {
+      if (err.message && (err.message.includes('Too many requests') || err.message.toLowerCase().includes('wait'))) {
+        setCooldownSeconds(prev => (prev > 0 ? prev : 60));
+      }
       setError(err.message || "Password reset failed. Please check the verification code.");
     } finally {
       setLoading(false);
@@ -758,10 +786,22 @@ export default function LoginPage() {
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
-                className="mb-5 p-3.5 rounded-xl border bg-rose-50 border-rose-200/80 text-rose-700 flex items-start gap-2.5 text-xs font-medium"
+                className="mb-5 p-3.5 rounded-xl border bg-rose-50 border-rose-200/80 text-rose-700 flex flex-col gap-1.5 text-xs font-medium"
               >
-                <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" />
-                <p className="leading-relaxed">{error}</p>
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" />
+                  <p className="leading-relaxed">
+                    {cooldownSeconds > 0 
+                      ? `Too many requests. Please wait ${cooldownSeconds}s before trying again.` 
+                      : error}
+                  </p>
+                </div>
+                {cooldownSeconds > 0 && (
+                  <div className="flex items-center gap-2 text-rose-800 font-semibold text-xs ml-6">
+                    <Clock size={14} className="animate-spin text-rose-600" />
+                    <span>Time remaining: <span className="font-mono text-xs font-bold text-rose-950 bg-rose-200/70 px-2 py-0.5 rounded-full">{cooldownSeconds}s</span></span>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -829,10 +869,19 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+                disabled={loading || cooldownSeconds > 0}
+                className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:cursor-not-allowed"
               >
-                {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Sign In to Dashboard</span>}
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : cooldownSeconds > 0 ? (
+                  <span className="flex items-center gap-2">
+                    <Clock size={15} className="animate-spin text-slate-300" />
+                    Please wait ({cooldownSeconds}s)
+                  </span>
+                ) : (
+                  <span>Sign In to Dashboard</span>
+                )}
               </button>
             </form>
           )}
@@ -902,10 +951,19 @@ export default function LoginPage() {
 
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+                    disabled={loading || cooldownSeconds > 0}
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Send Verification Code</span>}
+                    {loading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : cooldownSeconds > 0 ? (
+                      <span className="flex items-center gap-2">
+                        <Clock size={15} className="animate-spin text-slate-300" />
+                        Please wait ({cooldownSeconds}s)
+                      </span>
+                    ) : (
+                      <span>Send Verification Code</span>
+                    )}
                   </button>
                 </form>
               ) : (
@@ -926,10 +984,19 @@ export default function LoginPage() {
 
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                    disabled={loading || cooldownSeconds > 0}
+                    className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Verify & Create Account</span>}
+                    {loading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : cooldownSeconds > 0 ? (
+                      <span className="flex items-center gap-2">
+                        <Clock size={15} className="animate-spin text-white/80" />
+                        Please wait ({cooldownSeconds}s)
+                      </span>
+                    ) : (
+                      <span>Verify & Create Account</span>
+                    )}
                   </button>
 
                   <button
@@ -968,10 +1035,19 @@ export default function LoginPage() {
 
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
+                    disabled={loading || cooldownSeconds > 0}
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <span>Send Password Reset Link</span>}
+                    {loading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : cooldownSeconds > 0 ? (
+                      <span className="flex items-center gap-2">
+                        <Clock size={15} className="animate-spin text-slate-300" />
+                        Please wait ({cooldownSeconds}s)
+                      </span>
+                    ) : (
+                      <span>Send Password Reset Link</span>
+                    )}
                   </button>
                 </form>
               ) : (

@@ -145,16 +145,22 @@ const apiLimiter = rateLimit({
   message: { error: 'Too many requests from this IP. Please try again after a few minutes.' }
 });
 
-// Dedicated strict rate limiter for authentication/email-sending endpoints (5 attempts/min per IP)
+// Dedicated strict rate limiter for authentication/email-sending endpoints (15 attempts/min per IP)
 const authEmailLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 6, // Limit 6 action attempts per minute
+  max: 15, // Limit 15 action attempts per minute to avoid accidental lockouts
   standardHeaders: true,
   legacyHeaders: false,
   validate: {
     xForwardedForHeader: false,
   },
-  message: { error: 'Too many requests. Please wait 1 minute before trying again.' }
+  handler: (req, res, next, options) => {
+    const retryAfter = Number(res.getHeader('Retry-After')) || 60;
+    res.status(429).json({
+      error: `Too many requests. Please wait ${retryAfter} seconds before trying again.`,
+      retryAfter
+    });
+  }
 });
 
 // --- ANTI-ATTACKER SHIELD: BRUTE FORCE & EMAIL BOMBING TRACKER ---
