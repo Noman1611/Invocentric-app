@@ -1008,7 +1008,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 100% reliable across all Android devices and versions without requiring google-services.json
         console.log("Launching seamless Chrome Custom Tab Google Authentication handshake...");
         const sessionId = 'mob_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-        const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}&auto_google=1`;
+        const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}`;
 
         const updaterBridge = (window as any).AndroidAppUpdater;
         const googleAuthBridge = (window as any).AndroidGoogleAuth;

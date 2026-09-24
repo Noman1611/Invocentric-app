@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
 import { motion, AnimatePresence } from 'motion/react';
-import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { Link, Navigate } from 'react-router-dom';
@@ -199,70 +199,94 @@ export default function LoginPage() {
     (/android/i.test(navigator.userAgent) && (window as any).Capacitor)
   );
 
+  // Transmit authenticated user credentials to Android APK via server API, Firestore, and deep link
+  const transmitHandshake = async (
+    authenticatedUser: any,
+    credentialIdToken?: string | null,
+    accessToken?: string | null
+  ) => {
+    if (!mobileSessionId || handshakeCompleted) return;
+
+    let idToken = credentialIdToken;
+    if (!idToken && typeof authenticatedUser?.getIdToken === 'function') {
+      try {
+        idToken = await authenticatedUser.getIdToken(true);
+      } catch (tokenErr) {
+        console.warn("Could not get fresh ID token:", tokenErr);
+      }
+    }
+
+    const payload = {
+      sessionId: mobileSessionId,
+      status: 'authenticated',
+      idToken: idToken || null,
+      accessToken: accessToken || null,
+      uid: authenticatedUser.uid,
+      email: authenticatedUser.email || '',
+      displayName: authenticatedUser.displayName || '',
+      photoURL: authenticatedUser.photoURL || ''
+    };
+
+    // 1. Post to Server-side session API (always allowed, no Firestore rules issues)
+    try {
+      await fetch(apiUrl('/api/auth/mobile-session'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (apiErr) {
+      console.warn("Server API session post notice:", apiErr);
+    }
+
+    // 2. Auxiliary Firestore write (safely caught)
+    try {
+      const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
+      await setDoc(sessionRef, {
+        ...payload,
+        completedAt: Date.now()
+      });
+    } catch (fsErr) {
+      console.warn("Firestore session auxiliary write notice:", fsErr);
+    }
+
+    setHandshakeCompleted(true);
+    setLoading(false);
+
+    // 3. Deep link back to Android app
+    const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}`;
+    window.location.href = deepLink;
+  };
+
   useEffect(() => {
     if (!isMobileAuth || !mobileSessionId) return;
 
     let isCancelled = false;
 
-    // Check if user just returned from Google Redirect
+    // 1. Check if user just returned from Google Redirect
     getRedirectResult(auth).then(async (result) => {
       if (isCancelled) return;
       if (result?.user) {
         const credential = GoogleAuthProvider.credentialFromResult(result);
-        const idToken = credential?.idToken;
-        const accessToken = credential?.accessToken;
-
-        // 1. Post to Server-side session API (immune to Firestore permissions)
-        try {
-          await fetch(apiUrl('/api/auth/mobile-session'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: mobileSessionId,
-              status: 'authenticated',
-              idToken: idToken || null,
-              accessToken: accessToken || null,
-              uid: result.user.uid,
-              email: result.user.email || '',
-              displayName: result.user.displayName || '',
-              photoURL: result.user.photoURL || ''
-            })
-          });
-        } catch (e) {}
-
-        // 2. Auxiliary Firestore write (safely caught)
-        try {
-          const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
-          await setDoc(sessionRef, {
-            status: 'authenticated',
-            idToken: idToken || null,
-            accessToken: accessToken || null,
-            uid: result.user.uid,
-            email: result.user.email || '',
-            displayName: result.user.displayName || '',
-            photoURL: result.user.photoURL || '',
-            completedAt: Date.now()
-          });
-        } catch (e) {}
-
-        setHandshakeCompleted(true);
-        const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(result.user.uid)}&email=${encodeURIComponent(result.user.email || '')}`;
-        window.location.href = deepLink;
-        return;
-      }
-
-      // If auto_google=1 is requested and not redirected yet:
-      if (searchParams.get('auto_google') === '1' && !handshakeCompleted) {
-        // Direct Google Sign In redirect with select_account prompt so user always chooses their own account
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        signInWithRedirect(auth, provider);
+        await transmitHandshake(result.user, credential?.idToken, credential?.accessToken);
       }
     }).catch(err => {
       console.warn("Mobile auth redirect handling:", err);
     });
 
-    return () => { isCancelled = true; };
+    // 2. Listen to auth state changes (e.g. if redirect resolved or user is already authenticated)
+    const unsubscribe = onAuthStateChanged(auth, async (u) => {
+      if (isCancelled || !u || handshakeCompleted) return;
+      const wasPending = sessionStorage.getItem('mobile_auth_redirect_pending') === mobileSessionId;
+      if (wasPending) {
+        sessionStorage.removeItem('mobile_auth_redirect_pending');
+        await transmitHandshake(u);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+      unsubscribe();
+    };
   }, [isMobileAuth, mobileSessionId]);
 
   const handleGoogleLogin = async () => {
@@ -270,54 +294,29 @@ export default function LoginPage() {
     setError(null);
     try {
       if (isMobileAuth && mobileSessionId) {
-        // Authenticate in Chrome and bridge back to APK
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        const result = await signInWithPopup(auth, provider);
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        const idToken = credential?.idToken;
-        const accessToken = credential?.accessToken;
 
-        // 1. Post to Server-side session API (always allowed, no Firestore rules issues)
         try {
-          await fetch(apiUrl('/api/auth/mobile-session'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: mobileSessionId,
-              status: 'authenticated',
-              idToken: idToken || null,
-              accessToken: accessToken || null,
-              uid: result.user.uid,
-              email: result.user.email || '',
-              displayName: result.user.displayName || '',
-              photoURL: result.user.photoURL || ''
-            })
-          });
-        } catch (apiErr) {
-          console.warn("Server API session post notice:", apiErr);
+          const result = await signInWithPopup(auth, provider);
+          if (result?.user) {
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            await transmitHandshake(result.user, credential?.idToken, credential?.accessToken);
+            return;
+          }
+        } catch (popupErr: any) {
+          console.warn("Popup attempt notice:", popupErr?.code);
+          if (
+            popupErr.code === 'auth/popup-blocked' ||
+            popupErr.code === 'auth/cancelled-popup-request' ||
+            popupErr.code === 'auth/popup-closed-by-user'
+          ) {
+            sessionStorage.setItem('mobile_auth_redirect_pending', mobileSessionId);
+            await signInWithRedirect(auth, provider);
+            return;
+          }
+          throw popupErr;
         }
-
-        // 2. Auxiliary Firestore write (safely caught)
-        try {
-          const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
-          await setDoc(sessionRef, {
-            status: 'authenticated',
-            idToken: idToken || null,
-            accessToken: accessToken || null,
-            uid: result.user.uid,
-            email: result.user.email || '',
-            displayName: result.user.displayName || '',
-            photoURL: result.user.photoURL || '',
-            completedAt: Date.now()
-          });
-        } catch (fsErr) {
-          console.warn("Firestore session auxiliary write notice:", fsErr);
-        }
-
-        setHandshakeCompleted(true);
-        const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(result.user.uid)}&email=${encodeURIComponent(result.user.email || '')}`;
-        window.location.href = deepLink;
         return;
       }
 
@@ -339,90 +338,14 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      const result = await signInWithPopup(auth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      const idToken = credential?.idToken;
-      const accessToken = credential?.accessToken;
-
-      // 1. Post to Server-side session API
-      try {
-        await fetch(apiUrl('/api/auth/mobile-session'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: mobileSessionId,
-            status: 'authenticated',
-            idToken: idToken || null,
-            accessToken: accessToken || null,
-            uid: result.user.uid,
-            email: result.user.email || '',
-            displayName: result.user.displayName || '',
-            photoURL: result.user.photoURL || ''
-          })
-        });
-      } catch (apiErr) {
-        console.warn("Server API session post notice:", apiErr);
-      }
-
-      // 2. Auxiliary Firestore write (safely caught)
-      try {
-        const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
-        await setDoc(sessionRef, {
-          status: 'authenticated',
-          idToken: idToken || null,
-          accessToken: accessToken || null,
-          uid: result.user.uid,
-          email: result.user.email || '',
-          displayName: result.user.displayName || '',
-          photoURL: result.user.photoURL || '',
-          completedAt: Date.now()
-        });
-      } catch (fsErr) {
-        console.warn("Firestore session write notice:", fsErr);
-      }
-
-      setHandshakeCompleted(true);
-      const deepLink = `invocentric://auth?session=${mobileSessionId}&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(result.user.uid)}&email=${encodeURIComponent(result.user.email || '')}`;
-      window.location.href = deepLink;
-    } catch (err: any) {
-      console.warn("Popup error during app authorize, transferring existing user data:", err);
       if (user) {
-        try {
-          await fetch(apiUrl('/api/auth/mobile-session'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: mobileSessionId,
-              status: 'authenticated',
-              uid: user.uid,
-              email: user.email || '',
-              displayName: user.displayName || '',
-              photoURL: user.photoURL || ''
-            })
-          });
-        } catch (e) {}
-
-        try {
-          const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
-          await setDoc(sessionRef, {
-            status: 'authenticated',
-            uid: user.uid,
-            email: user.email || '',
-            displayName: user.displayName || '',
-            photoURL: user.photoURL || '',
-            completedAt: Date.now()
-          });
-        } catch (fsIgnored) {}
-
-        setHandshakeCompleted(true);
-        const deepLink = `invocentric://auth?session=${mobileSessionId}&uid=${encodeURIComponent(user.uid)}&email=${encodeURIComponent(user.email || '')}`;
-        window.location.href = deepLink;
+        await transmitHandshake(user);
       } else {
-        setError(err.message || "Failed to authorize app.");
+        await handleGoogleLogin();
       }
-    } finally {
+    } catch (err: any) {
+      console.error("Authorize App Error:", err);
+      setError(err.message || "Failed to authorize app.");
       setLoading(false);
     }
   };
@@ -640,8 +563,8 @@ export default function LoginPage() {
     );
   }
 
-  // Handle auto_google redirection screen
-  if (isMobileAuth && searchParams.get('auto_google') === '1' && !handshakeCompleted) {
+  // Handle Mobile Browser Handshake Sign-in (when not logged in yet)
+  if (isMobileAuth && mobileSessionId && !handshakeCompleted) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-900 font-sans">
         <motion.div
@@ -650,18 +573,44 @@ export default function LoginPage() {
           className="w-full max-w-sm bg-white rounded-3xl p-8 shadow-xl border border-slate-200 text-center"
         >
           <Logo size={56} className="mx-auto mb-4" />
-          <div className="w-10 h-10 border-3 border-[#0F645D] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-slate-900 mb-1">Opening Google Sign-In...</h2>
+          <h2 className="text-xl font-bold text-slate-900 mb-1">Sign in to InvoCentric</h2>
           <p className="text-xs text-slate-500 mb-6">
-            Please choose your Google account to log into InvoCentric.
+            Sign in with Google to connect your account to the InvoCentric app.
           </p>
+
+          {error && (
+            <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs text-left flex items-start gap-2">
+              <AlertCircle size={15} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full h-11 flex items-center justify-center gap-2 bg-[#0F645D] hover:bg-[#0c524c] text-white text-xs font-semibold rounded-xl shadow transition-all active:scale-95"
+            className="w-full h-12 flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl font-medium text-sm text-slate-700 shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 mb-3"
           >
-            {loading ? "Connecting..." : "Tap here if account list didn't open"}
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-[#0F645D] border-t-transparent rounded-full animate-spin" />
+                <span>Opening Google Sign-In...</span>
+              </div>
+            ) : (
+              <>
+                <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                </svg>
+                <span className="font-semibold text-slate-800">Continue with Google</span>
+              </>
+            )}
           </button>
+
+          <p className="text-[11px] text-slate-400 mt-4">
+            Once signed in, you'll be automatically redirected back into the InvoCentric app.
+          </p>
         </motion.div>
       </div>
     );
