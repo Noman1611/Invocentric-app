@@ -33,3 +33,6 @@ export function apiUrl(endpoint: string): string {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${base}${cleanEndpoint}`;
 }
+
+apiUrl.toString = () => `${getApiBaseUrl()}/api`;
+apiUrl.valueOf = () => `${getApiBaseUrl()}/api`;

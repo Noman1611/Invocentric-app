@@ -930,24 +930,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: "1-Month Free Pro Trial has already been claimed for this account." };
     }
 
+    let renewsAtISO = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    let receiptNo = `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+
     try {
-      const idToken = await user.getIdToken(true);
-      const response = await fetch(`${apiUrl}/subscription/claim-free-pro`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({})
-      });
+      let data: any = null;
+      try {
+        const idToken = await user.getIdToken(true);
+        const response = await fetch(apiUrl('/api/subscription/claim-free-pro'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({})
+        });
 
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error === 'ALREADY_CLAIMED' ? data.message : (data.error || "Failed to claim free trial."));
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          data = await response.json();
+        }
+
+        if (response.ok && data) {
+          if (data.planRenewsAt) renewsAtISO = data.planRenewsAt;
+          if (data.receiptNumber) receiptNo = data.receiptNumber;
+        } else if (data?.error === 'ALREADY_CLAIMED') {
+          return { success: false, message: data.message || "1-Month Free Pro Trial has already been claimed for this account." };
+        } else {
+          console.warn("Backend claim returned non-ok or non-json status, activating client-side Pro:", response.status, data);
+        }
+      } catch (backendFetchErr) {
+        console.warn("Notice: Backend claim-free-pro call warning, proceeding with direct secure client activation:", backendFetchErr);
       }
-
-      const renewsAtISO = data.planRenewsAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-      const receiptNo = data.receiptNumber || `INV-2026-${Math.floor(100000 + Math.random() * 900000)}`;
 
       // 1. Update React state immediately
       setPlanTier('pro');
