@@ -736,21 +736,11 @@ export default function LoginPage() {
           {authMode !== 'forgot' && (
             <div className="mb-6">
               {loading && isNativeAndroid && (
-                <div className="mb-4 p-4 rounded-xl bg-teal-50 border border-teal-200 text-teal-900 text-center animate-fadeIn">
-                  <div className="flex items-center justify-center gap-2 font-bold text-xs text-teal-800 mb-1">
-                    <Globe size={16} className="animate-spin text-teal-600" />
-                    <span>Google Chrome Opened for Secure Login</span>
+                <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-center animate-fadeIn">
+                  <div className="flex items-center justify-center gap-2 font-medium text-xs text-emerald-800">
+                    <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                    <span>Connecting with Google...</span>
                   </div>
-                  <p className="text-[11px] text-teal-700 leading-relaxed mb-2.5">
-                    Please complete your Google Sign-In in Chrome. You will automatically be returned and signed in!
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setLoading(false)}
-                    className="text-xs font-semibold text-teal-800 bg-white px-3 py-1 rounded-md border border-teal-200 hover:bg-teal-100 transition-colors"
-                  >
-                    ✕ Cancel Wait
-                  </button>
                 </div>
               )}
 

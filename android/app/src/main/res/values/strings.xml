@@ -4,4 +4,6 @@
     <string name="title_activity_main">InvoCentric</string>
     <string name="package_name">com.invocentric.app</string>
     <string name="custom_url_scheme">com.invocentric.app</string>
+    <!-- Replace with your OAuth 2.0 Web Client ID from Google Cloud Console / Firebase Console, or place google-services.json in android/app -->
+    <string name="default_web_client_id" translatable="false">YOUR_WEB_CLIENT_ID.apps.googleusercontent.com</string>
 </resources>

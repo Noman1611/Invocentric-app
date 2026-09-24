@@ -1,239 +1,38 @@
 package com.invocentric.app;
 
-import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Message;
 import android.webkit.CookieManager;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
-import android.widget.TextView;
 import com.getcapacitor.BridgeActivity;
+import org.json.JSONObject;
 
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(NativeGoogleAuthPlugin.class);
         super.onCreate(savedInstanceState);
         
         try {
             WebView webView = getBridge().getWebView();
             if (webView != null) {
                 WebSettings settings = webView.getSettings();
-                
-                // Enable multi-window & popup handling for OAuth flows
                 settings.setJavaScriptEnabled(true);
-                settings.setJavaScriptCanOpenWindowsAutomatically(true);
-                settings.setSupportMultipleWindows(true);
                 settings.setDomStorageEnabled(true);
                 settings.setDatabaseEnabled(true);
 
-                // Sanitize User Agent to remove WebView identifiers ("; wv" and "Version/4.0")
-                // This prevents Google OAuth from throwing "Error 403: disallowed_useragent"
-                String originalUA = settings.getUserAgentString();
-                final String cleanUA = originalUA != null 
-                    ? originalUA.replace("; wv", "").replaceAll("Version\\/[0-9.]+\\s?", "") 
-                    : null;
-                if (cleanUA != null) {
-                    settings.setUserAgentString(cleanUA);
-                }
-
-                // Enable cookies for OAuth handshakes
                 CookieManager cookieManager = CookieManager.getInstance();
                 cookieManager.setAcceptCookie(true);
                 cookieManager.setAcceptThirdPartyCookies(webView, true);
 
-                // Safely wrap the existing WebChromeClient without causing ActivityResultRegistry lifecycle errors
-                final WebChromeClient defaultChromeClient = webView.getWebChromeClient();
-                webView.setWebChromeClient(new WebChromeClient() {
-                    private Dialog authDialog;
-                    private WebView authWebView;
-
-                    @Override
-                    public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
-                        try {
-                            Context context = MainActivity.this;
-                            authWebView = new WebView(context);
-                            WebSettings authSettings = authWebView.getSettings();
-                            authSettings.setJavaScriptEnabled(true);
-                            authSettings.setJavaScriptCanOpenWindowsAutomatically(true);
-                            authSettings.setSupportMultipleWindows(true);
-                            authSettings.setDomStorageEnabled(true);
-                            authSettings.setDatabaseEnabled(true);
-                            if (cleanUA != null) {
-                                authSettings.setUserAgentString(cleanUA);
-                            }
-
-                            CookieManager.getInstance().setAcceptCookie(true);
-                            CookieManager.getInstance().setAcceptThirdPartyCookies(authWebView, true);
-
-                            authDialog = new Dialog(context, android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen);
-
-                            LinearLayout root = new LinearLayout(context);
-                            root.setOrientation(LinearLayout.VERTICAL);
-                            root.setLayoutParams(new LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT,
-                                LinearLayout.LayoutParams.MATCH_PARENT
-                            ));
-
-                            // Top header bar
-                            RelativeLayout topBar = new RelativeLayout(context);
-                            topBar.setBackgroundColor(0xFF0F645D); // Brand green
-                            int pad = (int) (14 * getResources().getDisplayMetrics().density);
-                            topBar.setPadding(pad, pad, pad, pad);
-
-                            TextView title = new TextView(context);
-                            title.setText("Sign in with Google - InvoCentric");
-                            title.setTextColor(0xFFFFFFFF);
-                            title.setTextSize(16);
-                            title.setTypeface(null, Typeface.BOLD);
-                            RelativeLayout.LayoutParams titleLp = new RelativeLayout.LayoutParams(
-                                RelativeLayout.LayoutParams.WRAP_CONTENT,
-                                RelativeLayout.LayoutParams.WRAP_CONTENT
-                            );
-                            titleLp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-                            titleLp.addRule(RelativeLayout.CENTER_VERTICAL);
-                            topBar.addView(title, titleLp);
-
-                            TextView closeBtn = new TextView(context);
-                            closeBtn.setText("✕ Cancel");
-                            closeBtn.setTextColor(0xFFFFFFFF);
-                            closeBtn.setTextSize(14);
-                            closeBtn.setPadding(pad, 0, 0, 0);
-                            RelativeLayout.LayoutParams closeLp = new RelativeLayout.LayoutParams(
-                                RelativeLayout.LayoutParams.WRAP_CONTENT,
-                                RelativeLayout.LayoutParams.WRAP_CONTENT
-                            );
-                            closeLp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-                            closeLp.addRule(RelativeLayout.CENTER_VERTICAL);
-                            topBar.addView(closeBtn, closeLp);
-
-                            root.addView(topBar);
-
-                            LinearLayout.LayoutParams webViewLp = new LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT,
-                                0,
-                                1.0f
-                            );
-                            root.addView(authWebView, webViewLp);
-
-                            authDialog.setContentView(root);
-
-                            closeBtn.setOnClickListener(v -> {
-                                if (authDialog != null && authDialog.isShowing()) {
-                                    authDialog.dismiss();
-                                }
-                            });
-
-                            authDialog.setOnDismissListener(d -> {
-                                if (authWebView != null) {
-                                    authWebView.destroy();
-                                    authWebView = null;
-                                }
-                                authDialog = null;
-                            });
-
-                            authWebView.setWebChromeClient(new WebChromeClient() {
-                                @Override
-                                public void onCloseWindow(WebView window) {
-                                    if (authDialog != null && authDialog.isShowing()) {
-                                        authDialog.dismiss();
-                                    }
-                                }
-                            });
-
-                            authWebView.setWebViewClient(new WebViewClient() {
-                                @Override
-                                public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                                    Uri requestUri = request.getUrl();
-                                    if (requestUri != null) {
-                                        String s = requestUri.toString();
-                                        if (s.startsWith("invocentric://") || s.startsWith("com.invocentric.app://")) {
-                                            handleDeepLinkUri(requestUri);
-                                            if (authDialog != null && authDialog.isShowing()) {
-                                                authDialog.dismiss();
-                                            }
-                                            return true;
-                                        }
-                                    }
-                                    return false;
-                                }
-                            });
-
-                            authDialog.show();
-
-                            WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
-                            transport.setWebView(authWebView);
-                            resultMsg.sendToTarget();
-                            return true;
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            return false;
-                        }
-                    }
-
-                    @Override
-                    public void onCloseWindow(WebView window) {
-                        if (authDialog != null && authDialog.isShowing()) {
-                            authDialog.dismiss();
-                        }
-                        if (defaultChromeClient != null) {
-                            defaultChromeClient.onCloseWindow(window);
-                        }
-                    }
-
-                    @Override
-                    public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
-                        if (defaultChromeClient != null) {
-                            return defaultChromeClient.onShowFileChooser(webView, filePathCallback, fileChooserParams);
-                        }
-                        return super.onShowFileChooser(webView, filePathCallback, fileChooserParams);
-                    }
-
-                    @Override
-                    public boolean onJsAlert(WebView view, String url, String message, android.webkit.JsResult result) {
-                        if (defaultChromeClient != null) {
-                            return defaultChromeClient.onJsAlert(view, url, message, result);
-                        }
-                        return super.onJsAlert(view, url, message, result);
-                    }
-
-                    @Override
-                    public boolean onJsConfirm(WebView view, String url, String message, android.webkit.JsResult result) {
-                        if (defaultChromeClient != null) {
-                            return defaultChromeClient.onJsConfirm(view, url, message, result);
-                        }
-                        return super.onJsConfirm(view, url, message, result);
-                    }
-
-                    @Override
-                    public boolean onJsPrompt(WebView view, String url, String message, String defaultValue, android.webkit.JsPromptResult result) {
-                        if (defaultChromeClient != null) {
-                            return defaultChromeClient.onJsPrompt(view, url, message, defaultValue, result);
-                        }
-                        return super.onJsPrompt(view, url, message, defaultValue, result);
-                    }
-
-                    @Override
-                    public void onPermissionRequest(android.webkit.PermissionRequest request) {
-                        if (defaultChromeClient != null) {
-                            defaultChromeClient.onPermissionRequest(request);
-                            return;
-                        }
-                        super.onPermissionRequest(request);
-                    }
-                });
-
-                // Add native JavascriptInterface for automated background APK downloading & install trigger
+                // Add native JavascriptInterface for automated background APK downloading, updater, & direct Google Auth
                 webView.addJavascriptInterface(new AppUpdateInterface(), "AndroidAppUpdater");
+                webView.addJavascriptInterface(new AndroidGoogleAuthInterface(), "AndroidGoogleAuth");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -275,7 +74,120 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
-    class AppUpdateInterface {
+    public class AndroidGoogleAuthInterface {
+        @android.webkit.JavascriptInterface
+        public void signIn(final String optionsJson, final String callbackId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        String serverClientId = null;
+                        String nonce = null;
+                        boolean filterByAuthorized = true;
+                        boolean autoSelect = true;
+
+                        if (optionsJson != null && !optionsJson.trim().isEmpty()) {
+                            try {
+                                JSONObject json = new JSONObject(optionsJson);
+                                if (json.has("serverClientId")) serverClientId = json.getString("serverClientId");
+                                if (json.has("nonce")) nonce = json.getString("nonce");
+                                if (json.has("filterByAuthorizedAccounts")) filterByAuthorized = json.getBoolean("filterByAuthorizedAccounts");
+                                if (json.has("autoSelectEnabled")) autoSelect = json.getBoolean("autoSelectEnabled");
+                            } catch (Exception ignored) {}
+                        }
+
+                        CredentialManagerHelper helper = new CredentialManagerHelper(MainActivity.this);
+                        helper.signIn(serverClientId, nonce, filterByAuthorized, autoSelect, new CredentialManagerHelper.AuthCallback() {
+                            @Override
+                            public void onSuccess(CredentialManagerHelper.AuthResult result) {
+                                try {
+                                    JSONObject ret = new JSONObject();
+                                    ret.put("idToken", result.idToken);
+                                    ret.put("email", result.email);
+                                    ret.put("displayName", result.displayName);
+                                    ret.put("givenName", result.givenName);
+                                    ret.put("familyName", result.familyName);
+                                    ret.put("photoUrl", result.photoUrl);
+                                    ret.put("phoneNumber", result.phoneNumber);
+                                    ret.put("nonce", result.nonce);
+                                    dispatchAuthCallback(callbackId, ret.toString());
+                                } catch (Exception e) {
+                                    dispatchAuthError(callbackId, "EXCEPTION", e.getMessage());
+                                }
+                            }
+
+                            @Override
+                            public void onCancel() {
+                                dispatchAuthError(callbackId, "USER_CANCELLED", "User cancelled Google Sign-In");
+                            }
+
+                            @Override
+                            public void onError(String code, String message) {
+                                dispatchAuthError(callbackId, code, message);
+                            }
+                        });
+                    } catch (Exception e) {
+                        dispatchAuthError(callbackId, "EXCEPTION", e.getMessage());
+                    }
+                }
+            });
+        }
+
+        @android.webkit.JavascriptInterface
+        public void signOut(final String callbackId) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    CredentialManagerHelper helper = new CredentialManagerHelper(MainActivity.this);
+                    helper.signOut(new CredentialManagerHelper.SignOutCallback() {
+                        @Override
+                        public void onComplete() {
+                            dispatchAuthCallback(callbackId, "{}");
+                        }
+                    });
+                }
+            });
+        }
+
+        private void dispatchAuthCallback(final String callbackId, final String resultJson) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        WebView wv = getBridge().getWebView();
+                        if (wv != null) {
+                            wv.evaluateJavascript(
+                                "(function(){ if (window.__onNativeGoogleAuth) { window.__onNativeGoogleAuth('" + callbackId + "', null, " + resultJson + "); } })();",
+                                null
+                            );
+                        }
+                    } catch (Exception ignored) {}
+                }
+            });
+        }
+
+        private void dispatchAuthError(final String callbackId, final String code, final String message) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        WebView wv = getBridge().getWebView();
+                        if (wv != null) {
+                            JSONObject err = new JSONObject();
+                            err.put("code", code);
+                            err.put("message", message);
+                            wv.evaluateJavascript(
+                                "(function(){ if (window.__onNativeGoogleAuth) { window.__onNativeGoogleAuth('" + callbackId + "', " + err.toString() + ", null); } })();",
+                                null
+                            );
+                        }
+                    } catch (Exception ignored) {}
+                }
+            });
+        }
+    }
+
+    public class AppUpdateInterface {
         @android.webkit.JavascriptInterface
         public String getAppVersion() {
             try {
@@ -283,27 +195,6 @@ public class MainActivity extends BridgeActivity {
             } catch (Exception e) {
                 return "1.0.12";
             }
-        }
-
-        @android.webkit.JavascriptInterface
-        public void openAuthCustomTab(final String url) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        androidx.browser.customtabs.CustomTabsIntent.Builder builder = new androidx.browser.customtabs.CustomTabsIntent.Builder();
-                        builder.setShowTitle(true);
-                        builder.setToolbarColor(0xFF0F645D); // Brand green
-                        androidx.browser.customtabs.CustomTabsIntent customTabsIntent = builder.build();
-                        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        customTabsIntent.launchUrl(MainActivity.this, Uri.parse(url));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        openExternalUrl(url);
-                    }
-                }
-            });
         }
 
         @android.webkit.JavascriptInterface

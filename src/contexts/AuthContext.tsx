@@ -863,168 +863,87 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isElectron = typeof window !== 'undefined' && Boolean((window as any).electronAPI);
       const isNativeAndroid = typeof window !== 'undefined' && Boolean(
         (window as any).AndroidAppUpdater || 
+        (window as any).AndroidGoogleAuth ||
         (window as any).Capacitor?.isNativePlatform?.() ||
         window.location.protocol === 'capacitor:' ||
         (/android/i.test(navigator.userAgent) && (window as any).Capacitor)
       );
 
-      // --- NATIVE ANDROID CHROME OAUTH BRIDGE ---
+      // --- NATIVE ANDROID CREDENTIAL MANAGER SIGN-IN ---
       if (isNativeAndroid) {
-        console.log("Native Android detected. Launching Google Chrome OAuth bridge...");
-        const sessionId = 'mob_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-        const sessionRef = doc(db, 'app_auth_sessions', sessionId);
+        console.log("Native Android detected. Invoking modern Android Credential Manager...");
 
-        // Pre-create session on backend server API (immune to Firestore permission issues)
-        fetch('https://invocentric.in/api/auth/mobile-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, status: 'pending' })
-        }).catch(err => console.warn("Notice: Server session pre-create:", err));
+        let authData: { idToken: string; email?: string; displayName?: string; photoUrl?: string } | null = null;
 
-        // Attempt Firestore pre-create safely inside try/catch so permission errors never crash
+        // 1. Try Capacitor NativeGoogleAuth Plugin first
         try {
-          await setDoc(sessionRef, {
-            status: 'pending',
-            created_at: Date.now()
-          });
-        } catch (fsIgnored) {
-          console.warn("Firestore unauthenticated write notice (using server API bridge instead):", fsIgnored);
-        }
-
-        const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}&auto_google=1`;
-
-        // Launch in-app Custom Tab popup (sliding sheet with green brand header)
-        if ((window as any).AndroidAppUpdater?.openAuthCustomTab) {
-          (window as any).AndroidAppUpdater.openAuthCustomTab(authUrl);
-        } else if ((window as any).AndroidAppUpdater?.openExternalUrl) {
-          (window as any).AndroidAppUpdater.openExternalUrl(authUrl);
-        } else {
-          window.open(authUrl, '_system');
-        }
-
-        // Return a promise that resolves once authentication is completed in Chrome
-        return new Promise<void>((resolve, reject) => {
-          let resolved = false;
-          let cleanupFns: Array<() => void> = [];
-
-          const cleanup = () => {
-            cleanupFns.forEach(fn => {
-              try { fn(); } catch (e) {}
+          const { registerPlugin } = await import('@capacitor/core');
+          const NativeGoogleAuth = registerPlugin<any>('NativeGoogleAuth');
+          if (NativeGoogleAuth && typeof NativeGoogleAuth.signIn === 'function') {
+            const res = await NativeGoogleAuth.signIn({
+              filterByAuthorizedAccounts: true,
+              autoSelectEnabled: true
             });
-            cleanupFns = [];
-          };
-
-          // 5 minute timeout for user to complete login in Chrome
-          const timer = setTimeout(() => {
-            if (!resolved) {
-              resolved = true;
-              cleanup();
-              try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
-              reject(new Error("Login in Chrome timed out. Please try again."));
+            if (res?.idToken) {
+              authData = res;
             }
-          }, 5 * 60 * 1000);
-          cleanupFns.push(() => clearTimeout(timer));
-
-          const handleAuthPayload = async (data: any) => {
-            if (resolved) return;
-            resolved = true;
-            cleanup();
-
-            try {
-              if (data.idToken) {
-                // Real Google ID Token from Chrome: Authenticate the native Firebase instance!
-                const cred = GoogleAuthProvider.credential(data.idToken, data.accessToken || undefined);
-                await signInWithCredential(auth, cred);
-              } else if (data.uid) {
-                await applyExternalSessionUser(data);
-              }
-              try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
-              resolve();
-            } catch (err: any) {
-              console.error("Failed to authenticate session in APK:", err);
-              if (data.uid) {
-                await applyExternalSessionUser(data);
-                try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
-                resolve();
-              } else {
-                reject(err);
-              }
-            }
-          };
-
-          // 1. High-frequency Server API Polling (Fast, robust, zero permission errors)
-          const pollTimer = setInterval(async () => {
-            if (resolved) return;
-            try {
-              const res = await fetch(`https://invocentric.in/api/auth/mobile-session?session=${sessionId}`);
-              if (res.ok) {
-                const sData = await res.json();
-                if (sData?.status === 'authenticated') {
-                  handleAuthPayload(sData);
-                }
-              }
-            } catch (netErr) {
-              // Silently ignore temporary network latency
-            }
-          }, 1200);
-          cleanupFns.push(() => clearInterval(pollTimer));
-
-          // 2. Safe Firestore real-time session listener (as auxiliary fallback)
-          try {
-            const unsubSnapshot = onSnapshot(sessionRef, (snap) => {
-              if (snap.exists()) {
-                const data = snap.data();
-                if (data?.status === 'authenticated') {
-                  handleAuthPayload(data);
-                }
-              }
-            }, (err) => {
-              // Silently catch permission denied on unauthenticated Firestore
-              console.warn("Session snapshot listener notice (server polling is active):", err?.message);
-            });
-            cleanupFns.push(unsubSnapshot);
-          } catch (listenerErr) {
-            console.warn("Snapshot setup notice:", listenerErr);
           }
+        } catch (capErr: any) {
+          if (
+            capErr?.code === 'USER_CANCELLED' || 
+            capErr?.message?.includes('User cancelled') || 
+            capErr?.message?.includes('cancelled')
+          ) {
+            console.log("User cancelled Google Sign-In account chooser.");
+            return;
+          }
+          console.warn("Capacitor NativeGoogleAuth plugin attempt notice:", capErr);
+        }
 
-          // 3. Deep link listener for instant foreground callback
-          const onDeepLink = (event: any) => {
-            const urlStr = event?.detail?.url || '';
-            if (urlStr.includes('session=') || urlStr.includes(sessionId)) {
-              try {
-                const dummy = new URL(
-                  urlStr
-                    .replace('invocentric://auth', 'http://localhost/auth')
-                    .replace('invocentric://', 'http://localhost/')
-                    .replace('com.invocentric.app://auth', 'http://localhost/auth')
-                    .replace('com.invocentric.app://', 'http://localhost/')
-                );
-                const sId = dummy.searchParams.get('session');
-                const idToken = dummy.searchParams.get('idToken');
-                const accessToken = dummy.searchParams.get('accessToken');
-                const uid = dummy.searchParams.get('uid');
-                const email = dummy.searchParams.get('email');
-                const displayName = dummy.searchParams.get('displayName');
-
-                if (sId === sessionId || !sId) {
-                  if (idToken || uid) {
-                    handleAuthPayload({
-                      idToken,
-                      accessToken,
-                      uid,
-                      email: email || '',
-                      displayName: displayName || ''
-                    });
+        // 2. Direct JavascriptInterface fallback (AndroidGoogleAuth)
+        if (!authData && typeof window !== 'undefined') {
+          const bridge = (window as any).AndroidGoogleAuth;
+          if (bridge && typeof bridge.signIn === 'function') {
+            authData = await new Promise((resolve, reject) => {
+              const callbackId = 'cb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+              (window as any).__onNativeGoogleAuth = (cbId: string, err: any, data: any) => {
+                if (cbId !== callbackId) return;
+                delete (window as any).__onNativeGoogleAuth;
+                if (err) {
+                  if (err.code === 'USER_CANCELLED' || err.message?.includes('cancelled')) {
+                    resolve(null);
+                  } else {
+                    reject(new Error(err.message || 'Native Google Sign-In failed'));
                   }
+                } else {
+                  resolve(data);
                 }
-              } catch (e) {
-                console.warn("Deep link parse error:", e);
+              };
+              try {
+                bridge.signIn(JSON.stringify({ filterByAuthorizedAccounts: true, autoSelectEnabled: true }), callbackId);
+              } catch (bridgeErr) {
+                delete (window as any).__onNativeGoogleAuth;
+                reject(bridgeErr);
               }
-            }
-          };
-          window.addEventListener('app-deep-link', onDeepLink);
-          cleanupFns.push(() => window.removeEventListener('app-deep-link', onDeepLink));
-        });
+            });
+          }
+        }
+
+        if (!authData) {
+          // User dismissed or cancelled account selection
+          return;
+        }
+
+        if (!authData.idToken) {
+          throw new Error("Unable to obtain Google ID Token from Credential Manager.");
+        }
+
+        // 3. Authenticate securely with Firebase Authentication using Google credential
+        console.log("Authenticating with Firebase using native Google ID Token...");
+        const cred = GoogleAuthProvider.credential(authData.idToken);
+        const userCredential = await signInWithCredential(auth, cred);
+        console.log("Successfully signed in with Google account:", userCredential.user?.email);
+        return;
       }
 
       // Non-Android environments (Web / Desktop Electron)
@@ -1182,6 +1101,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('invocentric_last_email');
       localStorage.removeItem('local_guest_session');
       localStorage.removeItem('email_otp_session');
+      if (typeof window !== 'undefined') {
+        try {
+          const { registerPlugin } = await import('@capacitor/core');
+          const NativeGoogleAuth = registerPlugin<any>('NativeGoogleAuth');
+          if (NativeGoogleAuth?.signOut) {
+            await NativeGoogleAuth.signOut().catch(() => {});
+          }
+        } catch (ignored) {}
+        if ((window as any).AndroidGoogleAuth?.signOut) {
+          try {
+            (window as any).AndroidGoogleAuth.signOut('logout_cb');
+          } catch (ignored) {}
+        }
+      }
       await signOut(auth);
       setUser(null);
       setIsAdmin(false);
