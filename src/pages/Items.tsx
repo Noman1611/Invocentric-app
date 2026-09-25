@@ -34,6 +34,13 @@ interface Item {
   category: string;
   stock: number;
   low_stock_threshold: number;
+  min_stock_level?: number;
+  reorder_quantity?: number;
+  last_purchase_price?: number;
+  purchase_price?: number;
+  costPrice?: number;
+  supplier_id?: string;
+  supplier_name?: string;
   barcode?: string;
   created_at: any;
   size?: string;
@@ -42,6 +49,14 @@ interface Item {
   discount?: number;
   gstPercent?: number;
   custom_box?: string;
+  batch_no?: string;
+  expiry_date?: string;
+  manufacturing_date?: string;
+  warranty_period?: string;
+  brand?: string;
+  serialNumber?: string;
+  serials?: string[];
+  active?: boolean;
 }
 
 import { dbService } from '../services/dbService';
@@ -68,6 +83,27 @@ export default function ItemsPage() {
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedLowStockIds, setSelectedLowStockIds] = useState<string[]>([]);
+
+  const handleCreatePoForSelected = (itemsToOrder?: Item[]) => {
+    const lowItems = items.filter(i => (Number(i.stock) || 0) <= (Number(i.min_stock_level) || Number(i.low_stock_threshold) || 5));
+    const targetItems = itemsToOrder || lowItems.filter(i => selectedLowStockIds.includes(i.id));
+    if (targetItems.length === 0) {
+      alert("Please select at least one low-stock item to generate a Purchase Order.");
+      return;
+    }
+    const poPayload = targetItems.map(i => ({
+      itemId: i.id,
+      name: i.name,
+      currentStock: i.stock,
+      unit: i.unit || 'Pcs',
+      threshold: i.min_stock_level || i.low_stock_threshold || 5,
+      quantity: i.reorder_quantity || Math.max(10, ((i.min_stock_level || i.low_stock_threshold || 5) * 2) - (i.stock || 0)),
+      price: i.last_purchase_price || (i as any).costPrice || i.price || 0,
+      supplierName: i.supplier_name || ''
+    }));
+    navigate('/purchases', { state: { createPoFromLowStock: true, poItems: poPayload } });
+  };
   const [showScanner, setShowScanner] = useState(false);
   const [cameraMode, setCameraMode] = useState<'environment' | 'user'>('environment');
   const [cameraActive, setCameraActive] = useState(false);
@@ -1048,64 +1084,148 @@ export default function ItemsPage() {
         </div>
       )}
 
-      {currentTab === 'lowstock' && (
-        <div className="card-base p-6 bg-white border border-slate-100 shadow-sm space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Low Stock Alerts</h3>
-            <p className="text-xs text-slate-500">Products at or below their minimum reorder threshold.</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-bold tracking-wider">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-xl">Product Name</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Current Stock</th>
-                  <th className="px-4 py-3">Threshold</th>
-                  <th className="px-4 py-3 rounded-r-xl">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {items.filter(i => (Number(i.stock) || 0) <= (Number(i.low_stock_threshold) || 5)).map(item => (
-                  <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-3 font-semibold text-slate-900">{item.name}</td>
-                    <td className="px-4 py-3 text-slate-600">{item.category || 'General'}</td>
-                    <td className="px-4 py-3 font-bold text-rose-600">{item.stock} {item.unit}</td>
-                    <td className="px-4 py-3 text-slate-500">{item.low_stock_threshold || 5} {item.unit}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => {
-                          setEditingItem(item as any);
-                          setFormData({
-                            name: item.name,
-                            description: item.description || '',
-                            price: String(item.price || ''),
-                            unit: item.unit || 'pcs',
-                            category: item.category || '',
-                            stock: String(item.stock || ''),
-                            low_stock_threshold: String(item.low_stock_threshold || 5),
-                            barcode: item.barcode || '',
-                            size: item.size || '',
-                            hsn: item.hsn || '',
-                            mrp: String(item.mrp || ''),
-                            discount: String(item.discount || ''),
-                            gstPercent: String(item.gstPercent || ''),
-                            custom_box: item.custom_box || ''
-                          });
-                          setIsModalOpen(true);
+      {currentTab === 'lowstock' && (() => {
+        const lowItems = items.filter(i => (Number(i.stock) || 0) <= (Number(i.min_stock_level) || Number(i.low_stock_threshold) || 5));
+        const allSelected = lowItems.length > 0 && lowItems.every(i => selectedLowStockIds.includes(i.id));
+
+        return (
+          <div className="card-base p-6 bg-white border border-slate-100 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <span>Low Stock Alerts</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-extrabold bg-rose-100 text-rose-700">
+                    {lowItems.length}
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-500">Products at or below their minimum reorder threshold.</p>
+              </div>
+
+              {lowItems.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleCreatePoForSelected()}
+                    disabled={selectedLowStockIds.length === 0}
+                    className={cn(
+                      "px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs",
+                      selectedLowStockIds.length > 0
+                        ? "bg-[#166534] text-white hover:bg-[#14532d] cursor-pointer"
+                        : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    )}
+                  >
+                    <Plus size={14} />
+                    <span>Create Purchase Order ({selectedLowStockIds.length})</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-bold tracking-wider">
+                  <tr>
+                    <th className="px-3 py-3 rounded-l-xl w-10">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedLowStockIds(lowItems.map(i => i.id));
+                          } else {
+                            setSelectedLowStockIds([]);
+                          }
                         }}
-                        className="text-xs font-bold text-[#166534] hover:underline"
-                      >
-                        Restock
-                      </button>
-                    </td>
+                        className="rounded text-[#166534] focus:ring-[#166534]"
+                      />
+                    </th>
+                    <th className="px-4 py-3">Product Name</th>
+                    <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3">Current Stock</th>
+                    <th className="px-4 py-3">Reorder Level</th>
+                    <th className="px-4 py-3">Supplier</th>
+                    <th className="px-4 py-3 rounded-r-xl text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {lowItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-slate-500 text-xs font-medium">
+                        ✨ No low-stock items detected! All products are currently above their reorder threshold.
+                      </td>
+                    </tr>
+                  ) : (
+                    lowItems.map(item => {
+                      const isChecked = selectedLowStockIds.includes(item.id);
+                      return (
+                        <tr key={item.id} className={cn("hover:bg-slate-50/60 transition-colors", isChecked && "bg-green-50/30")}>
+                          <td className="px-3 py-3">
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedLowStockIds(prev => [...prev, item.id]);
+                                } else {
+                                  setSelectedLowStockIds(prev => prev.filter(id => id !== item.id));
+                                }
+                              }}
+                              className="rounded text-[#166534] focus:ring-[#166534]"
+                            />
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-slate-900">{item.name}</td>
+                          <td className="px-4 py-3 text-slate-600">{item.category || 'General'}</td>
+                          <td className="px-4 py-3 font-bold text-rose-600">{item.stock} {item.unit}</td>
+                          <td className="px-4 py-3 text-slate-500">{item.min_stock_level || item.low_stock_threshold || 5} {item.unit}</td>
+                          <td className="px-4 py-3 text-slate-600">{item.supplier_name || '—'}</td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleCreatePoForSelected([item])}
+                                className="px-2.5 py-1 rounded-lg text-xs font-bold text-white bg-[#166534] hover:bg-[#14532d] transition-colors shadow-2xs"
+                                title="Generate 1-Click Purchase Order for this item"
+                              >
+                                1-Click PO
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingItem(item as any);
+                                  setFormData({
+                                    name: item.name,
+                                    description: item.description || '',
+                                    price: String(item.price || ''),
+                                    unit: item.unit || 'pcs',
+                                    category: item.category || '',
+                                    stock: String(item.stock || ''),
+                                    low_stock_threshold: String(item.low_stock_threshold || item.min_stock_level || 5),
+                                    barcode: item.barcode || '',
+                                    size: item.size || '',
+                                    hsn: item.hsn || '',
+                                    mrp: String(item.mrp || ''),
+                                    discount: String(item.discount || ''),
+                                    gstPercent: String(item.gstPercent || ''),
+                                    custom_box: item.custom_box || ''
+                                  });
+                                  setIsModalOpen(true);
+                                }}
+                                className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {currentTab === 'expiry' && (
         <div className="card-base p-6 bg-white border border-slate-100 shadow-sm space-y-4">
@@ -1596,6 +1716,13 @@ export default function ItemsPage() {
               brand: itemData.brand || '',
               stock: parseInt(String(itemData.stock)) || 0,
               low_stock_threshold: parseInt(String(itemData.low_stock_threshold)) || 5,
+              min_stock_level: parseInt(String(itemData.min_stock_level || itemData.low_stock_threshold)) || 5,
+              reorder_quantity: parseInt(String(itemData.reorder_quantity)) || 10,
+              last_purchase_price: parseFloat(String(itemData.last_purchase_price || itemData.costPrice)) || 0,
+              supplier_name: itemData.supplier_name || '',
+              batch_no: itemData.batch_no || '',
+              expiry_date: itemData.expiry_date || '',
+              warranty_period: itemData.warranty_period || '',
               barcode: itemData.barcode || '',
               size: itemData.size || '',
               hsn: itemData.hsn || '',
@@ -1637,6 +1764,13 @@ export default function ItemsPage() {
           gstPercent: editingItem.gstPercent,
           stock: editingItem.stock,
           low_stock_threshold: editingItem.low_stock_threshold,
+          min_stock_level: editingItem.min_stock_level || editingItem.low_stock_threshold,
+          reorder_quantity: editingItem.reorder_quantity || 10,
+          last_purchase_price: editingItem.last_purchase_price || (editingItem as any).costPrice,
+          supplier_name: editingItem.supplier_name || '',
+          batch_no: editingItem.batch_no || '',
+          expiry_date: editingItem.expiry_date || '',
+          warranty_period: editingItem.warranty_period || '',
           unit: editingItem.unit || 'Pcs',
           size: editingItem.size || '',
           custom_box: editingItem.custom_box || '',

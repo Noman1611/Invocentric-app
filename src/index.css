@@ -86,11 +86,13 @@
 
 @layer components {
   .card-base {
-    @apply bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300/80 transition-all duration-200;
+    @apply bg-white border border-slate-200/80 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300/80 transition-all duration-200 max-w-full box-border;
+    -webkit-overflow-scrolling: touch;
   }
 
   .glass-card {
-    @apply bg-white/80  border border-slate-200/50 rounded-2xl shadow-lg;
+    @apply bg-white/80 border border-slate-200/50 rounded-2xl shadow-lg max-w-full box-border;
+    -webkit-overflow-scrolling: touch;
   }
 
   .btn-primary {

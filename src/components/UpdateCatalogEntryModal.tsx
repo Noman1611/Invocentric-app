@@ -44,6 +44,13 @@ export interface CatalogItemData {
   gstPercent?: number | string;
   stock?: number | string;
   low_stock_threshold?: number | string;
+  min_stock_level?: number | string;
+  reorder_quantity?: number | string;
+  last_purchase_price?: number | string;
+  supplier_name?: string;
+  batch_no?: string;
+  expiry_date?: string;
+  warranty_period?: string;
   unit?: string;
   size?: string;
   custom_box?: string;
@@ -100,6 +107,13 @@ export default function UpdateCatalogEntryModal({
     gstPercent: '18',
     stock: '0',
     low_stock_threshold: '5',
+    min_stock_level: '5',
+    reorder_quantity: '10',
+    last_purchase_price: '',
+    supplier_name: '',
+    batch_no: '',
+    expiry_date: '',
+    warranty_period: '',
     unit: 'Pcs',
     size: '',
     custom_box: '',
@@ -190,7 +204,14 @@ export default function UpdateCatalogEntryModal({
           discount: initialData.discount ?? '',
           gstPercent: initialData.gstPercent ?? '18',
           stock: initialData.stock ?? '0',
-          low_stock_threshold: initialData.low_stock_threshold ?? '5',
+          low_stock_threshold: initialData.low_stock_threshold ?? initialData.min_stock_level ?? '5',
+          min_stock_level: initialData.min_stock_level ?? initialData.low_stock_threshold ?? '5',
+          reorder_quantity: initialData.reorder_quantity ?? '10',
+          last_purchase_price: initialData.last_purchase_price ?? initialData.costPrice ?? '',
+          supplier_name: initialData.supplier_name ?? '',
+          batch_no: initialData.batch_no ?? '',
+          expiry_date: initialData.expiry_date ?? '',
+          warranty_period: initialData.warranty_period ?? '',
           unit: initialData.unit || 'Pcs',
           size: initialData.size || '',
           custom_box: initialData.custom_box || '',
@@ -217,6 +238,13 @@ export default function UpdateCatalogEntryModal({
           gstPercent: '18',
           stock: '0',
           low_stock_threshold: '5',
+          min_stock_level: '5',
+          reorder_quantity: '10',
+          last_purchase_price: '',
+          supplier_name: '',
+          batch_no: '',
+          expiry_date: '',
+          warranty_period: '',
           unit: 'Pcs',
           size: '',
           custom_box: '',
@@ -948,6 +976,60 @@ export default function UpdateCatalogEntryModal({
                     <option value="Pack">Pack (Packs)</option>
                     <option value="Set">Set (Sets)</option>
                   </select>
+                </div>
+
+                {/* Suggested Reorder Quantity */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Reorder Quantity
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="10"
+                    value={formData.reorder_quantity}
+                    onChange={(e) => setFormData({ ...formData, reorder_quantity: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-sm font-semibold rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all tabular-nums"
+                  />
+                </div>
+
+                {/* Preferred Supplier Name */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Preferred Supplier
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Metro Traders, ABC Pharma"
+                    value={formData.supplier_name}
+                    onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-sm font-medium rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                  />
+                </div>
+
+                {/* Batch Number & Expiry Date (FMCG / Pharma) */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Batch No. (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. B-2024-X"
+                    value={formData.batch_no}
+                    onChange={(e) => setFormData({ ...formData, batch_no: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-sm font-mono rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all uppercase"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Expiry Date (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.expiry_date}
+                    onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-sm font-medium rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                  />
                 </div>
               </div>
             </div>

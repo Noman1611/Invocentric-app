@@ -93,11 +93,69 @@ export default function Reports() {
 
   const [timeRange, setTimeRange] = useState(isPro ? "6m" : "1m");
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"invoices" | "payments">(
+  const [activeTab, setActiveTab] = useState<"invoices" | "payments" | "ageing">(
     "invoices",
   );
+  const [ageingBucketFilter, setAgeingBucketFilter] = useState<"all" | "30" | "60" | "90" | "90+">("all");
   const [isDownloading, setIsDownloading] = useState(false);
   const reportPrintRef = useRef<HTMLDivElement>(null);
+
+  const ageingReport = useMemo(() => {
+    const now = new Date().getTime();
+    const unpaidInvoices = invoices.filter(inv => (inv.status || '').toLowerCase() !== 'paid');
+
+    const bucket0to30: any[] = [];
+    const bucket31to60: any[] = [];
+    const bucket61to90: any[] = [];
+    const bucket90plus: any[] = [];
+
+    let totalDue = 0;
+    let total30 = 0;
+    let total60 = 0;
+    let total90 = 0;
+    let total90plus = 0;
+
+    unpaidInvoices.forEach(inv => {
+      const invDate = inv.date ? new Date(inv.date).getTime() : (inv.created_at ? new Date(inv.created_at).getTime() : now);
+      const days = Math.max(0, Math.floor((now - invDate) / (1000 * 60 * 60 * 24)));
+      const amt = Number(inv.amount || inv.total || 0);
+      totalDue += amt;
+
+      const record = {
+        ...inv,
+        daysOverdue: days,
+        amt
+      };
+
+      if (days <= 30) {
+        bucket0to30.push(record);
+        total30 += amt;
+      } else if (days <= 60) {
+        bucket31to60.push(record);
+        total60 += amt;
+      } else if (days <= 90) {
+        bucket61to90.push(record);
+        total90 += amt;
+      } else {
+        bucket90plus.push(record);
+        total90plus += amt;
+      }
+    });
+
+    return {
+      totalDue,
+      total30,
+      total60,
+      total90,
+      total90plus,
+      totalOverdue: total60 + total90 + total90plus,
+      bucket0to30,
+      bucket31to60,
+      bucket61to90,
+      bucket90plus,
+      allBuckets: [...bucket90plus, ...bucket61to90, ...bucket31to60, ...bucket0to30]
+    };
+  }, [invoices]);
 
   // WhatsApp Share Modal States
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -1159,6 +1217,22 @@ export default function Reports() {
               >
                 Collections ({searchedPayments.length})
               </button>
+              <button
+                onClick={() => setActiveTab("ageing")}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5",
+                  activeTab === "ageing"
+                    ? "bg-white text-emerald-800 shadow-sm"
+                    : "text-neutral-400 hover:text-neutral-700",
+                )}
+              >
+                <span>Ageing & Recovery</span>
+                {ageingReport.allBuckets.length > 0 && (
+                  <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full text-[9px] font-bold">
+                    {ageingReport.allBuckets.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -1385,6 +1459,242 @@ export default function Reports() {
                   </div>
                 </>
               )}
+            </motion.div>
+          )}
+
+          {activeTab === "ageing" && (
+            <motion.div
+              key="ageing-tab"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-6"
+            >
+              {/* Overdue Ageing Bento Metric Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-100">
+                  <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block mb-1">
+                    Total Receivables
+                  </span>
+                  <div className="text-xl font-black text-neutral-900">
+                    {formatCurrency(ageingReport.totalDue, "INR")}
+                  </div>
+                  <span className="text-[10px] font-bold text-neutral-500 mt-1 block">
+                    {ageingReport.allBuckets.length} unpaid invoices
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100">
+                  <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider block mb-1">
+                    1 - 30 Days (Current)
+                  </span>
+                  <div className="text-xl font-black text-emerald-800">
+                    {formatCurrency(ageingReport.total30, "INR")}
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-600 mt-1 block">
+                    {ageingReport.bucket0to30.length} invoices
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-100">
+                  <span className="text-[10px] font-black uppercase text-amber-700 tracking-wider block mb-1">
+                    31 - 60 Days Overdue
+                  </span>
+                  <div className="text-xl font-black text-amber-800">
+                    {formatCurrency(ageingReport.total60, "INR")}
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-600 mt-1 block">
+                    {ageingReport.bucket31to60.length} invoices
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-100">
+                  <span className="text-[10px] font-black uppercase text-rose-700 tracking-wider block mb-1">
+                    61+ Days (High Risk)
+                  </span>
+                  <div className="text-xl font-black text-rose-800">
+                    {formatCurrency(ageingReport.total90 + ageingReport.total90plus, "INR")}
+                  </div>
+                  <span className="text-[10px] font-bold text-rose-600 mt-1 block">
+                    {ageingReport.bucket61to90.length + ageingReport.bucket90plus.length} critical invoices
+                  </span>
+                </div>
+              </div>
+
+              {/* Bucket Filter Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {[
+                  { key: 'all', label: 'All Unpaid', count: ageingReport.allBuckets.length },
+                  { key: '30', label: '1 - 30 Days', count: ageingReport.bucket0to30.length },
+                  { key: '60', label: '31 - 60 Days', count: ageingReport.bucket31to60.length },
+                  { key: '90', label: '61 - 90 Days', count: ageingReport.bucket61to90.length },
+                  { key: '90+', label: '90+ Days Critical', count: ageingReport.bucket90plus.length }
+                ].map(b => (
+                  <button
+                    key={b.key}
+                    type="button"
+                    onClick={() => setAgeingBucketFilter(b.key as any)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer",
+                      ageingBucketFilter === b.key
+                        ? "bg-neutral-900 text-white shadow-xs"
+                        : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    )}
+                  >
+                    {b.label} ({b.count})
+                  </button>
+                ))}
+              </div>
+
+              {/* Overdue Invoices List */}
+              {(() => {
+                let list = ageingReport.allBuckets;
+                if (ageingBucketFilter === '30') list = ageingReport.bucket0to30;
+                if (ageingBucketFilter === '60') list = ageingReport.bucket31to60;
+                if (ageingBucketFilter === '90') list = ageingReport.bucket61to90;
+                if (ageingBucketFilter === '90+') list = ageingReport.bucket90plus;
+
+                if (searchTerm.trim()) {
+                  const q = searchTerm.toLowerCase();
+                  list = list.filter(inv => 
+                    (inv.customer_name || '').toLowerCase().includes(q) ||
+                    (inv.invoice_number || '').toLowerCase().includes(q)
+                  );
+                }
+
+                if (list.length === 0) {
+                  return (
+                    <div className="py-12 text-center text-neutral-400 font-bold uppercase tracking-wider text-xs">
+                      No overdue records found in this bucket.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto border border-neutral-100 rounded-2xl">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-neutral-50 text-[10px] font-black uppercase tracking-wider text-neutral-400 border-b border-neutral-100">
+                          <tr>
+                            <th className="p-3">Customer</th>
+                            <th className="p-3">Invoice #</th>
+                            <th className="p-3">Invoice Date</th>
+                            <th className="p-3 text-center">Ageing Status</th>
+                            <th className="p-3 text-right">Amount Due</th>
+                            <th className="p-3 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-100 font-medium">
+                          {list.map(inv => {
+                            const isCritical = inv.daysOverdue > 60;
+                            const isWarning = inv.daysOverdue > 30;
+                            const customer = customers.find(c => c.id === inv.customer_id);
+                            const phone = customer?.phone || inv.customer_phone || '';
+
+                            const handleSendWhatsApp = () => {
+                              const cleanPhone = phone.replace(/[^0-9]/g, '');
+                              const msg = encodeURIComponent(
+                                `Dear ${inv.customer_name || 'Customer'}, gentle reminder from ${settings?.business_name || 'InvoCentric'} regarding Invoice #${inv.invoice_number || 'INV'} for ₹${inv.amt.toLocaleString()} which is overdue by ${inv.daysOverdue} days. Please clear the pending balance. You can view your full ledger here: ${window.location.origin}/statement?customer=${inv.customer_id}`
+                              );
+                              openInBrowser(`https://wa.me/${cleanPhone}?text=${msg}`);
+                            };
+
+                            return (
+                              <tr key={inv.id} className="hover:bg-neutral-50/50">
+                                <td className="p-3 font-bold text-neutral-900">
+                                  {inv.customer_name || 'Customer'}
+                                  {phone && <span className="block text-[10px] text-neutral-400">{phone}</span>}
+                                </td>
+                                <td className="p-3 font-mono font-bold text-neutral-700">
+                                  {inv.invoice_number || inv.id?.slice(0, 8)}
+                                </td>
+                                <td className="p-3 text-neutral-500">
+                                  {inv.date ? format(new Date(inv.date), "dd MMM yyyy") : "N/A"}
+                                </td>
+                                <td className="p-3 text-center">
+                                  <span className={cn(
+                                    "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider inline-block",
+                                    isCritical 
+                                      ? "bg-rose-100 text-rose-800" 
+                                      : isWarning 
+                                        ? "bg-amber-100 text-amber-800" 
+                                        : "bg-emerald-100 text-emerald-800"
+                                  )}>
+                                    {inv.daysOverdue === 0 ? "Due Today" : `${inv.daysOverdue} Days Overdue`}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-right font-black text-neutral-900 tabular-nums text-sm">
+                                  {formatCurrency(inv.amt, "INR")}
+                                </td>
+                                <td className="p-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={handleSendWhatsApp}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-xs cursor-pointer"
+                                    title="Send WhatsApp Payment Reminder"
+                                  >
+                                    <WhatsAppIcon size={14} />
+                                    <span>Remind</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Native Card View */}
+                    <div className="block md:hidden divide-y divide-neutral-100 border border-neutral-100 rounded-2xl bg-white overflow-hidden">
+                      {list.map(inv => {
+                        const customer = customers.find(c => c.id === inv.customer_id);
+                        const phone = customer?.phone || inv.customer_phone || '';
+
+                        const handleSendWhatsApp = () => {
+                          const cleanPhone = phone.replace(/[^0-9]/g, '');
+                          const msg = encodeURIComponent(
+                            `Dear ${inv.customer_name || 'Customer'}, gentle reminder from ${settings?.business_name || 'InvoCentric'} regarding Invoice #${inv.invoice_number || 'INV'} for ₹${inv.amt.toLocaleString()} which is overdue by ${inv.daysOverdue} days. Please clear the pending balance.`
+                          );
+                          openInBrowser(`https://wa.me/${cleanPhone}?text=${msg}`);
+                        };
+
+                        return (
+                          <div key={inv.id} className="p-4 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <span className="font-bold text-neutral-900 text-sm block">{inv.customer_name || 'Customer'}</span>
+                                <span className="text-[10px] text-neutral-400 font-mono block">Inv #{inv.invoice_number || inv.id?.slice(0, 8)}</span>
+                              </div>
+                              <span className="font-black text-sm text-neutral-900 tabular-nums">
+                                {formatCurrency(inv.amt, "INR")}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1">
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[9px] font-black uppercase",
+                                inv.daysOverdue > 60 ? "bg-rose-100 text-rose-800" : inv.daysOverdue > 30 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                              )}>
+                                {inv.daysOverdue === 0 ? "Due Today" : `${inv.daysOverdue} Days Overdue`}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={handleSendWhatsApp}
+                                className="flex items-center gap-1.5 px-3 py-1 bg-[#25D366] text-white rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                              >
+                                <WhatsAppIcon size={13} />
+                                <span>Remind on WhatsApp</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
         </AnimatePresence>

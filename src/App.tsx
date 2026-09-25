@@ -79,7 +79,6 @@ import { dbService } from './services/dbService';
 import { getRelativeTimeString } from './utils/dateUtils';
 import { db, auth } from './lib/firebase';
 import { doc, setDoc, collection, query, where, onSnapshot, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
-import SetupWizard from './components/SetupWizard';
 import OnboardingGuide from './components/OnboardingGuide';
 import DemoScriptModal from './components/DemoScriptModal';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -334,136 +333,6 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   const visibleAdminRequests = adminRequests.filter(r => !dismissedRequests.includes(r.id));
 
-  // Wizard form state
-  const [wizardForm, setWizardForm] = useState({
-    business_name: '',
-    owner_name: '',
-    phone: '',
-    email: '',
-    address: '',
-    city: '',
-    state: '',
-    pincode: '',
-    upi_id: '',
-    bank_name: '',
-    bank_branch: '',
-    account_number: '',
-    ifsc_code: '',
-    account_holder: '',
-    currency: 'INR',
-    business_type: '',
-    gstin: '',
-    business_description: '',
-    business_logo: '',
-    theme_color: '#166534',
-    invoice_prefix: 'INV',
-    default_terms: 'Payment is due within 15 days from the date of invoice.'
-  });
-  const [wizardStep, setWizardStep] = useState(1);
-  const [savingWizard, setSavingWizard] = useState(false);
-
-  const isWizardInitialized = useRef(false);
-
-  // Initialize wizardForm ONCE from local draft or remote settings
-  useEffect(() => {
-    if (settings && !isWizardInitialized.current) {
-      // Check for saved local draft first to avoid losing progress
-      let draft: any = null;
-      if (user?.uid) {
-        try {
-          const saved = localStorage.getItem(`wizard_draft_${user.uid}`);
-          if (saved) draft = JSON.parse(saved);
-        } catch (e) {
-          console.error("Error reading wizard draft:", e);
-        }
-      }
-
-      setWizardForm({
-        business_name: draft?.business_name ?? settings.business_name ?? '',
-        owner_name: draft?.owner_name ?? settings.owner_name ?? settings.display_name ?? user?.displayName ?? '',
-        phone: draft?.phone ?? settings.phone ?? '',
-        email: draft?.email ?? settings.email ?? user?.email ?? '',
-        address: draft?.address ?? settings.address ?? '',
-        city: draft?.city ?? settings.city ?? '',
-        state: draft?.state ?? settings.state ?? '',
-        pincode: draft?.pincode ?? settings.pincode ?? '',
-        upi_id: draft?.upi_id ?? settings.upi_id ?? '',
-        bank_name: draft?.bank_name ?? settings.bank_name ?? '',
-        bank_branch: draft?.bank_branch ?? settings.bank_branch ?? '',
-        account_number: draft?.account_number ?? settings.account_number ?? '',
-        ifsc_code: draft?.ifsc_code ?? settings.ifsc_code ?? '',
-        account_holder: draft?.account_holder ?? settings.account_holder ?? '',
-        currency: draft?.currency ?? settings.currency ?? 'INR',
-        business_type: draft?.business_type ?? settings.business_type ?? '',
-        gstin: draft?.gstin ?? settings.gstin ?? '',
-        business_description: draft?.business_description ?? settings.business_description ?? '',
-        business_logo: draft?.business_logo ?? settings.business_logo ?? '',
-        theme_color: draft?.theme_color ?? settings.theme_color ?? '#166534',
-        invoice_prefix: draft?.invoice_prefix ?? settings.invoice_prefix ?? 'INV',
-        default_terms: draft?.default_terms ?? settings.default_terms ?? 'Payment is due within 15 days from the date of invoice.'
-      });
-      isWizardInitialized.current = true;
-    }
-  }, [settings, user]);
-
-  // Continuously auto-save wizardForm draft locally so typing is NEVER lost
-  useEffect(() => {
-    if (isWizardInitialized.current && user?.uid) {
-      try {
-        localStorage.setItem(`wizard_draft_${user.uid}`, JSON.stringify(wizardForm));
-      } catch (e) {
-        console.error("Error saving wizard draft:", e);
-      }
-    }
-  }, [wizardForm, user?.uid]);
-
-  const [wizardDismissed, setWizardDismissed] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      if (localStorage.getItem('wizard_completed_global') === 'true') return true;
-      if (user?.uid && localStorage.getItem(`wizard_completed_${user.uid}`) === 'true') return true;
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    if (user?.uid) {
-      const isCompleted = localStorage.getItem(`wizard_completed_${user.uid}`) === 'true' ||
-                          localStorage.getItem('wizard_completed_global') === 'true';
-      if (isCompleted) {
-        setWizardDismissed(true);
-      }
-    }
-  }, [user?.uid]);
-
-  const isProfileIncomplete = useMemo(() => {
-    if (wizardDismissed) return false;
-    if (localStorage.getItem('wizard_completed_global') === 'true') return false;
-    if (user?.uid && localStorage.getItem(`wizard_completed_${user.uid}`) === 'true') {
-      return false;
-    }
-    if (settingsLoading) return false;
-    if (!settings) return true;
-    if (settings.wizard_completed === true || settings.wizard_completed === 'true') {
-      if (user?.uid) {
-        localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
-      }
-      return false;
-    }
-    
-    const hasBusinessName = !!settings.business_name?.trim();
-    const hasPhone = !!settings.phone?.trim();
-    const hasPayment = !!settings.upi_id?.trim() || !!settings.bank_name?.trim();
-    
-    if (hasBusinessName || hasPhone) {
-      if (user?.uid) {
-        localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
-      }
-      return false;
-    }
-
-    return !hasBusinessName || !hasPhone || !hasPayment;
-  }, [wizardDismissed, settings, settingsLoading, user?.uid]);
-
   // Onboarding Guide & Walkthrough States
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [tourStep, setTourStep] = useState<number | null>(null);
@@ -717,8 +586,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { items } = useItems();
 
   const onboardingProgress = useMemo(() => {
+    const isProfileFilled = !!(settings?.business_name?.trim() || settings?.phone?.trim());
     const steps = [
-      { id: 'profile', label: 'Business Profile Details', desc: 'Add business name, phone & payment info', completed: !isProfileIncomplete },
+      { id: 'profile', label: 'Business Profile Details', desc: 'Add business name, phone & payment info', completed: isProfileFilled },
       { id: 'customer', label: 'Add First Customer', desc: 'Create your first client or party card', completed: (customers?.length || 0) > 0 },
       { id: 'item', label: 'Add Service or Item', desc: 'Add products/services to your inventory list', completed: (items?.length || 0) > 0 },
       { id: 'invoice', label: 'Create Professional Invoice', desc: 'Draft and save your first beautiful invoice', completed: (invoices?.length || 0) > 0 }
@@ -728,11 +598,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     const percentage = Math.round((completedCount / steps.length) * 100);
 
     return { steps, completedCount, percentage };
-  }, [isProfileIncomplete, customers, items, invoices]);
+  }, [settings, customers, items, invoices]);
 
-  // Auto-open guide for new users with 0 invoices once they complete profile setup (strictly only once per session)
+  // Auto-open guide for new users with 0 invoices (strictly only once per session)
   useEffect(() => {
-    if (!settingsLoading && !isProfileIncomplete && (invoices?.length || 0) === 0) {
+    if (!settingsLoading && (invoices?.length || 0) === 0) {
       const guideDismissed = localStorage.getItem('onboarding_guide_dismissed');
       const alreadyShownThisSession = sessionStorage.getItem('onboarding_guide_shown_session');
       if (!guideDismissed && !alreadyShownThisSession) {
@@ -740,7 +610,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
         setIsGuideOpen(true);
       }
     }
-  }, [settingsLoading, isProfileIncomplete, invoices?.length]);
+  }, [settingsLoading, invoices?.length]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return { invoices: [], customers: [], items: [] };
@@ -788,46 +658,6 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (isProfileIncomplete) {
-    return (
-      <PlanGate>
-        <SetupWizard 
-          wizardForm={wizardForm}
-          setWizardForm={setWizardForm}
-          wizardStep={wizardStep}
-          setWizardStep={setWizardStep}
-          savingWizard={savingWizard}
-          setSavingWizard={setSavingWizard}
-          isOfflineMode={isOfflineMode}
-          user={user}
-          logout={logout}
-          setShowProfileSuccessToast={setShowProfileSuccessToast}
-          onDismiss={() => {
-            setWizardDismissed(true);
-            localStorage.setItem('wizard_completed_global', 'true');
-            if (user?.uid) {
-              localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
-            }
-          }}
-          onComplete={(updatedData) => {
-            setWizardDismissed(true);
-            localStorage.setItem('wizard_completed_global', 'true');
-            if (user?.uid) {
-              localStorage.setItem(`wizard_completed_${user.uid}`, 'true');
-            }
-            if (setSettings) {
-              setSettings((prev: any) => ({
-                ...(prev || {}),
-                ...updatedData,
-                wizard_completed: true
-              }));
-            }
-          }}
-        />
-      </PlanGate>
-    );
   }
 
   return (

@@ -1,6 +1,6 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import { getStoredUserProfile } from '../utils/settingsStorage';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Plus, Minus, Trash2, Save, Send, Camera, Loader2, Sparkles, X, Barcode, ScanLine, Printer, Mic, Contact, CheckCircle2, AlertCircle, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Tag, Palette, EyeOff, Phone, HelpCircle, ChevronDown, User, Upload } from 'lucide-react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
@@ -340,6 +340,19 @@ export default function CreateInvoicePage() {
     });
   };
 
+  // Customer Previous Balance / Outstanding calculation
+  const customerPreviousBalance = useMemo(() => {
+    if (!formData.customer_id) return 0;
+    const selCust = customers.find(c => c.id === formData.customer_id);
+    if (selCust && typeof (selCust as any).balance === 'number') {
+      return (selCust as any).balance;
+    }
+    const custInvoices = (existingInvoices || []).filter((inv: any) => inv.customer_id === formData.customer_id && inv.id !== id);
+    const totalInvoiced = custInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.amount) || 0), 0);
+    const totalPaid = custInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.advance_amount || (inv as any).advanceAmount || (inv.status === 'paid' ? inv.amount : 0)) || 0), 0);
+    return totalInvoiced - totalPaid;
+  }, [formData.customer_id, existingInvoices, id, customers]);
+
   const [savingDefaultTerms, setSavingDefaultTerms] = useState(false);
   const [saveTermsSuccess, setSaveTermsSuccess] = useState(false);
 
@@ -526,9 +539,9 @@ export default function CreateInvoicePage() {
   useEffect(() => {
     initializeUsbScanner();
     const unsubScan = registerScanListener((code) => {
+      setBarcodeInput(code);
+      handleScannedBarcodeRef.current(code);
       if (showScanner) {
-        setBarcodeInput(code);
-        handleScannedBarcodeRef.current(code);
         setShowScanner(false);
       }
     });
@@ -1444,7 +1457,24 @@ export default function CreateInvoicePage() {
                 <select
                   className="input-field text-xs py-1.5 px-2 font-medium flex-1"
                   value={formData.customer_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, customer_id: e.target.value }))}
+                  onChange={(e) => {
+                    const custId = e.target.value;
+                    const cust = customers.find(c => c.id === custId);
+                    setFormData(prev => {
+                      let nextDueDate = prev.due_date;
+                      const creditDays = Number((cust as any)?.credit_days || (cust as any)?.creditDays || 0);
+                      if (creditDays > 0) {
+                        const invDate = new Date(prev.invoice_date || new Date());
+                        invDate.setDate(invDate.getDate() + creditDays);
+                        nextDueDate = invDate.toISOString().split('T')[0];
+                      }
+                      return {
+                        ...prev,
+                        customer_id: custId,
+                        due_date: nextDueDate,
+                      };
+                    });
+                  }}
                 >
                   <option value="">{appMode === 'freelancer' ? 'Direct Client' : 'Cash Sale (No Customer)'}</option>
                   {customers.map(c => (
@@ -1452,6 +1482,31 @@ export default function CreateInvoicePage() {
                   ))}
                 </select>
               </div>
+              {formData.customer_id && (() => {
+                const selCust = customers.find(c => c.id === formData.customer_id);
+                if (!selCust) return null;
+                return (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                    {customerPreviousBalance !== 0 && (
+                      <span className={cn(
+                        "px-1.5 py-0.5 rounded font-bold border",
+                        customerPreviousBalance > 0 
+                          ? "bg-rose-50 text-rose-700 border-rose-200" 
+                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      )}>
+                        {customerPreviousBalance > 0 
+                          ? `Prev Due: ₹${customerPreviousBalance.toFixed(2)}` 
+                          : `Advance: ₹${Math.abs(customerPreviousBalance).toFixed(2)}`}
+                      </span>
+                    )}
+                    {selCust.gst_number && (
+                      <span className="text-slate-500 font-semibold px-1 py-0.5 bg-slate-100 rounded">
+                        GST: {selCust.gst_number}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Invoice Number */}

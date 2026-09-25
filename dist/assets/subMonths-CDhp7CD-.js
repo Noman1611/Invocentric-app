@@ -1,1 +1,0 @@
-import{t as u,Z as a}from"./index-Cl8y-V3g.js";function c(e,n,r){const t=u(e,r?.in);if(isNaN(n))return a(e,NaN);if(!n)return t;const s=t.getDate(),o=a(e,t.getTime());o.setMonth(t.getMonth()+n+1,0);const i=o.getDate();return s>=i?o:(t.setFullYear(o.getFullYear(),o.getMonth(),s),t)}function h(e,n,r){return c(e,-n,r)}export{h as s};

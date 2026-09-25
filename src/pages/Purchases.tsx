@@ -18,7 +18,15 @@ import {
   X,
   Printer,
   Phone,
+  Camera,
+  Upload,
+  Sparkles,
+  CheckCircle2,
+  Loader2,
+  ArrowRight,
 } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { extractInvoiceFromImage, ExtractedInvoice } from "../services/aiService";
 import { formatCurrency, cn, getWhatsAppShareUrl, isMobile, openInBrowser } from "../lib/utils";
 import { WhatsAppShareModal } from "../components/WhatsAppShareModal";
 import { WhatsAppIcon } from "../components/WhatsAppIcon";
@@ -47,10 +55,23 @@ export default function Purchases() {
   const [statementSupplier, setStatementSupplier] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const location = useLocation();
   const [statusFilter, setStatusFilter] = useState<"All" | "Paid" | "Unpaid">(
     "All",
   );
   const [sellerInfo, setSellerInfo] = useState<any>(null);
+
+  // Low-Stock 1-Click PO Items state
+  const [poLineItems, setPoLineItems] = useState<Array<{ name: string; quantity: number; price: number; gstPercent?: number; total: number }>>([]);
+
+  // Smart Bill Scan / OCR state
+  const [isScanningBill, setIsScanningBill] = useState(false);
+  const [billScanSuccess, setBillScanSuccess] = useState<string | null>(null);
+  const [billScanError, setBillScanError] = useState<string | null>(null);
+  const [extractedBillData, setExtractedBillData] = useState<ExtractedInvoice | null>(null);
+  const [showBillVerifyModal, setShowBillVerifyModal] = useState(false);
+  const [autoIncrementStock, setAutoIncrementStock] = useState(true);
+  const billFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // WhatsApp Share Modal States
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -97,6 +118,123 @@ export default function Purchases() {
     };
     fetchSellerInfo();
   }, [user, isOfflineMode]);
+
+  // Auto-detect incoming PO from Low Stock generator
+  React.useEffect(() => {
+    if (location.state?.createPoFromLowStock && Array.isArray(location.state?.poItems) && location.state.poItems.length > 0) {
+      const poItems = location.state.poItems;
+      const detectedSupplier = poItems.find((p: any) => p.supplierName)?.supplierName || "";
+      const totalEstimated = poItems.reduce((acc: number, cur: any) => acc + ((Number(cur.quantity) || 1) * (Number(cur.price) || 0)), 0);
+      const desc = `PO for ${poItems.length} Low-Stock Items: ${poItems.map((p: any) => `${p.name} (x${p.quantity})`).slice(0, 3).join(', ')}${poItems.length > 3 ? '...' : ''}`;
+
+      setFormData({
+        description: desc,
+        amount: String(totalEstimated || ''),
+        supplierName: detectedSupplier,
+        supplierGstin: "",
+        billNumber: `PO-${Date.now().toString().slice(-6)}`,
+        date: new Date().toISOString().split("T")[0],
+        paymentMethod: "Bank Transfer",
+        status: "Unpaid",
+      });
+      setPoLineItems(poItems.map((p: any) => ({
+        name: p.name,
+        quantity: Number(p.quantity) || 1,
+        price: Number(p.price) || 0,
+        gstPercent: 18,
+        total: (Number(p.quantity) || 1) * (Number(p.price) || 0)
+      })));
+      setIsModalOpen(true);
+    }
+  }, [location.state]);
+
+  const handleBillUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsScanningBill(true);
+    setBillScanError(null);
+    setBillScanSuccess(null);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (evt) => {
+        try {
+          const raw = evt.target?.result as string;
+          let mime = file.type || 'image/jpeg';
+          let base64 = raw;
+          if (raw.startsWith('data:')) {
+            const parts = raw.split(';base64,');
+            mime = parts[0].replace('data:', '') || mime;
+            base64 = parts[1] || '';
+          }
+          const extracted = await extractInvoiceFromImage(base64, mime);
+          setExtractedBillData(extracted);
+          setShowBillVerifyModal(true);
+          setBillScanSuccess(`Successfully extracted bill with ${extracted.items?.length || 0} line items!`);
+        } catch (err: any) {
+          console.error("AI Bill extraction error:", err);
+          setBillScanError(err.message || "Failed to parse bill. Please upload a clear image or enter manually.");
+        } finally {
+          setIsScanningBill(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setIsScanningBill(false);
+      setBillScanError("Could not read file.");
+    }
+  };
+
+  const handleConfirmExtractedBill = async () => {
+    if (!extractedBillData || !user) return;
+    setIsSubmitting(true);
+    try {
+      const supplierName = extractedBillData.supplierName || formData.supplierName || "Unknown Supplier";
+      const billNo = extractedBillData.invoiceNo || extractedBillData.supplierBillNo || `BILL-${Date.now().toString().slice(-6)}`;
+      const totalAmt = extractedBillData.totalAmount || (extractedBillData.items || []).reduce((sum, it) => sum + (it.amount || ((it.quantity || 1) * (it.rate || it.price || 0))), 0);
+      const itemsDesc = (extractedBillData.items || []).map(it => `${it.description} (x${it.quantity})`).slice(0, 3).join(', ');
+
+      const purchaseRecord = {
+        description: `Bill #${billNo} - ${itemsDesc || 'Supplier Bill Items'}`,
+        amount: Number(totalAmt) || 0,
+        supplier_name: supplierName,
+        supplier_gstin: extractedBillData.supplierGst || '',
+        bill_number: billNo,
+        date: extractedBillData.invoiceDate ? new Date(extractedBillData.invoiceDate).toISOString() : new Date().toISOString(),
+        payment_method: "Bank Transfer",
+        status: "Paid",
+        items: extractedBillData.items || []
+      };
+
+      await dbService.add("purchases", purchaseRecord, { userId: user.uid, offlineMode: isOfflineMode });
+
+      // Auto-increment stock in inventory if selected
+      if (autoIncrementStock && Array.isArray(extractedBillData.items)) {
+        for (const item of extractedBillData.items) {
+          const itName = (item.description || '').trim().toLowerCase();
+          const invMatch = items.find((i: any) => (i.name || '').trim().toLowerCase() === itName || (item.barcode && i.barcode === item.barcode));
+          if (invMatch && invMatch.id) {
+            const addedQty = Number(item.quantity) || 1;
+            const newStock = (Number(invMatch.stock) || 0) + addedQty;
+            await dbService.update("items", invMatch.id, {
+              stock: newStock,
+              last_purchase_price: Number(item.rate || item.price) || invMatch.last_purchase_price,
+              supplier_name: supplierName || invMatch.supplier_name
+            }, { userId: user.uid, offlineMode: isOfflineMode });
+          }
+        }
+      }
+
+      setShowBillVerifyModal(false);
+      setExtractedBillData(null);
+      setBillScanSuccess("✅ Purchase entry created and inventory stock successfully incremented!");
+      setTimeout(() => setBillScanSuccess(null), 6000);
+    } catch (err: any) {
+      console.error("Error confirming extracted purchase bill:", err);
+      alert("Failed to save purchase bill: " + (err.message || "Unknown error"));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const [formData, setFormData] = useState({
     description: "",
@@ -338,7 +476,32 @@ export default function Purchases() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+          <input
+            type="file"
+            ref={billFileInputRef}
+            accept="image/*,application/pdf"
+            onChange={handleBillUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => billFileInputRef.current?.click()}
+            disabled={isScanningBill}
+            className="flex items-center gap-2 px-4 py-3 bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 rounded-2xl shadow-sm transition-all text-[10px] font-black uppercase tracking-wider leading-none"
+            title="Scan or upload supplier bill via AI OCR"
+          >
+            {isScanningBill ? (
+              <>
+                <Loader2 size={16} className="animate-spin text-emerald-600" />
+                <span>Scanning Bill...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles size={16} className="text-emerald-600" />
+                <span>Scan/Upload Bill</span>
+              </>
+            )}
+          </button>
           <button
             onClick={() => setIsStatementModalOpen(true)}
             className="flex items-center gap-2 p-3 text-neutral-400 hover:text-neutral-900 bg-white border border-neutral-100 rounded-2xl shadow-sm transition-all text-[10px] font-black uppercase tracking-widest leading-none"
@@ -355,6 +518,19 @@ export default function Purchases() {
           </button>
         </div>
       </div>
+
+      {billScanSuccess && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center gap-3 text-xs font-bold">
+          <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+          <span>{billScanSuccess}</span>
+        </div>
+      )}
+      {billScanError && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-2xl flex items-center gap-3 text-xs font-bold">
+          <AlertCircle size={18} className="text-red-600 shrink-0" />
+          <span>{billScanError}</span>
+        </div>
+      )}
 
       {/* Stats Bar */}
       <motion.div
@@ -610,14 +786,14 @@ export default function Purchases() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-[70] p-4"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-lg z-[70] max-h-[90vh] flex flex-col"
             >
-              <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 border border-neutral-100">
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-neutral-900 rounded-2xl flex items-center justify-center mb-4 mx-auto shadow-xl">
-                    <Plus className="text-white" size={32} />
+              <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-8 border border-neutral-100 overflow-y-auto max-h-[90vh]">
+                <div className="text-center mb-6">
+                  <div className="w-14 h-14 bg-neutral-900 rounded-2xl flex items-center justify-center mb-3 mx-auto shadow-xl">
+                    <Plus className="text-white" size={28} />
                   </div>
-                  <h3 className="text-2xl font-black text-neutral-900 uppercase tracking-tight">
+                  <h3 className="text-xl sm:text-2xl font-black text-neutral-900 uppercase tracking-tight">
                     Record Purchase
                   </h3>
                   <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mt-1">
@@ -625,7 +801,27 @@ export default function Purchases() {
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                {poLineItems.length > 0 && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider flex items-center gap-1.5">
+                        <Package size={14} className="text-amber-600" />
+                        Low-Stock Reorder ({poLineItems.length} items)
+                      </span>
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">1-Click PO</span>
+                    </div>
+                    <div className="max-h-28 overflow-y-auto space-y-1 divide-y divide-amber-100 pr-1 text-xs">
+                      {poLineItems.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center py-1">
+                          <span className="font-semibold text-neutral-800 truncate max-w-[180px]">{item.name}</span>
+                          <span className="text-neutral-600 tabular-nums">Qty: {item.quantity} × ₹{item.price} = ₹{item.total}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] ml-1">
                       Supplier / Vendor Name
@@ -1279,6 +1475,141 @@ export default function Purchases() {
           </div>
         </div>
       )}
+
+      {/* AI Bill Scan Verification Modal */}
+      <AnimatePresence>
+        {showBillVerifyModal && extractedBillData && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowBillVerifyModal(false)}
+              className="fixed inset-0 bg-neutral-950/40 backdrop-blur-sm z-[75]"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-2xl z-[80] max-h-[90vh] flex flex-col"
+            >
+              <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-8 border border-neutral-100 overflow-y-auto max-h-[90vh]">
+                <div className="flex items-center justify-between pb-4 border-b border-neutral-100 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                      <Sparkles size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-neutral-900 uppercase tracking-tight">
+                        Verify Scanned Bill
+                      </h3>
+                      <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
+                        Review AI extracted bill data before saving
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowBillVerifyModal(false)}
+                    className="p-2 rounded-xl text-neutral-400 hover:text-neutral-800 hover:bg-neutral-100 transition-all"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div className="p-3.5 bg-neutral-50 rounded-2xl border border-neutral-100">
+                    <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">Supplier</span>
+                    <span className="text-sm font-bold text-neutral-900">{extractedBillData.supplierName || "Vendor"}</span>
+                    {extractedBillData.supplierGst && (
+                      <span className="text-[10px] font-mono text-neutral-500 block mt-0.5">GSTIN: {extractedBillData.supplierGst}</span>
+                    )}
+                  </div>
+                  <div className="p-3.5 bg-neutral-50 rounded-2xl border border-neutral-100">
+                    <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">Bill No & Date</span>
+                    <span className="text-sm font-bold text-neutral-900">
+                      {extractedBillData.invoiceNo || extractedBillData.supplierBillNo || "N/A"}
+                    </span>
+                    <span className="text-[10px] font-bold text-neutral-500 block mt-0.5">
+                      {extractedBillData.invoiceDate ? new Date(extractedBillData.invoiceDate).toLocaleDateString() : "Today"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block mb-2">
+                    Extracted Line Items ({(extractedBillData.items || []).length})
+                  </span>
+                  <div className="border border-neutral-100 rounded-2xl overflow-x-auto max-h-48 overflow-y-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-neutral-50 text-[10px] uppercase font-black text-neutral-500 border-b border-neutral-100 sticky top-0">
+                        <tr>
+                          <th className="p-2.5">Item</th>
+                          <th className="p-2.5 text-center">Qty</th>
+                          <th className="p-2.5 text-right">Rate</th>
+                          <th className="p-2.5 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100 font-bold">
+                        {(extractedBillData.items || []).map((item: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-neutral-50/50">
+                            <td className="p-2.5 text-neutral-900 truncate max-w-[200px]">{item.description}</td>
+                            <td className="p-2.5 text-center text-neutral-700">{item.quantity || 1}</td>
+                            <td className="p-2.5 text-right text-neutral-700">₹{Number(item.rate || item.price || 0).toLocaleString()}</td>
+                            <td className="p-2.5 text-right text-neutral-900">₹{Number(item.amount || ((item.quantity || 1) * (item.rate || item.price || 0))).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3.5 bg-emerald-50/70 border border-emerald-100 rounded-2xl mb-6">
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-emerald-900">
+                    <input
+                      type="checkbox"
+                      checked={autoIncrementStock}
+                      onChange={(e) => setAutoIncrementStock(e.target.checked)}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span>Auto-increment stock in Inventory for matched items</span>
+                  </label>
+                  <span className="text-base font-black text-neutral-900">
+                    ₹{Number(extractedBillData.totalAmount || (extractedBillData.items || []).reduce((sum: number, it: any) => sum + (it.amount || ((it.quantity || 1) * (it.rate || it.price || 0))), 0)).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowBillVerifyModal(false)}
+                    className="flex-1 py-3 text-xs font-bold uppercase tracking-wider text-neutral-500 hover:text-neutral-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmExtractedBill}
+                    disabled={isSubmitting}
+                    className="flex-1 py-3.5 bg-neutral-900 text-white rounded-2xl font-black uppercase text-xs tracking-wider shadow-lg hover:bg-black transition-all flex items-center justify-center gap-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>Confirm & Save Purchase</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <WhatsAppShareModal
         isOpen={showWhatsAppModal}

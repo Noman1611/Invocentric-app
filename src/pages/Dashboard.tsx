@@ -89,7 +89,7 @@ export default function DashboardPage() {
     .reduce((acc, inv) => acc + (inv.amount || 0), 0), [invoices]);
 
   const overdueInvoicesCount = useMemo(() => invoices.filter(inv => inv.status === 'overdue').length, [invoices]);
-  const lowStockItems = useMemo(() => inventoryItems.filter(item => item.stock <= (item.low_stock_threshold || 5)), [inventoryItems]);
+  const lowStockItems = useMemo(() => inventoryItems.filter(item => (Number(item.stock) || 0) <= (Number(item.min_stock_level) || Number(item.low_stock_threshold) || 5)), [inventoryItems]);
 
   // High-fidelity values mapping (defaults to real database data dynamically)
   const statsData = useMemo(() => {
@@ -243,14 +243,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Stats Bento Grid with Sparklines */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         {statsData.map((stat, i) => (
           <motion.div
             key={stat.name}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="bg-white border border-slate-200/60 rounded-2xl p-4 md:p-5 relative group cursor-pointer"
+            className="bg-white border border-slate-200/60 rounded-2xl p-3.5 sm:p-4 md:p-5 relative group cursor-pointer max-w-full box-border"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -390,50 +390,61 @@ export default function DashboardPage() {
 
             {/* Optimal Stock Level Card */}
             <div className="space-y-4">
-              <div className={cn(
-                "flex items-center gap-3.5 p-4 rounded-xl transition-colors",
-                lowStockItems.length > 0 
-                  ? "bg-amber-50/40 border border-amber-100/50" 
-                  : "bg-green-50/40 border border-green-100/50"
-              )}>
-                <div className={cn(
-                  "w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0",
+              <Link
+                to="/items?tab=lowstock"
+                className={cn(
+                  "flex items-center justify-between p-4 rounded-xl transition-all block group",
                   lowStockItems.length > 0 
-                    ? "border border-amber-100 text-amber-600" 
-                    : "border border-green-100 text-green-600"
-                )}>
-                  <Package size={18} />
-                </div>
-                <div>
-                  <p className={cn(
-                    "text-[13px] font-extrabold leading-none",
-                    lowStockItems.length > 0 ? "text-amber-800" : "text-green-800"
+                    ? "bg-amber-50/40 border border-amber-100/50 hover:bg-amber-50" 
+                    : "bg-green-50/40 border border-green-100/50 hover:bg-green-50"
+                )}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className={cn(
+                    "w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 shadow-2xs",
+                    lowStockItems.length > 0 
+                      ? "border border-amber-100 text-amber-600" 
+                      : "border border-green-100 text-green-600"
                   )}>
-                    {lowStockItems.length > 0 ? `${lowStockItems.length} Low Stock Alert` : "Stock Levels Optimal"}
-                  </p>
-                  <p className={cn(
-                    "text-[11px] font-medium mt-1",
-                    lowStockItems.length > 0 ? "text-amber-600" : "text-green-600"
-                  )}>
-                    {lowStockItems.length > 0 ? "Replenish your inventory" : "All items are well stocked"}
-                  </p>
+                    <Package size={18} />
+                  </div>
+                  <div>
+                    <p className={cn(
+                      "text-[13px] font-extrabold leading-none",
+                      lowStockItems.length > 0 ? "text-amber-800" : "text-green-800"
+                    )}>
+                      {lowStockItems.length > 0 ? `${lowStockItems.length} Low Stock Alert${lowStockItems.length > 1 ? 's' : ''}` : "Stock Levels Optimal"}
+                    </p>
+                    <p className={cn(
+                      "text-[11px] font-medium mt-1",
+                      lowStockItems.length > 0 ? "text-amber-600" : "text-green-600"
+                    )}>
+                      {lowStockItems.length > 0 ? "Tap to view & create Purchase Order" : "All items are well stocked"}
+                    </p>
+                  </div>
                 </div>
-              </div>
+                {lowStockItems.length > 0 && (
+                  <span className="text-xs font-bold text-amber-700 bg-amber-100/80 px-2.5 py-1 rounded-lg shrink-0">
+                    Restock
+                  </span>
+                )}
+              </Link>
 
               {/* Under-the-hood real data list for Low Stock items if present */}
               {lowStockItems.slice(0, 2).map((item) => (
-                <div 
+                <Link 
+                  to="/items?tab=lowstock"
                   key={item.id}
-                  className="flex items-center gap-3 p-3 rounded-xl border  bg-amber-50/30 border-amber-100/50"
+                  className="flex items-center gap-3 p-3 rounded-xl border bg-amber-50/30 border-amber-100/50 hover:bg-amber-50/70 transition-colors"
                 >
                   <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
                     <span className="text-[11px] font-extrabold">{item.stock}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-bold truncate leading-tight uppercase tracking-tight text-slate-800">{item.name}</p>
-                    <p className="text-[10px] text-amber-600 font-semibold mt-0.5">Low stock limit reached</p>
+                    <p className="text-[10px] text-amber-600 font-semibold mt-0.5">Below reorder limit • Click for 1-Click PO</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

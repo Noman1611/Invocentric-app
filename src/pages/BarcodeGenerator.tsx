@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useItems } from '../hooks/useData';
-import { dbService } from '../services/dbService';
-import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
+import { useItems, useSettings } from '../hooks/useData';
 import { 
   BarcodeType, 
-  BarcodeOptions, 
   validateBarcode, 
-  downloadBarcodePng, 
-  downloadBarcodeSvg, 
-  exportSingleBarcodePdf, 
+  PRESET_SHEET_CONFIGS, 
+  LabelSheetConfig, 
+  calculateEanChecksum,
+  exportMultiLabelSheetPdf,
+  downloadBarcodePng,
+  downloadBarcodeSvg,
   copyBarcodeToClipboard,
-  PRESET_SHEET_CONFIGS,
-  LabelSheetConfig,
-  calculateEanChecksum
+  PrintableLabelItem
 } from '../services/barcodeService';
 import { BarcodeCanvas } from '../components/BarcodeCanvas';
 import { formatCurrency, cn } from '../lib/utils';
@@ -32,239 +30,328 @@ import {
   FileText, 
   Trash2, 
   Plus, 
-  Save, 
   Package, 
   Sliders, 
-  History as HistoryIcon, 
   Tag, 
   Sparkles, 
   CheckCircle2, 
   AlertTriangle, 
   Eye, 
   ChevronRight, 
-  FileSpreadsheet
+  ChevronLeft,
+  FileSpreadsheet,
+  Search,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Info,
+  Store,
+  Hash,
+  DollarSign,
+  Boxes,
+  HelpCircle,
+  FileDown,
+  ArrowRight
 } from 'lucide-react';
 
-interface BulkRowItem {
+export interface CustomFieldEntry {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface BarcodeItemQueueEntry {
   id: string;
   name: string;
-  sku: string;
-  barcode: string;
-  type: BarcodeType;
-  price: number;
-  mrp: number;
-  qty: number;
-  selected: boolean;
+  code: string;
+  barcodeType: BarcodeType;
+  price?: number;
+  mrp?: number;
+  sku?: string;
+  brand?: string;
+  packSize?: string;
+  hsn?: string;
+  gst?: number;
+  batchNo?: string;
+  expiryDate?: string;
+  description?: string;
+  customFields: Record<string, string>;
+  quantity: number;
   error?: string;
 }
 
+type WizardStep = 1 | 2 | 3;
+type LayoutDensity = 'code_only' | 'barcode_1_field' | 'barcode_2_fields' | 'barcode_3_fields';
+
 export default function BarcodeGenerator() {
-  const { user, isOfflineMode, isPro, triggerUpgradeModal } = useAuth();
+  const { user, isOfflineMode } = useAuth();
   const { items } = useItems();
+  const { settings } = useSettings();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const activeTab = searchParams.get('tab') || 'single';
+  // Wizard active step: 1 (Items), 2 (Design), 3 (Sheet & Print)
+  const [currentStep, setCurrentStep] = useState<WizardStep>(1);
 
-  // ── 1. Single Barcode State ──
-  const [barcodeType, setBarcodeType] = useState<BarcodeType>('CODE128');
-  const [barcodeValue, setBarcodeValue] = useState('INV1002026');
-  const [productName, setProductName] = useState('Fresh Organic Almonds 500g');
-  const [sku, setSku] = useState('SKU-ALM-500');
-  const [price, setPrice] = useState<number | ''>(499);
-  const [mrp, setMrp] = useState<number | ''>(599);
-  const [selectedProductId, setSelectedProductId] = useState('');
+  // ══════════════════════════════════════════════════════════
+  // STEP 1: ITEM QUEUE & ENTRY STATE
+  // ══════════════════════════════════════════════════════════
+  const [itemEntryTab, setItemEntryTab] = useState<'inventory' | 'manual' | 'bulk'>('inventory');
   
-  // Customization Options
-  const [barWidth, setBarWidth] = useState(2);
-  const [barHeight, setBarHeight] = useState(60);
-  const [displayValue, setDisplayValue] = useState(true);
-  const [fontSize, setFontSize] = useState(14);
-  const [margin, setMargin] = useState(8);
-  const [lineColor, setLineColor] = useState('#000000');
-  const [background, setBackground] = useState('#ffffff');
-  const [validationError, setValidationError] = useState<string | null>(null);
-  
-  // Copy & Action Feedback
-  const [copySuccess, setCopySuccess] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  // Inventory picker state
+  const [inventorySearch, setInventorySearch] = useState('');
+  const [selectedInventoryId, setSelectedInventoryId] = useState('');
+  const [inventoryItemQty, setInventoryItemQty] = useState<number>(12);
 
-  // ── 2. Label Designer & Sheet Printing State ──
-  const [sheetPresetKey, setSheetPresetKey] = useState<string>('a4_24');
-  const [sheetConfig, setSheetConfig] = useState<LabelSheetConfig>(PRESET_SHEET_CONFIGS['a4_24']);
-  const [showBusinessName, setShowBusinessName] = useState(true);
-  const [businessName, setBusinessName] = useState('InvoCentric Retail');
-  const [showPriceTag, setShowPriceTag] = useState(true);
-  const [showMrpTag, setShowMrpTag] = useState(true);
-  const [showSkuTag, setShowSkuTag] = useState(true);
-  const [customCopies, setCustomCopies] = useState<number>(24);
+  // Manual Item Form
+  const [manualName, setManualName] = useState('');
+  const [manualCode, setManualCode] = useState('');
+  const [manualBarcodeType, setManualBarcodeType] = useState<BarcodeType>('CODE128');
+  const [manualPrice, setManualPrice] = useState<number | ''>('');
+  const [manualMrp, setManualMrp] = useState<number | ''>('');
+  const [manualBrand, setManualBrand] = useState('');
+  const [manualSku, setManualSku] = useState('');
+  const [manualHsn, setManualHsn] = useState('');
+  const [manualPackSize, setManualPackSize] = useState('');
+  const [manualQty, setManualQty] = useState<number>(12);
+  const [manualCustomFields, setManualCustomFields] = useState<CustomFieldEntry[]>([]);
 
-  // ── 3. Bulk Generator State ──
-  const [bulkRows, setBulkRows] = useState<BulkRowItem[]>([
-    { id: '1', name: 'Cotton T-Shirt Blue', sku: 'TS-BLU-M', barcode: '8901234567890', type: 'EAN13', price: 599, mrp: 799, qty: 6, selected: true },
-    { id: '2', name: 'Denim Jeans Slim Fit', sku: 'JN-SLM-32', barcode: '8901234567807', type: 'EAN13', price: 1299, mrp: 1599, qty: 6, selected: true },
-    { id: '3', name: 'Wireless Bluetooth Earbuds', sku: 'EB-WRL-BLK', barcode: '8901234567715', type: 'EAN13', price: 1499, mrp: 1999, qty: 12, selected: true }
+  // Bulk Upload State
+  const [bulkFileError, setBulkFileError] = useState<string | null>(null);
+  const [bulkSuccessMsg, setBulkSuccessMsg] = useState<string | null>(null);
+
+  // Active Barcode Queue
+  const [queue, setQueue] = useState<BarcodeItemQueueEntry[]>([
+    {
+      id: 'demo-1',
+      name: 'Fresh Organic Almonds',
+      code: '8901234567890',
+      barcodeType: 'CODE128',
+      price: 499,
+      mrp: 599,
+      brand: 'NutriFarm',
+      sku: 'SKU-ALM-500',
+      packSize: '500g',
+      hsn: '0802',
+      gst: 5,
+      customFields: {},
+      quantity: 12
+    },
+    {
+      id: 'demo-2',
+      name: 'Cotton T-Shirt Blue (M)',
+      code: 'INV8920192',
+      barcodeType: 'CODE128',
+      price: 599,
+      mrp: 799,
+      brand: 'InvoApparel',
+      sku: 'TS-BLU-M',
+      packSize: '1 Pcs',
+      hsn: '6109',
+      gst: 12,
+      customFields: {},
+      quantity: 12
+    }
   ]);
 
-  // ── 4. History State ──
-  const [historyList, setHistoryList] = useState<any[]>([]);
+  // Selected item ID for single sticker preview
+  const [previewItemId, setPreviewItemId] = useState<string>('demo-1');
 
-  // Load history on mount
-  useEffect(() => {
-    const saved = getSecureStorage('invocentric_barcode_history', []);
-    if (Array.isArray(saved)) {
-      setHistoryList(saved);
-    }
-  }, []);
-
-  // Save entry to history
-  const recordHistory = (entry: any) => {
-    const next = [
-      {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        ...entry
-      },
-      ...historyList
-    ].slice(0, 50);
-    setHistoryList(next);
-    setSecureStorage('invocentric_barcode_history', next);
-  };
-
-  // Pre-fill from URL param if opened from Product Catalog
+  // Pre-fill from URL if opened from Item Catalog
   useEffect(() => {
     const itemParam = searchParams.get('item');
     if (itemParam && items.length > 0) {
       const match = items.find(i => i.id === itemParam || i.name.toLowerCase() === itemParam.toLowerCase());
       if (match) {
-        setSelectedProductId(match.id);
-        setProductName(match.name);
-        setPrice(match.price || 0);
-        setMrp(match.mrp || match.price || 0);
-        setSku(match.hsn || match.size || `SKU-${match.id.slice(0, 6).toUpperCase()}`);
-        if (match.barcode) {
-          setBarcodeValue(match.barcode);
-        } else {
-          // generate standard code without mutating product until user saves
-          setBarcodeValue(`INV${match.id.slice(0, 8).toUpperCase()}`);
-        }
+        const itemCode = match.barcode || `INV${match.id.slice(0, 8).toUpperCase()}`;
+        const newEntry: BarcodeItemQueueEntry = {
+          id: `item-${match.id}-${Date.now()}`,
+          name: match.name,
+          code: itemCode,
+          barcodeType: 'CODE128',
+          price: match.price || 0,
+          mrp: match.mrp || match.price || 0,
+          sku: match.hsn || `SKU-${match.id.slice(0, 6).toUpperCase()}`,
+          brand: match.category || '',
+          packSize: match.unit || match.size || '1 Pcs',
+          hsn: match.hsn || '',
+          gst: match.gstPercent || 0,
+          customFields: {},
+          quantity: 24
+        };
+        setQueue(prev => [newEntry, ...prev.filter(p => p.code !== itemCode)]);
+        setPreviewItemId(newEntry.id);
       }
     }
   }, [searchParams, items]);
 
-  // Live options for Single Barcode
-  const barcodeOptions: BarcodeOptions = useMemo(() => ({
-    type: barcodeType,
-    value: barcodeValue,
-    width: barWidth,
-    height: barHeight,
-    displayValue,
-    fontSize,
-    margin,
-    lineColor,
-    background
-  }), [barcodeType, barcodeValue, barWidth, barHeight, displayValue, fontSize, margin, lineColor, background]);
+  // ══════════════════════════════════════════════════════════
+  // STEP 2: DESIGN & FIELD MAPPING STATE
+  // ══════════════════════════════════════════════════════════
+  const [globalBarcodeType, setGlobalBarcodeType] = useState<BarcodeType>('CODE128');
+  const [layoutDensity, setLayoutDensity] = useState<LayoutDensity>('barcode_2_fields');
+  
+  // Field mappings for 1, 2, or 3 fields layout
+  const [field1Mapping, setField1Mapping] = useState<string>('name'); // Top header
+  const [field2Mapping, setField2Mapping] = useState<string>('mrp');  // Sub / Bottom
+  const [field3Mapping, setField3Mapping] = useState<string>('price'); // Secondary bottom
 
-  // Real-time validation check
+  // Visual customization
+  const [businessName, setBusinessName] = useState<string>(() => {
+    return settings?.business_name || 'InvoCentric Store';
+  });
+
   useEffect(() => {
-    const val = validateBarcode(barcodeType, barcodeValue);
-    if (!val.isValid) {
-      setValidationError(val.error || 'Invalid barcode format');
-    } else {
-      setValidationError(null);
+    if (settings?.business_name && businessName === 'InvoCentric Store') {
+      setBusinessName(settings.business_name);
     }
-  }, [barcodeType, barcodeValue]);
+  }, [settings]);
 
-  // Handle Preset Sheet selection
+  const [displayValue, setDisplayValue] = useState<boolean>(true); // Human-readable digits
+  const [barHeight, setBarHeight] = useState<number>(45);
+  const [showBorder, setShowBorder] = useState<boolean>(true); // Subtle sticker cut border
+
+  // ══════════════════════════════════════════════════════════
+  // STEP 3: SHEET SIZE & PRINTING STATE
+  // ══════════════════════════════════════════════════════════
+  const [presetKey, setPresetKey] = useState<string>('a4_24');
+  const [sheetConfig, setSheetConfig] = useState<LabelSheetConfig>(PRESET_SHEET_CONFIGS['a4_24']);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  // Preview panel toggle & zoom
+  const [previewMode, setPreviewMode] = useState<'single' | 'sheet'>('single');
+  const [sheetZoom, setSheetZoom] = useState<number>(100);
+  const [sheetPage, setSheetPage] = useState<number>(1);
+
+  // Sync sheet preset
   const handleSelectPreset = (key: string) => {
-    setSheetPresetKey(key);
+    setPresetKey(key);
     const cfg = PRESET_SHEET_CONFIGS[key];
     if (cfg) {
       setSheetConfig(cfg);
-      setCustomCopies(cfg.columns * cfg.rows);
     }
   };
 
-  // Generate deterministic new valid barcode if user explicitly clicks "Generate"
-  const handleGenerateDeterministicBarcode = () => {
+  // Helper: auto-generate standard CODE128 or EAN code
+  const handleAutoGenerateCode = (type: BarcodeType = manualBarcodeType): string => {
     const ts = Date.now().toString().slice(-6);
-    if (barcodeType === 'EAN13') {
+    if (type === 'EAN13') {
       const body = '890' + ts + Math.floor(100 + Math.random() * 900).toString();
       const check = calculateEanChecksum(body.slice(0, 12));
-      setBarcodeValue(body.slice(0, 12) + check);
-    } else if (barcodeType === 'EAN8') {
+      return body.slice(0, 12) + check;
+    } else if (type === 'EAN8') {
       const body = '890' + Math.floor(1000 + Math.random() * 9000).toString().slice(0, 4);
       const check = calculateEanChecksum(body);
-      setBarcodeValue(body + check);
-    } else if (barcodeType === 'UPC') {
+      return body + check;
+    } else if (type === 'UPC') {
       const body = '0' + ts + Math.floor(1000 + Math.random() * 9000).toString().slice(0, 4);
       const check = calculateEanChecksum(body);
-      setBarcodeValue(body + check);
-    } else {
-      setBarcodeValue(`INV-${new Date().getFullYear()}-${ts}`);
+      return body + check;
     }
+    return `INV-${new Date().getFullYear()}-${ts}`;
   };
 
-  // Save Barcode back to InvoCentric Product Catalog
-  const handleSaveToProduct = async () => {
-    if (!selectedProductId || !user) {
-      alert('Please select an existing product from your catalog first.');
+  // ── Inventory Item Add ──
+  const handleAddFromInventory = () => {
+    if (!selectedInventoryId) return;
+    const match = items.find(i => i.id === selectedInventoryId);
+    if (!match) return;
+
+    const itemCode = match.barcode || `INV${match.id.slice(0, 8).toUpperCase()}`;
+    const newEntry: BarcodeItemQueueEntry = {
+      id: `inv-${match.id}-${Date.now()}`,
+      name: match.name,
+      code: itemCode,
+      barcodeType: globalBarcodeType,
+      price: match.price || 0,
+      mrp: match.mrp || match.price || 0,
+      sku: match.hsn || `SKU-${match.id.slice(0, 6).toUpperCase()}`,
+      brand: match.category || '',
+      packSize: match.unit || match.size || '1 Pcs',
+      hsn: match.hsn || '',
+      gst: match.gstPercent || 0,
+      batchNo: (match as any).batch_no || (match as any).batchNo || '',
+      expiryDate: (match as any).expiry_date || (match as any).expiryDate || '',
+      customFields: {},
+      quantity: Math.max(1, inventoryItemQty)
+    };
+
+    setQueue(prev => [newEntry, ...prev]);
+    setPreviewItemId(newEntry.id);
+    setSelectedInventoryId('');
+  };
+
+  // ── Manual Item Add ──
+  const handleAddManualItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualName.trim()) {
+      alert('Please enter an item name.');
       return;
     }
-    const val = validateBarcode(barcodeType, barcodeValue);
-    if (!val.isValid) {
-      alert(`Cannot save invalid barcode: ${val.error}`);
-      return;
-    }
 
-    try {
-      await dbService.update('items', selectedProductId, {
-        barcode: barcodeValue.trim(),
-        updated_at: new Date().toISOString()
-      }, { offlineMode: isOfflineMode, userId: user.uid });
+    const finalCode = manualCode.trim() || handleAutoGenerateCode(manualBarcodeType);
+    const validation = validateBarcode(manualBarcodeType, finalCode);
 
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-      recordHistory({
-        action: 'Save to Product',
-        type: barcodeType,
-        value: barcodeValue,
-        productName,
-        price,
-        sku
-      });
-    } catch (err) {
-      console.error('Failed to save barcode to product:', err);
-      alert('Failed to update product barcode in database.');
-    }
-  };
-
-  // Copy Barcode Image
-  const handleCopy = async () => {
-    const success = await copyBarcodeToClipboard(barcodeOptions);
-    if (success) {
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
-    } else {
-      alert('Failed to copy image to clipboard in this browser.');
-    }
-  };
-
-  // 1-Click Print
-  const handlePrint = () => {
-    recordHistory({
-      action: 'Print Label',
-      type: barcodeType,
-      value: barcodeValue,
-      productName,
-      price,
-      sku
+    const customFieldsMap: Record<string, string> = {};
+    manualCustomFields.forEach(cf => {
+      if (cf.label.trim() && cf.value.trim()) {
+        customFieldsMap[cf.label.trim()] = cf.value.trim();
+      }
     });
-    window.print();
+
+    const newEntry: BarcodeItemQueueEntry = {
+      id: `manual-${Date.now()}`,
+      name: manualName.trim(),
+      code: finalCode,
+      barcodeType: manualBarcodeType,
+      price: manualPrice !== '' ? Number(manualPrice) : undefined,
+      mrp: manualMrp !== '' ? Number(manualMrp) : undefined,
+      brand: manualBrand.trim() || undefined,
+      sku: manualSku.trim() || undefined,
+      packSize: manualPackSize.trim() || undefined,
+      hsn: manualHsn.trim() || undefined,
+      customFields: customFieldsMap,
+      quantity: Math.max(1, manualQty),
+      error: validation.isValid ? undefined : validation.error
+    };
+
+    setQueue(prev => [newEntry, ...prev]);
+    setPreviewItemId(newEntry.id);
+
+    // Reset manual form
+    setManualName('');
+    setManualCode('');
+    setManualPrice('');
+    setManualMrp('');
+    setManualBrand('');
+    setManualSku('');
+    setManualHsn('');
+    setManualPackSize('');
+    setManualCustomFields([]);
   };
 
-  // Handle Excel / CSV File Upload
+  // ── Add Custom Field to Manual Form ──
+  const handleAddCustomField = () => {
+    if (manualCustomFields.length >= 4) return;
+    setManualCustomFields(prev => [
+      ...prev,
+      { id: Date.now().toString(), label: '', value: '' }
+    ]);
+  };
+
+  const handleUpdateCustomField = (id: string, key: 'label' | 'value', val: string) => {
+    setManualCustomFields(prev => prev.map(cf => cf.id === id ? { ...cf, [key]: val } : cf));
+  };
+
+  const handleRemoveCustomField = (id: string) => {
+    setManualCustomFields(prev => prev.filter(cf => cf.id !== id));
+  };
+
+  // ── Bulk Excel / CSV Upload ──
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBulkFileError(null);
+    setBulkSuccessMsg(null);
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -277,945 +364,1840 @@ export default function BarcodeGenerator() {
         const ws = wb.Sheets[wsName];
         const data = XLSX.utils.sheet_to_json<any>(ws);
 
-        const newRows: BulkRowItem[] = data.map((row: any, idx: number) => {
-          const rawName = row['Product Name'] || row['Name'] || row['Item'] || `Imported Item ${idx + 1}`;
-          const rawSku = row['SKU'] || row['Code'] || `SKU-${idx + 1}`;
-          const rawBarcode = String(row['Barcode'] || row['Barcode Value'] || row['UPC'] || `890${Date.now().toString().slice(-9)}`);
-          const rawType: BarcodeType = (row['Type'] || row['Barcode Type'] || 'CODE128') as BarcodeType;
-          const rawPrice = Number(row['Price'] || row['Rate'] || 0);
-          const rawMrp = Number(row['MRP'] || rawPrice);
-          const rawQty = Number(row['Quantity'] || row['Qty'] || 1);
+        if (!data || data.length === 0) {
+          setBulkFileError('Uploaded file appears to be empty.');
+          return;
+        }
+
+        const newEntries: BarcodeItemQueueEntry[] = data.map((row: any, idx: number) => {
+          const rawName = row['Item Name'] || row['Product Name'] || row['Name'] || row['Title'] || `Item ${idx + 1}`;
+          let rawBarcode = String(row['Item Code'] || row['Barcode'] || row['Code'] || row['UPC'] || '').trim();
+          if (!rawBarcode) {
+            rawBarcode = `INV${Date.now().toString().slice(-6)}${idx}`;
+          }
+          const rawType: BarcodeType = (row['Type'] || row['Barcode Type'] || globalBarcodeType) as BarcodeType;
+          const rawMrp = Number(row['MRP'] || row['Mrp'] || row['M.R.P.'] || 0);
+          const rawPrice = Number(row['Selling Price'] || row['Price'] || row['Rate'] || rawMrp);
+          const rawBrand = row['Brand'] || row['Company'] || '';
+          const rawSku = row['SKU'] || '';
+          const rawHsn = row['HSN'] || row['HSN Code'] || '';
+          const rawGst = Number(row['GST'] || row['GST%'] || 0);
+          const rawPack = row['Pack Size'] || row['Unit'] || row['Size'] || '';
+          const rawDesc = row['Description'] || row['Desc'] || '';
+          const rawBatch = row['Batch'] || row['Batch No'] || row['Batch Number'] || '';
+          const rawExpiry = row['Expiry'] || row['Expiry Date'] || row['Exp Date'] || '';
+          const rawQty = Math.max(1, Number(row['Print Quantity'] || row['Quantity'] || row['Qty'] || 12));
 
           const validation = validateBarcode(rawType, rawBarcode);
 
           return {
-            id: `import-${idx}-${Date.now()}`,
+            id: `bulk-${idx}-${Date.now()}`,
             name: rawName,
-            sku: rawSku,
-            barcode: rawBarcode,
-            type: rawType,
-            price: rawPrice,
-            mrp: rawMrp,
-            qty: Math.max(1, rawQty),
-            selected: true,
+            code: rawBarcode,
+            barcodeType: rawType,
+            price: rawPrice > 0 ? rawPrice : undefined,
+            mrp: rawMrp > 0 ? rawMrp : undefined,
+            brand: rawBrand || undefined,
+            sku: rawSku || undefined,
+            packSize: rawPack || undefined,
+            hsn: rawHsn || undefined,
+            gst: rawGst > 0 ? rawGst : undefined,
+            batchNo: rawBatch || undefined,
+            expiryDate: rawExpiry || undefined,
+            description: rawDesc || undefined,
+            customFields: {},
+            quantity: rawQty,
             error: validation.isValid ? undefined : validation.error
           };
         });
 
-        setBulkRows(newRows);
-        recordHistory({
-          action: 'Bulk Import',
-          count: newRows.length
-        });
-      } catch (ex) {
-        console.error('Error parsing file:', ex);
-        alert('Failed to parse Excel/CSV. Please make sure columns are named "Product Name", "Barcode", "Price".');
+        setQueue(prev => [...newEntries, ...prev]);
+        if (newEntries[0]) setPreviewItemId(newEntries[0].id);
+        setBulkSuccessMsg(`Successfully imported ${newEntries.length} items to print queue!`);
+      } catch (err: any) {
+        console.error('Bulk parse error:', err);
+        setBulkFileError('Could not parse file. Please use our sample template.');
       }
     };
     reader.readAsBinaryString(file);
+    e.target.value = '';
   };
 
-  // Build items array for Label Sheet Printing
-  const printableLabels = useMemo(() => {
-    if (activeTab === 'bulk') {
-      const selected = bulkRows.filter(r => r.selected);
-      const list: any[] = [];
-      selected.forEach(r => {
-        for (let i = 0; i < r.qty; i++) {
-          list.push({
-            name: r.name,
-            sku: r.sku,
-            barcode: r.barcode,
-            type: r.type,
-            price: r.price,
-            mrp: r.mrp
-          });
-        }
-      });
-      return list;
-    } else {
-      const list: any[] = [];
-      for (let i = 0; i < customCopies; i++) {
+  // ── Download Sample Excel Template ──
+  const handleDownloadSampleTemplate = () => {
+    const sampleData = [
+      {
+        'Item Name': 'Premium Cotton T-Shirt (Blue, M)',
+        'Item Code': '8901234567890',
+        'MRP': 799,
+        'Selling Price': 599,
+        'Brand': 'InvoStyle',
+        'SKU': 'TS-BLU-M',
+        'HSN': '6109',
+        'GST': 12,
+        'Pack Size': '1 Pcs',
+        'Description': '100% Combed Cotton',
+        'Print Quantity': 24
+      },
+      {
+        'Item Name': 'Organic Green Tea 250g',
+        'Item Code': '8909876543210',
+        'MRP': 349,
+        'Selling Price': 299,
+        'Brand': 'NaturePure',
+        'SKU': 'TEA-GRN-250',
+        'HSN': '0902',
+        'GST': 5,
+        'Pack Size': '250g',
+        'Description': 'Whole Leaf Green Tea',
+        'Print Quantity': 18
+      },
+      {
+        'Item Name': 'Wireless Bluetooth Earbuds',
+        'Item Code': 'INV8829101',
+        'MRP': 1999,
+        'Selling Price': 1499,
+        'Brand': 'AcousticPro',
+        'SKU': 'EB-WRL-BLK',
+        'HSN': '8518',
+        'GST': 18,
+        'Pack Size': '1 Box',
+        'Description': 'ANC Earbuds with 40h Battery',
+        'Print Quantity': 12
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Barcode Template');
+    XLSX.writeFile(wb, 'InvoCentric_Barcode_Import_Template.xlsx');
+  };
+
+  // ── Bulk Set All Quantities ──
+  const handleSetAllQuantities = (qty: number) => {
+    if (qty <= 0) return;
+    setQueue(prev => prev.map(item => ({ ...item, quantity: qty })));
+  };
+
+  // ── Flattened Printable List (Total Stickers Array) ──
+  const flattenedPrintableList: PrintableLabelItem[] = useMemo(() => {
+    const list: PrintableLabelItem[] = [];
+    queue.forEach(item => {
+      for (let i = 0; i < item.quantity; i++) {
         list.push({
-          name: productName,
-          sku: sku,
-          barcode: barcodeValue,
-          type: barcodeType,
-          price: Number(price) || 0,
-          mrp: Number(mrp) || 0
+          id: item.id,
+          name: item.name,
+          code: item.code,
+          barcodeType: item.barcodeType || globalBarcodeType,
+          price: item.price,
+          mrp: item.mrp,
+          sku: item.sku,
+          brand: item.brand,
+          packSize: item.packSize,
+          hsn: item.hsn,
+          gst: item.gst,
+          batchNo: item.batchNo,
+          expiryDate: item.expiryDate,
+          description: item.description,
+          customFields: item.customFields
         });
       }
-      return list;
+    });
+    return list;
+  }, [queue, globalBarcodeType]);
+
+  // Total Statistics
+  const totalStickersCount = flattenedPrintableList.length;
+  const labelsPerPage = Math.max(1, sheetConfig.columns * sheetConfig.rows);
+  const totalSheetsNeeded = Math.ceil(totalStickersCount / labelsPerPage) || 1;
+
+  // Active item for Single Label Preview
+  const activePreviewItem = useMemo(() => {
+    return queue.find(q => q.id === previewItemId) || queue[0] || {
+      id: 'fallback',
+      name: 'Sample Product Name',
+      code: 'INV1002026',
+      barcodeType: 'CODE128',
+      price: 499,
+      mrp: 599,
+      brand: 'InvoCentric',
+      sku: 'SKU-SAMPLE',
+      packSize: '1 Pcs',
+      batchNo: 'B-2409',
+      expiryDate: '12/2027',
+      customFields: {},
+      quantity: 1
+    };
+  }, [queue, previewItemId]);
+
+  // Dynamic available fields for mapping dropdowns
+  const availableFieldOptions = useMemo(() => {
+    const baseOptions = [
+      { key: 'none', label: '-- None (Empty) --' },
+      { key: 'business_name', label: 'Store / Business Name' },
+      { key: 'name', label: 'Item Name' },
+      { key: 'mrp', label: 'MRP (₹)' },
+      { key: 'price', label: 'Selling Price (₹)' },
+      { key: 'sku', label: 'SKU Code' },
+      { key: 'brand', label: 'Brand Name' },
+      { key: 'packSize', label: 'Pack Size / Unit' },
+      { key: 'hsn', label: 'HSN Code' },
+      { key: 'gst', label: 'GST Percentage' },
+      { key: 'batchNo', label: 'Batch No.' },
+      { key: 'expiryDate', label: 'Expiry Date' },
+      { key: 'description', label: 'Description' }
+    ];
+
+    // Collect custom field keys from queue
+    const customKeys = new Set<string>();
+    queue.forEach(item => {
+      if (item.customFields) {
+        Object.keys(item.customFields).forEach(k => customKeys.add(k));
+      }
+    });
+
+    customKeys.forEach(k => {
+      baseOptions.push({ key: k, label: `Custom: ${k}` });
+    });
+
+    return baseOptions;
+  }, [queue]);
+
+  // ── Helper to resolve field text for single sticker preview ──
+  const getPreviewFieldText = (key: string, item: any): string => {
+    if (!key || key === 'none') return '';
+    if (key === 'business_name') return businessName;
+    if (key === 'name') return item.name || '';
+    if (key === 'mrp') return item.mrp ? `MRP: ₹${item.mrp}` : '';
+    if (key === 'price') return item.price ? `₹${item.price}` : '';
+    if (key === 'sku') return item.sku ? `SKU: ${item.sku}` : '';
+    if (key === 'brand') return item.brand || '';
+    if (key === 'packSize') return item.packSize ? `Pack: ${item.packSize}` : '';
+    if (key === 'hsn') return item.hsn ? `HSN: ${item.hsn}` : '';
+    if (key === 'gst') return item.gst ? `GST: ${item.gst}%` : '';
+    if (key === 'batchNo') return item.batchNo ? `Batch: ${item.batchNo}` : '';
+    if (key === 'expiryDate') return item.expiryDate ? `Exp: ${item.expiryDate}` : '';
+    if (key === 'description') return item.description || '';
+    if (item.customFields && item.customFields[key]) return item.customFields[key];
+    return '';
+  };
+
+  // ── Export High-Resolution PDF ──
+  const handleDownloadPdf = async () => {
+    if (flattenedPrintableList.length === 0) {
+      alert('Your barcode queue is empty! Please add items in Step 1 first.');
+      return;
     }
-  }, [activeTab, bulkRows, customCopies, productName, sku, barcodeValue, barcodeType, price, mrp]);
+
+    setIsExportingPdf(true);
+    try {
+      await exportMultiLabelSheetPdf({
+        items: flattenedPrintableList,
+        config: sheetConfig,
+        layout: layoutDensity,
+        fieldMapping: {
+          field1: field1Mapping !== 'none' ? field1Mapping : undefined,
+          field2: field2Mapping !== 'none' ? field2Mapping : undefined,
+          field3: field3Mapping !== 'none' ? field3Mapping : undefined
+        },
+        businessName,
+        displayValue,
+        showBorder,
+        filename: `InvoCentric_Barcodes_${sheetConfig.name.slice(0, 10)}_${Date.now()}`
+      });
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      alert('Failed to generate PDF. Please verify your barcode data and try again.');
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  // ── Native Direct Print ──
+  const handleDirectPrint = () => {
+    if (flattenedPrintableList.length === 0) {
+      alert('Please add items to the print queue first.');
+      return;
+    }
+    window.print();
+  };
+
+  // ── Filtered Inventory Items for Picker ──
+  const filteredInventoryItems = useMemo(() => {
+    if (!inventorySearch.trim()) return items.slice(0, 15);
+    const q = inventorySearch.toLowerCase();
+    return items.filter(it => 
+      it.name.toLowerCase().includes(q) ||
+      (it.barcode && it.barcode.toLowerCase().includes(q)) ||
+      (it.hsn && it.hsn.toLowerCase().includes(q)) ||
+      (it.category && it.category.toLowerCase().includes(q))
+    ).slice(0, 25);
+  }, [items, inventorySearch]);
+
+  // Labels for the currently viewed sheet page
+  const pagePrintableLabels = useMemo(() => {
+    const startIndex = (sheetPage - 1) * labelsPerPage;
+    return flattenedPrintableList.slice(startIndex, startIndex + labelsPerPage);
+  }, [flattenedPrintableList, sheetPage, labelsPerPage]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFB] pb-16 print:bg-white print:p-0 print:m-0">
-      {/* Top Header Bar */}
-      <header className="bg-white border-b border-slate-200/80 sticky top-0 z-40 px-4 md:px-8 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-            <Barcode size={22} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base md:text-lg font-black text-slate-900 leading-none">Barcode Studio & Label Generator</h1>
-              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider rounded-lg border border-blue-200">
-                PRO MODULE
-              </span>
+    <div className="min-h-screen bg-[#F8FAFB] text-slate-900 pb-20 print:bg-white print:p-0 print:m-0">
+      
+      {/* ─────────────────────────────────────────────────────────────
+          1. TOP APP HEADER & BRANDING
+      ───────────────────────────────────────────────────────────── */}
+      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-4 sm:px-8 py-3.5 print:hidden">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#166534] flex items-center justify-center text-white shadow-sm">
+              <Barcode size={22} />
             </div>
-            <p className="text-xs text-slate-500 font-semibold mt-0.5">
-              100% Vector Barcodes, Live Physical Label Sheet Printing &amp; Inventory Integration
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
+                  Barcode Studio & Label Generator
+                </h1>
+                <span className="px-2 py-0.5 bg-emerald-50 text-[#166534] text-[10px] font-bold uppercase tracking-wider rounded-md border border-emerald-200/80">
+                  Inventory Integrated
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium">
+                Professional multi-step barcode sticker generator for A4 sheets & thermal rolls
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 self-start sm:self-auto overflow-x-auto max-w-full">
-          {[
-            { key: 'single', label: 'Single Barcode', icon: Barcode },
-            { key: 'bulk', label: 'Bulk Generator', icon: Layers },
-            { key: 'labels', label: 'Label Sheet Designer', icon: Grid },
-            { key: 'history', label: 'History', icon: HistoryIcon },
-          ].map(t => {
-            const Icon = t.icon;
-            const active = activeTab === t.key;
-            return (
+          {/* Quick Stat Pill */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-xl text-xs">
+              <span className="text-slate-500 font-medium">Queue:</span>
+              <span className="font-bold text-[#166534]">{queue.length} items</span>
+              <span className="text-slate-300">|</span>
+              <span className="font-bold text-slate-700">{totalStickersCount} stickers</span>
+            </div>
+            {currentStep === 3 && (
               <button
-                key={t.key}
                 type="button"
-                onClick={() => setSearchParams({ tab: t.key })}
-                className={cn(
-                  "flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer",
-                  active 
-                    ? "bg-white text-blue-700 shadow-sm shadow-slate-200 border border-slate-200/60" 
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
-                )}
+                onClick={handleDownloadPdf}
+                disabled={isExportingPdf || flattenedPrintableList.length === 0}
+                className="bg-[#166534] hover:bg-[#14532d] text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                <Icon size={14} />
-                <span>{t.label}</span>
+                <Download size={14} />
+                <span>{isExportingPdf ? 'Exporting...' : 'Export PDF'}</span>
               </button>
-            );
-          })}
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Main Studio Body */}
-      <main className="max-w-7xl mx-auto px-4 md:px-8 mt-6 print:m-0 print:p-0 print:max-w-none">
-        {/* ═══════════ TAB 1: SINGLE BARCODE GENERATOR ═══════════ */}
-        {activeTab === 'single' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:block">
-            {/* Left Config Panel */}
-            <div className="lg:col-span-5 space-y-6 print:hidden">
-              <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                    <Sliders size={16} className="text-blue-600" />
-                    Barcode Configuration
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={handleGenerateDeterministicBarcode}
-                    className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline cursor-pointer"
-                  >
-                    <RefreshCw size={12} />
-                    Generate New Code
-                  </button>
-                </div>
+      {/* ─────────────────────────────────────────────────────────────
+          2. WIZARD STEPPER NAVIGATION
+      ───────────────────────────────────────────────────────────── */}
+      <section className="bg-white border-b border-slate-200/80 px-4 sm:px-8 py-3 print:hidden">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <nav className="flex items-center gap-2 sm:gap-4 overflow-x-auto py-1">
+            {[
+              { num: 1 as WizardStep, title: 'Item Selection & Queue', desc: 'Single, bulk & inventory' },
+              { num: 2 as WizardStep, title: 'Barcode Design & Fields', desc: 'Layout & dynamic attributes' },
+              { num: 3 as WizardStep, title: 'Sheet & Quantities', desc: 'A4 / Roll size & print' }
+            ].map(step => {
+              const isActive = currentStep === step.num;
+              const isPast = currentStep > step.num;
 
-                {/* Load Product from Inventory */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Link with Product (Catalog)
-                  </label>
-                  <select
-                    value={selectedProductId}
-                    onChange={(e) => {
-                      const pid = e.target.value;
-                      setSelectedProductId(pid);
-                      const match = items.find(i => i.id === pid);
-                      if (match) {
-                        setProductName(match.name);
-                        setPrice(match.price || 0);
-                        setMrp(match.mrp || match.price || 0);
-                        setSku(match.hsn || match.size || `SKU-${match.id.slice(0, 6).toUpperCase()}`);
-                        if (match.barcode) setBarcodeValue(match.barcode);
-                      }
-                    }}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600"
-                  >
-                    <option value="">-- Custom (No Product Linked) --</option>
-                    {items.map(it => (
-                      <option key={it.id} value={it.id}>
-                        {it.name} ({it.barcode ? `Barcode: ${it.barcode}` : 'No Barcode'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Format & Barcode Value */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Barcode Type / Format
-                    </label>
-                    <select
-                      value={barcodeType}
-                      onChange={(e) => setBarcodeType(e.target.value as BarcodeType)}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600 font-mono"
-                    >
-                      <option value="CODE128">CODE128 (Standard)</option>
-                      <option value="EAN13">EAN-13 (13 Digits Retail)</option>
-                      <option value="EAN8">EAN-8 (8 Digits)</option>
-                      <option value="UPC">UPC-A (12 Digits)</option>
-                      <option value="CODE39">CODE39 (Industrial)</option>
-                      <option value="ITF14">ITF-14 (14 Digits Carton)</option>
-                      <option value="codabar">CODABAR (Logistics)</option>
-                    </select>
+              return (
+                <button
+                  key={step.num}
+                  type="button"
+                  onClick={() => setCurrentStep(step.num)}
+                  className={cn(
+                    "flex items-center gap-3 px-3.5 py-2 rounded-xl text-left transition-all cursor-pointer whitespace-nowrap",
+                    isActive 
+                      ? "bg-emerald-50/80 border border-emerald-200 text-[#166534]" 
+                      : isPast
+                        ? "text-slate-700 hover:bg-slate-50"
+                        : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  <div className={cn(
+                    "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all",
+                    isActive 
+                      ? "bg-[#166534] text-white shadow-xs" 
+                      : isPast
+                        ? "bg-emerald-100 text-[#166534]"
+                        : "bg-slate-100 text-slate-500"
+                  )}>
+                    {isPast ? <Check size={14} strokeWidth={3} /> : step.num}
                   </div>
-
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Barcode Value / Number
-                    </label>
-                    <input
-                      type="text"
-                      value={barcodeValue}
-                      onChange={(e) => setBarcodeValue(e.target.value)}
-                      placeholder="e.g. 8901234567890"
-                      className={cn(
-                        "w-full px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold transition-all focus:outline-none",
-                        validationError 
-                          ? "bg-rose-50 border border-rose-300 text-rose-900 focus:border-rose-500" 
-                          : "bg-slate-50 border border-slate-200 text-slate-800 focus:border-blue-600"
-                      )}
-                    />
+                    <div className="text-xs font-bold leading-tight">{step.title}</div>
+                    <div className="text-[10px] text-slate-500 font-medium hidden md:block">{step.desc}</div>
                   </div>
-                </div>
+                </button>
+              );
+            })}
+          </nav>
 
-                {/* Validation Error Alert */}
-                {validationError && (
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-xs text-rose-800 animate-fadeIn">
-                    <AlertTriangle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+          {/* Stepper Controls */}
+          <div className="flex items-center gap-2 shrink-0">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={() => setCurrentStep(prev => (prev - 1) as WizardStep)}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+              >
+                <ChevronLeft size={14} />
+                <span>Back</span>
+              </button>
+            )}
+            {currentStep < 3 ? (
+              <button
+                type="button"
+                onClick={() => setCurrentStep(prev => (prev + 1) as WizardStep)}
+                disabled={queue.length === 0}
+                className="bg-[#166534] hover:bg-[#14532d] text-white px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <span>Proceed to Step {currentStep + 1}</span>
+                <ChevronRight size={14} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleDirectPrint}
+                className="bg-[#166534] hover:bg-[#14532d] text-white px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+              >
+                <Printer size={14} />
+                <span>Direct Print</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────
+          3. MAIN SPLIT SCREEN WORKSPACE
+      ───────────────────────────────────────────────────────────── */}
+      <main className="max-w-7xl mx-auto px-2.5 sm:px-8 mt-4 sm:mt-6 overflow-x-hidden print:m-0 print:p-0 print:max-w-none">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+          
+          {/* ═════════════════════════════════════════════════════════
+              LEFT / MAIN PANEL: 3-STEP WIZARD VIEWS
+          ═════════════════════════════════════════════════════════ */}
+          <div className="lg:col-span-7 xl:col-span-7 space-y-6 print:hidden">
+
+            {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                STEP 1: ITEM SELECTION & ENTRY
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                
+                {/* Method Selector Tabs */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div>
-                      <p className="font-bold">Validation Issue:</p>
-                      <p className="text-[11px] text-rose-700 font-medium">{validationError}</p>
+                      <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <Package size={16} className="text-[#166534]" />
+                        Add Items to Barcode Queue
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Choose existing inventory, enter manual items with custom fields, or bulk upload via Excel
+                      </p>
                     </div>
                   </div>
-                )}
 
-                {/* Product Metadata Info */}
-                <div className="space-y-4 pt-2 border-t border-slate-100">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Product Name (Display on Label)
-                    </label>
-                    <input
-                      type="text"
-                      value={productName}
-                      onChange={(e) => setProductName(e.target.value)}
-                      placeholder="Product description"
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-600"
-                    />
+                  {/* Sub-tabs */}
+                  <div className="grid grid-cols-3 gap-2 bg-slate-100/80 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setItemEntryTab('inventory')}
+                      className={cn(
+                        "py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                        itemEntryTab === 'inventory' 
+                          ? "bg-white text-[#166534] shadow-xs" 
+                          : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      <Store size={14} />
+                      <span>From Inventory</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setItemEntryTab('manual')}
+                      className={cn(
+                        "py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                        itemEntryTab === 'manual' 
+                          ? "bg-white text-[#166534] shadow-xs" 
+                          : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      <Plus size={14} />
+                      <span>Manual Item</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setItemEntryTab('bulk')}
+                      className={cn(
+                        "py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                        itemEntryTab === 'bulk' 
+                          ? "bg-white text-[#166534] shadow-xs" 
+                          : "text-slate-600 hover:text-slate-900"
+                      )}
+                    >
+                      <FileSpreadsheet size={14} />
+                      <span>Bulk Excel / CSV</span>
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
+                  {/* ── Sub-tab A: From Existing Invocentric Inventory ── */}
+                  {itemEntryTab === 'inventory' && (
+                    <div className="space-y-4 pt-1">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Search Product from Inventory ({items.length} items available)
+                        </label>
+                        <div className="relative">
+                          <Search size={15} className="absolute left-3.5 top-3 text-slate-400" />
+                          <input
+                            type="text"
+                            placeholder="Search by name, barcode, SKU, or category..."
+                            value={inventorySearch}
+                            onChange={(e) => setInventorySearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#166534]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Filtered items list */}
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {filteredInventoryItems.length === 0 ? (
+                          <div className="py-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                            No inventory items match your search.
+                          </div>
+                        ) : (
+                          filteredInventoryItems.map(it => {
+                            const isSelected = selectedInventoryId === it.id;
+                            return (
+                              <div
+                                key={it.id}
+                                onClick={() => setSelectedInventoryId(it.id)}
+                                className={cn(
+                                  "p-3 rounded-xl border text-xs flex items-center justify-between cursor-pointer transition-all",
+                                  isSelected 
+                                    ? "bg-emerald-50/70 border-emerald-300 text-slate-900 shadow-xs" 
+                                    : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-800"
+                                )}
+                              >
+                                <div className="space-y-0.5">
+                                  <div className="font-bold flex items-center gap-1.5">
+                                    <span>{it.name}</span>
+                                    {it.barcode && (
+                                      <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">
+                                        {it.barcode}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500 flex items-center gap-2">
+                                    <span>MRP: ₹{it.mrp || it.price || 0}</span>
+                                    <span>•</span>
+                                    <span className="text-[#166534] font-semibold">Rate: ₹{it.price || 0}</span>
+                                    {it.hsn && <span>• HSN: {it.hsn}</span>}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <span className={cn(
+                                    "px-2 py-1 rounded-lg text-[10px] font-bold",
+                                    isSelected ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
+                                  )}>
+                                    {isSelected ? 'Selected' : 'Select'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {/* Add Action Bar */}
+                      <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                        <div className="w-32">
+                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                            Sticker Quantity
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="500"
+                            value={inventoryItemQty}
+                            onChange={(e) => setInventoryItemQty(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#166534]"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddFromInventory}
+                          disabled={!selectedInventoryId}
+                          className="flex-1 mt-5 bg-[#166534] hover:bg-[#14532d] text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          <Plus size={15} />
+                          <span>Add to Barcode Queue</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Sub-tab B: Manual Single Item ── */}
+                  {itemEntryTab === 'manual' && (
+                    <form onSubmit={handleAddManualItem} className="space-y-4 pt-1">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Item / Product Name <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Wireless Bluetooth Headphones"
+                            value={manualName}
+                            onChange={(e) => setManualName(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#166534]"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-semibold text-slate-700">
+                              Item Code / Barcode
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setManualCode(handleAutoGenerateCode())}
+                              className="text-[11px] font-bold text-[#166534] hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <RefreshCw size={11} /> Auto-Generate
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Leave blank to auto-generate"
+                            value={manualCode}
+                            onChange={(e) => setManualCode(e.target.value)}
+                            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-medium text-slate-900 focus:outline-none focus:border-[#166534]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Barcode Format
+                          </label>
+                          <select
+                            value={manualBarcodeType}
+                            onChange={(e) => setManualBarcodeType(e.target.value as BarcodeType)}
+                            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#166534]"
+                          >
+                            <option value="CODE128">CODE 128 (Recommended)</option>
+                            <option value="EAN13">EAN-13 (Standard Retail)</option>
+                            <option value="CODE39">CODE 39 (Alphanumeric)</option>
+                            <option value="UPC">UPC-A</option>
+                            <option value="EAN8">EAN-8</option>
+                            <option value="ITF14">ITF-14 (Packaging)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            MRP (Maximum Retail Price)
+                          </label>
+                          <input
+                            type="number"
+                            placeholder="e.g. 999"
+                            value={manualMrp}
+                            onChange={(e) => setManualMrp(e.target.value !== '' ? Number(e.target.value) : '')}
+                            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#166534]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Selling Price / Offer Rate
+                          </label>
+                          <input
+                            type="number"
+                            placeholder="e.g. 799"
+                            value={manualPrice}
+                            onChange={(e) => setManualPrice(e.target.value !== '' ? Number(e.target.value) : '')}
+                            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#166534]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Brand / Company (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. InvoStyle"
+                            value={manualBrand}
+                            onChange={(e) => setManualBrand(e.target.value)}
+                            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#166534]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Pack Size / Unit (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 500g, 1 Pcs, Pack of 2"
+                            value={manualPackSize}
+                            onChange={(e) => setManualPackSize(e.target.value)}
+                            className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#166534]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Dynamic Custom Fields Section */}
+                      <div className="pt-2 border-t border-slate-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <Tag size={13} className="text-[#166534]" />
+                            Dynamic Custom Fields ({manualCustomFields.length}/4)
+                          </label>
+                          {manualCustomFields.length < 4 && (
+                            <button
+                              type="button"
+                              onClick={handleAddCustomField}
+                              className="text-xs font-bold text-[#166534] hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <Plus size={13} /> Add Custom Field
+                            </button>
+                          )}
+                        </div>
+
+                        {manualCustomFields.map((cf, idx) => (
+                          <div key={cf.id} className="flex items-center gap-2 mb-2">
+                            <input
+                              type="text"
+                              placeholder="Field Name (e.g. Batch, HSN, Expiry)"
+                              value={cf.label}
+                              onChange={(e) => handleUpdateCustomField(cf.id, 'label', e.target.value)}
+                              className="w-1/2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:border-[#166534]"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Value (e.g. B-9910, 8443)"
+                              value={cf.value}
+                              onChange={(e) => handleUpdateCustomField(cf.id, 'value', e.target.value)}
+                              className="w-1/2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:border-[#166534]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCustomField(cf.id)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Add Action Bar */}
+                      <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                        <div className="w-32">
+                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                            Sticker Quantity
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="500"
+                            value={manualQty}
+                            onChange={(e) => setManualQty(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-[#166534]"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="flex-1 mt-5 bg-[#166534] hover:bg-[#14532d] text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                        >
+                          <Plus size={15} />
+                          <span>Push Item to Queue</span>
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* ── Sub-tab C: Bulk Excel / CSV Upload ── */}
+                  {itemEntryTab === 'bulk' && (
+                    <div className="space-y-4 pt-1">
+                      <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <h4 className="text-xs font-bold text-[#166534] flex items-center gap-1.5">
+                            <FileSpreadsheet size={15} />
+                            Download Standard Template
+                          </h4>
+                          <p className="text-[11px] text-slate-600">
+                            Use our clean spreadsheet template with columns for Name, Barcode, MRP, Brand, SKU, and Quantity.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleDownloadSampleTemplate}
+                          className="bg-white hover:bg-slate-50 text-[#166534] border border-emerald-300 px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer self-start sm:self-auto"
+                        >
+                          <FileDown size={14} />
+                          <span>Download Template (.xlsx)</span>
+                        </button>
+                      </div>
+
+                      {/* Dropzone */}
+                      <label className="border-2 border-dashed border-slate-200 hover:border-[#166534] rounded-2xl p-6 text-center flex flex-col items-center justify-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-emerald-50/30">
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls,.csv"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                        <div className="w-12 h-12 rounded-xl bg-emerald-100/70 text-[#166534] flex items-center justify-center mb-2">
+                          <Upload size={22} />
+                        </div>
+                        <div className="text-xs font-bold text-slate-800">
+                          Click to select or drag &amp; drop Excel / CSV file
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Supports .xlsx, .xls, and .csv files with header rows
+                        </p>
+                      </label>
+
+                      {bulkFileError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                          <AlertTriangle size={15} />
+                          <span>{bulkFileError}</span>
+                        </div>
+                      )}
+
+                      {bulkSuccessMsg && (
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-[#166534] flex items-center gap-2">
+                          <CheckCircle2 size={15} />
+                          <span>{bulkSuccessMsg}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Active Queue Table Card ── */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        Active Barcode Queue
+                      </h3>
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[11px] font-bold rounded-full">
+                        {queue.length} items
+                      </span>
+                    </div>
+
+                    {queue.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm('Clear all items from barcode print queue?')) {
+                            setQueue([]);
+                          }
+                        }}
+                        className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 size={12} /> Clear Queue
+                      </button>
+                    )}
+                  </div>
+
+                  {queue.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-slate-400 space-y-2">
+                      <Boxes size={28} className="mx-auto text-slate-300" />
+                      <p className="font-semibold text-slate-600">Your barcode print queue is empty</p>
+                      <p className="text-[11px] text-slate-400">Add products from your inventory, manually, or via Excel above.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase text-[10px]">
+                            <th className="pb-2">Product &amp; Code</th>
+                            <th className="pb-2">Prices</th>
+                            <th className="pb-2">Details</th>
+                            <th className="pb-2 text-center">Stickers</th>
+                            <th className="pb-2 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {queue.map(item => {
+                            const isCurrentPreview = previewItemId === item.id;
+                            return (
+                              <tr 
+                                key={item.id} 
+                                className={cn(
+                                  "hover:bg-slate-50/70 transition-colors",
+                                  isCurrentPreview && "bg-emerald-50/40"
+                                )}
+                              >
+                                <td className="py-2.5 pr-2">
+                                  <div className="font-bold text-slate-900 leading-tight">{item.name}</div>
+                                  <div className="font-mono text-[10px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                                    <span className="bg-slate-100 px-1 py-0.5 rounded">{item.code}</span>
+                                    <span className="text-[9px] uppercase text-slate-400">{item.barcodeType}</span>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 pr-2 whitespace-nowrap">
+                                  {item.mrp && <div className="text-slate-500 text-[11px]">MRP: ₹{item.mrp}</div>}
+                                  {item.price && <div className="text-[#166534] font-bold text-[11px]">Rate: ₹{item.price}</div>}
+                                </td>
+                                <td className="py-2.5 pr-2">
+                                  <div className="text-[11px] text-slate-600 space-y-0.5">
+                                    {item.brand && <span>Brand: {item.brand} </span>}
+                                    {item.packSize && <span>({item.packSize})</span>}
+                                    {item.sku && <div>SKU: {item.sku}</div>}
+                                  </div>
+                                </td>
+                                <td className="py-2.5 text-center">
+                                  <div className="inline-flex items-center border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setQueue(prev => prev.map(q => q.id === item.id ? { ...q, quantity: Math.max(1, q.quantity - 1) } : q));
+                                      }}
+                                      className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold"
+                                    >
+                                      -
+                                    </button>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max="500"
+                                      value={item.quantity}
+                                      onChange={(e) => {
+                                        const v = Math.max(1, parseInt(e.target.value) || 1);
+                                        setQueue(prev => prev.map(q => q.id === item.id ? { ...q, quantity: v } : q));
+                                      }}
+                                      className="w-12 text-center text-xs font-bold text-slate-900 border-none outline-none focus:ring-0 p-0"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setQueue(prev => prev.map(q => q.id === item.id ? { ...q, quantity: q.quantity + 1 } : q));
+                                      }}
+                                      className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 text-right whitespace-nowrap">
+                                  <div className="flex items-center justify-end gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewItemId(item.id)}
+                                      title="Preview single sticker"
+                                      className={cn(
+                                        "p-1.5 rounded-lg transition-colors cursor-pointer",
+                                        isCurrentPreview 
+                                          ? "bg-[#166534] text-white" 
+                                          : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                                      )}
+                                    >
+                                      <Eye size={13} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setQueue(prev => prev.filter(q => q.id !== item.id))}
+                                      title="Remove from queue"
+                                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Step 1 Next Button */}
+                  {queue.length > 0 && (
+                    <div className="pt-3 border-t border-slate-100 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(2)}
+                        className="bg-[#166534] hover:bg-[#14532d] text-white px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                      >
+                        <span>Proceed to Step 2: Barcode Design</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                STEP 2: BARCODE DESIGN & DYNAMIC FIELD CUSTOMIZATION
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                
+                {/* 1. Barcode Format Selection */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                        SKU / Code
+                      <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <Barcode size={16} className="text-[#166534]" />
+                        1. Barcode Format &amp; Symbology
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Choose the standard barcode encoding for POS scanners
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {[
+                      { type: 'CODE128' as BarcodeType, label: 'CODE 128', desc: 'Universal alphanumeric (Recommended)' },
+                      { type: 'EAN13' as BarcodeType, label: 'EAN-13', desc: '13-digit standard retail products' },
+                      { type: 'CODE39' as BarcodeType, label: 'CODE 39', desc: 'Standard industrial & logistics' },
+                      { type: 'UPC' as BarcodeType, label: 'UPC-A', desc: '12-digit standard retail code' },
+                      { type: 'EAN8' as BarcodeType, label: 'EAN-8', desc: '8-digit compact retail labels' },
+                      { type: 'ITF14' as BarcodeType, label: 'ITF-14', desc: '14-digit master shipping box' }
+                    ].map(fmt => {
+                      const isSelected = globalBarcodeType === fmt.type;
+                      return (
+                        <div
+                          key={fmt.type}
+                          onClick={() => {
+                            setGlobalBarcodeType(fmt.type);
+                            setQueue(prev => prev.map(q => ({ ...q, barcodeType: fmt.type })));
+                          }}
+                          className={cn(
+                            "p-3 rounded-xl border text-left cursor-pointer transition-all",
+                            isSelected 
+                              ? "bg-emerald-50/70 border-emerald-400 text-[#166534] shadow-xs" 
+                              : "bg-white border-slate-200 hover:border-slate-300 text-slate-800"
+                          )}
+                        >
+                          <div className="font-bold text-xs">{fmt.label}</div>
+                          <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{fmt.desc}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Information Density Layouts (4 Radio Cards) */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                      <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <Sliders size={16} className="text-[#166534]" />
+                        2. Information Density Layout (4 Modes)
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Select how much product info to print on each barcode sticker
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      {
+                        key: 'code_only' as LayoutDensity,
+                        title: 'Item Code Only',
+                        desc: 'Clean minimal bars + human readable code only',
+                        badge: 'Minimal'
+                      },
+                      {
+                        key: 'barcode_1_field' as LayoutDensity,
+                        title: 'Barcode + 1 Field',
+                        desc: 'Header attribute (e.g. Product Name) + Barcode',
+                        badge: 'Compact'
+                      },
+                      {
+                        key: 'barcode_2_fields' as LayoutDensity,
+                        title: 'Barcode + 2 Fields',
+                        desc: 'Header (Product Name) + Barcode + Price / MRP',
+                        badge: 'Popular'
+                      },
+                      {
+                        key: 'barcode_3_fields' as LayoutDensity,
+                        title: 'Barcode + 3 Fields',
+                        desc: 'Store/Brand + Name + Barcode + Price / HSN / Size',
+                        badge: 'Full Retail'
+                      }
+                    ].map(layout => {
+                      const isSelected = layoutDensity === layout.key;
+                      return (
+                        <div
+                          key={layout.key}
+                          onClick={() => setLayoutDensity(layout.key)}
+                          className={cn(
+                            "p-3.5 rounded-xl border text-left cursor-pointer transition-all relative",
+                            isSelected 
+                              ? "bg-emerald-50/70 border-emerald-400 text-slate-900 shadow-xs ring-1 ring-emerald-300" 
+                              : "bg-white border-slate-200 hover:border-slate-300 text-slate-800"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs">{layout.title}</span>
+                            <span className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded",
+                              isSelected ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
+                            )}>
+                              {layout.badge}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-1">{layout.desc}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Dynamic Field Mapping Dropdowns */}
+                {layoutDensity !== 'code_only' && (
+                  <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                          <Tag size={16} className="text-[#166534]" />
+                          3. Dynamic Field Mapping
+                        </h2>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">
+                          Map which attribute prints in each position on your sticker
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {/* Field 1 (Always active for 1, 2, 3 fields) */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Field 1 (Header / Top)
+                        </label>
+                        <select
+                          value={field1Mapping}
+                          onChange={(e) => setField1Mapping(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#166534]"
+                        >
+                          {availableFieldOptions.map(opt => (
+                            <option key={opt.key} value={opt.key}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Field 2 (Active for 2 and 3 fields) */}
+                      {(layoutDensity === 'barcode_2_fields' || layoutDensity === 'barcode_3_fields') && (
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Field 2 ({layoutDensity === 'barcode_3_fields' ? 'Product Name' : 'Bottom / Footer'})
+                          </label>
+                          <select
+                            value={field2Mapping}
+                            onChange={(e) => setField2Mapping(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#166534]"
+                          >
+                            {availableFieldOptions.map(opt => (
+                              <option key={opt.key} value={opt.key}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Field 3 (Active for 3 fields only) */}
+                      {layoutDensity === 'barcode_3_fields' && (
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Field 3 (Bottom Price / Tag)
+                          </label>
+                          <select
+                            value={field3Mapping}
+                            onChange={(e) => setField3Mapping(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#166534]"
+                          >
+                            {availableFieldOptions.map(opt => (
+                              <option key={opt.key} value={opt.key}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Store Name Configuration */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Store / Business Name (Appears when Store Name is mapped)
                       </label>
                       <input
                         type="text"
-                        value={sku}
-                        onChange={(e) => setSku(e.target.value)}
-                        placeholder="SKU-001"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800"
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder="e.g. InvoCentric Retail Store"
+                        className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-[#166534]"
                       />
                     </div>
+                  </div>
+                )}
+
+                {/* 4. Fine-Tuning Dimensions & Font */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    4. Barcode Appearance Options
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                        Selling Price (₹)
-                      </label>
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1.5">
+                        <span>Barcode Bar Height</span>
+                        <span className="font-mono text-[#166534]">{barHeight}px</span>
+                      </div>
                       <input
-                        type="number"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
-                        placeholder="₹ Price"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-700"
+                        type="range"
+                        min="25"
+                        max="80"
+                        value={barHeight}
+                        onChange={(e) => setBarHeight(parseInt(e.target.value))}
+                        className="w-full accent-[#166534]"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                        MRP (₹)
+
+                    <div className="space-y-2 pt-1">
+                      <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={displayValue}
+                          onChange={(e) => setDisplayValue(e.target.checked)}
+                          className="rounded text-[#166534] focus:ring-[#166534]"
+                        />
+                        <span>Print Human-Readable Digits below Barcode</span>
                       </label>
-                      <input
-                        type="number"
-                        value={mrp}
-                        onChange={(e) => setMrp(e.target.value === '' ? '' : Number(e.target.value))}
-                        placeholder="₹ MRP"
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600"
-                      />
+
+                      <label className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showBorder}
+                          onChange={(e) => setShowBorder(e.target.checked)}
+                          className="rounded text-[#166534] focus:ring-[#166534]"
+                        />
+                        <span>Print Subtle Label Border / Cut Guide</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Step 2 Navigation */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(1)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                    >
+                      <ChevronLeft size={14} /> Back to Items
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(3)}
+                      className="bg-[#166534] hover:bg-[#14532d] text-white px-5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                    >
+                      <span>Proceed to Step 3: Sheet &amp; Quantities</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                STEP 3: SHEET SIZE, PER-ITEM QUANTITIES & EXPORT
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                
+                {/* 1. Paper / Preset Selection */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                      <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <Grid size={16} className="text-[#166534]" />
+                        1. Paper &amp; Label Sheet Size Presets
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Select standard A4 die-cut sticker sheets or thermal roll printer sizes
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {Object.entries(PRESET_SHEET_CONFIGS).map(([key, cfg]) => {
+                      const isSelected = presetKey === key;
+                      return (
+                        <div
+                          key={key}
+                          onClick={() => handleSelectPreset(key)}
+                          className={cn(
+                            "p-3 rounded-xl border text-left cursor-pointer transition-all",
+                            isSelected 
+                              ? "bg-emerald-50/70 border-emerald-400 text-slate-900 shadow-xs ring-1 ring-emerald-300" 
+                              : "bg-white border-slate-200 hover:border-slate-300 text-slate-800"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs">{cfg.name}</span>
+                            <span className="text-[10px] font-mono text-slate-500">
+                              {cfg.columns}×{cfg.rows} ({cfg.columns * cfg.rows}/pg)
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">
+                            Label Size: {cfg.labelWidthMm}mm × {cfg.labelHeightMm}mm
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Per-Item Quantity Control & Quick Toolbar */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div>
+                      <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <Hash size={16} className="text-[#166534]" />
+                        2. Per-Item Sticker Quantities
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Set exact sticker count needed for each product
+                      </p>
+                    </div>
+
+                    {/* Quick Set All Toolbar */}
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto flex-wrap">
+                      <span className="text-[11px] text-slate-400 font-medium">Set All:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSetAllQuantities(1)}
+                        className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-bold"
+                      >
+                        1 each
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetAllQuantities(6)}
+                        className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-bold"
+                      >
+                        6 each
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetAllQuantities(12)}
+                        className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-bold"
+                      >
+                        12 each
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetAllQuantities(labelsPerPage)}
+                        className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-[#166534] rounded text-[11px] font-bold"
+                      >
+                        1 Full Sheet ({labelsPerPage})
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {queue.map(item => (
+                      <div 
+                        key={item.id} 
+                        className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl flex items-center justify-between text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="font-bold text-slate-900">{item.name}</div>
+                          <div className="font-mono text-[10px] text-slate-500">{item.code}</div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-slate-500">Stickers:</span>
+                          <div className="inline-flex items-center border border-slate-200 rounded-lg overflow-hidden bg-white shadow-2xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setQueue(prev => prev.map(q => q.id === item.id ? { ...q, quantity: Math.max(1, q.quantity - 1) } : q));
+                              }}
+                              className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              max="500"
+                              value={item.quantity}
+                              onChange={(e) => {
+                                const v = Math.max(1, parseInt(e.target.value) || 1);
+                                setQueue(prev => prev.map(q => q.id === item.id ? { ...q, quantity: v } : q));
+                              }}
+                              className="w-14 text-center text-xs font-bold text-slate-900 border-none outline-none focus:ring-0 p-0"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setQueue(prev => prev.map(q => q.id === item.id ? { ...q, quantity: q.quantity + 1 } : q));
+                              }}
+                              className="px-2 py-1 text-slate-500 hover:bg-slate-100 font-bold"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Summary Bar */}
+                  <div className="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between text-xs">
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-[#166534]">
+                        Total Stickers: {totalStickersCount} stickers across {queue.length} products
+                      </div>
+                      <div className="text-[11px] text-slate-600">
+                        Fits onto {totalSheetsNeeded} physical {sheetConfig.paperSize} sheet(s) ({labelsPerPage} stickers/sheet)
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-xs font-bold px-2.5 py-1 bg-[#166534] text-white rounded-lg">
+                        {totalSheetsNeeded} Page{totalSheetsNeeded > 1 ? 's' : ''}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Sizing & Geometry Sliders */}
-                <div className="space-y-3 pt-2 border-t border-slate-100">
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>Bar Width: {barWidth}px</span>
-                    <input
-                      type="range"
-                      min={1}
-                      max={4}
-                      step={0.5}
-                      value={barWidth}
-                      onChange={(e) => setBarWidth(Number(e.target.value))}
-                      className="w-32 accent-blue-600 cursor-pointer"
-                    />
+                {/* 3. Export & Action Controls */}
+                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    3. Export &amp; Print Actions
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleDownloadPdf}
+                      disabled={isExportingPdf || flattenedPrintableList.length === 0}
+                      className="bg-[#166534] hover:bg-[#14532d] text-white p-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Download size={16} />
+                      <span>{isExportingPdf ? 'Generating Vector PDF...' : 'Download High-Resolution PDF'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDirectPrint}
+                      disabled={flattenedPrintableList.length === 0}
+                      className="bg-slate-900 hover:bg-black text-white p-3.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Printer size={16} />
+                      <span>Direct Print (OS Dialog)</span>
+                    </button>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>Height: {barHeight}px</span>
-                    <input
-                      type="range"
-                      min={30}
-                      max={120}
-                      step={5}
-                      value={barHeight}
-                      onChange={(e) => setBarHeight(Number(e.target.value))}
-                      className="w-32 accent-blue-600 cursor-pointer"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                    <span>Font Size: {fontSize}px</span>
-                    <input
-                      type="range"
-                      min={10}
-                      max={20}
-                      step={1}
-                      value={fontSize}
-                      onChange={(e) => setFontSize(Number(e.target.value))}
-                      className="w-32 accent-blue-600 cursor-pointer"
-                    />
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(2)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                    >
+                      <ChevronLeft size={14} /> Back to Design
+                    </button>
+                    <span className="text-xs text-slate-400 font-medium">Ready to print with zero scaling distortion</span>
                   </div>
                 </div>
 
-                {/* Save to Product Button */}
-                {selectedProductId && (
+              </div>
+            )}
+
+          </div>
+
+          {/* ═════════════════════════════════════════════════════════
+              RIGHT / PREVIEW PANEL: STICKY REAL-TIME LIVE PREVIEW
+          ═════════════════════════════════════════════════════════ */}
+          <div className="lg:col-span-5 xl:col-span-5 space-y-4 lg:sticky lg:top-20 print:hidden">
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              
+              {/* Preview Header & Controls */}
+              <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded-xl">
                   <button
                     type="button"
-                    onClick={handleSaveToProduct}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-emerald-600/10 flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {saveSuccess ? (
-                      <>
-                        <Check size={16} />
-                        <span>Barcode Saved to Product Catalog!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save size={16} />
-                        <span>Save Barcode to Selected Product</span>
-                      </>
+                    onClick={() => setPreviewMode('single')}
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      previewMode === 'single' ? "bg-white text-[#166534] shadow-xs" : "text-slate-600 hover:text-slate-900"
                     )}
+                  >
+                    Single Sticker
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewMode('sheet')}
+                    className={cn(
+                      "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                      previewMode === 'sheet' ? "bg-white text-[#166534] shadow-xs" : "text-slate-600 hover:text-slate-900"
+                    )}
+                  >
+                    Sheet Grid ({totalSheetsNeeded}p)
+                  </button>
+                </div>
+
+                {/* Zoom / Page switcher */}
+                {previewMode === 'sheet' ? (
+                  <div className="flex items-center gap-2">
+                    {totalSheetsNeeded > 1 && (
+                      <div className="flex items-center gap-1 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setSheetPage(prev => Math.max(1, prev - 1))}
+                          disabled={sheetPage <= 1}
+                          className="p-1 hover:bg-slate-200 rounded disabled:opacity-30"
+                        >
+                          <ChevronLeft size={13} />
+                        </button>
+                        <span className="font-bold text-slate-700">{sheetPage}/{totalSheetsNeeded}</span>
+                        <button
+                          type="button"
+                          onClick={() => setSheetPage(prev => Math.min(totalSheetsNeeded, prev + 1))}
+                          disabled={sheetPage >= totalSheetsNeeded}
+                          className="p-1 hover:bg-slate-200 rounded disabled:opacity-30"
+                        >
+                          <ChevronRight size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    Live Sticker Render
+                  </span>
                 )}
               </div>
-            </div>
 
-            {/* Right Live Preview & Export Panel */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm flex flex-col items-center justify-center relative min-h-[380px]">
-                <div className="absolute top-4 left-6 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Live Vector Preview</span>
-                </div>
+              {/* Preview Body */}
+              <div className="p-3 sm:p-6 bg-slate-100/60 min-h-[320px] sm:min-h-[360px] flex items-center justify-center overflow-auto max-w-full">
+                
+                {/* ── View A: Single Sticker Preview ── */}
+                {previewMode === 'single' && (
+                  <div className="w-full max-w-[280px]">
+                    <div className="bg-white rounded-xl border border-slate-300 shadow-md p-4 text-center space-y-2 transition-all">
+                      {/* Top Field */}
+                      {layoutDensity !== 'code_only' && (
+                        <div className="font-bold text-xs text-slate-900 truncate">
+                          {getPreviewFieldText(field1Mapping, activePreviewItem) || activePreviewItem.name}
+                        </div>
+                      )}
 
-                {/* Sticker Label Preview Box */}
-                <div className="w-full max-w-sm bg-white border-2 border-dashed border-slate-300 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg my-6">
-                  {showBusinessName && (
-                    <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 mb-1">
-                      {businessName}
-                    </p>
-                  )}
+                      {/* Barcode Graphic */}
+                      <div className="py-1 flex items-center justify-center bg-white">
+                        <BarcodeCanvas
+                          options={{
+                            type: activePreviewItem.barcodeType || globalBarcodeType,
+                            value: activePreviewItem.code,
+                            height: Math.min(barHeight, 55),
+                            width: 2,
+                            displayValue,
+                            fontSize: 12,
+                            margin: 2
+                          }}
+                          className="max-w-full"
+                        />
+                      </div>
 
-                  {productName && (
-                    <p className="text-sm font-black text-slate-900 leading-tight mb-2 line-clamp-2">
-                      {productName}
-                    </p>
-                  )}
+                      {/* Middle/Bottom Fields */}
+                      {layoutDensity === 'barcode_2_fields' && (
+                        <div className="font-bold text-xs text-[#166534] truncate">
+                          {getPreviewFieldText(field2Mapping, activePreviewItem) || (activePreviewItem.price ? `₹${activePreviewItem.price}` : '')}
+                        </div>
+                      )}
 
-                  {/* Rendered Barcode SVG */}
-                  <div className="my-2 max-w-full overflow-hidden">
-                    <BarcodeCanvas options={barcodeOptions} />
-                  </div>
+                      {layoutDensity === 'barcode_3_fields' && (
+                        <div className="space-y-0.5 pt-0.5 border-t border-slate-100">
+                          <div className="text-[11px] font-semibold text-slate-700 truncate">
+                            {getPreviewFieldText(field2Mapping, activePreviewItem)}
+                          </div>
+                          <div className="font-bold text-xs text-[#166534] truncate">
+                            {getPreviewFieldText(field3Mapping, activePreviewItem) || (activePreviewItem.price ? `₹${activePreviewItem.price}` : '')}
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Price & SKU row */}
-                  <div className="flex items-center justify-center gap-4 mt-2 font-bold text-xs">
-                    {sku && <span className="text-slate-500 font-mono">SKU: {sku}</span>}
-                    {price !== '' && (
-                      <span className="text-emerald-700 font-black text-sm">
-                        ₹{price}
-                        {mrp !== '' && mrp > price && (
-                          <span className="text-slate-400 text-xs font-normal line-through ml-1.5">
-                            ₹{mrp}
-                          </span>
-                        )}
-                      </span>
+                    {/* Item Picker if multiple items */}
+                    {queue.length > 1 && (
+                      <div className="mt-3">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                          Previewing Product:
+                        </label>
+                        <select
+                          value={previewItemId}
+                          onChange={(e) => setPreviewItemId(e.target.value)}
+                          className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800"
+                        >
+                          {queue.map(q => (
+                            <option key={q.id} value={q.id}>{q.name} ({q.code})</option>
+                          ))}
+                        </select>
+                      </div>
                     )}
                   </div>
-                </div>
+                )}
 
-                {/* Action Buttons Toolbar */}
-                <div className="w-full grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-4 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => downloadBarcodePng(barcodeOptions, productName)}
-                    className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Download size={14} className="text-blue-600" />
-                    <span>PNG</span>
-                  </button>
+                {/* ── View B: Full Sheet Grid Preview ── */}
+                {previewMode === 'sheet' && (
+                  <div className="w-full overflow-x-auto overflow-y-auto max-h-[460px] p-1 sm:p-2 flex justify-center">
+                    <div 
+                      className="bg-white border border-slate-300 shadow-lg rounded-sm p-2 sm:p-3 transition-all box-border"
+                      style={{
+                        width: 'min(320px, 100%)',
+                        maxWidth: '100%',
+                        minHeight: '400px'
+                      }}
+                    >
+                      <div 
+                        className="grid gap-1.5"
+                        style={{
+                          gridTemplateColumns: `repeat(${sheetConfig.columns}, minmax(0, 1fr))`
+                        }}
+                      >
+                        {pagePrintableLabels.map((lbl, idx) => (
+                          <div
+                            key={idx}
+                            className="border border-dashed border-slate-200 bg-white rounded p-1 text-center flex flex-col justify-between overflow-hidden"
+                            style={{
+                              height: `${Math.max(34, Math.min(80, sheetConfig.labelHeightMm * 1.5))}px`
+                            }}
+                          >
+                            {layoutDensity !== 'code_only' && (
+                              <div className="text-[8px] font-bold text-slate-900 truncate leading-none">
+                                {getPreviewFieldText(field1Mapping, lbl) || lbl.name}
+                              </div>
+                            )}
 
-                  <button
-                    type="button"
-                    onClick={() => downloadBarcodeSvg(barcodeOptions, productName)}
-                    className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Download size={14} className="text-indigo-600" />
-                    <span>SVG</span>
-                  </button>
+                            <div className="my-auto py-0.5">
+                              <BarcodeCanvas
+                                options={{
+                                  type: lbl.barcodeType || globalBarcodeType,
+                                  value: lbl.code,
+                                  height: 20,
+                                  width: 1,
+                                  displayValue: false,
+                                  margin: 0
+                                }}
+                                className="w-full max-h-6"
+                              />
+                              <div className="font-mono text-[7px] text-slate-600 truncate leading-none mt-0.5">
+                                {lbl.code}
+                              </div>
+                            </div>
 
-                  <button
-                    type="button"
-                    onClick={() => exportSingleBarcodePdf(barcodeOptions, { name: productName, price: Number(price) || undefined, mrp: Number(mrp) || undefined, sku }, businessName)}
-                    className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <FileText size={14} className="text-rose-600" />
-                    <span>PDF</span>
-                  </button>
+                            {layoutDensity === 'barcode_2_fields' && (
+                              <div className="text-[8px] font-bold text-[#166534] truncate leading-none">
+                                {getPreviewFieldText(field2Mapping, lbl) || (lbl.price ? `₹${lbl.price}` : '')}
+                              </div>
+                            )}
 
-                  <button
-                    type="button"
-                    onClick={handleCopy}
-                    className="py-2.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    {copySuccess ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-                    <span>{copySuccess ? 'Copied' : 'Copy'}</span>
-                  </button>
+                            {layoutDensity === 'barcode_3_fields' && (
+                              <div className="text-[7.5px] font-bold text-[#166534] truncate leading-none">
+                                {getPreviewFieldText(field3Mapping, lbl) || (lbl.price ? `₹${lbl.price}` : '')}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                  <button
-                    type="button"
-                    onClick={() => setSearchParams({ tab: 'labels' })}
-                    className="col-span-2 sm:col-span-1 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                  >
-                    <Printer size={14} />
-                    <span>Print Sheet</span>
-                  </button>
-                </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* ═══════════ TAB 2: BULK BARCODE GENERATOR ═══════════ */}
-        {activeTab === 'bulk' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Layers size={18} className="text-blue-600" />
-                    Bulk Barcode Batch Generator &amp; Excel Import
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Generate, validate, and print 100+ barcodes together in a single batch.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <label className="py-2 px-3.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer">
-                    <FileSpreadsheet size={15} className="text-emerald-600" />
-                    <span>Import Excel / CSV</span>
-                    <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="hidden" />
-                  </label>
+              {/* Single Label Quick Action Bar */}
+              <div className="p-3 bg-white border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-medium">Single Label Actions:</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const success = await copyBarcodeToClipboard({
+                        type: activePreviewItem.barcodeType || globalBarcodeType,
+                        value: activePreviewItem.code,
+                        height: barHeight,
+                        width: 2,
+                        displayValue,
+                        fontSize: 12
+                      });
+                      if (success) {
+                        setCopySuccess(true);
+                        setTimeout(() => setCopySuccess(false), 2000);
+                      }
+                    }}
+                    className="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                    title="Copy Barcode to Clipboard"
+                  >
+                    {copySuccess ? <Check size={13} className="text-[#166534]" /> : <Copy size={13} />}
+                    <span className="text-[11px] font-semibold">{copySuccess ? 'Copied' : 'Copy'}</span>
+                  </button>
 
                   <button
                     type="button"
                     onClick={() => {
-                      setBulkRows(prev => [
-                        ...prev,
-                        {
-                          id: Date.now().toString(),
-                          name: `Product ${prev.length + 1}`,
-                          sku: `SKU-${prev.length + 1}`,
-                          barcode: `890${Date.now().toString().slice(-9)}`,
-                          type: 'CODE128',
-                          price: 100,
-                          mrp: 120,
-                          qty: 5,
-                          selected: true
-                        }
-                      ]);
+                      downloadBarcodePng({
+                        type: activePreviewItem.barcodeType || globalBarcodeType,
+                        value: activePreviewItem.code,
+                        height: barHeight,
+                        width: 2,
+                        displayValue,
+                        fontSize: 12
+                      }, `${activePreviewItem.name}_${activePreviewItem.code}`);
                     }}
-                    className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                    title="Download PNG"
                   >
-                    <Plus size={15} />
-                    <span>Add Row</span>
+                    <Download size={13} />
+                    <span className="text-[11px] font-semibold">PNG</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setSearchParams({ tab: 'labels' })}
-                    className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+                    onClick={() => {
+                      downloadBarcodeSvg({
+                        type: activePreviewItem.barcodeType || globalBarcodeType,
+                        value: activePreviewItem.code,
+                        height: barHeight,
+                        width: 2,
+                        displayValue,
+                        fontSize: 12
+                      }, `${activePreviewItem.name}_${activePreviewItem.code}`);
+                    }}
+                    className="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                    title="Download SVG"
                   >
-                    <Printer size={15} />
-                    <span>Print Batch Labels</span>
+                    <Download size={13} />
+                    <span className="text-[11px] font-semibold">SVG</span>
                   </button>
                 </div>
               </div>
 
-              {/* Bulk Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-y border-slate-200 text-slate-500 uppercase tracking-wider font-extrabold">
-                      <th className="py-3 px-3 w-10 text-center">
-                        <input
-                          type="checkbox"
-                          checked={bulkRows.every(r => r.selected)}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setBulkRows(prev => prev.map(r => ({ ...r, selected: checked })));
-                          }}
-                          className="rounded text-blue-600"
-                        />
-                      </th>
-                      <th className="py-3 px-3">Product Name</th>
-                      <th className="py-3 px-3">SKU</th>
-                      <th className="py-3 px-3">Barcode Format</th>
-                      <th className="py-3 px-3">Barcode Value</th>
-                      <th className="py-3 px-3">Price (₹)</th>
-                      <th className="py-3 px-3">MRP (₹)</th>
-                      <th className="py-3 px-3 w-20 text-center">Qty</th>
-                      <th className="py-3 px-3 text-center">Preview</th>
-                      <th className="py-3 px-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {bulkRows.map((row, idx) => (
-                      <tr key={row.id} className={cn("hover:bg-slate-50/80 transition-colors", row.error && "bg-rose-50/40")}>
-                        <td className="py-2.5 px-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={row.selected}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setBulkRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: checked } : r));
-                            }}
-                            className="rounded text-blue-600"
-                          />
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <input
-                            type="text"
-                            value={row.name}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setBulkRows(prev => prev.map(r => r.id === row.id ? { ...r, name: v } : r));
-                            }}
-                            className="w-full px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800"
-                          />
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <input
-                            type="text"
-                            value={row.sku}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setBulkRows(prev => prev.map(r => r.id === row.id ? { ...r, sku: v } : r));
-                            }}
-                            className="w-24 px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-700"
-                          />
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <select
-                            value={row.type}
-                            onChange={(e) => {
-                              const t = e.target.value as BarcodeType;
-                              const valRes = validateBarcode(t, row.barcode);
-                              setBulkRows(prev => prev.map(r => r.id === row.id ? { ...r, type: t, error: valRes.isValid ? undefined : valRes.error } : r));
-                            }}
-                            className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 font-mono"
-                          >
-                            <option value="CODE128">CODE128</option>
-                            <option value="EAN13">EAN-13</option>
-                            <option value="EAN8">EAN-8</option>
-                            <option value="UPC">UPC-A</option>
-                            <option value="CODE39">CODE39</option>
-                          </select>
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <input
-                            type="text"
-                            value={row.barcode}
-                            onChange={(e) => {
-                              const b = e.target.value;
-                              const valRes = validateBarcode(row.type, b);
-                              setBulkRows(prev => prev.map(r => r.id === row.id ? { ...r, barcode: b, error: valRes.isValid ? undefined : valRes.error } : r));
-                            }}
-                            className={cn(
-                              "w-36 px-2.5 py-1 rounded-lg text-xs font-mono font-bold",
-                              row.error ? "border border-rose-300 bg-rose-50 text-rose-900" : "border border-slate-200 bg-white text-slate-800"
-                            )}
-                          />
-                          {row.error && <p className="text-[10px] text-rose-600 font-medium mt-0.5">{row.error}</p>}
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <input
-                            type="number"
-                            value={row.price}
-                            onChange={(e) => {
-                              const p = Number(e.target.value);
-                              setBulkRows(prev => prev.map(r => r.id === row.id ? { ...r, price: p } : r));
-                            }}
-                            className="w-20 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-emerald-700"
-                          />
-                        </td>
-                        <td className="py-2.5 px-3">
-                          <input
-                            type="number"
-                            value={row.mrp}
-                            onChange={(e) => {
-                              const m = Number(e.target.value);
-                              setBulkRows(prev => prev.map(r => r.id === row.id ? { ...r, mrp: m } : r));
-                            }}
-                            className="w-20 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-500"
-                          />
-                        </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <input
-                            type="number"
-                            min={1}
-                            value={row.qty}
-                            onChange={(e) => {
-                              const q = Math.max(1, Number(e.target.value));
-                              setBulkRows(prev => prev.map(r => r.id === row.id ? { ...r, qty: q } : r));
-                            }}
-                            className="w-14 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-center"
-                          />
-                        </td>
-                        <td className="py-2.5 px-3 text-center">
-                          {!row.error ? (
-                            <div className="w-28 h-10 mx-auto overflow-hidden flex items-center justify-center">
-                              <BarcodeCanvas options={{ type: row.type, value: row.barcode, width: 1, height: 25, fontSize: 10, margin: 2 }} />
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-rose-500 font-bold">Invalid</span>
-                          )}
-                        </td>
-                        <td className="py-2.5 px-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setBulkRows(prev => prev.filter(r => r.id !== row.id))}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            </div>
+
+            {/* Helper Card */}
+            <div className="bg-emerald-50/50 rounded-2xl border border-emerald-200/70 p-4 text-xs space-y-1.5">
+              <div className="font-bold text-[#166534] flex items-center gap-1.5">
+                <Sparkles size={14} />
+                Printing Tip for Best Quality
               </div>
+              <p className="text-slate-600 leading-relaxed text-[11px]">
+                In your browser or operating system print dialog, make sure <strong>Margins</strong> is set to <strong>None</strong> and <strong>Scale</strong> is set to <strong>100% (Default)</strong> for exact millimeter alignment with physical die-cut sheets.
+              </p>
             </div>
           </div>
-        )}
 
-        {/* ═══════════ TAB 3: LABEL DESIGNER & PRINTING ═══════════ */}
-        {activeTab === 'labels' && (
-          <div className="space-y-6 print:m-0 print:p-0">
-            {/* Sheet Format Controls (Hidden on print) */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4 print:hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Grid size={18} className="text-blue-600" />
-                    Physical Sticker Label Sheet Layout &amp; Print
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Select standard pre-cut sticker sheets (A4 24/65-in-1, A5) or continuous Thermal Rolls.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  className="py-2.5 px-6 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs flex items-center gap-2 shadow-md transition-all cursor-pointer"
-                >
-                  <Printer size={16} />
-                  <span>Print Sticker Sheet Now</span>
-                </button>
-              </div>
-
-              {/* Preset Selector Badges */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                {Object.entries(PRESET_SHEET_CONFIGS).map(([k, cfg]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => handleSelectPreset(k)}
-                    className={cn(
-                      "p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between",
-                      sheetPresetKey === k
-                        ? "border-blue-500 bg-blue-50/50 text-blue-950 shadow-xs ring-1 ring-blue-500"
-                        : "border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100"
-                    )}
-                  >
-                    <span className="text-xs font-black truncate">{cfg.name.split('(')[0]}</span>
-                    <span className="text-[10px] text-slate-500 font-mono mt-1 font-semibold">
-                      {cfg.labelWidthMm}×{cfg.labelHeightMm}mm ({cfg.columns * cfg.rows} per sheet)
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Toggles */}
-              <div className="flex items-center gap-6 pt-2 text-xs font-bold text-slate-700 flex-wrap">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showBusinessName}
-                    onChange={(e) => setShowBusinessName(e.target.checked)}
-                    className="rounded text-blue-600"
-                  />
-                  <span>Show Shop / Business Name</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showPriceTag}
-                    onChange={(e) => setShowPriceTag(e.target.checked)}
-                    className="rounded text-blue-600"
-                  />
-                  <span>Show Price (₹)</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showMrpTag}
-                    onChange={(e) => setShowMrpTag(e.target.checked)}
-                    className="rounded text-blue-600"
-                  />
-                  <span>Show MRP (₹)</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showSkuTag}
-                    onChange={(e) => setShowSkuTag(e.target.checked)}
-                    className="rounded text-blue-600"
-                  />
-                  <span>Show SKU</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Rendered Physical Sheet (Printable Canvas) */}
-            <div className="flex justify-center overflow-x-auto pb-8 print:p-0 print:m-0">
-              <div
-                id="printable-barcode-sheet"
-                style={{
-                  width: `${sheetConfig.pageWidthMm}mm`,
-                  minHeight: `${sheetConfig.pageHeightMm}mm`,
-                  paddingTop: `${sheetConfig.marginTopMm}mm`,
-                  paddingBottom: `${sheetConfig.marginBottomMm}mm`,
-                  paddingLeft: `${sheetConfig.marginLeftMm}mm`,
-                  paddingRight: `${sheetConfig.marginRightMm}mm`,
-                  background: '#ffffff',
-                  boxSizing: 'border-box'
-                }}
-                className="shadow-2xl rounded-xl border border-slate-200 print:shadow-none print:border-none print:rounded-none print:m-0"
-              >
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: `repeat(${sheetConfig.columns}, ${sheetConfig.labelWidthMm}mm)`,
-                    gap: `${sheetConfig.gapVerticalMm}mm ${sheetConfig.gapHorizontalMm}mm`,
-                    justifyContent: 'center'
-                  }}
-                >
-                  {printableLabels.map((lbl, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        width: `${sheetConfig.labelWidthMm}mm`,
-                        height: `${sheetConfig.labelHeightMm}mm`,
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                        padding: '1.5mm',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        textAlign: 'center',
-                        border: '0.5px dashed #cbd5e1'
-                      }}
-                      className="print:border-none"
-                    >
-                      {showBusinessName && (
-                        <div style={{ fontSize: '7pt', fontWeight: '800', textTransform: 'uppercase', color: '#475569', lineHeight: 1, letterSpacing: '0.5px' }}>
-                          {businessName}
-                        </div>
-                      )}
-
-                      <div style={{ fontSize: '7.5pt', fontWeight: '800', color: '#0f172a', lineHeight: 1.1, maxHeight: '16px', overflow: 'hidden' }}>
-                        {lbl.name}
-                      </div>
-
-                      <div style={{ width: '100%', display: 'flex', justifyContent: 'center', transform: 'scale(0.85)', transformOrigin: 'center' }}>
-                        <BarcodeCanvas
-                          options={{
-                            type: lbl.type || 'CODE128',
-                            value: lbl.barcode,
-                            width: 1.5,
-                            height: 35,
-                            fontSize: 10,
-                            margin: 1,
-                            displayValue: true
-                          }}
-                        />
-                      </div>
-
-                      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-around', alignItems: 'center', fontSize: '7pt', fontWeight: '700', lineHeight: 1 }}>
-                        {showSkuTag && lbl.sku && (
-                          <span style={{ color: '#64748b' }}>{lbl.sku}</span>
-                        )}
-                        {showPriceTag && lbl.price > 0 && (
-                          <span style={{ color: '#166534', fontWeight: '900' }}>₹{lbl.price}</span>
-                        )}
-                        {showMrpTag && lbl.mrp > lbl.price && (
-                          <span style={{ color: '#94a3b8', textDecoration: 'line-through' }}>₹{lbl.mrp}</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════ TAB 4: HISTORY & SAVED TEMPLATES ═══════════ */}
-        {activeTab === 'history' && (
-          <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200/80 shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <HistoryIcon size={18} className="text-blue-600" />
-                  Generated Barcodes History
-                </h3>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  View and re-download previously generated barcode records.
-                </p>
-              </div>
-
-              {historyList.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setHistoryList([]);
-                    setSecureStorage('invocentric_barcode_history', []);
-                  }}
-                  className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer"
-                >
-                  <Trash2 size={13} />
-                  Clear History
-                </button>
-              )}
-            </div>
-
-            {historyList.length === 0 ? (
-              <div className="text-center py-12 space-y-3">
-                <Barcode size={36} className="text-slate-300 mx-auto" />
-                <p className="text-sm font-bold text-slate-600">No Barcode History Found</p>
-                <p className="text-xs text-slate-400">Barcodes you generate or export will appear here for easy re-use.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {historyList.map((item, idx) => (
-                  <div key={idx} className="py-3 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-slate-100 text-slate-700 rounded-xl">
-                        <Barcode size={18} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-slate-900">
-                          {item.productName || item.value || item.action}
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-mono">
-                          {item.type || 'CODE128'} • {new Date(item.timestamp).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {item.value && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBarcodeValue(item.value);
-                            if (item.type) setBarcodeType(item.type);
-                            if (item.productName) setProductName(item.productName);
-                            setSearchParams({ tab: 'single' });
-                          }}
-                          className="px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                        >
-                          Load in Studio
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        </div>
       </main>
 
-      {/* Embedded Print CSS for exact physical label dimensions */}
-      <style>{`
-        @media print {
-          @page {
-            size: ${sheetConfig.paperSize === 'thermal' ? `${sheetConfig.pageWidthMm}mm ${sheetConfig.pageHeightMm}mm` : (sheetConfig.paperSize === 'A5' ? 'A5 portrait' : 'A4 portrait')};
-            margin: 0mm;
+      {/* ─────────────────────────────────────────────────────────────
+          4. DEDICATED PRINT ENGINE (Rendered only on window.print())
+      ───────────────────────────────────────────────────────────── */}
+      <div id="printable-barcode-sheet" className="hidden print:block">
+        <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            body { margin: 0; padding: 0; background: white !important; }
+            @page {
+              size: ${sheetConfig.paperSize === 'A4' ? 'A4 portrait' : `${sheetConfig.pageWidthMm}mm ${sheetConfig.pageHeightMm}mm`};
+              margin: 0;
+            }
+            .print-sheet-page {
+              page-break-after: always;
+              break-after: page;
+              width: ${sheetConfig.pageWidthMm}mm;
+              height: ${sheetConfig.pageHeightMm}mm;
+              padding: ${sheetConfig.marginTopMm}mm ${sheetConfig.marginRightMm}mm ${sheetConfig.marginBottomMm}mm ${sheetConfig.marginLeftMm}mm;
+              box-sizing: border-box;
+              display: grid;
+              grid-template-columns: repeat(${sheetConfig.columns}, ${sheetConfig.labelWidthMm}mm);
+              column-gap: ${sheetConfig.gapHorizontalMm}mm;
+              row-gap: ${sheetConfig.gapVerticalMm}mm;
+            }
+            .print-label-cell {
+              width: ${sheetConfig.labelWidthMm}mm;
+              height: ${sheetConfig.labelHeightMm}mm;
+              box-sizing: border-box;
+              overflow: hidden;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              align-items: center;
+              text-align: center;
+              padding: 1.5mm;
+              ${showBorder ? 'border: 0.15mm solid #cbd5e1;' : ''}
+            }
           }
-          body * {
-            visibility: hidden !important;
-          }
-          #printable-barcode-sheet, #printable-barcode-sheet * {
-            visibility: visible !important;
-          }
-          #printable-barcode-sheet {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: ${sheetConfig.pageWidthMm}mm !important;
-            min-height: ${sheetConfig.pageHeightMm}mm !important;
-            margin: 0 !important;
-            padding-top: ${sheetConfig.marginTopMm}mm !important;
-            padding-bottom: ${sheetConfig.marginBottomMm}mm !important;
-            padding-left: ${sheetConfig.marginLeftMm}mm !important;
-            padding-right: ${sheetConfig.marginRightMm}mm !important;
-            box-shadow: none !important;
-            border: none !important;
-          }
-        }
-      `}</style>
+        `}} />
+
+        {Array.from({ length: totalSheetsNeeded }).map((_, pIdx) => {
+          const pageItems = flattenedPrintableList.slice(pIdx * labelsPerPage, (pIdx + 1) * labelsPerPage);
+          return (
+            <div key={pIdx} className="print-sheet-page">
+              {pageItems.map((lbl, cIdx) => (
+                <div key={cIdx} className="print-label-cell">
+                  {layoutDensity !== 'code_only' && (
+                    <div className="font-bold text-[8pt] leading-tight text-slate-900 truncate w-full">
+                      {getPreviewFieldText(field1Mapping, lbl) || lbl.name}
+                    </div>
+                  )}
+
+                  <div className="my-auto w-full flex flex-col items-center justify-center">
+                    <BarcodeCanvas
+                      options={{
+                        type: lbl.barcodeType || globalBarcodeType,
+                        value: lbl.code,
+                        height: Math.min(barHeight, 35),
+                        width: 1.5,
+                        displayValue,
+                        fontSize: 10,
+                        margin: 1
+                      }}
+                      className="max-w-full"
+                    />
+                  </div>
+
+                  {layoutDensity === 'barcode_2_fields' && (
+                    <div className="font-bold text-[8pt] text-[#166534] truncate w-full">
+                      {getPreviewFieldText(field2Mapping, lbl) || (lbl.price ? `₹${lbl.price}` : '')}
+                    </div>
+                  )}
+
+                  {layoutDensity === 'barcode_3_fields' && (
+                    <div className="w-full">
+                      <div className="font-semibold text-[7pt] text-slate-700 truncate">
+                        {getPreviewFieldText(field2Mapping, lbl)}
+                      </div>
+                      <div className="font-bold text-[8pt] text-[#166534] truncate">
+                        {getPreviewFieldText(field3Mapping, lbl) || (lbl.price ? `₹${lbl.price}` : '')}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
     </div>
   );
 }

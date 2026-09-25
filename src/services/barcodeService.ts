@@ -57,26 +57,9 @@ export interface LabelSheetConfig {
 }
 
 export const PRESET_SHEET_CONFIGS: Record<string, LabelSheetConfig> = {
-  a4_24: {
-    sheetType: 'a4_24',
-    name: 'A4 — 24 Labels (3x8) (70mm × 37mm)',
-    paperSize: 'A4',
-    pageWidthMm: 210,
-    pageHeightMm: 297,
-    labelWidthMm: 70,
-    labelHeightMm: 37,
-    columns: 3,
-    rows: 8,
-    gapHorizontalMm: 0,
-    gapVerticalMm: 0,
-    marginTopMm: 0,
-    marginBottomMm: 0,
-    marginLeftMm: 0,
-    marginRightMm: 0,
-  },
   a4_65: {
     sheetType: 'a4_65',
-    name: 'A4 — 65 Labels (5x13) (38mm × 21.2mm)',
+    name: 'A4 — 65 Labels (5×13) (38.1mm × 21.2mm)',
     paperSize: 'A4',
     pageWidthMm: 210,
     pageHeightMm: 297,
@@ -91,30 +74,115 @@ export const PRESET_SHEET_CONFIGS: Record<string, LabelSheetConfig> = {
     marginLeftMm: 4.7,
     marginRightMm: 4.7,
   },
-  a5_12: {
-    sheetType: 'a5_12',
-    name: 'A5 — 12 Labels (2x6) (65mm × 32mm)',
-    paperSize: 'A5',
-    pageWidthMm: 148,
-    pageHeightMm: 210,
-    labelWidthMm: 65,
-    labelHeightMm: 32,
+  a4_40: {
+    sheetType: 'custom',
+    name: 'A4 — 40 Labels (4×10) (48.5mm × 25.4mm)',
+    paperSize: 'A4',
+    pageWidthMm: 210,
+    pageHeightMm: 297,
+    labelWidthMm: 48.5,
+    labelHeightMm: 25.4,
+    columns: 4,
+    rows: 10,
+    gapHorizontalMm: 3.5,
+    gapVerticalMm: 1.5,
+    marginTopMm: 12,
+    marginBottomMm: 12,
+    marginLeftMm: 5,
+    marginRightMm: 5,
+  },
+  a4_24: {
+    sheetType: 'a4_24',
+    name: 'A4 — 24 Labels (3×8) (70mm × 37mm)',
+    paperSize: 'A4',
+    pageWidthMm: 210,
+    pageHeightMm: 297,
+    labelWidthMm: 70,
+    labelHeightMm: 37,
+    columns: 3,
+    rows: 8,
+    gapHorizontalMm: 0,
+    gapVerticalMm: 0,
+    marginTopMm: 0.5,
+    marginBottomMm: 0.5,
+    marginLeftMm: 0,
+    marginRightMm: 0,
+  },
+  a4_18: {
+    sheetType: 'custom',
+    name: 'A4 — 18 Labels (3×6) (70mm × 48mm)',
+    paperSize: 'A4',
+    pageWidthMm: 210,
+    pageHeightMm: 297,
+    labelWidthMm: 70,
+    labelHeightMm: 48,
+    columns: 3,
+    rows: 6,
+    gapHorizontalMm: 0,
+    gapVerticalMm: 1.5,
+    marginTopMm: 4.5,
+    marginBottomMm: 4.5,
+    marginLeftMm: 0,
+    marginRightMm: 0,
+  },
+  a4_12: {
+    sheetType: 'custom',
+    name: 'A4 — 12 Labels (2×6) (105mm × 48mm)',
+    paperSize: 'A4',
+    pageWidthMm: 210,
+    pageHeightMm: 297,
+    labelWidthMm: 105,
+    labelHeightMm: 48,
     columns: 2,
     rows: 6,
-    gapHorizontalMm: 4,
-    gapVerticalMm: 2,
-    marginTopMm: 4,
-    marginBottomMm: 4,
-    marginLeftMm: 7,
-    marginRightMm: 7,
+    gapHorizontalMm: 0,
+    gapVerticalMm: 1.5,
+    marginTopMm: 4.5,
+    marginBottomMm: 4.5,
+    marginLeftMm: 0,
+    marginRightMm: 0,
   },
   thermal_50x25: {
     sheetType: 'thermal_50x25',
-    name: 'Thermal Roll — 50mm × 25mm (Standard)',
+    name: 'Thermal Roll — 50mm × 25mm (1-Up Standard)',
     paperSize: 'thermal',
     pageWidthMm: 50,
     pageHeightMm: 25,
     labelWidthMm: 50,
+    labelHeightMm: 25,
+    columns: 1,
+    rows: 1,
+    gapHorizontalMm: 0,
+    gapVerticalMm: 0,
+    marginTopMm: 0,
+    marginBottomMm: 0,
+    marginLeftMm: 0,
+    marginRightMm: 0,
+  },
+  thermal_50x25_2up: {
+    sheetType: 'custom',
+    name: 'Thermal Roll — 50mm × 25mm (2-Up Double Column)',
+    paperSize: 'thermal',
+    pageWidthMm: 104,
+    pageHeightMm: 25,
+    labelWidthMm: 50,
+    labelHeightMm: 25,
+    columns: 2,
+    rows: 1,
+    gapHorizontalMm: 4,
+    gapVerticalMm: 0,
+    marginTopMm: 0,
+    marginBottomMm: 0,
+    marginLeftMm: 0,
+    marginRightMm: 0,
+  },
+  thermal_38x25: {
+    sheetType: 'custom',
+    name: 'Thermal Roll — 38mm × 25mm (1-Up Compact)',
+    paperSize: 'thermal',
+    pageWidthMm: 38,
+    pageHeightMm: 25,
+    labelWidthMm: 38,
     labelHeightMm: 25,
     columns: 1,
     rows: 1,
@@ -492,3 +560,225 @@ export async function copyBarcodeToClipboard(options: BarcodeOptions): Promise<b
     return false;
   }
 }
+
+export interface PrintableLabelItem {
+  id?: string;
+  name: string;
+  code: string;
+  barcodeType: BarcodeType;
+  price?: number;
+  mrp?: number;
+  sku?: string;
+  brand?: string;
+  packSize?: string;
+  hsn?: string;
+  gst?: number;
+  batchNo?: string;
+  expiryDate?: string;
+  description?: string;
+  customFields?: Record<string, string>;
+}
+
+export interface SheetPdfExportOptions {
+  items: PrintableLabelItem[];
+  config: LabelSheetConfig;
+  layout: 'code_only' | 'barcode_1_field' | 'barcode_2_fields' | 'barcode_3_fields';
+  fieldMapping: {
+    field1?: string;
+    field2?: string;
+    field3?: string;
+  };
+  businessName?: string;
+  displayValue?: boolean;
+  showBorder?: boolean;
+  filename?: string;
+}
+
+export function resolveLabelFieldText(fieldKey: string | undefined, label: PrintableLabelItem, businessName: string): string {
+  if (!fieldKey) return '';
+  if (fieldKey === 'business_name') return businessName || '';
+  if (fieldKey === 'name') return label.name || '';
+  if (fieldKey === 'mrp') return label.mrp ? `MRP: ₹${label.mrp}` : '';
+  if (fieldKey === 'price') return label.price ? `₹${label.price}` : '';
+  if (fieldKey === 'sku') return label.sku ? `SKU: ${label.sku}` : '';
+  if (fieldKey === 'brand') return label.brand || '';
+  if (fieldKey === 'packSize') return label.packSize ? `Pack: ${label.packSize}` : '';
+  if (fieldKey === 'hsn') return label.hsn ? `HSN: ${label.hsn}` : '';
+  if (fieldKey === 'gst') return label.gst ? `GST: ${label.gst}%` : '';
+  if (fieldKey === 'batchNo') return label.batchNo ? `Batch: ${label.batchNo}` : '';
+  if (fieldKey === 'expiryDate') return label.expiryDate ? `Exp: ${label.expiryDate}` : '';
+  if (fieldKey === 'description') return label.description || '';
+  if (label.customFields && label.customFields[fieldKey]) return label.customFields[fieldKey];
+  return '';
+}
+
+/**
+ * High-Resolution, Vector-Exact PDF Multi-Label Sheet Export
+ */
+export async function exportMultiLabelSheetPdf(opts: SheetPdfExportOptions): Promise<boolean> {
+  const {
+    items,
+    config,
+    layout,
+    fieldMapping,
+    businessName = 'InvoCentric Store',
+    displayValue = true,
+    showBorder = true,
+    filename
+  } = opts;
+
+  if (!items || items.length === 0) return false;
+
+  // 1. Pre-generate barcode data URLs for unique combinations
+  const cacheKey = (item: PrintableLabelItem) => `${item.barcodeType}__${item.code}__${displayValue}`;
+  const barcodeCache = new Map<string, string>();
+
+  for (const item of items) {
+    const key = cacheKey(item);
+    if (!barcodeCache.has(key)) {
+      const url = await generateBarcodeDataUrl({
+        type: item.barcodeType || 'CODE128',
+        value: item.code,
+        displayValue,
+        fontSize: 12,
+        margin: 2
+      }, 4);
+      if (url) barcodeCache.set(key, url);
+    }
+  }
+
+  // 2. Initialize jsPDF with exact millimeter dimensions
+  const isA4 = config.paperSize === 'A4';
+  const orientation = config.pageWidthMm > config.pageHeightMm ? 'landscape' : 'portrait';
+
+  const pdf = new jsPDF({
+    orientation,
+    unit: 'mm',
+    format: isA4 ? 'a4' : [config.pageWidthMm, config.pageHeightMm]
+  });
+
+  const labelsPerPage = Math.max(1, config.columns * config.rows);
+  const totalPages = Math.ceil(items.length / labelsPerPage);
+
+  for (let i = 0; i < items.length; i++) {
+    const pageIndex = Math.floor(i / labelsPerPage);
+    const slotIndex = i % labelsPerPage;
+
+    if (i > 0 && slotIndex === 0) {
+      pdf.addPage(isA4 ? 'a4' : [config.pageWidthMm, config.pageHeightMm], orientation);
+    }
+
+    const col = slotIndex % config.columns;
+    const row = Math.floor(slotIndex / config.columns);
+
+    const x = config.marginLeftMm + col * (config.labelWidthMm + config.gapHorizontalMm);
+    const y = config.marginTopMm + row * (config.labelHeightMm + config.gapVerticalMm);
+    const w = config.labelWidthMm;
+    const h = config.labelHeightMm;
+
+    // Optional subtle outline / cut border
+    if (showBorder) {
+      pdf.setDrawColor(220, 224, 230);
+      pdf.setLineWidth(0.15);
+      pdf.roundedRect(x, y, w, h, 0.8, 0.8, 'S');
+    }
+
+    const item = items[i];
+    const dataUrl = barcodeCache.get(cacheKey(item));
+
+    const f1 = resolveLabelFieldText(fieldMapping.field1, item, businessName);
+    const f2 = resolveLabelFieldText(fieldMapping.field2, item, businessName);
+    const f3 = resolveLabelFieldText(fieldMapping.field3, item, businessName);
+
+    const padding = 1.2;
+    const contentW = w - padding * 2;
+    const centerX = x + w / 2;
+
+    // Font size scaling according to label height
+    const isTiny = h <= 25;
+    const isMedium = h > 25 && h <= 38;
+    const fSizeTitle = isTiny ? 6 : isMedium ? 7.5 : 9;
+    const fSizeSub = isTiny ? 5 : isMedium ? 6.5 : 7.5;
+
+    if (layout === 'code_only') {
+      if (dataUrl) {
+        const imgH = Math.min(h - 3, 18);
+        const imgW = Math.min(contentW, 55);
+        pdf.addImage(dataUrl, 'PNG', centerX - imgW / 2, y + (h - imgH) / 2, imgW, imgH);
+      }
+    } else if (layout === 'barcode_1_field') {
+      let topY = y + padding + 2.5;
+      if (f1) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(fSizeTitle);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(f1, centerX, topY, { align: 'center', maxWidth: contentW });
+        topY += isTiny ? 2.5 : 3.5;
+      }
+      if (dataUrl) {
+        const remainingH = (y + h - padding) - topY;
+        const imgH = Math.min(Math.max(8, remainingH - 1), 22);
+        const imgW = Math.min(contentW, 55);
+        pdf.addImage(dataUrl, 'PNG', centerX - imgW / 2, topY, imgW, imgH);
+      }
+    } else if (layout === 'barcode_2_fields') {
+      let topY = y + padding + 2.5;
+      if (f1) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(fSizeTitle);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(f1, centerX, topY, { align: 'center', maxWidth: contentW });
+        topY += isTiny ? 2.5 : 3.5;
+      }
+      const bottomY = y + h - padding - 0.5;
+      const bH = isTiny ? 2.5 : 3.5;
+      if (dataUrl) {
+        const remainingH = bottomY - bH - topY;
+        const imgH = Math.min(Math.max(7, remainingH), 20);
+        const imgW = Math.min(contentW, 55);
+        pdf.addImage(dataUrl, 'PNG', centerX - imgW / 2, topY + (remainingH - imgH) / 2, imgW, imgH);
+      }
+      if (f2) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(fSizeSub);
+        pdf.setTextColor(22, 101, 52); // Invocentric emerald green
+        pdf.text(f2, centerX, bottomY, { align: 'center', maxWidth: contentW });
+      }
+    } else if (layout === 'barcode_3_fields') {
+      let topY = y + padding + 2;
+      if (f1) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(fSizeSub - 0.5);
+        pdf.setTextColor(71, 85, 105);
+        pdf.text(f1.toUpperCase(), centerX, topY, { align: 'center', maxWidth: contentW });
+        topY += isTiny ? 2.2 : 2.8;
+      }
+      if (f2) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(fSizeTitle);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(f2, centerX, topY, { align: 'center', maxWidth: contentW });
+        topY += isTiny ? 2.5 : 3.5;
+      }
+      const bottomY = y + h - padding - 0.5;
+      const bH = isTiny ? 2.5 : 3.2;
+      if (dataUrl) {
+        const remainingH = bottomY - bH - topY;
+        const imgH = Math.min(Math.max(6, remainingH), 18);
+        const imgW = Math.min(contentW, 55);
+        pdf.addImage(dataUrl, 'PNG', centerX - imgW / 2, topY + (remainingH - imgH) / 2, imgW, imgH);
+      }
+      if (f3) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(fSizeSub);
+        pdf.setTextColor(22, 101, 52);
+        pdf.text(f3, centerX, bottomY, { align: 'center', maxWidth: contentW });
+      }
+    }
+  }
+
+  const outName = (filename || `InvoCentric_Barcodes_${totalPages}pages_${Date.now()}`).replace(/[^a-z0-9_-]/gi, '_') + '.pdf';
+  pdf.save(outName);
+  return true;
+}
+

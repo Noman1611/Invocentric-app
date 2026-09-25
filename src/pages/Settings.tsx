@@ -2,7 +2,7 @@ import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, sanitizeUserProfile, DEFAULT_PROFILE_DATA } from '../utils/settingsStorage';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Save, X, LogOut, CheckCircle2, Download, Upload, Trash2, HardDrive, FolderOpen, Lock, Unlock, CloudDownload, Store, Briefcase, Keyboard, Sparkles, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Save, X, LogOut, CheckCircle2, Download, Upload, Trash2, HardDrive, FolderOpen, Lock, Unlock, CloudDownload, Store, Briefcase, Keyboard, Sparkles, RefreshCw, ShieldCheck, Smartphone, Pill, Scale, Repeat } from 'lucide-react';
 import { updateService, AppUpdateState } from '../services/updateService';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
@@ -905,6 +905,202 @@ export default function SettingsPage() {
                   <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Proposals</span>
                   <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Clients</span>
                   <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Services</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Industry-Specific Vertical Modules */}
+        <section className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-[#166534]" />
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                  Industry-Specific Vertical Modules
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                Enable specialized workflows tailored specifically to your trade and inventory requirements.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+            {/* 1. Electronics & Mobile */}
+            <div
+              onClick={() => {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  industry_modules: {
+                    ...(prev.industry_modules || {}),
+                    electronics_imei: !((prev.industry_modules || {}).electronics_imei)
+                  }
+                }));
+              }}
+              className={cn(
+                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
+                formData.industry_modules?.electronics_imei
+                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 bg-white"
+              )}
+            >
+              <div className={cn(
+                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+                formData.industry_modules?.electronics_imei ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
+              )}>
+                <Smartphone size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">Electronics & Mobile Mode</h3>
+                  <span className={cn(
+                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
+                    formData.industry_modules?.electronics_imei ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
+                  )}>
+                    {formData.industry_modules?.electronics_imei ? "Active" : "Disabled"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Track IMEI & Serial numbers per product. Auto-prints warranty period and terms on invoices and stickers.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">IMEI/Serial</span>
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Warranty Tracking</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Pharma & FMCG */}
+            <div
+              onClick={() => {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  industry_modules: {
+                    ...(prev.industry_modules || {}),
+                    pharma_batch_expiry: !((prev.industry_modules || {}).pharma_batch_expiry)
+                  }
+                }));
+              }}
+              className={cn(
+                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
+                formData.industry_modules?.pharma_batch_expiry
+                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 bg-white"
+              )}
+            >
+              <div className={cn(
+                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+                formData.industry_modules?.pharma_batch_expiry ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
+              )}>
+                <Pill size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">Pharma & FMCG Mode</h3>
+                  <span className={cn(
+                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
+                    formData.industry_modules?.pharma_batch_expiry ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
+                  )}>
+                    {formData.industry_modules?.pharma_batch_expiry ? "Active" : "Disabled"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Batch numbers, manufacturing & expiry date tracking, Drug License (DL), and proactive near-expiry alerts.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Batch No.</span>
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Expiry Date</span>
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Drug License</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Hardware & Grocery */}
+            <div
+              onClick={() => {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  industry_modules: {
+                    ...(prev.industry_modules || {}),
+                    hardware_decimals: !((prev.industry_modules || {}).hardware_decimals)
+                  }
+                }));
+              }}
+              className={cn(
+                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
+                formData.industry_modules?.hardware_decimals
+                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 bg-white"
+              )}
+            >
+              <div className={cn(
+                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+                formData.industry_modules?.hardware_decimals ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
+              )}>
+                <Scale size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">Hardware & Weight Mode</h3>
+                  <span className={cn(
+                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
+                    formData.industry_modules?.hardware_decimals ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
+                  )}>
+                    {formData.industry_modules?.hardware_decimals ? "Active" : "Disabled"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Support fractional decimals (e.g. 1.250 kg, 0.750 m), tare weights, and multi-tax slab item classification.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Fractional / Decimals</span>
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Multi-Tax Slabs</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Services & Consulting */}
+            <div
+              onClick={() => {
+                setFormData((prev: any) => ({
+                  ...prev,
+                  industry_modules: {
+                    ...(prev.industry_modules || {}),
+                    services_recurring: !((prev.industry_modules || {}).services_recurring)
+                  }
+                }));
+              }}
+              className={cn(
+                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
+                formData.industry_modules?.services_recurring
+                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
+                  : "border-slate-200 hover:border-slate-300 bg-white"
+              )}
+            >
+              <div className={cn(
+                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+                formData.industry_modules?.services_recurring ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
+              )}>
+                <Repeat size={22} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-slate-900">Services & Subscriptions Mode</h3>
+                  <span className={cn(
+                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
+                    formData.industry_modules?.services_recurring ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
+                  )}>
+                    {formData.industry_modules?.services_recurring ? "Active" : "Disabled"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Recurring monthly / annual client retainer billing, hourly milestones, and automatic subscription renewals.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Recurring Billing</span>
+                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Milestones</span>
                 </div>
               </div>
             </div>
