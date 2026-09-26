@@ -1829,7 +1829,7 @@ export default function SettingsPage() {
               {!isCloudDataImported && (
                 <div className="bg-sky-50/50 border border-sky-100 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mt-2">
                   <div className="space-y-1">
-                    <p className="text-xs font-black text-sky-900 uppercase tracking-widest">Firebase Cloud Data Recovery</p>
+                    <p className="text-xs font-black text-sky-900 uppercase tracking-widest">Data Store</p>
                     <p className="text-[11px] text-sky-700 font-bold uppercase tracking-wide leading-relaxed">
                       Click here to download and merge your previous cloud data into your local PC and browser storage.
                     </p>

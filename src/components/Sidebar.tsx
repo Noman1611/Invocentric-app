@@ -16,6 +16,7 @@ import {
   TrendingDown,
   ChevronLeft,
   ChevronDown,
+  ChevronRight,
   ArrowRight,
   Database,
   Book,
@@ -40,6 +41,7 @@ import { db } from '../lib/firebase';
 export default function Sidebar({ onProfileClick }: { onProfileClick?: () => void }) {
   const { logout, user, isAdmin, appMode, planTier, isPro, triggerUpgradeModal } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [itemsOpen, setItemsOpen] = useState(false);
 
   const isHardcodedAdmin = user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
   const showAdmin = isAdmin || isHardcodedAdmin;
@@ -70,22 +72,6 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
       ]
     },
     {
-      title: 'INVENTORY',
-      items: [
-        { name: 'Products', path: '/items', icon: Package },
-        { name: 'Stock Overview', path: '/items?tab=overview', icon: BarChart3 },
-        { name: 'Stock Adjustment', path: '/items?tab=adjustment', icon: FileEdit },
-        { name: 'Stock Transfer', path: '/items?tab=transfer', icon: ArrowRight },
-        { name: 'Serial Numbers', path: '/items?tab=serials', icon: Barcode },
-        { name: 'Lot / Batch', path: '/items?tab=batches', icon: Database },
-        { name: 'Low Stock', path: '/items?tab=lowstock', icon: TrendingDown },
-        { name: 'Expiry Alerts', path: '/items?tab=expiry', icon: AlertCircle },
-        { name: 'Categories & Units', path: '/items?tab=categories', icon: Tag },
-        { name: 'Inventory History', path: '/items?tab=history', icon: FileText },
-        { name: appMode === 'freelancer' ? 'Software & Tools' : 'Purchases', path: '/purchases', icon: ShoppingBag },
-      ]
-    },
-    {
       title: 'ACCOUNTING',
       items: [
         { name: 'Daily Book', path: '/dailybook', icon: Book },
@@ -105,7 +91,22 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
     }
   ];
 
+  const itemsSubItems = [
+    { name: 'Products', path: '/items', icon: Package },
+    { name: 'Stock Overview', path: '/items?tab=overview', icon: BarChart3 },
+    { name: 'Stock Adjustment', path: '/items?tab=adjustment', icon: FileEdit },
+    { name: 'Stock Transfer', path: '/items?tab=transfer', icon: ArrowRight },
+    { name: 'Serial Numbers', path: '/items?tab=serials', icon: Barcode },
+    { name: 'Lot / Batch', path: '/items?tab=batches', icon: Database },
+    { name: 'Low Stock', path: '/items?tab=lowstock', icon: TrendingDown },
+    { name: 'Expiry Alerts', path: '/items?tab=expiry', icon: AlertCircle },
+    { name: 'Categories & Units', path: '/items?tab=categories', icon: Tag },
+    { name: 'Inventory History', path: '/items?tab=history', icon: FileText },
+    { name: appMode === 'freelancer' ? 'Software & Tools' : 'Purchases', path: '/purchases', icon: ShoppingBag },
+  ];
+
   const adminItem = { name: 'Admin Control', path: '/admin', icon: ShieldCheck };
+
 
   return (
     <aside className={cn(
@@ -227,6 +228,67 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                 </NavLink>
               )
             ))}
+
+            {/* Insert collapsible ITEMS section after SALES group */}
+            {group.title === 'SALES' && (
+              <div className={cn("space-y-1 mt-5 mb-2", collapsed && "mt-3 mb-1")}>
+                {!collapsed && (
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[#8A99AD] px-4 mb-2">
+                    ITEMS
+                  </p>
+                )}
+                {/* Items Collapsible Toggle Button */}
+                <button
+                  onClick={() => setItemsOpen(!itemsOpen)}
+                  className={cn(
+                    "w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative",
+                    itemsOpen
+                      ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
+                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                  )}
+                >
+                  <Package size={18} className={cn("shrink-0 transition-colors", itemsOpen ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
+                  {!collapsed && (
+                    <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between">
+                      <span>Items</span>
+                      {itemsOpen
+                        ? <ChevronDown size={14} className="text-[#166534] transition-transform duration-200" />
+                        : <ChevronRight size={14} className="text-slate-400 transition-transform duration-200" />
+                      }
+                    </span>
+                  )}
+                </button>
+
+                {/* Items Sub-Menu */}
+                {itemsOpen && (
+                  <div className={cn("space-y-0.5", !collapsed && "pl-3 border-l-2 border-[#D1FAE5] ml-5")}>
+                    {itemsSubItems.map((sub) => (
+                      <NavLink
+                        key={sub.path}
+                        to={sub.path}
+                        className={({ isActive }) =>
+                          cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 group relative text-[12px]",
+                            isActive
+                              ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
+                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                          )
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <sub.icon size={15} className={cn("shrink-0", isActive ? "text-[#166534]" : "text-slate-400 group-hover:text-slate-600")} />
+                            {!collapsed && (
+                              <span className="tracking-tight font-bold">{sub.name}</span>
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
 
