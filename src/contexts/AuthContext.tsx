@@ -813,6 +813,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (firebaseUser.email) {
             localStorage.setItem('invocentric_last_email', firebaseUser.email);
           }
+          localStorage.setItem('invocentric_session_user', JSON.stringify({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || null,
+            displayName: firebaseUser.displayName || null,
+            photoURL: firebaseUser.photoURL || null,
+            savedAt: Date.now()
+          }));
+          if (typeof (firebaseUser as any).getIdToken === 'function') {
+            (firebaseUser as any).getIdToken().then((tok: string) => {
+              if (tok) localStorage.setItem('invocentric_id_token', tok);
+            }).catch(() => {});
+          }
         } catch (e) {}
 
         // 2. Set user immediately in state so PrivateRoute and HomeRoute know user is active!
@@ -845,10 +857,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 5. In background, sync with Firestore asynchronously without blocking user navigation
         syncFirestoreProfileInBackground(firebaseUser, cachedProfile);
       } else {
+        // If Firebase Auth returned null, check if we have an active saved session (e.g. mobile/electron session)
+        if (typeof window !== 'undefined') {
+          const savedSession = localStorage.getItem('invocentric_session_user');
+          if (savedSession) {
+            try {
+              const parsed = JSON.parse(savedSession);
+              if (parsed && parsed.uid) {
+                console.log("Restoring active user from saved session:", parsed.uid);
+                await applyExternalSessionUser(parsed);
+                return;
+              }
+            } catch (sessErr) {
+              console.warn("Failed to restore saved session user:", sessErr);
+            }
+          }
+        }
+
         try {
           localStorage.removeItem('invocentric_auth_active');
           localStorage.removeItem('invocentric_last_uid');
           localStorage.removeItem('invocentric_last_email');
+          localStorage.removeItem('invocentric_session_user');
+          localStorage.removeItem('invocentric_id_token');
         } catch (e) {}
         setUser(null);
         setIsAdmin(false);
@@ -1073,6 +1104,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const applyExternalSessionUser = async (data: any) => {
     try {
+      const token = data.idToken || data.token || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : '') || '';
+      
+      // Save session user persistently
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('invocentric_session_user', JSON.stringify({
+            uid: data.uid,
+            email: data.email || null,
+            displayName: data.displayName || null,
+            photoURL: data.photoURL || null,
+            idToken: token,
+            accessToken: data.accessToken || null,
+            savedAt: Date.now()
+          }));
+          if (token) {
+            localStorage.setItem('invocentric_id_token', token);
+          }
+          localStorage.setItem('invocentric_auth_active', 'true');
+          localStorage.setItem('invocentric_last_uid', data.uid);
+          if (data.email) {
+            localStorage.setItem('invocentric_last_email', data.email);
+          }
+        } catch (e) {}
+      }
+
       const syntheticUser = {
         uid: data.uid,
         email: data.email || null,
@@ -1085,9 +1141,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshToken: '',
         tenantId: null,
         delete: async () => {},
-        getIdToken: async () => '',
+        getIdToken: async () => token || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : '') || '',
         getIdTokenResult: async () => ({
-          token: '',
+          token: token || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : '') || '',
           claims: {},
           authTime: '',
           issuedAtTime: '',
@@ -1095,7 +1151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           signInProvider: 'google.com'
         } as any),
         reload: async () => {},
-        toJSON: () => ({})
+        toJSON: () => ({ uid: data.uid, email: data.email })
       } as unknown as User;
 
       await handleUserChange(syntheticUser);
@@ -1575,6 +1631,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('invocentric_auth_active');
       localStorage.removeItem('invocentric_last_uid');
       localStorage.removeItem('invocentric_last_email');
+      localStorage.removeItem('invocentric_session_user');
+      localStorage.removeItem('invocentric_id_token');
       localStorage.removeItem('local_guest_session');
       localStorage.removeItem('email_otp_session');
       clearGlobalProfileBackup();

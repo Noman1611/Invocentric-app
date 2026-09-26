@@ -193,7 +193,7 @@ public class MainActivity extends BridgeActivity {
             try {
                 return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
             } catch (Exception e) {
-                return "1.0.22";
+                return "1.0.23";
             }
         }
 
@@ -324,5 +324,49 @@ public class MainActivity extends BridgeActivity {
                 }
             });
         }
+
+        @android.webkit.JavascriptInterface
+        public void exitApp() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    finishAffinity();
+                }
+            });
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        try {
+            WebView webView = getBridge().getWebView();
+            if (webView != null) {
+                webView.evaluateJavascript(
+                    "(function(){ " +
+                    "  var event = new CustomEvent('android-back-pressed', { cancelable: true }); " +
+                    "  var notHandled = window.dispatchEvent(event); " +
+                    "  return notHandled; " +
+                    "})()",
+                    new ValueCallback<String>() {
+                        @Override
+                        public void onReceiveValue(String value) {
+                            if ("false".equals(value)) {
+                                // Handled in JS!
+                                return;
+                            }
+                            if (webView.canGoBack()) {
+                                webView.goBack();
+                            } else {
+                                MainActivity.super.onBackPressed();
+                            }
+                        }
+                    }
+                );
+                return;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        super.onBackPressed();
     }
 }

@@ -1,0 +1,8 @@
+version: 1.0.23
+files:
+  - url: InvoCentric-Setup.exe
+    sha512: p4WY92Ynytyy+zHsNA3a0p/iWQzMl9TLN1JM/fQney9Uv8VmTujoiJ/os8015V3MOqnDyX2G4dcPpAyeQS/IBQ==
+    size: 112802720
+path: InvoCentric-Setup.exe
+sha512: p4WY92Ynytyy+zHsNA3a0p/iWQzMl9TLN1JM/fQney9Uv8VmTujoiJ/os8015V3MOqnDyX2G4dcPpAyeQS/IBQ==
+releaseDate: '2026-09-26T07:09:42.669Z'

@@ -35,8 +35,8 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(userId);
-      allow update: if ((isOwner(userId) || isAdmin()) && 
-                    (!incoming().diff(existing()).affectedKeys().hasAny(['is_admin']) || isAdmin()))
+      allow update: if (isOwner(userId) && (!incoming().diff(existing()).affectedKeys().hasAny(['is_admin']) || incoming().get('is_admin', false) == existing().get('is_admin', false)))
+                    || isAdmin()
                     || incoming().diff(existing()).affectedKeys().hasOnly(['inactivity_reminder_status', 'inactivity_reminder_sent_at', 'inactivity_reminder_cycle_id', 'inactivity_reminder_error', 'last_active_at', 'updated_at']);
       allow delete: if isOwner(userId) || isAdmin();
     }
@@ -59,7 +59,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(itemId) && 
                     isValidEntity(incoming()) && isValidItem(incoming());
       allow update: if (isOwner(existing().get('user_id', null)) || isAdmin()) &&
-                    incoming().user_id == existing().get('user_id', incoming().user_id) &&
+                    incoming().get('user_id', existing().get('user_id', request.auth.uid)) == existing().get('user_id', request.auth.uid) &&
                     isValidItem(incoming());
       allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
     }
@@ -76,7 +76,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(customerId) &&
                     isValidEntity(incoming()) && isValidCustomer(incoming());
       allow update: if (isOwner(existing().get('user_id', null)) || isAdmin()) &&
-                    incoming().user_id == existing().get('user_id', incoming().user_id) &&
+                    incoming().get('user_id', existing().get('user_id', request.auth.uid)) == existing().get('user_id', request.auth.uid) &&
                     isValidCustomer(incoming());
       allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
     }
@@ -96,12 +96,8 @@ service cloud.firestore {
                     isValidEntity(incoming()) && isValidInvoice(incoming()) &&
                     (incoming().get('customer_id', null) == null || exists(/databases/$(database)/documents/customers/$(incoming().customer_id)));
       allow update: if (isOwner(existing().get('user_id', null)) || isAdmin()) &&
-                    incoming().user_id == existing().get('user_id', incoming().user_id) &&
-                    isValidInvoice(incoming()) &&
-                    // Action: Mark as Paid or basic update
-                    (incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updated_at']) ||
-                     incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updated_at', 'amount', 'items', 'due_date', 'currency', 'bill_type', 'discount', 'sales_return', 'amount_words', 'customer_id', 'customer_name', 'advance_amount', 'advanceAmount', 'balance_due', 'notes', 'columnVisibility']) ||
-                     existing().get('status', null) != 'paid' || isAdmin());
+                    incoming().get('user_id', existing().get('user_id', request.auth.uid)) == existing().get('user_id', request.auth.uid) &&
+                    isValidInvoice(incoming());
       allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
     }
 

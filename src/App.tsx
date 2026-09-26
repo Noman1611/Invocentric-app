@@ -1590,6 +1590,95 @@ import OfflineSyncManager from './components/OfflineSyncManager';
 import UpgradeModal from './components/UpgradeModal';
 import { GlobalShortcutsManager } from './components/GlobalShortcutsManager';
 
+function AndroidBackHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const lastBackPressRef = useRef<number>(0);
+  const [exitToast, setExitToast] = useState(false);
+
+  useEffect(() => {
+    const handleBackPressed = (e?: Event) => {
+      // 1. Check if any open modal, dialog, dropdown, or drawer exists in DOM
+      const openDialog = document.querySelector('[role="dialog"]') || 
+                         document.querySelector('.fixed.inset-0:not(.pointer-events-none)');
+      
+      if (openDialog) {
+        const closeBtn = openDialog.querySelector('button[aria-label="Close"], button[title*="Close"], button.close, [data-modal-close]') as HTMLElement | null;
+        if (closeBtn && typeof closeBtn.click === 'function') {
+          closeBtn.click();
+          if (e) e.preventDefault();
+          return;
+        }
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        if (e) e.preventDefault();
+        return;
+      }
+
+      // 2. Check if mobile sidebar menu is open
+      const mobileMenuOpen = document.querySelector('[data-mobile-menu-open="true"]') as HTMLElement | null;
+      if (mobileMenuOpen) {
+        window.dispatchEvent(new CustomEvent('close_mobile_menu'));
+        if (e) e.preventDefault();
+        return;
+      }
+
+      // 3. Check current route pathname
+      const currentPath = location.pathname;
+      const isRootRoute = currentPath === '/' || currentPath === '/dashboard';
+
+      if (!isRootRoute) {
+        if (e) e.preventDefault();
+        navigate(-1);
+        return;
+      }
+
+      // 4. On root page: double-press back to exit app
+      const now = Date.now();
+      if (now - lastBackPressRef.current < 2000) {
+        if (typeof window !== 'undefined') {
+          const updater = (window as any).AndroidAppUpdater;
+          if (updater?.exitApp) {
+            updater.exitApp();
+            return;
+          }
+          if ((window as any).Capacitor?.App?.exitApp) {
+            (window as any).Capacitor.App.exitApp();
+            return;
+          }
+        }
+      } else {
+        lastBackPressRef.current = now;
+        if (e) e.preventDefault();
+        setExitToast(true);
+        setTimeout(() => setExitToast(false), 2000);
+      }
+    };
+
+    window.addEventListener('android-back-pressed', handleBackPressed);
+
+    // Register Capacitor backButton listener if native plugin is present
+    if (typeof window !== 'undefined' && (window as any).Capacitor?.Plugins?.App?.addListener) {
+      try {
+        (window as any).Capacitor.Plugins.App.addListener('backButton', () => {
+          handleBackPressed();
+        });
+      } catch (_) {}
+    }
+
+    return () => {
+      window.removeEventListener('android-back-pressed', handleBackPressed);
+    };
+  }, [location.pathname, navigate]);
+
+  if (!exitToast) return null;
+
+  return (
+    <div className="fixed bottom-14 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-2xl border border-slate-700 pointer-events-none animate-fadeIn">
+      Press back again to exit InvoCentric
+    </div>
+  );
+}
+
 export default function App() {
   // Splash screen only for Desktop (Electron) and Android/Capacitor native app — NOT for website
   const isElectronApp = typeof window !== 'undefined' && (
@@ -1649,6 +1738,7 @@ export default function App() {
           <AppWelcomeSplash onComplete={handleWelcomeSplashComplete} durationSeconds={10} />
         )}
         <AppRouter>
+          <AndroidBackHandler />
           <AppUpdateBanner />
           <GlobalShortcutsManager />
           <MigrationModal />

@@ -33,17 +33,49 @@ export interface ExtractedInvoice {
   currency?: string;
 }
 
+async function getAuthToken(): Promise<string> {
+  const user = auth.currentUser;
+  if (user) {
+    try {
+      const token = await user.getIdToken(false);
+      if (token) return token;
+    } catch (e) {
+      console.warn("Could not get fresh token from auth.currentUser:", e);
+    }
+  }
+
+  // Fallback to locally preserved session tokens
+  if (typeof window !== 'undefined') {
+    const directToken = localStorage.getItem('invocentric_id_token');
+    if (directToken) return directToken;
+
+    const savedSession = localStorage.getItem('invocentric_session_user');
+    if (savedSession) {
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed?.idToken) return parsed.idToken;
+        if (parsed?.token) return parsed.token;
+      } catch (e) {}
+    }
+  }
+
+  return '';
+}
+
 export async function extractInvoiceFromImage(base64Image: string, mimeType: string): Promise<ExtractedInvoice> {
   try {
-    const user = auth.currentUser;
-    const token = user ? await user.getIdToken() : '';
+    const token = await getAuthToken();
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const response = await fetch(apiUrl('/api/extract-invoice'), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers,
       body: JSON.stringify({ base64Image, mimeType }),
     });
 
@@ -78,15 +110,17 @@ export interface ParsedContact {
 
 export async function parseContactFromText(text: string): Promise<ParsedContact> {
   try {
-    const user = auth.currentUser;
-    const token = user ? await user.getIdToken() : '';
+    const token = await getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const response = await fetch(apiUrl('/api/parse-contact'), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers,
       body: JSON.stringify({ text }),
     });
 
@@ -132,15 +166,17 @@ export interface ExtractedProduct {
 
 export async function extractProductFromImage(base64Image: string, mimeType: string): Promise<ExtractedProduct> {
   try {
-    const user = auth.currentUser;
-    const token = user ? await user.getIdToken() : '';
+    const token = await getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const response = await fetch(apiUrl('/api/extract-product'), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
+      headers,
       body: JSON.stringify({ base64Image, mimeType }),
     });
 

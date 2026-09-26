@@ -1201,9 +1201,10 @@ export default function CreateInvoicePage() {
       const sellerProfileSnapshot = user ? getStoredUserProfile(user.uid) : getStoredUserProfile();
 
       const invoiceData: any = {
+        user_id: user.uid,
         customer_id: formData.customer_id || null, // Allow null
         customer_name: selectedCustomer?.name || 'Cash Sale', // Default to Cash Sale
-        invoice_number: formData.invoice_number || undefined,
+        invoice_number: formData.invoice_number || '',
         amount: total,
         advance_amount: advance,
         advanceAmount: advance,

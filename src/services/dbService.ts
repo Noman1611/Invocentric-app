@@ -240,10 +240,29 @@ export const dbService = {
 
     const payload = {
       ...data,
+      user_id: userId,
       updated_at: serverTimestamp()
     };
 
-    await updateDoc(docRef, payload);
+    try {
+      await updateDoc(docRef, payload);
+    } catch (updateErr: any) {
+      // Fallback to setDoc with merge if document is new to cloud or updateDoc failed
+      console.warn(`updateDoc for ${collectionName}/${docId} falling back to setDoc merge:`, updateErr?.message);
+      await setDoc(docRef, payload, { merge: true });
+    }
+
+    // Keep local cache updated simultaneously so offline mode and fast UI read remain in sync
+    try {
+      await localDbEngine.saveItem(collectionName, {
+        ...data,
+        id: docId,
+        user_id: userId,
+        updated_at: new Date().toISOString()
+      });
+    } catch (localErr) {
+      console.warn("Local cache update notice:", localErr);
+    }
 
     if (collectionName !== 'notifications') {
       triggerNotification('update', collectionName, docId, data, oldDoc, options).catch(console.error);

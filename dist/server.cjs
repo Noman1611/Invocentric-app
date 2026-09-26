@@ -199,20 +199,30 @@ async function checkAuth(req, res, next) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idToken: token })
     });
-    if (!response.ok) {
-      return res.status(401).json({ error: "UNAUTHORIZED: Session expired or invalid signature token." });
+    if (response.ok) {
+      const result = await response.json();
+      if (result.users && result.users.length > 0) {
+        req.user = {
+          uid: result.users[0].localId,
+          email: result.users[0].email,
+          emailVerified: result.users[0].emailVerified,
+          idToken: token
+        };
+        return next();
+      }
     }
-    const result = await response.json();
-    if (!result.users || result.users.length === 0) {
-      return res.status(401).json({ error: "UNAUTHORIZED: Validated profile could not be resolved." });
+    for (const [sId, sess] of mobileAuthSessions.entries()) {
+      if ((sess.idToken === token || sId === token) && sess.expires > Date.now()) {
+        req.user = {
+          uid: sess.uid || sId,
+          email: sess.email || "",
+          emailVerified: true,
+          idToken: token
+        };
+        return next();
+      }
     }
-    req.user = {
-      uid: result.users[0].localId,
-      email: result.users[0].email,
-      emailVerified: result.users[0].emailVerified,
-      idToken: token
-    };
-    next();
+    return res.status(401).json({ error: "UNAUTHORIZED: Session expired or invalid signature token." });
   } catch (error) {
     console.error("Token Auth Validation Error:", error);
     return res.status(500).json({ error: "SERVER_ERROR: Security token validation failed." });

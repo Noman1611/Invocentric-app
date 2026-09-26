@@ -90,6 +90,37 @@ export default function InvoiceViewPage() {
     setCustomZoom(1.0);
   };
 
+  // Two-finger pinch-to-zoom gesture support for Android APK & Mobile
+  const touchStartDistRef = useRef<number | null>(null);
+  const touchStartScaleRef = useRef<number>(1);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      touchStartDistRef.current = Math.hypot(dx, dy);
+      touchStartScaleRef.current = customZoom ?? (fitToScreen ? scaleFactor : 1);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && touchStartDistRef.current) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDist = Math.hypot(dx, dy);
+      const ratio = newDist / touchStartDistRef.current;
+      const newScale = Math.min(2.5, Math.max(0.35, Number((touchStartScaleRef.current * ratio).toFixed(2))));
+      setFitToScreen(false);
+      setCustomZoom(newScale);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      touchStartDistRef.current = null;
+    }
+  };
+
   useEffect(() => {
     const computeScale = () => {
       const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
@@ -1871,9 +1902,26 @@ export default function InvoiceViewPage() {
       </header>
 
       {/* Main Document Canvas */}
-      <main className="w-full max-w-5xl px-1 sm:px-4 mt-3 sm:mt-6 flex flex-col items-center print:max-w-none print:w-full print:p-0 print:m-0 print:flex print:items-center print:justify-center overflow-x-auto custom-scrollbar">
-        <div className="w-full max-w-full overflow-x-auto custom-scrollbar flex flex-col items-center py-1">
-          <div ref={invoiceRef} id="invoice-document-canvas" className="flex flex-col items-center gap-4 print:gap-0 print:w-full print:flex print:items-center print:justify-center shrink-0">
+      <main 
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="w-full flex-1 px-1 sm:px-4 mt-2 sm:mt-4 flex flex-col items-center print:max-w-none print:w-full print:p-0 print:m-0 print:flex print:items-center print:justify-center overflow-x-auto custom-scrollbar"
+        style={{
+          touchAction: 'pan-x pan-y pinch-zoom'
+        }}
+      >
+        <div className="w-full overflow-x-auto custom-scrollbar flex justify-center py-2">
+          <div 
+            ref={invoiceRef} 
+            id="invoice-document-canvas" 
+            className="flex flex-col items-center gap-4 print:gap-0 print:w-full print:flex print:items-center print:justify-center shrink-0"
+            style={{
+              width: !isPOS ? `calc(${sheetWidth} * ${activeScale})` : 'auto',
+              minWidth: !isPOS ? `calc(${sheetWidth} * ${activeScale})` : 'auto',
+              margin: '0 auto'
+            }}
+          >
             {isPOS ? (
               <div className="w-full flex justify-center print:w-full print:flex print:justify-center print:items-center">
                 {renderPOS(tpl === 'template_04' || tpl === 'template_14')}
@@ -1884,19 +1932,20 @@ export default function InvoiceViewPage() {
                 return (
                   <div
                     key={idx}
-                    className="w-full flex flex-col items-center"
+                    className="flex flex-col items-start justify-start"
                     style={{
-                      // Scale container height smoothly so there is no huge empty white gap or clipping under scaled document
+                      width: `calc(${sheetWidth} * ${activeScale})`,
                       height: activeScale !== 1 ? `calc(${isA5 ? '148mm' : '297mm'} * ${activeScale} + 24px)` : 'auto',
                       marginBottom: activeScale < 1 ? '8px' : '16px',
-                      overflow: 'visible'
+                      overflow: 'visible',
+                      position: 'relative'
                     }}
                   >
                     <div
                       style={{
                         transform: activeScale !== 1 ? `scale(${activeScale})` : 'none',
-                        transformOrigin: 'top center',
-                        transition: 'transform 0.15s ease-out'
+                        transformOrigin: 'top left',
+                        transition: touchStartDistRef.current ? 'none' : 'transform 0.12s ease-out'
                       }}
                     >
                       <div
