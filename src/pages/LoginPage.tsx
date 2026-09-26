@@ -404,6 +404,18 @@ export default function LoginPage() {
         setError("Password must be at least 6 characters long.");
         return;
       }
+      if (!/[a-z]/.test(passwordInput)) {
+        setError("Password must contain at least one lowercase letter (a-z).");
+        return;
+      }
+      if (!/[A-Z]/.test(passwordInput)) {
+        setError("Password must contain at least one uppercase letter (A-Z).");
+        return;
+      }
+      if (!/[^a-zA-Z0-9]/.test(passwordInput)) {
+        setError("Password must contain at least one special character (e.g. @, #, !, $).");
+        return;
+      }
       if (passwordInput !== confirmPasswordInput) {
         setError("Passwords do not match. Please re-enter.");
         return;
@@ -867,7 +879,7 @@ export default function LoginPage() {
                         type={showPassword ? "text" : "password"}
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
-                        placeholder="Minimum 6 characters"
+                        placeholder="e.g. MyPass@123"
                         className="w-full h-11 pl-10 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
                         required
                       />
@@ -878,6 +890,25 @@ export default function LoginPage() {
                       >
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                      {[
+                        { label: '6+ chars', ok: passwordInput.length >= 6 },
+                        { label: 'Uppercase', ok: /[A-Z]/.test(passwordInput) },
+                        { label: 'Lowercase', ok: /[a-z]/.test(passwordInput) },
+                        { label: 'Special char', ok: /[^a-zA-Z0-9]/.test(passwordInput) },
+                      ].map(({ label, ok }) => (
+                        <span
+                          key={label}
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
+                            ok
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-slate-100 text-slate-400'
+                          }`}
+                        >
+                          {ok ? '✓' : '○'} {label}
+                        </span>
+                      ))}
                     </div>
                   </div>
 

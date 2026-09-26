@@ -1586,6 +1586,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (code === 'auth/weak-password') {
         throw new Error('Password must be at least 6 characters long.');
+      } else if (code === 'auth/password-does-not-meet-requirements') {
+        throw new Error('Password must contain at least one uppercase letter, one lowercase letter, and one special character (e.g. @, #, !).');
       } else {
         throw error;
       }
