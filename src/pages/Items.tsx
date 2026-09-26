@@ -1511,8 +1511,29 @@ export default function ItemsPage() {
               )}
 
               {/* Additional Details Badges */}
-              {(item.size || item.hsn || (item.gstPercent !== undefined && item.gstPercent > 0) || (item.mrp !== undefined && item.mrp > 0) || (item.discount !== undefined && item.discount > 0) || item.custom_box) && (
+              {(item.size || item.hsn || item.batch_no || item.expiry_date || item.warranty_period || item.serialNumber || (item.gstPercent !== undefined && item.gstPercent > 0) || (item.mrp !== undefined && item.mrp > 0) || (item.discount !== undefined && item.discount > 0) || item.custom_box) && (
                 <div className="mt-3 pt-3 border-t border-slate-100/60 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-slate-500 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100/40">
+                  {item.batch_no && <div className="truncate font-mono"><span className="font-bold text-slate-700">Batch:</span> {item.batch_no}</div>}
+                  {item.expiry_date && (() => {
+                    const expTime = new Date(item.expiry_date).getTime();
+                    const now = Date.now();
+                    const isExp = expTime < now;
+                    const isNear = !isExp && (expTime - now < 30 * 24 * 60 * 60 * 1000);
+                    return (
+                      <div className={cn(
+                        "truncate font-semibold px-1 rounded",
+                        isExp ? "text-rose-700 bg-rose-50" : isNear ? "text-amber-700 bg-amber-50" : "text-slate-600"
+                      )}>
+                        <span className="font-bold">{isExp ? 'EXPIRED:' : isNear ? 'EXP SOON:' : 'Exp:'}</span> {item.expiry_date}
+                      </div>
+                    );
+                  })()}
+                  {item.warranty_period && <div className="truncate"><span className="font-bold text-emerald-700">Warranty:</span> {item.warranty_period}</div>}
+                  {(item.serialNumber || (item.serials && item.serials.length > 0)) && (
+                    <div className="truncate font-mono text-[9px] text-blue-700">
+                      <span className="font-bold">IMEI/SN:</span> {item.serialNumber || item.serials?.join(', ')}
+                    </div>
+                  )}
                   {item.size && <div className="truncate"><span className="font-bold text-slate-600">Size:</span> {item.size}</div>}
                   {item.hsn && <div className="truncate"><span className="font-bold text-slate-600">HSN:</span> {item.hsn}</div>}
                   {item.gstPercent !== undefined && item.gstPercent > 0 && <div className="truncate"><span className="font-bold text-slate-600">GST:</span> {item.gstPercent}%</div>}
@@ -1575,8 +1596,24 @@ export default function ItemsPage() {
                         <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
                           {item.description || 'No description'}
                         </p>
-                        {(item.size || item.hsn || item.custom_box) && (
+                        {(item.size || item.hsn || item.batch_no || item.expiry_date || item.warranty_period || item.custom_box) && (
                           <div className="flex flex-wrap gap-2 items-center mt-1 text-[10px] text-slate-400">
+                            {item.batch_no && <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 font-mono text-slate-700 font-semibold"><span className="font-bold text-slate-500">B:</span> {item.batch_no}</span>}
+                            {item.expiry_date && (() => {
+                              const expTime = new Date(item.expiry_date).getTime();
+                              const now = Date.now();
+                              const isExp = expTime < now;
+                              const isNear = !isExp && (expTime - now < 30 * 24 * 60 * 60 * 1000);
+                              return (
+                                <span className={cn(
+                                  "px-1.5 py-0.5 rounded border font-semibold",
+                                  isExp ? "bg-rose-50 border-rose-200 text-rose-700" : isNear ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-slate-50 border-slate-100 text-slate-600"
+                                )}>
+                                  {isExp ? 'EXPIRED' : isNear ? 'EXP SOON' : 'Exp'}: {item.expiry_date}
+                                </span>
+                              );
+                            })()}
+                            {item.warranty_period && <span className="bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 font-semibold text-emerald-700"><span className="font-bold">War:</span> {item.warranty_period}</span>}
                             {item.size && <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100"><span className="font-bold text-slate-500">Size:</span> {item.size}</span>}
                             {item.hsn && <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100"><span className="font-bold text-slate-500">HSN:</span> {item.hsn}</span>}
                             {item.custom_box && <span className="italic text-slate-400 max-w-[200px] truncate"><span className="font-bold text-slate-500 not-italic">Box:</span> {item.custom_box}</span>}
@@ -1722,6 +1759,7 @@ export default function ItemsPage() {
               supplier_name: itemData.supplier_name || '',
               batch_no: itemData.batch_no || '',
               expiry_date: itemData.expiry_date || '',
+              manufacturing_date: itemData.manufacturing_date || '',
               warranty_period: itemData.warranty_period || '',
               barcode: itemData.barcode || '',
               size: itemData.size || '',
@@ -1770,6 +1808,7 @@ export default function ItemsPage() {
           supplier_name: editingItem.supplier_name || '',
           batch_no: editingItem.batch_no || '',
           expiry_date: editingItem.expiry_date || '',
+          manufacturing_date: (editingItem as any).manufacturing_date || '',
           warranty_period: editingItem.warranty_period || '',
           unit: editingItem.unit || 'Pcs',
           size: editingItem.size || '',

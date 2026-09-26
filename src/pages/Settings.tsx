@@ -1382,11 +1382,40 @@ export default function SettingsPage() {
               />
             </div>
             <div>
+              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">PAN Number</label>
+              <input 
+                type="text" 
+                disabled={isOfflineMode}
+                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed uppercase" 
+                value={formData.pan || ''}
+                onChange={(e) => setFormData(p => ({ ...p, pan: e.target.value.toUpperCase() }))}
+                placeholder="ABCDE1234F"
+              />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-gray-700 block uppercase">Drug License (DL) No.</label>
+                {formData.industry_modules?.pharma_batch_expiry && (
+                  <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                    Pharma Active
+                  </span>
+                )}
+              </div>
+              <input 
+                type="text" 
+                disabled={isOfflineMode}
+                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed uppercase" 
+                value={formData.drug_license_no || ''}
+                onChange={(e) => setFormData(p => ({ ...p, drug_license_no: e.target.value }))}
+                placeholder="e.g. MH-MZ2-123456 / 20B/21B"
+              />
+            </div>
+            <div>
               <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Invoice Prefix</label>
               <input 
                 type="text" 
                 disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
+                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed uppercase" 
                 value={formData.invoice_prefix}
                 onChange={(e) => setFormData(p => ({ ...p, invoice_prefix: e.target.value }))}
               />

@@ -37,6 +37,13 @@ export interface UserProfileData {
   letterhead_hide_header?: boolean;
   default_terms?: string;
   default_notes?: string;
+  drug_license_no?: string;
+  industry_modules?: {
+    electronics_imei?: boolean;
+    pharma_batch_expiry?: boolean;
+    hardware_decimals?: boolean;
+    services_recurring?: boolean;
+  };
   wizard_completed?: boolean;
   app_mode?: 'shop' | 'freelancer';
   [key: string]: any;
@@ -77,7 +84,14 @@ export const DEFAULT_PROFILE_DATA: UserProfileData = {
   letterhead_bottom_margin: 20,
   letterhead_hide_header: true,
   default_terms: '',
-  default_notes: ''
+  default_notes: '',
+  drug_license_no: '',
+  industry_modules: {
+    electronics_imei: false,
+    pharma_batch_expiry: false,
+    hardware_decimals: false,
+    services_recurring: false
+  }
 };
 
 /**

@@ -50,6 +50,7 @@ export interface CatalogItemData {
   supplier_name?: string;
   batch_no?: string;
   expiry_date?: string;
+  manufacturing_date?: string;
   warranty_period?: string;
   unit?: string;
   size?: string;
@@ -113,6 +114,7 @@ export default function UpdateCatalogEntryModal({
     supplier_name: '',
     batch_no: '',
     expiry_date: '',
+    manufacturing_date: '',
     warranty_period: '',
     unit: 'Pcs',
     size: '',
@@ -211,6 +213,7 @@ export default function UpdateCatalogEntryModal({
           supplier_name: initialData.supplier_name ?? '',
           batch_no: initialData.batch_no ?? '',
           expiry_date: initialData.expiry_date ?? '',
+          manufacturing_date: initialData.manufacturing_date ?? '',
           warranty_period: initialData.warranty_period ?? '',
           unit: initialData.unit || 'Pcs',
           size: initialData.size || '',
@@ -234,6 +237,7 @@ export default function UpdateCatalogEntryModal({
           mrp: '',
           costPrice: '',
           price: '',
+          wholesalePrice: '',
           discount: '',
           gstPercent: '18',
           stock: '0',
@@ -244,6 +248,7 @@ export default function UpdateCatalogEntryModal({
           supplier_name: '',
           batch_no: '',
           expiry_date: '',
+          manufacturing_date: '',
           warranty_period: '',
           unit: 'Pcs',
           size: '',
@@ -1020,6 +1025,19 @@ export default function UpdateCatalogEntryModal({
                   />
                 </div>
 
+                {/* Manufacturing Date */}
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Mfg. Date (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.manufacturing_date}
+                    onChange={(e) => setFormData({ ...formData, manufacturing_date: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-sm font-medium rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                  />
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
                     Expiry Date (Optional)
@@ -1030,6 +1048,38 @@ export default function UpdateCatalogEntryModal({
                     onChange={(e) => setFormData({ ...formData, expiry_date: e.target.value })}
                     className="w-full px-3.5 py-2.5 text-sm font-medium rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
                   />
+                </div>
+
+                {/* Warranty Period (Electronics & Appliances) */}
+                <div className="col-span-1 sm:col-span-2 space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Warranty Period (Optional)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. 1 Year Brand Warranty, 6 Months"
+                      value={formData.warranty_period}
+                      onChange={(e) => setFormData({ ...formData, warranty_period: e.target.value })}
+                      className="flex-1 px-3.5 py-2.5 text-sm font-medium rounded-xl border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534]/20 focus:border-[#166534] transition-all"
+                    />
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setFormData({ ...formData, warranty_period: e.target.value });
+                        }
+                      }}
+                      className="px-2.5 py-2 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 text-slate-700 focus:outline-none"
+                    >
+                      <option value="">Quick Presets...</option>
+                      <option value="6 Months Warranty">6 Months</option>
+                      <option value="1 Year Warranty">1 Year</option>
+                      <option value="2 Years Warranty">2 Years</option>
+                      <option value="3 Years Warranty">3 Years</option>
+                      <option value="No Warranty">No Warranty</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>

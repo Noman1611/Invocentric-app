@@ -435,21 +435,32 @@ export default function InvoiceViewPage() {
     const gstAmt = taxable * gstPct / 100;
 
     const subDetails: string[] = [];
-    if (i.serial_number) subDetails.push(`Serial No: ${i.serial_number}`);
-    if (i.serialNumber && i.serialNumber !== i.serial_number) subDetails.push(`Serial No: ${i.serialNumber}`);
+    if (i.serial_number) subDetails.push(`Serial/IMEI: ${i.serial_number}`);
+    if (i.serialNumber && i.serialNumber !== i.serial_number) subDetails.push(`Serial/IMEI: ${i.serialNumber}`);
     if (Array.isArray(i.serial_numbers)) {
       i.serial_numbers.forEach((sn: any) => {
-        if (sn) subDetails.push(`Serial No: ${sn}`);
+        if (sn) subDetails.push(`Serial/IMEI: ${sn}`);
       });
+    }
+    if (i.warranty_period) {
+      subDetails.push(`Warranty: ${i.warranty_period}`);
     }
     if (i.batch_no || i.batchNumber || i.batch) {
       subDetails.push(`Batch: ${i.batch_no || i.batchNumber || i.batch}`);
     }
-    if (i.custom_box) {
-      subDetails.push(i.custom_box);
+    if (i.mfg_date || i.manufacturing_date) {
+      subDetails.push(`Mfg: ${fmtDate(i.mfg_date || i.manufacturing_date)}`);
     }
     if (i.expiry_date) {
       subDetails.push(`Exp: ${fmtDate(i.expiry_date)}`);
+    }
+    if (Number(i.tare_weight) > 0 || Number(i.gross_weight) > 0) {
+      const gw = Number(i.gross_weight) || (qty + Number(i.tare_weight || 0));
+      const tw = Number(i.tare_weight) || 0;
+      subDetails.push(`Gross: ${gw.toFixed(3)} | Tare: ${tw.toFixed(3)} | Net: ${qty.toFixed(3)}`);
+    }
+    if (i.custom_box) {
+      subDetails.push(i.custom_box);
     }
     if (Array.isArray(i.subLines)) {
       subDetails.push(...i.subLines);
@@ -663,6 +674,7 @@ export default function InvoiceViewPage() {
     phone: sellerInfo?.phone || '',
     email: sellerInfo?.email || '', 
     pan: sellerInfo?.pan || '',
+    drug_license: sellerInfo?.drug_license_no || invoice?.seller_drug_license || '',
     logo: sellerInfo?.logo_url || '', 
     bank: sellerInfo?.bank_name || '',
     branch: sellerInfo?.bank_branch || '', 
@@ -681,6 +693,7 @@ export default function InvoiceViewPage() {
     name: customer?.name || invoice.customer_name || '',
     address: customer?.address || '', phone: customer?.phone || '',
     gstin: customer?.gst_number || '', pan: customer?.pan || '',
+    drug_license: invoice?.buyer_drug_license || (customer as any)?.drug_license_no || '',
     state: customer?.state || '', placeOfSupply: customer?.place_of_supply || customer?.state || '',
     country: 'India',
   };
@@ -822,7 +835,7 @@ export default function InvoiceViewPage() {
           )}
 
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',border:b,borderBottom:'none',padding:'2px 6px',fontWeight:'bold',fontSize: isA5 ? 9 : 11.5}}>
-            <div>GSTIN : {co.gstin}</div><div style={{fontSize: isA5 ? 10.5 : 13, color:dark, textTransform:'uppercase'}}>{docTitle}</div><div>{docSubtitle}</div>
+            <div>GSTIN : {co.gstin}{co.drug_license ? ` | DL: ${co.drug_license}` : ''}</div><div style={{fontSize: isA5 ? 10.5 : 13, color:dark, textTransform:'uppercase'}}>{docTitle}</div><div>{docSubtitle}</div>
           </div>
 
           {/* Clean 2-column Buyer & Meta Grid */}
@@ -835,12 +848,22 @@ export default function InvoiceViewPage() {
                 ['Phone',bu.phone],
                 showSec.customer_gstin ? ['GSTIN',bu.gstin] : null,
                 ['PAN',bu.pan],
+                bu.drug_license ? ['Drug Lic (DL)', bu.drug_license] : null,
                 ['Place of Supply',bu.placeOfSupply]
               ].filter(Boolean).map(([l,v]: any)=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 70 : 90,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{v}</div></div>))}
             </div>
             <div style={{padding:'2px 6px'}}>
               <div style={{fontWeight:'bold',textAlign:'center',background:lb,margin:'-2px -6px 2px',padding:1,borderBottom:b}}>{isQuotation ? 'Quotation Details :' : 'Invoice Details :'}</div>
-              {[[isQuotation ? 'Quotation No.' : 'Invoice No.',im.invoiceNo],[isQuotation ? 'Quote Date' : 'Invoice Date',im.invoiceDate],['Due Date',im.dueDate],['P.O. No.',im.poNo],['P.O. Date',im.poDate],['E-Way No.',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 65 : 80,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1}}>{v}</div></div>))}
+              {[
+                [isQuotation ? 'Quotation No.' : 'Invoice No.',im.invoiceNo],
+                [isQuotation ? 'Quote Date' : 'Invoice Date',im.invoiceDate],
+                ['Due Date',im.dueDate],
+                invoice.is_recurring ? ['Recurring Cycle', `${(invoice.recurring_frequency || 'monthly').toUpperCase()} (${fmtDate(invoice.service_period_start)} to ${fmtDate(invoice.service_period_end)})`] : null,
+                invoice.is_recurring && invoice.next_renewal_date ? ['Next Renewal', fmtDate(invoice.next_renewal_date)] : null,
+                ['P.O. No.',im.poNo],
+                ['P.O. Date',im.poDate],
+                ['E-Way No.',im.eWayNo]
+              ].filter(Boolean).map(([l,v]: any)=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 65 : 80,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1}}>{v}</div></div>))}
             </div>
           </div>
 
@@ -874,7 +897,7 @@ export default function InvoiceViewPage() {
                   </td>
                   {colVis.size && <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{it.size || '---'}</td>}
                   {colVis.hsn && <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{it.hsn}</td>}
-                  <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{it.qty}</td>
+                  <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{Number.isInteger(it.qty) ? it.qty : it.qty.toFixed(3).replace(/\.?0+$/, '')}</td>
                   {colVis.mrp && <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{it.mrp ? fc(it.mrp,cur) : '---'}</td>}
                   <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{fc(it.price,cur)}</td>
                   {colVis.discount && <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{it.disc ? `${it.disc}%` : '0%'}</td>}
@@ -1053,7 +1076,7 @@ export default function InvoiceViewPage() {
         <div style={{ flex: useLetterhead ? 'none' : 1, display: 'flex', flexDirection: 'column' }}>
           {(!useLetterhead || !letterheadHideHeader) ? (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
-              <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue, textTransform:'uppercase'}}>{docTitle}</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
+              <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue, textTransform:'uppercase'}}>{docTitle}</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}{co.drug_license ? ` | <b>DL:</b> ${co.drug_license}` : ''}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
               <div style={{textAlign:'right'}}><div style={{fontSize:8.5,fontWeight:'bold'}}>{docSubtitle}</div>{co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52,height: isA5 ? 32 : 52}}/>}<div style={{fontSize:8.5,color:'#666',marginTop:1}}>Page {pageIdx + 1} of {totalPages}</div></div>
             </div>
           ) : (
@@ -1062,9 +1085,16 @@ export default function InvoiceViewPage() {
             </div>
           )}
           <div style={{display:'grid',gridTemplateColumns:'1.2fr 1.2fr 1fr',gap:5,borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3,fontSize: isA5 ? 8.5 : 10.5}}>
-            <div><b style={{display:'block',marginBottom:0.5}}>Customer Details:</b><div style={{fontWeight:'bold'}}>{bu.name}</div><div>{bu.address}</div>{showSec.customer_gstin && <div><b>GSTIN:</b> {bu.gstin}</div>}<div><b>State:</b> {bu.state}</div></div>
+            <div><b style={{display:'block',marginBottom:0.5}}>Customer Details:</b><div style={{fontWeight:'bold'}}>{bu.name}</div><div>{bu.address}</div>{showSec.customer_gstin && <div><b>GSTIN:</b> {bu.gstin}</div>}{bu.drug_license && <div><b>Drug Lic (DL):</b> {bu.drug_license}</div>}<div><b>State:</b> {bu.state}</div></div>
             <div><b style={{display:'block',marginBottom:0.5}}>Shipping address:</b><div style={{fontWeight:'bold'}}>{sh.name}</div><div>{sh.address}</div><div><b>State:</b> {sh.state}</div></div>
-            <div>{[[isQuotation ? 'Quote #:' : 'Invoice #:',im.invoiceNo],[isQuotation ? 'Quote Date:' : 'Invoice Date:',im.invoiceDate],['P.O. No.:',im.poNo],['E-Way No.:',im.eWayNo]].map(([l,v])=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
+            <div>{[
+              [isQuotation ? 'Quote #:' : 'Invoice #:',im.invoiceNo],
+              [isQuotation ? 'Quote Date:' : 'Invoice Date:',im.invoiceDate],
+              invoice.is_recurring ? ['Recurring:', `${(invoice.recurring_frequency || 'monthly').toUpperCase()}`] : null,
+              invoice.is_recurring && invoice.next_renewal_date ? ['Renewal:', fmtDate(invoice.next_renewal_date)] : null,
+              ['P.O. No.:',im.poNo],
+              ['E-Way No.:',im.eWayNo]
+            ].filter(Boolean).map(([l,v]: any)=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
           </div>
           <table style={{width:'100%',flex: useLetterhead ? 'none' : 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
@@ -1095,7 +1125,7 @@ export default function InvoiceViewPage() {
                   </td>
                   {colVis.size && <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,textAlign:'center',verticalAlign:'top'}}>{it.size || '---'}</td>}
                   {colVis.hsn && <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,textAlign:'center',verticalAlign:'top'}}>{it.hsn}</td>}
-                  <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,textAlign:'center',verticalAlign:'top'}}>{it.qty}</td>
+                  <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,textAlign:'center',verticalAlign:'top'}}>{Number.isInteger(it.qty) ? it.qty : it.qty.toFixed(3).replace(/\.?0+$/, '')}</td>
                   {colVis.mrp && <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,textAlign:'right',verticalAlign:'top'}}>{it.mrp ? fc(it.mrp,cur) : '---'}</td>}
                   <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,textAlign:'right',verticalAlign:'top'}}>{fc(it.price,cur)}</td>
                   {colVis.discount && <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,textAlign:'right',verticalAlign:'top'}}>{it.disc ? `${it.disc}%` : '0%'}</td>}
@@ -1270,6 +1300,11 @@ export default function InvoiceViewPage() {
             GSTIN: {co.gstin}
           </div>
         )}
+        {co.drug_license && (
+          <div style={{ fontSize: baseFontSize, fontWeight: 700 }}>
+            DL NO: {co.drug_license}
+          </div>
+        )}
 
         {/* Dotted / Dashed Separator */}
         <div style={{ borderTop: '1px dashed #000000', margin: '8px 0' }} />
@@ -1297,6 +1332,12 @@ export default function InvoiceViewPage() {
               <span>{bu.gstin}</span>
             </div>
           )}
+          {bu.drug_license && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+              <span style={{ fontWeight: 700 }}>BUYER DL:</span>
+              <span>{bu.drug_license}</span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
             <span style={{ fontWeight: 700 }}>INV NO:</span>
             <span>#{im.invoiceNo.replace(/^#/, '')}</span>
@@ -1305,6 +1346,12 @@ export default function InvoiceViewPage() {
             <span style={{ fontWeight: 700 }}>DATE:</span>
             <span>{im.invoiceDate}</span>
           </div>
+          {invoice.is_recurring && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+              <span style={{ fontWeight: 700 }}>RECURRING:</span>
+              <span style={{ textTransform: 'uppercase' }}>{invoice.recurring_frequency}</span>
+            </div>
+          )}
         </div>
 
         {/* Dotted / Dashed Separator */}
@@ -1461,6 +1508,12 @@ export default function InvoiceViewPage() {
               <div><span style={{ fontWeight: 700 }}>{isQuotation ? 'Quote Date:' : 'Date:'}</span> {im.invoiceDate}</div>
               {im.poNo && <div><span style={{ fontWeight: 700 }}>PO Number:</span> {im.poNo}</div>}
               {im.dueDate && <div><span style={{ fontWeight: 700 }}>Due Date:</span> {im.dueDate}</div>}
+              {invoice.is_recurring && (
+                <div><span style={{ fontWeight: 700 }}>Recurring:</span> <span style={{ textTransform: 'uppercase' }}>{invoice.recurring_frequency}</span></div>
+              )}
+              {invoice.is_recurring && invoice.next_renewal_date && (
+                <div><span style={{ fontWeight: 700 }}>Next Renewal:</span> {fmtDate(invoice.next_renewal_date)}</div>
+              )}
               <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>Page {pageIdx + 1} of {totalPages}</div>
             </div>
           </div>
@@ -1480,6 +1533,7 @@ export default function InvoiceViewPage() {
                 )}
                 {co.email && <div style={{ color: '#475569' }}><span style={{ fontWeight: 600 }}>Email:</span> {co.email}</div>}
                 {co.gstin && <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 2 }}>GSTIN: {co.gstin}</div>}
+                {co.drug_license && <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 1 }}>Drug Lic (DL): {co.drug_license}</div>}
               </div>
             )}
 
@@ -1494,6 +1548,7 @@ export default function InvoiceViewPage() {
               <div style={{ color: '#475569', lineHeight: 1.3, marginBottom: 2 }}>{bu.address}</div>
               {bu.phone && <div style={{ color: '#475569' }}><span style={{ fontWeight: 600 }}>Phone:</span> {bu.phone}</div>}
               {showSec.customer_gstin && bu.gstin && <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 2 }}>GSTIN: {bu.gstin}</div>}
+              {bu.drug_license && <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 1 }}>Drug Lic (DL): {bu.drug_license}</div>}
             </div>
           </div>
 
@@ -1516,7 +1571,7 @@ export default function InvoiceViewPage() {
             </thead>
             <tbody>
               {pageItems.map((it: any, idx: number) => {
-                const serialOrBatch = it.serialNumber || it.serial_no || it.batch || (it.serials && it.serials.length > 0 ? it.serials.join(', ') : '---');
+                const serialOrBatch = it.serialNumber || it.serial_no || it.batch || it.batch_no || (it.serials && it.serials.length > 0 ? it.serials.join(', ') : '---');
                 const lineTotal = (it.taxable || 0) + (it.taxAmount || 0);
                 return (
                   <tr key={idx} style={{ borderBottom: `1px solid ${borderGray}` }}>

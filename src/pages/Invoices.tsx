@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Filter, FileText, Trash2, Download, X, Calendar, CheckCircle2, Phone } from 'lucide-react';
+import { Plus, Search, Filter, FileText, Trash2, Download, X, Calendar, CheckCircle2, Phone, RefreshCw } from 'lucide-react';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp, deleteDoc, query, where, collection, getDocs } from 'firebase/firestore';
 import { useInvoices } from '../hooks/useData';
@@ -350,6 +350,14 @@ export default function InvoicesPage() {
                     )}>
                       {invoice.status}
                     </span>
+                    {invoice.is_recurring && (
+                      <div className="mt-1">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <RefreshCw size={8} />
+                          {invoice.recurring_frequency || 'Recurring'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -358,6 +366,15 @@ export default function InvoicesPage() {
                     Due: {invoice.due_date ? format(parseDateSafe(invoice.due_date), 'MMM d') : '-'}
                   </span>
                   <div className="flex items-center gap-1.5">
+                    {invoice.is_recurring && (
+                      <Link 
+                        to={`/invoices/new?renew_from=${invoice.id}`}
+                        className="p-2 text-indigo-600 hover:text-indigo-700 bg-indigo-50 active:scale-95 rounded-xl transition-all"
+                        title="Generate Next Cycle / Renew"
+                      >
+                        <RefreshCw size={16} />
+                      </Link>
+                    )}
                     <Link 
                       to={`/invoices/${invoice.id}`}
                       className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 active:scale-95 rounded-xl transition-all"
@@ -455,6 +472,14 @@ export default function InvoicesPage() {
                     )}>
                       {invoice.status}
                     </span>
+                    {invoice.is_recurring && (
+                      <div className="mt-1">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <RefreshCw size={8} />
+                          {invoice.recurring_frequency || 'Recurring'}
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-5 font-bold text-slate-900 tabular-nums">
                     <div>{formatCurrency(invoice.amount, invoice.currency)}</div>
@@ -474,6 +499,15 @@ export default function InvoicesPage() {
                   </td>
                   <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1.5 opacity-100 transition-opacity">
+                      {invoice.is_recurring && (
+                        <Link 
+                          to={`/invoices/new?renew_from=${invoice.id}`}
+                          className="p-2 text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all"
+                          title="Generate Next Cycle / Renew"
+                        >
+                          <RefreshCw size={16} />
+                        </Link>
+                      )}
                       <Link 
                         to={`/invoices/${invoice.id}`}
                         className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"

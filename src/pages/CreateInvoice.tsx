@@ -44,6 +44,12 @@ interface InvoiceItem {
   serialNumber?: string;
   brand?: string;
   category?: string;
+  batch_no?: string;
+  expiry_date?: string;
+  mfg_date?: string;
+  warranty_period?: string;
+  tare_weight?: number;
+  gross_weight?: number;
 }
 
 import { dbService, findLinkedPayments } from '../services/dbService';
@@ -67,6 +73,12 @@ export default function CreateInvoicePage() {
   const { items: inventoryItems } = useItems();
   const { invoices: existingInvoices } = useInvoices();
   const { settings: sellerSettings } = useSettings();
+  
+  const industryModules = sellerSettings?.industry_modules || {};
+  const isElectronicsMode = Boolean(industryModules.electronics_imei);
+  const isPharmaMode = Boolean(industryModules.pharma_batch_expiry);
+  const isHardwareMode = Boolean(industryModules.hardware_decimals);
+  const isServicesMode = Boolean(industryModules.services_recurring);
   
   const uniqueCategories = Array.from(new Set(inventoryItems.map(item => item.category).filter(Boolean))) as string[];
   const uniqueBrands = Array.from(new Set(inventoryItems.map(item => item.brand).filter(Boolean))) as string[];
@@ -310,8 +322,33 @@ export default function CreateInvoicePage() {
       discount: true,
       gstPercent: true,
     },
-    items: [{ description: '', quantity: 1, price: 0, size: '', hsn: '', mrp: 0, discount: 0, gstPercent: 0, custom_box: '', serialNumber: '', brand: '', category: '' }],
+    items: [{
+      description: '',
+      quantity: 1,
+      price: 0,
+      size: '',
+      hsn: '',
+      mrp: 0,
+      discount: 0,
+      gstPercent: 0,
+      custom_box: '',
+      serialNumber: '',
+      brand: '',
+      category: '',
+      batch_no: '',
+      expiry_date: '',
+      mfg_date: '',
+      warranty_period: '',
+      tare_weight: 0,
+      gross_weight: 0
+    }],
     notes: '',
+    buyer_drug_license: '',
+    is_recurring: false,
+    recurring_frequency: 'monthly' as 'monthly' | 'quarterly' | 'yearly' | 'weekly',
+    service_period_start: '',
+    service_period_end: '',
+    next_renewal_date: '',
   });
 
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -681,7 +718,7 @@ export default function CreateInvoicePage() {
                amount_in_words: false,
                hsn_summary: false,
                footer: false
-             },
+              },
               items: (Array.isArray(data.items) && data.items.length > 0)
                 ? data.items.map((it: any) => ({
                     description: it.description || it.name || '',
@@ -695,9 +732,15 @@ export default function CreateInvoicePage() {
                     custom_box: it.custom_box || '',
                     serialNumber: it.serialNumber || it.serial_number || '',
                     brand: it.brand || '',
-                    category: it.category || ''
+                    category: it.category || '',
+                    batch_no: it.batch_no || '',
+                    expiry_date: it.expiry_date || '',
+                    mfg_date: it.mfg_date || it.manufacturing_date || '',
+                    warranty_period: it.warranty_period || '',
+                    tare_weight: Number(it.tare_weight) || 0,
+                    gross_weight: Number(it.gross_weight) || 0
                   }))
-                : [{ description: "", quantity: 1, price: 0, size: "", hsn: "", mrp: 0, discount: 0, gstPercent: 0, custom_box: '', serialNumber: '', brand: '', category: '' }],
+                : [{ description: "", quantity: 1, price: 0, size: "", hsn: "", mrp: 0, discount: 0, gstPercent: 0, custom_box: '', serialNumber: '', brand: '', category: '', batch_no: '', expiry_date: '', mfg_date: '', warranty_period: '', tare_weight: 0, gross_weight: 0 }],
              columnVisibility: data.columnVisibility || {
                size: true,
                hsn: true,
@@ -705,11 +748,85 @@ export default function CreateInvoicePage() {
                discount: true,
                gstPercent: true,
              },
-             notes: data.notes || data.terms_text || ""
+             notes: data.notes || data.terms_text || "",
+             buyer_drug_license: data.buyer_drug_license || '',
+             is_recurring: Boolean(data.is_recurring),
+             recurring_frequency: data.recurring_frequency || 'monthly',
+             service_period_start: data.service_period_start || '',
+             service_period_end: data.service_period_end || '',
+             next_renewal_date: data.next_renewal_date || ''
            });
         }
       } catch (error) {
         console.error("Error fetching invoice:", error);
+      } finally {
+        setFetching(false);
+      }
+    }
+
+    async function fetchRenewInvoice() {
+      const renewFromId = searchParams.get('renew_from');
+      if (!renewFromId || !user || id) return;
+      setFetching(true);
+      try {
+        const localInvoices = getSecureStorage(`offline_invoices_${user.uid}`, []);
+        let rData = localInvoices.find((inv: any) => inv.id === renewFromId);
+        if (!rData && !isOfflineMode) {
+          const docRef = doc(db, "invoices", renewFromId);
+          const snap = await getDoc(docRef);
+          if (snap.exists()) rData = snap.data();
+        }
+        if (rData) {
+          const freq = rData.recurring_frequency || 'monthly';
+          const todayStr = new Date().toISOString().split('T')[0];
+          const dStart = rData.service_period_end ? new Date(rData.service_period_end) : new Date();
+          const dEnd = new Date(dStart);
+          if (freq === 'weekly') dEnd.setDate(dEnd.getDate() + 7);
+          else if (freq === 'quarterly') dEnd.setMonth(dEnd.getMonth() + 3);
+          else if (freq === 'yearly') dEnd.setFullYear(dEnd.getFullYear() + 1);
+          else dEnd.setMonth(dEnd.getMonth() + 1);
+
+          const nextPeriodStart = dStart.toISOString().split('T')[0];
+          const nextPeriodEnd = dEnd.toISOString().split('T')[0];
+
+          setFormData(prev => ({
+            ...prev,
+            customer_id: rData.customer_id || '',
+            currency: rData.currency || 'INR',
+            bill_type: 'INVOICE',
+            is_recurring: true,
+            recurring_frequency: freq,
+            service_period_start: nextPeriodStart,
+            service_period_end: nextPeriodEnd,
+            next_renewal_date: nextPeriodEnd,
+            buyer_drug_license: rData.buyer_drug_license || '',
+            items: (Array.isArray(rData.items) && rData.items.length > 0)
+              ? rData.items.map((it: any) => ({
+                  description: it.description || it.name || '',
+                  quantity: Number(it.quantity) || 1,
+                  price: Number(it.price || it.mrp) || 0,
+                  size: it.size || '',
+                  hsn: it.hsn || '',
+                  mrp: Number(it.mrp) || 0,
+                  discount: Number(it.discount) || 0,
+                  gstPercent: Number(it.gstPercent || it.gst_rate) || 0,
+                  custom_box: it.custom_box || '',
+                  serialNumber: '',
+                  brand: it.brand || '',
+                  category: it.category || '',
+                  batch_no: it.batch_no || '',
+                  expiry_date: it.expiry_date || '',
+                  mfg_date: it.mfg_date || it.manufacturing_date || '',
+                  warranty_period: it.warranty_period || '',
+                  tare_weight: it.tare_weight || 0,
+                  gross_weight: it.gross_weight || 0
+                }))
+              : prev.items,
+            notes: rData.notes || prev.notes
+          }));
+        }
+      } catch (err) {
+        console.error("Error loading invoice for renewal:", err);
       } finally {
         setFetching(false);
       }
@@ -744,6 +861,8 @@ export default function CreateInvoicePage() {
 
     if (id) {
       fetchInvoice();
+    } else if (searchParams.get('renew_from')) {
+      fetchRenewInvoice();
     } else if (searchParams.get('from_quotation')) {
       fetchFromQuotation();
     } else {
@@ -1032,7 +1151,11 @@ export default function CreateInvoicePage() {
         return (invItem as any).serialNumber || '';
       })(),
       brand: invItem.brand || '',
-      category: invItem.category || ''
+      category: invItem.category || '',
+      batch_no: (invItem as any).batch_no || '',
+      expiry_date: (invItem as any).expiry_date || '',
+      mfg_date: (invItem as any).manufacturing_date || (invItem as any).mfg_date || '',
+      warranty_period: (invItem as any).warranty_period || ''
     });
     setFocusedItemIndex(null);
   };
@@ -1180,7 +1303,13 @@ export default function CreateInvoicePage() {
           serialNumber: item.serialNumber || '',
           serial_number: item.serialNumber || '',
           brand: item.brand || '',
-          category: item.category || ''
+          category: item.category || '',
+          batch_no: (item as any).batch_no || '',
+          expiry_date: (item as any).expiry_date || '',
+          mfg_date: (item as any).mfg_date || '',
+          warranty_period: (item as any).warranty_period || '',
+          tare_weight: Number((item as any).tare_weight) || 0,
+          gross_weight: Number((item as any).gross_weight) || 0
         };
       });
 
@@ -1233,6 +1362,13 @@ export default function CreateInvoicePage() {
         due_date: new Date(formData.due_date).toISOString(),
         items: cleanItems,
         notes: formData.terms_text || formData.notes || '',
+        buyer_drug_license: formData.buyer_drug_license || '',
+        seller_drug_license: sellerProfileSnapshot?.drug_license_no || '',
+        is_recurring: Boolean(formData.is_recurring),
+        recurring_frequency: formData.recurring_frequency || 'monthly',
+        service_period_start: formData.service_period_start || '',
+        service_period_end: formData.service_period_end || '',
+        next_renewal_date: formData.next_renewal_date || '',
       };
 
       if (id) {
@@ -1505,6 +1641,18 @@ export default function CreateInvoicePage() {
                         GST: {selCust.gst_number}
                       </span>
                     )}
+                    {(isPharmaMode || sellerSettings?.drug_license_no) && (
+                      <div className="w-full mt-1.5 pt-1.5 border-t border-slate-100 flex items-center gap-1.5">
+                        <span className="text-[9px] font-bold text-emerald-800 uppercase tracking-wider shrink-0">Buyer DL:</span>
+                        <input
+                          type="text"
+                          placeholder="e.g. DL-20B/21B-XXXXX"
+                          value={formData.buyer_drug_license}
+                          onChange={(e) => setFormData(p => ({ ...p, buyer_drug_license: e.target.value }))}
+                          className="flex-1 text-[11px] px-2 py-0.5 bg-white border border-emerald-300 rounded font-mono uppercase text-slate-800 focus:outline-none"
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })()}
@@ -1585,6 +1733,104 @@ export default function CreateInvoicePage() {
               </select>
             </div>
           </div>
+
+          {/* Services & Subscription Recurring Billing Panel */}
+          {isServicesMode && (
+            <div className="bg-gradient-to-r from-blue-50/70 to-indigo-50/70 p-3 sm:p-4 rounded-2xl border border-blue-200 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                    ₹
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-blue-950">Subscription &amp; Recurring Billing</h4>
+                    <p className="text-[10px] text-blue-700/80">Automated cycle tracking, billing frequency &amp; recurring renewal dates</p>
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_recurring}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      const today = new Date();
+                      const nextMonth = new Date(today);
+                      nextMonth.setMonth(nextMonth.getMonth() + 1);
+                      setFormData(p => ({
+                        ...p,
+                        is_recurring: enabled,
+                        service_period_start: enabled && !p.service_period_start ? today.toISOString().split('T')[0] : p.service_period_start,
+                        service_period_end: enabled && !p.service_period_end ? nextMonth.toISOString().split('T')[0] : p.service_period_end,
+                        next_renewal_date: enabled && !p.next_renewal_date ? nextMonth.toISOString().split('T')[0] : p.next_renewal_date,
+                      }));
+                    }}
+                    className="w-4 h-4 text-blue-600 rounded border-blue-300 focus:ring-blue-500"
+                  />
+                  <span className="text-xs font-bold text-blue-900">Enable Recurring</span>
+                </label>
+              </div>
+
+              {formData.is_recurring && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-blue-100">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1 block">Frequency</label>
+                    <select
+                      value={formData.recurring_frequency}
+                      onChange={(e) => {
+                        const freq = e.target.value as any;
+                        const start = formData.service_period_start ? new Date(formData.service_period_start) : new Date();
+                        const next = new Date(start);
+                        if (freq === 'weekly') next.setDate(next.getDate() + 7);
+                        else if (freq === 'quarterly') next.setMonth(next.getMonth() + 3);
+                        else if (freq === 'yearly') next.setFullYear(next.getFullYear() + 1);
+                        else next.setMonth(next.getMonth() + 1);
+
+                        setFormData(p => ({
+                          ...p,
+                          recurring_frequency: freq,
+                          service_period_end: next.toISOString().split('T')[0],
+                          next_renewal_date: next.toISOString().split('T')[0]
+                        }));
+                      }}
+                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-blue-200 rounded-lg text-slate-800"
+                    >
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1 block">Period Start</label>
+                    <input
+                      type="date"
+                      value={formData.service_period_start}
+                      onChange={(e) => setFormData(p => ({ ...p, service_period_start: e.target.value }))}
+                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-blue-200 rounded-lg text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1 block">Period End</label>
+                    <input
+                      type="date"
+                      value={formData.service_period_end}
+                      onChange={(e) => setFormData(p => ({ ...p, service_period_end: e.target.value }))}
+                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-blue-200 rounded-lg text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1 block">Next Renewal</label>
+                    <input
+                      type="date"
+                      value={formData.next_renewal_date}
+                      onChange={(e) => setFormData(p => ({ ...p, next_renewal_date: e.target.value }))}
+                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-blue-200 rounded-lg text-slate-800"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Items Card */}
           <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex-1 flex flex-col min-h-0 lg:overflow-hidden">
@@ -2086,14 +2332,98 @@ export default function CreateInvoicePage() {
                           <input
                             type="text"
                             className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-mono font-semibold"
-                            placeholder="Serial Number (S/N)"
+                            placeholder="Serial / IMEI Number"
                             value={item.serialNumber || ''}
                             onChange={(e) => updateItem(index, 'serialNumber', e.target.value)}
                           />
                           <input
                             type="text"
+                            className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"
+                            placeholder="Warranty (e.g. 1 Year Warranty)"
+                            value={(item as any).warranty_period || ''}
+                            onChange={(e) => updateItem(index, 'warranty_period' as any, e.target.value)}
+                          />
+                        </div>
+                        {(isPharmaMode || (item as any).batch_no || (item as any).expiry_date) && (
+                          <div className="grid grid-cols-3 gap-2 bg-emerald-50/50 p-2 rounded-xl border border-emerald-100">
+                            <div>
+                              <label className="text-[9px] font-bold text-emerald-800 uppercase block mb-0.5">Batch No</label>
+                              <input
+                                type="text"
+                                className="w-full text-[11px] px-2 py-1 bg-white border border-emerald-200 rounded-lg font-mono uppercase"
+                                placeholder="BATCH"
+                                value={(item as any).batch_no || ''}
+                                onChange={(e) => updateItem(index, 'batch_no' as any, e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-emerald-800 uppercase block mb-0.5">Mfg Date</label>
+                              <input
+                                type="date"
+                                className="w-full text-[11px] px-1.5 py-1 bg-white border border-emerald-200 rounded-lg"
+                                value={(item as any).mfg_date || ''}
+                                onChange={(e) => updateItem(index, 'mfg_date' as any, e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-emerald-800 uppercase block mb-0.5">Exp Date</label>
+                              <input
+                                type="date"
+                                className="w-full text-[11px] px-1.5 py-1 bg-white border border-emerald-200 rounded-lg"
+                                value={(item as any).expiry_date || ''}
+                                onChange={(e) => updateItem(index, 'expiry_date' as any, e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {(isHardwareMode || (item as any).tare_weight > 0) && (
+                          <div className="grid grid-cols-2 gap-2 bg-blue-50/50 p-2 rounded-xl border border-blue-100">
+                            <div>
+                              <label className="text-[9px] font-bold text-blue-800 uppercase block mb-0.5">Tare Weight</label>
+                              <input
+                                type="number"
+                                step="0.001"
+                                className="w-full text-[11px] px-2 py-1 bg-white border border-blue-200 rounded-lg text-center"
+                                placeholder="0.000"
+                                value={(item as any).tare_weight || ''}
+                                onChange={(e) => {
+                                  const t = parseFloat(e.target.value) || 0;
+                                  const g = Number((item as any).gross_weight) || (Number(item.quantity) + t);
+                                  const net = Math.max(0.001, parseFloat((g - t).toFixed(3)));
+                                  updateItemBatch(index, {
+                                    tare_weight: t,
+                                    gross_weight: g,
+                                    quantity: net
+                                  } as any);
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-blue-800 uppercase block mb-0.5">Gross Weight</label>
+                              <input
+                                type="number"
+                                step="0.001"
+                                className="w-full text-[11px] px-2 py-1 bg-white border border-blue-200 rounded-lg text-center"
+                                placeholder="0.000"
+                                value={(item as any).gross_weight || ''}
+                                onChange={(e) => {
+                                  const g = parseFloat(e.target.value) || 0;
+                                  const t = Number((item as any).tare_weight) || 0;
+                                  const net = Math.max(0.001, parseFloat((g - t).toFixed(3)));
+                                  updateItemBatch(index, {
+                                    gross_weight: g,
+                                    quantity: net
+                                  } as any);
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <input
+                            type="text"
                             className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-normal"
-                            placeholder="Batch / Expiry / Notes"
+                            placeholder="Custom Line Notes"
                             value={item.custom_box || ''}
                             onChange={(e) => updateItem(index, 'custom_box', e.target.value)}
                           />
@@ -2492,11 +2822,53 @@ export default function CreateInvoicePage() {
                           );
                         })()}
                       </div>
+                      {isElectronicsMode && (
+                        <div className="sm:col-span-3">
+                          <input 
+                            type="text" 
+                            className="w-full text-[11px] px-3 py-1.5 bg-slate-50/70 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e5eb8] focus:bg-white transition-all placeholder:text-gray-400 font-medium text-gray-800"
+                            placeholder="Warranty (e.g. 1 Year)"
+                            value={(item as any).warranty_period || ''}
+                            onChange={(e) => updateItem(index, 'warranty_period' as any, e.target.value)}
+                          />
+                        </div>
+                      )}
+                      {(isPharmaMode || (item as any).batch_no || (item as any).expiry_date) && (
+                        <>
+                          <div className="sm:col-span-2">
+                            <input 
+                              type="text" 
+                              className="w-full text-[11px] px-2.5 py-1.5 bg-emerald-50/50 border border-emerald-200 rounded-lg focus:outline-none focus:border-emerald-500 uppercase font-mono text-emerald-900"
+                              placeholder="Batch No"
+                              value={(item as any).batch_no || ''}
+                              onChange={(e) => updateItem(index, 'batch_no' as any, e.target.value)}
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <input 
+                              type="date" 
+                              className="w-full text-[11px] px-1.5 py-1.5 bg-emerald-50/50 border border-emerald-200 rounded-lg focus:outline-none text-emerald-900"
+                              title="Mfg Date"
+                              value={(item as any).mfg_date || ''}
+                              onChange={(e) => updateItem(index, 'mfg_date' as any, e.target.value)}
+                            />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <input 
+                              type="date" 
+                              className="w-full text-[11px] px-1.5 py-1.5 bg-emerald-50/50 border border-emerald-200 rounded-lg focus:outline-none text-emerald-900"
+                              title="Expiry Date"
+                              value={(item as any).expiry_date || ''}
+                              onChange={(e) => updateItem(index, 'expiry_date' as any, e.target.value)}
+                            />
+                          </div>
+                        </>
+                      )}
                       <div className="sm:col-span-3">
                         <input 
                           type="text" 
                           className="w-full text-[11px] px-3 py-1.5 bg-slate-50/70 border border-gray-200 rounded-lg focus:outline-none focus:border-[#1e5eb8] focus:bg-white transition-all placeholder:text-gray-400 font-normal text-gray-700"
-                          placeholder="Details (Batch, Expiry, etc.)"
+                          placeholder="Details / Custom Notes"
                           value={item.custom_box || ''}
                           onChange={(e) => updateItem(index, 'custom_box', e.target.value)}
                         />
@@ -2532,6 +2904,8 @@ export default function CreateInvoicePage() {
                       <label className="label block">{appMode === 'freelancer' ? 'Hours / Qty' : 'Qty'}</label>
                       <input 
                         type="number" 
+                        step={isHardwareMode ? "0.001" : "1"}
+                        min={isHardwareMode ? "0.001" : "1"}
                         className="input-field text-center" 
                         value={item.quantity}
                         onChange={(e) => {
@@ -2557,6 +2931,49 @@ export default function CreateInvoicePage() {
                         onFocus={(e) => e.target.select()}
                       />
                     </div>
+                    {isHardwareMode && (
+                      <div className="w-full md:w-36 flex items-end gap-1">
+                        <div className="w-1/2">
+                          <label className="label block text-[9px] text-blue-700">Tare Wt</label>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input-field text-center text-xs"
+                            placeholder="0.000"
+                            value={(item as any).tare_weight || ''}
+                            onChange={(e) => {
+                              const t = parseFloat(e.target.value) || 0;
+                              const g = Number((item as any).gross_weight) || (Number(item.quantity) + t);
+                              const net = Math.max(0.001, parseFloat((g - t).toFixed(3)));
+                              updateItemBatch(index, {
+                                tare_weight: t,
+                                gross_weight: g,
+                                quantity: net
+                              } as any);
+                            }}
+                          />
+                        </div>
+                        <div className="w-1/2">
+                          <label className="label block text-[9px] text-blue-700">Gross Wt</label>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input-field text-center text-xs"
+                            placeholder="0.000"
+                            value={(item as any).gross_weight || ''}
+                            onChange={(e) => {
+                              const g = parseFloat(e.target.value) || 0;
+                              const t = Number((item as any).tare_weight) || 0;
+                              const net = Math.max(0.001, parseFloat((g - t).toFixed(3)));
+                              updateItemBatch(index, {
+                                gross_weight: g,
+                                quantity: net
+                              } as any);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     {formData.columnVisibility.mrp && (
                       <div className="w-full md:w-20">
                         <label className="label block">MRP</label>
