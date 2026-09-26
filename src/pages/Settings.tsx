@@ -1,14 +1,53 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
-import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, sanitizeUserProfile, DEFAULT_PROFILE_DATA } from '../utils/settingsStorage';
+import { getStoredUserProfile, saveStoredUserProfile, sanitizeFirestorePayload, sanitizeUserProfile, DEFAULT_PROFILE_DATA, UserProfileData } from '../utils/settingsStorage';
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'motion/react';
-import { Save, X, LogOut, CheckCircle2, Download, Upload, Trash2, HardDrive, FolderOpen, Lock, Unlock, CloudDownload, Store, Briefcase, Keyboard, Sparkles, RefreshCw, ShieldCheck, Smartphone, Pill, Scale, Repeat } from 'lucide-react';
+import { 
+  Save, 
+  X, 
+  LogOut, 
+  CheckCircle2, 
+  Download, 
+  Upload, 
+  Trash2, 
+  HardDrive, 
+  FolderOpen, 
+  Lock, 
+  Unlock, 
+  CloudDownload, 
+  Store, 
+  Briefcase, 
+  Sparkles, 
+  RefreshCw, 
+  ShieldCheck, 
+  Smartphone, 
+  Pill, 
+  Scale, 
+  User, 
+  Building, 
+  FileText, 
+  CreditCard, 
+  Settings, 
+  ChevronRight, 
+  ArrowLeft, 
+  Camera, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  Globe, 
+  HelpCircle, 
+  Key, 
+  Bell, 
+  Check, 
+  ExternalLink,
+  Search
+} from 'lucide-react';
 import { updateService, AppUpdateState } from '../services/updateService';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import { db, OperationType, handleFirestoreError } from '../lib/firebase';
+import { Link, useSearchParams } from 'react-router-dom';
+import { db, OperationType, handleFirestoreError, auth } from '../lib/firebase';
 import { doc, getDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { cn } from '../lib/utils';
 import { StorageModeSelector } from '../components/StorageModeSelector';
 import { dbService } from '../services/dbService';
@@ -32,6 +71,23 @@ import {
 } from '../utils/googleDriveSync';
 
 export default function SettingsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTabParam = searchParams.get('tab');
+  
+  // Mobile drill-down state: if mobile and no tab query, show category cards list
+  const activeTab = currentTabParam || 'profile';
+  const isMobileListVisible = !currentTabParam;
+
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleMobileBack = () => {
+    setSearchParams({});
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const { 
     user, 
     logout, 
@@ -47,6 +103,7 @@ export default function SettingsPage() {
     disablePcDriveMode,
     unlockPcDriveFile
   } = useAuth();
+  
   const isOfflineMode = false; // Always keep UI input fields enabled and active
   const isCloudDataImported = user ? getSecureStorage(`cloud_data_imported_${user.uid}`, false) : false;
 
@@ -59,6 +116,19 @@ export default function SettingsPage() {
   const [pcDirName, setPcDirName] = useState<string>('');
   const [pcDirSyncing, setPcDirSyncing] = useState<boolean>(false);
   const [pcDirLastBackup, setPcDirLastBackup] = useState<string | null>(null);
+
+  // Search filter for mobile category list
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordStatus, setPasswordStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Profile photo file input ref
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -98,47 +168,48 @@ export default function SettingsPage() {
     setIsCheckingUpdates(true);
     setUpdateActionMsg(null);
     try {
-      const res = await updateService.checkForUpdates(true);
-      if (res.hasUpdate) {
-        setUpdateActionMsg(`New update v${res.latestVersion} is available! Click Update Now to install.`);
+      const res = await updateService.checkForUpdates();
+      if (res.available) {
+        setUpdateActionMsg(`Update found: v${res.updateInfo?.version || 'new'}`);
       } else {
-        setUpdateActionMsg(`Your software/app is up to date (v${res.currentVersion}).`);
+        setUpdateActionMsg("You are using the latest version!");
       }
     } catch (err: any) {
-      setUpdateActionMsg(`Update check error: ${err.message || 'Check failed'}`);
+      setUpdateActionMsg("Could not check updates: " + err.message);
     } finally {
       setIsCheckingUpdates(false);
     }
   };
 
-  const handleApplyUpdateManual = async () => {
+  const handleDownloadUpdate = async () => {
     try {
-      const res = await updateService.applyUpdate();
-      if (res.message) {
-        setUpdateActionMsg(res.message);
-      }
+      await updateService.downloadUpdate();
     } catch (err: any) {
-      alert(`Update error: ${err.message || 'Could not start update.'}`);
+      alert("Download error: " + err.message);
     }
+  };
+
+  const handleInstallUpdate = () => {
+    updateService.installUpdate();
   };
 
   const handleConnectGoogleDrive = async () => {
     try {
       setGdriveSyncing(true);
-      await connectGoogleDrive();
-      if (user) {
-        const res = await syncDataToGoogleDrive(user.uid);
-        if (res.success) {
-          alert("🎉 Google Drive connected successfully! Master backup file and daily_backups folder created in your Google Drive.");
-          setGdriveConnected(true);
-          setGdriveLastBackup(new Date().toISOString());
-        } else {
-          alert(`Google Drive connected, but initial sync had an issue: ${res.error || 'Please retry sync.'}`);
+      const connected = await connectGoogleDrive();
+      if (connected) {
+        setGdriveConnected(true);
+        alert("Google Drive connected successfully! Automatic 24-hour backup is now enabled.");
+        if (user) {
+          const syncRes = await syncDataToGoogleDrive(user.uid);
+          if (syncRes.success) {
+            setGdriveLastBackup(new Date().toISOString());
+          }
         }
       }
     } catch (err: any) {
-      console.error("Google Drive connection error:", err);
-      alert(`Google Drive connection failed: ${err.message || 'Please check popup permissions.'}`);
+      console.error("Drive connection error:", err);
+      alert(`Google Drive connection failed: ${err.message}`);
     } finally {
       setGdriveSyncing(false);
     }
@@ -150,7 +221,7 @@ export default function SettingsPage() {
       setGdriveSyncing(true);
       const res = await syncDataToGoogleDrive(user.uid);
       if (res.success) {
-        alert("✅ Synced to Google Drive successfully!\n• Master backup updated\n• Today's daily backup created in daily_backups/");
+        alert("Synced to Google Drive successfully!\nMaster backup updated\nToday's daily backup created in daily_backups/");
         setGdriveLastBackup(new Date().toISOString());
       } else {
         alert(`Sync failed: ${res.error || 'Please re-connect Google Drive'}`);
@@ -190,7 +261,7 @@ export default function SettingsPage() {
       const res = await writeAllDataToPcDirectory(user.uid, dirHandle);
       if (res.masterSaved) {
         setPcDirLastBackup(new Date().toISOString());
-        alert(`🎉 PC Folder connected successfully!\nBackup saved to: ${dirHandle.name}/invocentric_master_backup.json and daily_backups/`);
+        alert(`PC Folder connected successfully!\nBackup saved to: ${dirHandle.name}/invocentric_master_backup.json and daily_backups/`);
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
@@ -214,7 +285,7 @@ export default function SettingsPage() {
       const res = await writeAllDataToPcDirectory(user.uid, dirHandle);
       if (res.masterSaved) {
         setPcDirLastBackup(new Date().toISOString());
-        alert(`✅ Backup saved to PC folder (${dirHandle.name}) successfully!`);
+        alert(`Backup saved to PC folder (${dirHandle.name}) successfully!`);
       } else {
         alert(`Backup failed: Master file could not be saved.`);
       }
@@ -235,6 +306,7 @@ export default function SettingsPage() {
       setPcDirLastBackup(null);
     }
   };
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -251,16 +323,16 @@ export default function SettingsPage() {
           collection(db, 'subscription_receipts'),
           where('user_id', '==', user.uid)
         );
-        const querySnapshot = await getDocs(q);
-        const docsList = querySnapshot.docs.map(d => ({
-          id: d.id,
-          ...d.data()
-        }));
-        // Sort manually by created_at descending
-        docsList.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-        setReceipts(docsList);
+        const snap = await getDocs(q);
+        const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        docs.sort((a: any, b: any) => {
+          const dateA = a.created_at?.toDate ? a.created_at.toDate() : new Date(a.created_at || 0);
+          const dateB = b.created_at?.toDate ? b.created_at.toDate() : new Date(b.created_at || 0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        setReceipts(docs);
       } catch (err) {
-        console.error("Error fetching subscription receipts:", err);
+        console.warn("Could not fetch receipts:", err);
       } finally {
         setFetchingReceipts(false);
       }
@@ -306,12 +378,28 @@ export default function SettingsPage() {
     return sanitizeUserProfile(cached, user.email, user.displayName);
   };
 
-  const [formData, setFormData] = useState(getInitialFormData);
+  const [formData, setFormData] = useState<UserProfileData>(getInitialFormData);
+  const [initialDataSnapshot, setInitialDataSnapshot] = useState<UserProfileData>(getInitialFormData);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Photo size should be less than 2MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, profile_photo_url: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // 1MB limit for Base64 storage
+      if (file.size > 1024 * 1024) {
         alert("Logo size should be less than 1MB");
         return;
       }
@@ -326,7 +414,7 @@ export default function SettingsPage() {
   const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // 1MB limit for Base64 storage
+      if (file.size > 1024 * 1024) {
         alert("QR Image size should be less than 1MB");
         return;
       }
@@ -341,7 +429,7 @@ export default function SettingsPage() {
   const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // 1MB limit for Base64 storage
+      if (file.size > 1024 * 1024) {
         alert("Signature image size should be less than 1MB");
         return;
       }
@@ -352,7 +440,6 @@ export default function SettingsPage() {
       reader.readAsDataURL(file);
     }
   };
-
 
   const backupFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -395,7 +482,6 @@ export default function SettingsPage() {
 
     setImportingCloudData(true);
     try {
-      // 1. Fetch User Profile
       const userDocRef = doc(db, 'users', user.uid);
       const userDocSnap = await getDoc(userDocRef);
       if (userDocSnap.exists()) {
@@ -404,7 +490,6 @@ export default function SettingsPage() {
         setSecureStorage(`user_profile_${user.uid}`, profileData);
       }
 
-      // 2. Fetch other collections
       const collectionsToSync = ['invoices', 'customers', 'items', 'expenses', 'purchases', 'payments'];
       let importedCount = 0;
 
@@ -424,7 +509,6 @@ export default function SettingsPage() {
           const localKey = `offline_${colName}_${user.uid}`;
           const existingLocal = getSecureStorage(localKey, []);
           
-          // Map to unique docs
           const merged = [...existingLocal];
           fetchedDocs.forEach((newDoc: any) => {
             const idx = merged.findIndex(item => item.id === newDoc.id);
@@ -440,13 +524,11 @@ export default function SettingsPage() {
         }
       }
 
-      // 3. If PC Hard Drive Mode is active, write to the physical file instantly
       if (isPcDriveEnabled) {
         try {
           const handle = await getFileHandleFromIndexedDB(user.uid);
           if (handle) {
             await writeAllDataToPcFile(user.uid, handle);
-            console.log("Instantly updated PC Hard Drive file with merged Firebase data");
           }
         } catch (fileErr) {
           console.error("Failed to automatically update local PC file:", fileErr);
@@ -454,7 +536,6 @@ export default function SettingsPage() {
       }
 
       setSecureStorage(`cloud_data_imported_${user.uid}`, true);
-
       alert(`Success! A total of ${importedCount} records were downloaded and merged into your PC/Browser Storage.`);
       window.location.reload();
     } catch (err: any) {
@@ -476,15 +557,11 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const userId = user.uid;
-
-      // 1. Delete user profile document from Firestore to comply with GDPR/CCPA
       if (navigator.onLine) {
         const userDocRef = doc(db, 'users', userId);
         await deleteDoc(userDocRef);
-        console.log("Firestore profile doc deleted");
       }
 
-      // 2. Clear all local storage records for user
       const keysToErase = [
         `offline_invoices_${userId}`,
         `offline_customers_${userId}`,
@@ -501,8 +578,6 @@ export default function SettingsPage() {
       ];
 
       keysToErase.forEach(key => localStorage.removeItem(key));
-      console.log("Erased all local cache keys");
-
       alert("Your account and all associated data have been permanently deleted.");
       await logout();
       window.location.href = '/';
@@ -514,26 +589,66 @@ export default function SettingsPage() {
     }
   };
 
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordStatus({ type: 'error', text: 'New password must be at least 6 characters long.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordStatus({ type: 'error', text: 'New password and confirm password do not match.' });
+      return;
+    }
+    if (!auth.currentUser) {
+      setPasswordStatus({ type: 'error', text: 'You must be logged in to update your password.' });
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordStatus(null);
+    try {
+      if (currentPassword && auth.currentUser.email) {
+        const cred = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+        await reauthenticateWithCredential(auth.currentUser, cred);
+      }
+      await updatePassword(auth.currentUser, newPassword);
+      setPasswordStatus({ type: 'success', text: 'Password updated successfully!' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      console.error("Password update error:", err);
+      if (err.code === 'auth/wrong-password') {
+        setPasswordStatus({ type: 'error', text: 'Current password is incorrect.' });
+      } else if (err.code === 'auth/requires-recent-login') {
+        setPasswordStatus({ type: 'error', text: 'Please enter your current password to confirm your identity.' });
+      } else {
+        setPasswordStatus({ type: 'error', text: err.message || 'Failed to update password.' });
+      }
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   useEffect(() => {
     async function fetchSettings() {
       if (!user) return;
       setLoading(true);
       try {
         const isOwnerEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-
-        // 1. Immediately read persistent local cache from all redundant storage layers
         const cached = getStoredUserProfile(user.uid);
         const safeLocal = sanitizeUserProfile(cached, user.email, user.displayName);
-        setFormData({
+        const mergedInitial = {
           ...DEFAULT_PROFILE_DATA,
           ...safeLocal
-        });
+        };
+        setFormData(mergedInitial);
+        setInitialDataSnapshot(mergedInitial);
 
         if (isOfflineModeReal) {
           return;
         }
 
-        // 2. Fetch from Firestore and intelligently merge without ever dropping local fields
         const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
         
@@ -541,24 +656,14 @@ export default function SettingsPage() {
           const cloudData = docSnap.data();
           const safeCloudData = sanitizeUserProfile(cloudData, user.email, user.displayName);
 
-          // Self-healing: if Firestore doc of non-owner user has ANY of Noman's data or admin flag, wipe it immediately!
           if (!isOwnerEmail) {
             const rawOwner = String(cloudData.owner_name || '').toLowerCase();
             const rawBusiness = String(cloudData.business_name || '').toLowerCase();
-            const rawPhone = String(cloudData.phone || '');
-            const rawAddress = String(cloudData.address || '').toLowerCase();
-            const rawUpi = String(cloudData.upi_id || '').toLowerCase();
-            
             const isContaminated = 
               rawOwner.includes('noman') ||
               rawOwner.includes('shekh') ||
               rawBusiness.includes('graphic designer') ||
               rawBusiness.includes('noman') ||
-              rawBusiness.includes('invocentric main') ||
-              rawPhone.includes('9824194869') ||
-              rawAddress.includes('patan') ||
-              rawUpi.includes('shekhnoman') ||
-              rawUpi.includes('noman') ||
               cloudData.is_admin ||
               cloudData.role === 'owner';
 
@@ -593,19 +698,19 @@ export default function SettingsPage() {
           }
 
           const merged = saveStoredUserProfile(user.uid, safeCloudData, user.email);
-          setFormData({
+          const fullData = {
             ...DEFAULT_PROFILE_DATA,
             ...merged
-          });
+          };
+          setFormData(fullData);
+          setInitialDataSnapshot(fullData);
 
-          // If local cache had clean non-admin fields, sync to Firestore
           const cleanToSync = sanitizeFirestorePayload({
             ...merged,
             updated_at: serverTimestamp()
           });
           setDoc(docRef, cleanToSync, { merge: true }).catch(console.warn);
         } else {
-          // Document does not exist yet in Firestore - seed it with clean local profile only
           if (safeLocal && (safeLocal.business_name || safeLocal.phone)) {
             const cleanToSync = sanitizeFirestorePayload({
               ...safeLocal,
@@ -627,28 +732,22 @@ export default function SettingsPage() {
     fetchSettings();
   }, [user, isOfflineModeReal]);
 
-  // Robust persistence across local secureStorage, localStorage, IndexedDB, and Firestore
   const persistSettings = async (dataToSave: typeof formData) => {
     if (!user) return;
-    
-    // 1. Save across all redundant local storage layers (secure, raw, permanent) strictly isolated by userId
     saveStoredUserProfile(user.uid, dataToSave, user.email);
 
-    // 2. Offline users collection mirror
     const cachedUsers = getSecureStorage(`offline_users_${user.uid}`, []);
     const updatedUsers = Array.isArray(cachedUsers) && cachedUsers.length > 0
       ? cachedUsers.map((u: any) => u.id === user.uid ? { ...u, ...dataToSave } : u)
       : [{ id: user.uid, ...dataToSave }];
     setSecureStorage(`offline_users_${user.uid}`, updatedUsers);
 
-    // 3. dbService (IndexedDB)
     try {
       await dbService.update('users', user.uid, dataToSave, { offlineMode: isOfflineModeReal, userId: user.uid });
     } catch (err) {
       console.warn("dbService users update handled:", err);
     }
 
-    // 4. Firestore (if online) - sanitized against undefined values, size limits & protected fields
     if (!isOfflineModeReal && navigator.onLine) {
       try {
         const userDocRef = doc(db, 'users', user.uid);
@@ -675,23 +774,15 @@ export default function SettingsPage() {
         });
         await setDoc(userDocRef, updateData, { merge: true });
       } catch (cloudErr) {
-        console.warn("Cloud settings sync notice (local profile was saved safely):", cloudErr);
+        console.warn("Cloud settings sync notice:", cloudErr);
       }
     }
   };
 
-  // Debounced Auto-Save
   useEffect(() => {
     if (!isLoadedRef.current || !user) return;
 
-    // Validate that we have a business name before auto-saving (only in online mode)
-    if (!isOfflineMode && (!formData.business_name || formData.business_name.trim() === '')) {
-      setSaveStatus('idle');
-      return;
-    }
-
     setSaveStatus('saving');
-
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
@@ -707,7 +798,7 @@ export default function SettingsPage() {
         console.error("Error auto-saving settings:", error);
         setSaveStatus('error');
       }
-    }, 1500); // 1.5 seconds debounce to give user a comfortable typing window
+    }, 1500);
 
     return () => {
       if (debounceTimerRef.current) {
@@ -716,8 +807,8 @@ export default function SettingsPage() {
     };
   }, [formData, user, isOfflineModeReal]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleManualSave = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!user) return;
 
     if (debounceTimerRef.current) {
@@ -743,1322 +834,1779 @@ export default function SettingsPage() {
     }
   };
 
+  const handleResetForm = () => {
+    if (window.confirm("Are you sure you want to reset any unsaved changes in this form?")) {
+      setFormData({ ...initialDataSnapshot });
+    }
+  };
+
+  const CATEGORIES = [
+    { 
+      id: 'profile', 
+      label: 'Profile', 
+      mobileTitle: 'User Settings',
+      icon: User, 
+      desc: 'Update your personal profile, credentials & details' 
+    },
+    { 
+      id: 'company', 
+      label: 'Company', 
+      mobileTitle: 'Company Settings',
+      icon: Store, 
+      desc: 'Company information, operating mode & logo' 
+    },
+    { 
+      id: 'tax', 
+      label: 'Tax & Numbering', 
+      mobileTitle: 'Tax & Numbering',
+      icon: FileText, 
+      desc: 'GSTIN, PAN & invoice numbering serials' 
+    },
+    { 
+      id: 'payment', 
+      label: 'Payment Details', 
+      mobileTitle: 'Payment & QR',
+      icon: CreditCard, 
+      desc: 'UPI ID, QR code & bank accounts' 
+    },
+    { 
+      id: 'storage', 
+      label: 'Storage & Backup', 
+      mobileTitle: 'Backup & Restore',
+      icon: HardDrive, 
+      desc: 'PC Hard Drive, Google Drive & data export' 
+    },
+    { 
+      id: 'system', 
+      label: 'System Settings', 
+      mobileTitle: 'System Settings',
+      icon: Settings, 
+      desc: 'Language, timezone, currency & app updates' 
+    },
+    { 
+      id: 'security', 
+      label: 'Plan & Security', 
+      mobileTitle: 'Plan & Security',
+      icon: ShieldCheck, 
+      desc: 'Subscription tier, billing receipts & account' 
+    }
+  ];
+
+  const filteredCategories = CATEGORIES.filter(c => 
+    c.mobileTitle.toLowerCase().includes(categorySearchQuery.toLowerCase()) ||
+    c.desc.toLowerCase().includes(categorySearchQuery.toLowerCase())
+  );
+
+  const currentCategoryInfo = CATEGORIES.find(c => c.id === activeTab) || CATEGORIES[0];
+
   if (loading) {
-    return <div className="py-20 text-center">Loading settings...</div>;
+    return (
+      <div className="py-24 text-center">
+        <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-slate-600 font-semibold text-sm">Loading settings...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-10">
-      <header className="flex flex-col items-center text-center mb-10">
-        <div className="mb-4 flex items-center justify-center">
-           <Logo size={72} />
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Business Settings</h1>
-        <p className="text-gray-500 mt-2 font-medium">Update your shop's details — they appear on every invoice and quote.</p>
-        
-        {/* Autosave Status Indicator */}
-        <div className="mt-4 min-h-[32px] flex items-center justify-center">
-          {saveStatus === 'saving' && (
-            <div className="px-4 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-semibold flex items-center gap-2 animate-pulse">
-              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping"></span>
-              Saving changes automatically...
-            </div>
-          )}
-          {saveStatus === 'saved' && (
-            <div className="px-4 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold flex items-center gap-2">
-              <CheckCircle2 size={14} className="text-emerald-600" />
-              All changes saved automatically
-            </div>
-          )}
-          {saveStatus === 'error' && (
-            <div className="px-4 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-semibold flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-              Error saving changes automatically
-            </div>
-          )}
-          {saveStatus === 'idle' && isLoadedRef.current && (
-            <div className="px-4 py-1.5 text-gray-500 text-xs font-medium flex items-center gap-1.5">
-              <CheckCircle2 size={14} className="text-gray-500" />
-              Auto-save active
-            </div>
-          )}
-        </div>
-      </header>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Account Plan & Billing Card */}
-        <section className="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-              Account Plan & Billing
-            </h2>
-            <p className="text-xs text-slate-500 font-medium">Manage your subscription, unlock features, and check account tier limits.</p>
-          </div>
+    <div className="max-w-7xl mx-auto pb-16 px-3 sm:px-6 lg:px-8">
+      {/* ========================================================================= */}
+      {/* MOBILE CATEGORY DIRECTORY (Shown on mobile when no tab is selected)       */}
+      {/* Matches user's Android mockup structure: Image 3                          */}
+      {/* ========================================================================= */}
+      <div className={cn("md:hidden", !isMobileListVisible && "hidden")}>
+        {/* Mobile Top Header */}
+        <div className="flex items-center justify-between py-4 border-b border-slate-200 mb-4 bg-white -mx-3 px-4 sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <span className={cn(
-              "text-[10px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl border",
-              planTier === 'pro' 
-                ? "bg-[#F0FDF4] text-[#166534] border-green-100" 
-                : "bg-slate-50 text-slate-500 border-slate-200"
-            )}>
-              {planTier === 'pro' ? 'Pro Account' : 'Free Tier'}
-            </span>
-            <Link 
-              to="/pricing"
-              className="bg-[#166534] hover:bg-[#0F3D21] text-white text-xs font-black uppercase tracking-wider px-5 py-3 rounded-xl transition-all shadow-md shadow-green-700/10 active:scale-[0.98]"
-            >
-              {planTier === 'pro' ? 'View Pricing Plans' : 'Upgrade to Pro'}
+            <Link to="/" className="p-2 -ml-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">
+              <ArrowLeft size={20} />
             </Link>
+            <h1 className="text-lg font-black text-slate-900 tracking-tight">Settings</h1>
           </div>
-        </section>
+          <div className="flex items-center gap-2">
+            <Logo size={28} />
+          </div>
+        </div>
 
-        {/* Operating Mode (Shop Mode vs Freelancer Mode) */}
-        <section className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                  Operating Mode
-                </h2>
-                <span className={cn(
-                  "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
-                  appMode === 'shop' ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
-                )}>
-                  {appMode === 'shop' ? 'Shop Mode Active' : 'Freelancer Mode Active'}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Choose your primary operating interface: Retail/Wholesale Shop or Freelancer/Consultant Services.
-              </p>
-            </div>
+        {/* Search Bar for Mobile Categories */}
+        <div className="relative mb-5">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input 
+            type="text"
+            placeholder="Search settings..."
+            value={categorySearchQuery}
+            onChange={(e) => setCategorySearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+          />
+        </div>
 
-            {/* Premium Toggle Switch */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-slate-600">
-                {appMode === 'shop' ? 'Shop Mode' : 'Freelancer Mode'}
-              </span>
+        <p className="text-xs font-semibold text-slate-500 mb-3 px-1">
+          Manage your account, business and system preferences
+        </p>
+
+        {/* Vertical list of Category Cards */}
+        <div className="space-y-2.5">
+          {filteredCategories.map((cat) => {
+            const IconComponent = cat.icon;
+            return (
               <button
+                key={cat.id}
                 type="button"
-                onClick={() => setAppMode(appMode === 'shop' ? 'freelancer' : 'shop')}
-                className={cn(
-                  "relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                  appMode === 'shop' ? "bg-[#166534]" : "bg-blue-600"
-                )}
-                role="switch"
-                aria-checked={appMode === 'shop'}
-                title="Toggle Shop / Freelancer Mode"
+                onClick={() => setActiveTab(cat.id)}
+                className="w-full p-4 bg-white border border-slate-200/80 rounded-2xl flex items-center justify-between text-left hover:border-emerald-500 hover:shadow-xs transition-all active:scale-[0.99] group cursor-pointer"
               >
-                <span
-                  className={cn(
-                    "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
-                    appMode === 'shop' ? "translate-x-7" : "translate-x-0"
-                  )}
-                />
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                    <IconComponent size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">
+                      {cat.mobileTitle}
+                    </h3>
+                    <p className="text-xs text-slate-500 line-clamp-1 mt-0.5 font-medium">
+                      {cat.desc}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-slate-400 group-hover:text-emerald-700 transition-colors shrink-0 ml-2" />
               </button>
-            </div>
-          </div>
+            );
+          })}
+        </div>
+      </div>
 
-          {/* Interactive Cards Selection */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-            {/* Shop Mode Option */}
-            <div
-              onClick={() => setAppMode('shop')}
-              className={cn(
-                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
-                appMode === 'shop'
-                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
-                  : "border-slate-200 hover:border-slate-300 bg-white"
-              )}
-            >
-              <div className={cn(
-                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
-                appMode === 'shop' ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
-              )}>
-                <Store size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">Shop Mode</h3>
-                  {appMode === 'shop' && (
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-                  )}
-                </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Best for retail, wholesale, and traders. Includes barcode scanning, quick POS terminal, stock inventory, and GST bills.
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Quick POS</span>
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Inventory</span>
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Parties</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Freelancer Mode Option */}
-            <div
-              onClick={() => setAppMode('freelancer')}
-              className={cn(
-                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
-                appMode === 'freelancer'
-                  ? "border-blue-600 bg-blue-50/40 shadow-sm"
-                  : "border-slate-200 hover:border-slate-300 bg-white"
-              )}
-            >
-              <div className={cn(
-                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
-                appMode === 'freelancer' ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
-              )}>
-                <Briefcase size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">Freelancer Mode</h3>
-                  {appMode === 'freelancer' && (
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-                  )}
-                </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Best for consultants, designers, developers & agencies. Streamlined for client proposals, hourly/project services, and contracts.
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Proposals</span>
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Clients</span>
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Services</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Industry-Specific Vertical Modules */}
-        <section className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
-            <div>
-              <div className="flex items-center gap-2">
-                <Sparkles size={18} className="text-[#166534]" />
-                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                  Industry-Specific Vertical Modules
-                </h2>
-              </div>
-              <p className="text-xs text-slate-500 font-medium mt-1">
-                Enable specialized workflows tailored specifically to your trade and inventory requirements.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-            {/* 1. Electronics & Mobile */}
-            <div
-              onClick={() => {
-                setFormData((prev: any) => ({
-                  ...prev,
-                  industry_modules: {
-                    ...(prev.industry_modules || {}),
-                    electronics_imei: !((prev.industry_modules || {}).electronics_imei)
-                  }
-                }));
-              }}
-              className={cn(
-                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
-                formData.industry_modules?.electronics_imei
-                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
-                  : "border-slate-200 hover:border-slate-300 bg-white"
-              )}
-            >
-              <div className={cn(
-                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
-                formData.industry_modules?.electronics_imei ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
-              )}>
-                <Smartphone size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">Electronics & Mobile Mode</h3>
-                  <span className={cn(
-                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
-                    formData.industry_modules?.electronics_imei ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
-                  )}>
-                    {formData.industry_modules?.electronics_imei ? "Active" : "Disabled"}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Track IMEI & Serial numbers per product. Auto-prints warranty period and terms on invoices and stickers.
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">IMEI/Serial</span>
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Warranty Tracking</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Pharma & FMCG */}
-            <div
-              onClick={() => {
-                setFormData((prev: any) => ({
-                  ...prev,
-                  industry_modules: {
-                    ...(prev.industry_modules || {}),
-                    pharma_batch_expiry: !((prev.industry_modules || {}).pharma_batch_expiry)
-                  }
-                }));
-              }}
-              className={cn(
-                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
-                formData.industry_modules?.pharma_batch_expiry
-                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
-                  : "border-slate-200 hover:border-slate-300 bg-white"
-              )}
-            >
-              <div className={cn(
-                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
-                formData.industry_modules?.pharma_batch_expiry ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
-              )}>
-                <Pill size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">Pharma & FMCG Mode</h3>
-                  <span className={cn(
-                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
-                    formData.industry_modules?.pharma_batch_expiry ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
-                  )}>
-                    {formData.industry_modules?.pharma_batch_expiry ? "Active" : "Disabled"}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Batch numbers, manufacturing & expiry date tracking, Drug License (DL), and proactive near-expiry alerts.
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Batch No.</span>
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Expiry Date</span>
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Drug License</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Hardware & Grocery */}
-            <div
-              onClick={() => {
-                setFormData((prev: any) => ({
-                  ...prev,
-                  industry_modules: {
-                    ...(prev.industry_modules || {}),
-                    hardware_decimals: !((prev.industry_modules || {}).hardware_decimals)
-                  }
-                }));
-              }}
-              className={cn(
-                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
-                formData.industry_modules?.hardware_decimals
-                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
-                  : "border-slate-200 hover:border-slate-300 bg-white"
-              )}
-            >
-              <div className={cn(
-                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
-                formData.industry_modules?.hardware_decimals ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
-              )}>
-                <Scale size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">Hardware & Weight Mode</h3>
-                  <span className={cn(
-                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
-                    formData.industry_modules?.hardware_decimals ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
-                  )}>
-                    {formData.industry_modules?.hardware_decimals ? "Active" : "Disabled"}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Support fractional decimals (e.g. 1.250 kg, 0.750 m), tare weights, and multi-tax slab item classification.
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Fractional / Decimals</span>
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Multi-Tax Slabs</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 4. Services & Consulting */}
-            <div
-              onClick={() => {
-                setFormData((prev: any) => ({
-                  ...prev,
-                  industry_modules: {
-                    ...(prev.industry_modules || {}),
-                    services_recurring: !((prev.industry_modules || {}).services_recurring)
-                  }
-                }));
-              }}
-              className={cn(
-                "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
-                formData.industry_modules?.services_recurring
-                  ? "border-[#166534] bg-emerald-50/40 shadow-sm"
-                  : "border-slate-200 hover:border-slate-300 bg-white"
-              )}
-            >
-              <div className={cn(
-                "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
-                formData.industry_modules?.services_recurring ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
-              )}>
-                <Repeat size={22} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-900">Services & Subscriptions Mode</h3>
-                  <span className={cn(
-                    "text-[10px] font-black uppercase px-2 py-0.5 rounded-full",
-                    formData.industry_modules?.services_recurring ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
-                  )}>
-                    {formData.industry_modules?.services_recurring ? "Active" : "Disabled"}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  Recurring monthly / annual client retainer billing, hourly milestones, and automatic subscription renewals.
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Recurring Billing</span>
-                  <span className="text-[10px] font-semibold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">Milestones</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Fast Keys & Keyboard Shortcuts Guide */}
-        <section className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Keyboard size={18} className="text-[#166534]" />
-              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                Fast Keys & Shortcuts
-              </h2>
-            </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Speed up your billing workflow using fast keys (F1 for help, F8 for new invoice, Alt+N, Ctrl+S to save).
-            </p>
-          </div>
+      {/* ========================================================================= */}
+      {/* DESKTOP & DRILLDOWN CONTAINER                                             */}
+      {/* ========================================================================= */}
+      <div className={cn(isMobileListVisible && "hidden md:block")}>
+        {/* Mobile Drilldown Navigation Top Bar */}
+        <div className="md:hidden flex items-center justify-between py-3.5 border-b border-slate-200 mb-6 bg-white -mx-3 px-4 sticky top-0 z-20 shadow-xs">
           <button
             type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent('open_shortcuts_modal'))}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-950 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+            onClick={handleMobileBack}
+            className="flex items-center gap-2 text-slate-700 font-bold text-sm hover:text-emerald-800 py-1"
           >
-            <Keyboard size={14} className="text-emerald-400" />
-            <span>Open Fast Keys (F1)</span>
+            <ArrowLeft size={18} />
+            <span>Settings</span>
+            <span className="text-slate-400 font-normal">/</span>
+            <span className="text-emerald-900 font-black">{currentCategoryInfo.label}</span>
           </button>
-        </section>
 
-        {/* Software & App Updates Section */}
-        <section className="bg-gradient-to-br from-emerald-900/5 via-slate-50 to-teal-900/5 border border-emerald-200/60 rounded-2xl p-6 sm:p-8 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-[#0d5c4b] flex items-center justify-center shrink-0">
-                  <Sparkles size={16} />
-                </div>
-                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                  Software & App Updates
-                </h2>
+          <button
+            type="button"
+            onClick={handleManualSave}
+            disabled={saving}
+            className="p-2 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-xl font-bold flex items-center gap-1 text-xs"
+            title="Save changes"
+          >
+            <Check size={16} />
+            <span>Save</span>
+          </button>
+        </div>
+
+        {/* Desktop Header */}
+        <header className="mb-6 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200/80">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-100 shadow-xs">
+                <Settings size={26} className="text-emerald-800" />
               </div>
-              <p className="text-xs text-slate-600 font-medium">
-                Current Version: <span className="font-bold text-slate-900">v{updateState.currentVersion}</span> • Platform: <span className="font-bold text-slate-900">{updateState.platform === 'electron' ? 'Windows Desktop' : updateState.platform === 'android' ? 'Android Phone App' : 'Web Browser'}</span>
-              </p>
-              <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 font-semibold pt-1">
-                <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
-                <span>100% Zero Data Loss Guarantee: Your invoices, stock, and customer data remain completely safe during updates.</span>
-              </div>
-              {updateActionMsg && (
-                <p className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5 mt-2 animate-fadeIn">
-                  {updateActionMsg}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={handleCheckUpdatesManual}
-                disabled={isCheckingUpdates || updateState.status === 'downloading'}
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw size={14} className={isCheckingUpdates ? "animate-spin text-white" : "text-emerald-200"} />
-                <span>{isCheckingUpdates ? 'Checking Updates...' : 'Check for Updates'}</span>
-              </button>
-
-              {(updateState.hasUpdate || updateState.status === 'downloaded') && (
-                <button
-                  type="button"
-                  onClick={handleApplyUpdateManual}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-300 hover:to-amber-300 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider shadow-md active:scale-95 cursor-pointer"
-                >
-                  {updateState.status === 'downloaded' ? (
-                    <>
-                      <CheckCircle2 size={14} className="text-emerald-900" />
-                      <span>{updateState.platform === 'electron' ? 'Restart & Apply Update' : 'Install Update Now'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Download size={14} />
-                      <span>Update Now (v{updateState.latestVersion})</span>
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Download progress bar if actively downloading */}
-          {updateState.status === 'downloading' && (
-            <div className="mt-4 p-4 bg-emerald-50/80 rounded-xl border border-emerald-200">
-              <div className="flex items-center justify-between text-xs font-bold text-emerald-900 mb-1.5">
-                <span className="flex items-center gap-2">
-                  <RefreshCw size={12} className="animate-spin text-emerald-600" />
-                  Downloading update package in-place...
-                </span>
-                <span>{updateState.progress}%</span>
-              </div>
-              <div className="w-full bg-emerald-200/60 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.max(5, updateState.progress)}%` }}
-                />
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Business Profile */}
-        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Business Profile</h2>
-            <div className="flex items-center gap-4">
-              {formData.logo_url && (
-                <div className="relative group">
-                  <img src={formData.logo_url} alt="Logo Preview" className="w-16 h-16 object-contain rounded-lg p-0.5" />
-                  {!isOfflineMode && (
-                    <button 
-                      type="button" 
-                      onClick={() => setFormData(p => ({ ...p, logo_url: '' }))}
-                      className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 transition-opacity border border-white shadow-sm hover:bg-red-200"
-                      title="Remove Logo"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              )}
-              {!isOfflineMode && (
-                <label className="cursor-pointer bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-2 rounded-lg text-xs font-semibold text-gray-600 transition-all flex items-center gap-2">
-                  <Save size={14} className="rotate-45" />
-                  {formData.logo_url ? 'Change Logo' : 'Upload Logo'}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
-                </label>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Business Name *</label>
-              <input 
-                type="text" 
-                required
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-450 disabled:cursor-not-allowed" 
-                value={formData.business_name}
-                onChange={(e) => setFormData(p => ({ ...p, business_name: e.target.value }))}
-                placeholder="E.g. Sharma Electronics & Mobile Hub"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Owner Name</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-450 disabled:cursor-not-allowed" 
-                value={formData.owner_name}
-                onChange={(e) => setFormData(p => ({ ...p, owner_name: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Currency</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-450 disabled:cursor-not-allowed" 
-                value={formData.currency}
-                onChange={(e) => setFormData(p => ({ ...p, currency: e.target.value }))}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Contact info */}
-        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Contact</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Phone</label>
-              <input 
-                type="tel" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.phone}
-                onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
-                placeholder="+91 98765 43210"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Email</label>
-              <input 
-                type="email" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.email}
-                onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Address</label>
-              <textarea 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow min-h-[100px] disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.address}
-                onChange={(e) => setFormData(p => ({ ...p, address: e.target.value }))}
-                placeholder="Shop address..."
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">City</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.city}
-                onChange={(e) => setFormData(p => ({ ...p, city: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">State</label>
-              <select 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed"
-                value={formData.state}
-                onChange={(e) => setFormData(p => ({ ...p, state: e.target.value }))}
-              >
-                <option value="">Select state</option>
-                <option value="Maharashtra">Maharashtra</option>
-                <option value="Gujarat">Gujarat</option>
-                <option value="Delhi">Delhi</option>
-                <option value="Karnataka">Karnataka</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Pincode</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.pincode}
-                onChange={(e) => setFormData(p => ({ ...p, pincode: e.target.value }))}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Tax info */}
-        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Tax & Numbering</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">GSTIN</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.gstin}
-                onChange={(e) => setFormData(p => ({ ...p, gstin: e.target.value }))}
-                placeholder="27AABC..."
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">PAN Number</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed uppercase" 
-                value={formData.pan || ''}
-                onChange={(e) => setFormData(p => ({ ...p, pan: e.target.value.toUpperCase() }))}
-                placeholder="ABCDE1234F"
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-bold text-gray-700 block uppercase">Drug License (DL) No.</label>
-                {formData.industry_modules?.pharma_batch_expiry && (
-                  <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                    Pharma Active
-                  </span>
-                )}
-              </div>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed uppercase" 
-                value={formData.drug_license_no || ''}
-                onChange={(e) => setFormData(p => ({ ...p, drug_license_no: e.target.value }))}
-                placeholder="e.g. MH-MZ2-123456 / 20B/21B"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Invoice Prefix</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed uppercase" 
-                value={formData.invoice_prefix}
-                onChange={(e) => setFormData(p => ({ ...p, invoice_prefix: e.target.value }))}
-              />
-            </div>
-            <div className="md:col-span-2 bg-gradient-to-r from-green-50 to-blue-50/50 border border-green-100 rounded-xl p-5 mt-2">
-              <label className="text-xs font-black text-green-950 mb-1 block uppercase tracking-wider">Invoice Design Template</label>
-              <p className="text-xs text-green-700/80 mb-3 font-medium">Select the layout design for your printed and downloaded invoices.</p>
-              <select 
-                className="w-full bg-white border border-green-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow text-slate-800 font-semibold"
-                value={formData.invoice_template || 'template_01'}
-                onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
-              >
-                <option value="template_01">InvoCentric Template 01 — Blue Bordered + IGST Columns (A4)</option>
-                <option value="template_02">InvoCentric Template 02 — Blue Line Top + IGST Columns (A4)</option>
-                <option value="template_03">InvoCentric Template 03 — Supplier B2B (Dedicated Serial / Batch Column)</option>
-                <option value="template_04">InvoCentric Template 04 — POS Receipt Thermal (3-Inch / 80mm Roll)</option>
-                <option value="template_05">InvoCentric Template 05 — POS Receipt Thermal (2-Inch / 58mm Roll)</option>
-              </select>
-            </div>
-          </div>
-        </section>
-
-        {/* Payment details */}
-        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Payment Details (for Invoices)</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">UPI ID</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.upi_id}
-                onChange={(e) => setFormData(p => ({ ...p, upi_id: e.target.value }))}
-                placeholder="yours@upi"
-              />
-              <p className="text-[10px] text-gray-500 mt-1">This will be used to generate a UPI QR code on the invoice.</p>
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Bank Name</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.bank_name}
-                onChange={(e) => setFormData(p => ({ ...p, bank_name: e.target.value }))}
-                placeholder="E.g. State Bank of India"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Bank Branch</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.bank_branch}
-                onChange={(e) => setFormData(p => ({ ...p, bank_branch: e.target.value }))}
-                placeholder="E.g. Main Branch, MG Road"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Account Holder Name</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.account_holder}
-                onChange={(e) => setFormData(p => ({ ...p, account_holder: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Account Number</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.account_number}
-                onChange={(e) => setFormData(p => ({ ...p, account_number: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">IFSC Code</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.ifsc_code}
-                onChange={(e) => setFormData(p => ({ ...p, ifsc_code: e.target.value }))}
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Social Media Details */}
-        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Social Media</h2>
-            <div className="flex items-center gap-4">
-              {formData.social_qr_url && (
-                <div className="relative group">
-                  <img src={formData.social_qr_url} alt="QR Preview" className="w-16 h-16 object-contain rounded-lg p-0.5" />
-                  {!isOfflineMode && (
-                    <button 
-                      type="button" 
-                      onClick={() => setFormData(p => ({ ...p, social_qr_url: '' }))}
-                      className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 transition-opacity border border-white shadow-sm hover:bg-red-200"
-                      title="Remove QR"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              )}
-              {!isOfflineMode && (
-                <label className="cursor-pointer bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-2 rounded-lg text-xs font-semibold text-gray-600 transition-all flex items-center gap-2">
-                  <Save size={14} className="rotate-45" />
-                  {formData.social_qr_url ? 'Change Profile QR Code' : 'Upload Profile/Social QR'}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleQrUpload} />
-                </label>
-              )}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="md:col-span-2">
-               <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">QR Code Label / Handle</label>
-               <input 
-                 type="text" 
-                 disabled={isOfflineMode}
-                 className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                 value={formData.social_qr_label}
-                 onChange={(e) => setFormData(p => ({ ...p, social_qr_label: e.target.value }))}
-                 placeholder="E.g. Scan to follow us on Instagram"
-               />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Instagram Handle</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.instagram}
-                onChange={(e) => setFormData(p => ({ ...p, instagram: e.target.value }))}
-                placeholder="@yourhandle"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Facebook Handle / Page</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.facebook}
-                onChange={(e) => setFormData(p => ({ ...p, facebook: e.target.value }))}
-                placeholder="fb.com/yourpage"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-gray-700 mb-2 block uppercase">Website / Other Link</label>
-              <input 
-                type="text" 
-                disabled={isOfflineMode}
-                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none transition-shadow disabled:bg-gray-50 disabled:text-gray-455 disabled:cursor-not-allowed" 
-                value={formData.website}
-                onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))}
-                placeholder="www.yourwebsite.com"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Authorized Signature */}
-        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-            <div className="space-y-1">
-              <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Authorized Signature</h2>
-              <p className="text-xs text-gray-500">Upload your signature image (preferably a transparent PNG or white background). It will automatically show in all your invoices.</p>
-            </div>
-            <div className="flex items-center gap-4">
-              {formData.signature_url && (
-                <div className="relative group">
-                  <img src={formData.signature_url} alt="Signature Preview" className="h-12 w-32 object-contain rounded-lg p-0.5" />
-                  {!isOfflineMode && (
-                    <button 
-                      type="button" 
-                      onClick={() => setFormData(p => ({ ...p, signature_url: '' }))}
-                      className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 transition-opacity border border-white shadow-sm hover:bg-red-200"
-                      title="Remove Signature"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
-              )}
-              {!isOfflineMode && (
-                <label className="cursor-pointer bg-gray-50 border border-gray-200 hover:bg-gray-100 px-4 py-2 rounded-lg text-xs font-semibold text-gray-600 transition-all flex items-center gap-2 shrink-0">
-                  <Save size={14} className="rotate-45" />
-                  {formData.signature_url ? 'Change Signature' : 'Upload Signature'}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
-                </label>
-              )}
-            </div>
-          </div>
-        </section>
-
-
-
-        {/* Storage Engine & Privacy Selector (Cloud vs Local PC Offline) */}
-        <StorageModeSelector />
-
-        {/* Storage & Connectivity */}
-        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
-          <div className="flex items-center gap-2 mb-6">
-            <HardDrive className="text-gray-900" size={20} />
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Storage & Database Options</h2>
-          </div>
-          
-          <div className="space-y-6">
-            {/* 1. PC Hard Drive Storage Mode (Premium Local-First Mode) */}
-            
-            {/* PC Hard Drive Directory Folder Mode (Master + Daily Backups) */}
-            <div className="p-6 bg-gradient-to-r from-green-50/80 via-emerald-50/60 to-teal-50/50 border border-green-200 rounded-2xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-black text-[#166534] uppercase tracking-wider flex items-center gap-1.5">
-                      <span>PC Hard Drive Folder Backup</span>
-                      <span className="bg-[#166534] text-[8px] font-black text-white px-2 py-0.5 rounded uppercase tracking-widest">Local Disk</span>
-                    </p>
-                    {pcDirConnected && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                        <CheckCircle2 size={11} /> Folder Connected
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-700 font-medium leading-relaxed">
-                    Select a folder on your PC. InvoCentric automatically writes the master database (<span className="font-mono font-bold text-emerald-900">invocentric_master_backup.json</span>) and creates daily dated files inside <span className="font-mono font-bold text-emerald-900">daily_backups/</span> every 24 hours.
-                  </p>
-                  {pcDirConnected && (
-                    <div className="flex flex-wrap items-center gap-3 text-xs pt-1">
-                      <span className="font-bold text-slate-600">Selected PC Folder: <span className="font-mono font-black text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200">{pcDirName}</span></span>
-                      {pcDirLastBackup && (
-                        <span className="text-slate-500 font-medium">Last Saved: {new Date(pcDirLastBackup).toLocaleString()}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {pcDirConnected ? (
-                    <>
-                      <button
-                        type="button"
-                        disabled={pcDirSyncing}
-                        onClick={handleSyncPcDirNow}
-                        className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
-                      >
-                        <HardDrive size={13} className={cn(pcDirSyncing && "animate-spin")} />
-                        <span>{pcDirSyncing ? 'Writing...' : 'Save to PC Now'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSelectPcDirectory}
-                        className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                        title="Change Folder"
-                      >
-                        Change Folder
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDisconnectPcDir}
-                        className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                        title="Disconnect Folder"
-                      >
-                        Disconnect
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={pcDirSyncing}
-                      onClick={handleSelectPcDirectory}
-                      className="px-4 py-2.5 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
-                    >
-                      <FolderOpen size={15} />
-                      <span>{pcDirSyncing ? 'Connecting...' : 'Choose PC Backup Folder'}</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-emerald-50/50 border border-emerald-100/80 rounded-[2rem] space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-black text-emerald-900 uppercase tracking-wider">PC Hard Drive Storage Mode</p>
-                    <span className="bg-emerald-600 text-[8px] font-black text-white px-2 py-0.5 rounded uppercase tracking-widest">Safe & Zero Cost</span>
-                  </div>
-                  <p className="text-xs text-emerald-800/80 font-bold uppercase tracking-widest leading-relaxed">
-                    Save and write all your data directly inside a physical JSON file on your computer's hard drive.
-                  </p>
-                </div>
-
-                <div className="shrink-0">
-                  {isPcDriveEnabled ? (
-                    <button
-                      type="button"
-                      onClick={disablePcDriveMode}
-                      className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border border-red-200/50 transition-colors"
-                    >
-                      Disconnect PC Storage
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={enablePcDriveMode}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-md shadow-emerald-600/10 transition-all flex items-center gap-2"
-                    >
-                      <FolderOpen size={14} />
-                      Set PC File
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {isPcDriveEnabled && (
-                <div className="p-4 bg-white border border-emerald-100 rounded-2xl space-y-3.5">
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
-                        <HardDrive size={16} />
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-500 uppercase tracking-wider text-[10px]">Active Database File</p>
-                        <p className="font-black text-gray-800 text-sm">{pcFileName || 'invocentric_db.json'}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {isPcFileConnected ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          <CheckCircle2 size={12} />
-                          Connected & Synced
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-100 text-amber-800 border border-amber-200">
-                          <Lock size={12} />
-                          Locked (Permission Required)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {!isPcFileConnected && (
-                    <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
-                      <p className="text-[11px] text-amber-800 font-bold uppercase tracking-wider text-center sm:text-left leading-relaxed">
-                        🔒 File handle needs re-authorization for this browser session. Unlock now to continue offline hard-drive sync.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={unlockPcDriveFile}
-                        className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shrink-0 transition-colors shadow-sm"
-                      >
-                        <Unlock size={12} />
-                        Unlock PC File
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="text-[10px] text-gray-400 font-medium leading-relaxed uppercase">
-                    💡 All your changes (invoices, payments, clients, products) are written in real-time to this local file. Since the file is on your PC, you never have to worry about browser cache clearance or data storage limits!
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Manual Backup and Restore Fallbacks */}
-            <div className="border-t border-gray-100 pt-6">
-              <p className="text-xs font-bold text-gray-700 mb-3 uppercase tracking-wider">Manual Offline Sync Fallbacks</p>
-              <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                <button
-                  type="button"
-                  onClick={handleExportBackup}
-                  className="flex-1 flex items-center justify-center gap-2 bg-neutral-900 text-white p-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-neutral-800 transition-colors shadow-lg shadow-neutral-900/10"
-                >
-                  <Download size={16} />
-                  Download Manual Backup
-                </button>
-
-                <div className="flex-1 relative">
-                  <input
-                    type="file"
-                    accept=".json"
-                    ref={backupFileInputRef}
-                    onChange={handleRestoreBackup}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    title="Upload Backup File"
-                  />
-                  <button
-                    type="button"
-                    className="w-full flex items-center justify-center gap-2 bg-white text-neutral-900 border-2 border-neutral-200 p-4 rounded-xl font-black uppercase tracking-widest text-xs hover:border-neutral-900 transition-colors"
-                  >
-                    <Upload size={16} />
-                    Restore From PC JSON
-                  </button>
-                </div>
-              </div>
-
-              {/* Firebase Cloud Data Downloader */}
-              {!isCloudDataImported && (
-                <div className="bg-sky-50/50 border border-sky-100 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mt-2">
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-sky-900 uppercase tracking-widest">Data Store</p>
-                    <p className="text-[11px] text-sky-700 font-bold uppercase tracking-wide leading-relaxed">
-                      Click here to download and merge your previous cloud data into your local PC and browser storage.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={importingCloudData}
-                    onClick={handleImportCloudData}
-                    className="shrink-0 bg-sky-600 hover:bg-sky-700 text-white font-black text-[10px] uppercase tracking-widest px-5 py-3 rounded-xl transition-all shadow-md shadow-sky-600/10 flex items-center gap-2 disabled:opacity-50"
-                  >
-                    <CloudDownload size={14} className={cn(importingCloudData && "animate-spin")} />
-                    {importingCloudData ? "Downloading..." : "Import Cloud Data"}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Automation & Backups */}
-        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Automation & Backups</h2>
-          <div className="space-y-4">
-            {/* Google Drive 24-Hour Auto-Backup (Master File + Daily Folder) */}
-            <div className="p-5 bg-gradient-to-r from-emerald-50/70 to-teal-50/50 rounded-2xl border border-emerald-200/80 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-black text-[#166534] uppercase tracking-wider flex items-center gap-1.5">
-                      <span>Google Drive Auto-Backup</span>
-                      <span className="bg-[#166534] text-[9px] font-black text-white px-2 py-0.5 rounded-full uppercase tracking-wider">Cloud 24H</span>
-                    </p>
-                    {gdriveConnected && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">
-                        <CheckCircle2 size={11} /> Connected
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                    Saves an accumulated master backup (<span className="font-mono font-bold text-emerald-800">invocentric_master_backup.json</span>) and dated daily snapshots inside <span className="font-mono font-bold text-emerald-800">daily_backups/</span> on your Google Drive automatically every 24 hours.
-                  </p>
-                  {gdriveLastBackup && (
-                    <p className="text-[11px] text-slate-500 font-semibold">
-                      Last Google Drive Sync: {new Date(gdriveLastBackup).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {gdriveConnected ? (
-                    <>
-                      <button
-                        type="button"
-                        disabled={gdriveSyncing}
-                        onClick={handleSyncGoogleDriveNow}
-                        className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
-                      >
-                        <Upload size={13} className={cn(gdriveSyncing && "animate-spin")} />
-                        <span>{gdriveSyncing ? 'Syncing...' : 'Sync to Drive Now'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDisconnectGoogleDrive}
-                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                        title="Disconnect Google Drive"
-                      >
-                        Disconnect
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={gdriveSyncing}
-                      onClick={handleConnectGoogleDrive}
-                      className="px-4 py-2.5 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
-                    >
-                      <HardDrive size={14} />
-                      <span>{gdriveSyncing ? 'Connecting...' : 'Connect Google Drive'}</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-gray-900">Email Daily Auto-Backup</p>
-                <p className="text-xs text-gray-500">Automatically send all invoice data to your email every 24 hours.</p>
-              </div>
-              <button
-                type="button"
-                disabled={isOfflineMode}
-                onClick={() => setFormData(p => ({ ...p, backup_enabled: !p.backup_enabled }))}
-                className={cn(
-                  "w-12 h-6 rounded-full transition-all relative flex items-center px-1 disabled:opacity-50 disabled:cursor-not-allowed",
-                  formData.backup_enabled ? "bg-[#14532D]" : "bg-gray-300"
-                )}
-              >
-                <div className={cn(
-                  "w-4 h-4 bg-white rounded-full shadow-sm transition-all transform",
-                  formData.backup_enabled ? "translate-x-6" : "translate-x-0"
-                )} />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-gray-900">Email Reminders</p>
-                <p className="text-xs text-gray-500">Receive helpful activity reminders when you are inactive on the platform.</p>
-              </div>
-              <button
-                type="button"
-                disabled={isOfflineMode}
-                onClick={() => setFormData(p => ({ ...p, email_reminders_enabled: !p.email_reminders_enabled }))}
-                className={cn(
-                  "w-12 h-6 rounded-full transition-all relative flex items-center px-1 disabled:opacity-50 disabled:cursor-not-allowed",
-                  formData.email_reminders_enabled !== false ? "bg-[#14532D]" : "bg-gray-300"
-                )}
-              >
-                <div className={cn(
-                  "w-4 h-4 bg-white rounded-full shadow-sm transition-all transform",
-                  formData.email_reminders_enabled !== false ? "translate-x-6" : "translate-x-0"
-                )} />
-              </button>
-            </div>
-          </div>
-        </section>
-        {/* Subscription Receipts History */}
-        {!isOfflineMode && (
-          <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Subscription Receipts</h2>
-                <p className="text-xs text-gray-500 mt-1">Download your official payment receipts for active/past InvoCentric Pro subscriptions.</p>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Settings</h1>
+                <p className="text-xs text-slate-500 font-semibold mt-0.5">Manage your account, business profiles and system preferences</p>
               </div>
             </div>
 
-            {fetchingReceipts ? (
-              <div className="flex items-center justify-center py-6">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#14532D]"></div>
-              </div>
-            ) : receipts.length > 0 ? (
-              <div className="overflow-x-auto border border-gray-100 rounded-xl">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className="p-4 text-xs font-bold text-gray-600 uppercase">Receipt No</th>
-                      <th className="p-4 text-xs font-bold text-gray-600 uppercase">Date</th>
-                      <th className="p-4 text-xs font-bold text-gray-600 uppercase">Billing Cycle</th>
-                      <th className="p-4 text-xs font-bold text-gray-600 uppercase">Amount</th>
-                      <th className="p-4 text-xs font-bold text-gray-600 uppercase text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {receipts.map((receipt) => (
-                      <tr key={receipt.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="p-4 text-sm font-bold text-gray-900">{receipt.receipt_number}</td>
-                        <td className="p-4 text-xs text-gray-500">
-                          {new Date(receipt.created_at).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
-                        </td>
-                        <td className="p-4 text-xs text-gray-600 font-medium capitalize">{receipt.billing_cycle}</td>
-                        <td className="p-4 text-sm font-extrabold text-[#14532D]">₹{receipt.amount}</td>
-                        <td className="p-4 text-sm text-right">
+            {/* Autosave Status Indicator */}
+            <div className="flex items-center gap-3">
+              {saveStatus === 'saving' && (
+                <div className="px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse">
+                  <span className="w-2 h-2 bg-emerald-600 rounded-full animate-ping"></span>
+                  Saving automatically...
+                </div>
+              )}
+              {saveStatus === 'saved' && (
+                <div className="px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-emerald-700" />
+                  All changes saved
+                </div>
+              )}
+              {saveStatus === 'error' && (
+                <div className="px-3.5 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-full text-xs font-bold flex items-center gap-2">
+                  <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                  Error saving changes
+                </div>
+              )}
+              {saveStatus === 'idle' && isLoadedRef.current && (
+                <div className="px-3 py-1.5 text-slate-500 text-xs font-medium flex items-center gap-1.5 bg-slate-50 rounded-full border border-slate-200">
+                  <CheckCircle2 size={13} className="text-emerald-700" />
+                  Auto-save active
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop Horizontal Category Tabs Bar (Matches Image 1) */}
+          <div className="hidden md:flex items-center gap-2 mt-5 overflow-x-auto pb-2 no-scrollbar">
+            {CATEGORIES.map(cat => {
+              const IconComp = cat.icon;
+              const isActive = activeTab === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setActiveTab(cat.id)}
+                  className={cn(
+                    "flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shrink-0 cursor-pointer",
+                    isActive 
+                      ? "bg-[#166534] text-white shadow-sm shadow-green-900/10" 
+                      : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200"
+                  )}
+                >
+                  <IconComp size={15} className={isActive ? "text-white" : "text-slate-500"} />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </header>
+
+        {/* ========================================================================= */}
+        {/* MAIN 2-COLUMN GRID (Left: Active Tab Content, Right: Quick Links / Helper) */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-12 gap-6 mt-2">
+          {/* Main Left Column */}
+          <div className="col-span-12 lg:col-span-8 space-y-6">
+            <form onSubmit={handleManualSave} className="space-y-6">
+              
+              {/* ================================================================= */}
+              {/* TAB 1: PROFILE (User & Personal Details, Password, Address)       */}
+              {/* ================================================================= */}
+              {activeTab === 'profile' && (
+                <div className="space-y-6">
+                  {/* Card 1: User Profile */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <h2 className="text-base font-bold text-slate-900">User Profile</h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Update your personal, identity and professional credentials</p>
+                    </div>
+
+                    {/* Avatar / Photo Upload */}
+                    <div className="flex flex-col sm:flex-row items-center gap-6 mb-8 pb-6 border-b border-slate-100">
+                      <div className="relative group">
+                        <div className="w-24 h-24 rounded-full bg-slate-100 border-2 border-emerald-100 flex items-center justify-center overflow-hidden shadow-xs">
+                          {formData.profile_photo_url ? (
+                            <img src={formData.profile_photo_url} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <User size={40} className="text-slate-400" />
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => profilePhotoInputRef.current?.click()}
+                          className="absolute bottom-0 right-0 p-2 rounded-full bg-[#166534] hover:bg-green-800 text-white shadow-md transition-transform active:scale-90 cursor-pointer"
+                          title="Change Photo"
+                        >
+                          <Camera size={14} />
+                        </button>
+                      </div>
+
+                      <div className="text-center sm:text-left space-y-1.5">
+                        <div className="flex items-center gap-3 justify-center sm:justify-start">
                           <button
                             type="button"
-                            disabled={downloadingReceiptId === receipt.id}
-                            onClick={() => downloadReceipt(receipt.id, receipt.receipt_number)}
-                            className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-200 hover:bg-[#14532D]/5 hover:border-[#14532D] hover:text-[#14532D] px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 transition-all active:scale-95 disabled:opacity-50"
+                            onClick={() => profilePhotoInputRef.current?.click()}
+                            className="px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                           >
-                            <Download size={12} className={cn(downloadingReceiptId === receipt.id && "animate-bounce")} />
-                            {downloadingReceiptId === receipt.id ? 'Downloading...' : 'Download'}
+                            Change Photo
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-8 bg-gray-50/50 border border-dashed border-gray-100 rounded-xl">
-                <p className="text-xs text-gray-500 font-medium">No subscription receipts found on your account.</p>
-              </div>
-            )}
-          </section>
-        )}
+                          {formData.profile_photo_url && (
+                            <button
+                              type="button"
+                              onClick={() => setFormData(p => ({ ...p, profile_photo_url: '' }))}
+                              className="px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-medium">JPG, PNG (Max 2MB)</p>
+                        <input 
+                          type="file" 
+                          ref={profilePhotoInputRef} 
+                          accept="image/*" 
+                          className="hidden" 
+                          onChange={handlePhotoUpload} 
+                        />
+                      </div>
+                    </div>
 
-        {/* Danger Zone */}
-        <section className="bg-white border border-red-100 rounded-2xl p-8 shadow-sm">
-          <h2 className="text-sm font-bold text-red-600 mb-6 uppercase tracking-wider">Danger Zone</h2>
-          <div className="p-4 bg-red-50/30 rounded-xl border border-red-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-gray-900">Delete Account & Permanent Data Wipe</p>
-              <p className="text-xs text-gray-500">Permanently delete your profile and completely wipe all local cache, inventory, clients, invoices, and payment documents. This is irreversible.</p>
-            </div>
-            <button
-              type="button"
-              onClick={handleDeleteAccount}
-              className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-colors shadow-lg shadow-red-600/10 shrink-0"
-            >
-              <Trash2 size={14} />
-              Delete Account
-            </button>
+                    {/* Grid of Profile Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Full Name *</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={formData.owner_name || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, owner_name: e.target.value, display_name: e.target.value }))}
+                          placeholder="Rahul Sharma"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Email Address *</label>
+                        <input 
+                          type="email" 
+                          required
+                          value={formData.email || user?.email || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+                          placeholder="rahul.sharma@yourcompany.com"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Phone Number *</label>
+                        <input 
+                          type="tel" 
+                          value={formData.phone || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+                          placeholder="+91 98765 43210"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Employee / Business ID</label>
+                        <input 
+                          type="text" 
+                          value={formData.employee_id || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, employee_id: e.target.value }))}
+                          placeholder="EMP001"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Designation</label>
+                        <input 
+                          type="text" 
+                          value={formData.designation || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, designation: e.target.value }))}
+                          placeholder="e.g. Owner / Manager / Executive"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Department</label>
+                        <input 
+                          type="text" 
+                          value={formData.department || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, department: e.target.value }))}
+                          placeholder="e.g. Management / Sales / Billing"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Date of Joining / Start</label>
+                        <input 
+                          type="date" 
+                          value={formData.date_of_joining || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, date_of_joining: e.target.value }))}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div className="flex flex-col justify-center">
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Status</label>
+                        <div className="flex items-center gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setFormData(p => ({ ...p, is_active: p.is_active === false ? true : false }))}
+                            className={cn(
+                              "relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                              formData.is_active !== false ? "bg-[#166534]" : "bg-slate-300"
+                            )}
+                            role="switch"
+                            aria-checked={formData.is_active !== false}
+                          >
+                            <span 
+                              className={cn(
+                                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
+                                formData.is_active !== false ? "translate-x-6" : "translate-x-0"
+                              )}
+                            />
+                          </button>
+                          <span className="text-xs font-bold text-slate-700">
+                            {formData.is_active !== false ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Card 2: Change Password */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <div className="flex items-center gap-2">
+                        <Lock size={18} className="text-[#166534]" />
+                        <h2 className="text-base font-bold text-slate-900">Change Password</h2>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Keep your account secure with a strong password</p>
+                    </div>
+
+                    {passwordStatus && (
+                      <div className={cn(
+                        "p-4 rounded-xl text-xs font-bold mb-5 flex items-center gap-2",
+                        passwordStatus.type === 'success' ? "bg-emerald-50 text-emerald-800 border border-emerald-200" : "bg-red-50 text-red-700 border border-red-200"
+                      )}>
+                        {passwordStatus.type === 'success' ? <CheckCircle2 size={16} /> : <X size={16} />}
+                        <span>{passwordStatus.text}</span>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Current Password</label>
+                        <input 
+                          type="password" 
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="Current password"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">New Password</label>
+                        <input 
+                          type="password" 
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="New password (min 6)"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Confirm Password</label>
+                        <input 
+                          type="password" 
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Confirm new password"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handlePasswordUpdate}
+                        disabled={passwordLoading || !newPassword}
+                        className="px-5 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                      >
+                        <Key size={14} />
+                        <span>{passwordLoading ? 'Updating...' : 'Update Password'}</span>
+                      </button>
+                    </div>
+                  </section>
+
+                  {/* Card 3: Address Information */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={18} className="text-[#166534]" />
+                        <h2 className="text-base font-bold text-slate-900">Address Information</h2>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Your official business & operating address</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="sm:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Address Line 1 *</label>
+                        <input 
+                          type="text" 
+                          value={formData.address || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, address: e.target.value }))}
+                          placeholder="123 Business Street, Near City Center"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Address Line 2</label>
+                        <input 
+                          type="text" 
+                          value={formData.address_line_2 || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, address_line_2: e.target.value }))}
+                          placeholder="Floor 2, Complex / Landmark"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">City *</label>
+                        <input 
+                          type="text" 
+                          value={formData.city || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, city: e.target.value }))}
+                          placeholder="Ahmedabad"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">State *</label>
+                        <input 
+                          type="text" 
+                          value={formData.state || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, state: e.target.value }))}
+                          placeholder="Gujarat"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Country</label>
+                        <input 
+                          type="text" 
+                          value={formData.country || 'India'}
+                          onChange={(e) => setFormData(p => ({ ...p, country: e.target.value }))}
+                          placeholder="India"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Pin Code *</label>
+                        <input 
+                          type="text" 
+                          value={formData.pincode || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, pincode: e.target.value }))}
+                          placeholder="380001"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {/* ================================================================= */}
+              {/* TAB 2: COMPANY (Operating Mode, Shop Name, Logo, Modules)        */}
+              {/* ================================================================= */}
+              {activeTab === 'company' && (
+                <div className="space-y-6">
+                  {/* Operating Mode Switcher */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                            Operating Mode
+                          </h2>
+                          <span className={cn(
+                            "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                            appMode === 'shop' ? "bg-emerald-100 text-emerald-800" : "bg-emerald-100 text-emerald-800"
+                          )}>
+                            {appMode === 'shop' ? 'Shop Mode Active' : 'Freelancer Mode Active'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium mt-1">
+                          Choose your primary operating interface: Retail/Wholesale Shop or Freelancer/Consultant Services.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-slate-600">
+                          {appMode === 'shop' ? 'Shop Mode' : 'Freelancer Mode'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setAppMode(appMode === 'shop' ? 'freelancer' : 'shop')}
+                          className={cn(
+                            "relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                            appMode === 'shop' ? "bg-[#166534]" : "bg-[#166534]"
+                          )}
+                          role="switch"
+                          aria-checked={appMode === 'shop'}
+                          title="Toggle Shop / Freelancer Mode"
+                        >
+                          <span 
+                            className={cn(
+                              "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                              appMode === 'shop' ? "translate-x-0" : "translate-x-7"
+                            )}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Mode perks comparison cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                      <div className={cn(
+                        "p-4 rounded-xl border transition-all cursor-pointer",
+                        appMode === 'shop' 
+                          ? "bg-emerald-50/60 border-emerald-300 ring-1 ring-emerald-300" 
+                          : "bg-slate-50/50 border-slate-200 hover:border-slate-300"
+                      )} onClick={() => setAppMode('shop')}>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Store size={16} className={appMode === 'shop' ? "text-[#166534]" : "text-slate-500"} />
+                          <h3 className="text-xs font-bold text-slate-900 uppercase">Shop / Retail / Wholesale Mode</h3>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                          POS barcode scanning, low stock alerts, product inventory, batch & expiry dates, customer credit ledger.
+                        </p>
+                      </div>
+
+                      <div className={cn(
+                        "p-4 rounded-xl border transition-all cursor-pointer",
+                        appMode === 'freelancer' 
+                          ? "bg-emerald-50/60 border-emerald-300 ring-1 ring-emerald-300" 
+                          : "bg-slate-50/50 border-slate-200 hover:border-slate-300"
+                      )} onClick={() => setAppMode('freelancer')}>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Briefcase size={16} className={appMode === 'freelancer' ? "text-[#166534]" : "text-slate-500"} />
+                          <h3 className="text-xs font-bold text-slate-900 uppercase">Freelancer / Consultant Mode</h3>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                          Hourly & milestone rates, service catalog, software subscriptions expense ledger, project quotes.
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Company Information & Logo */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-base font-bold text-slate-900">Company Information</h2>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">Details that appear on your invoices and customer receipts</p>
+                      </div>
+                      
+                      {/* Logo Preview & Upload */}
+                      <div className="flex items-center gap-3">
+                        {formData.logo_url && (
+                          <div className="relative group">
+                            <img src={formData.logo_url} alt="Logo" className="w-12 h-12 object-contain rounded-lg border border-slate-200 p-0.5 bg-white" />
+                            <button
+                              type="button"
+                              onClick={() => setFormData(p => ({ ...p, logo_url: '' }))}
+                              className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200 transition-colors shadow-xs"
+                              title="Remove logo"
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        )}
+                        <label className="cursor-pointer px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-colors flex items-center gap-1.5">
+                          <Camera size={13} />
+                          <span>{formData.logo_url ? 'Change Logo' : 'Upload Logo'}</span>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="sm:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Business / Company Name *</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={formData.business_name || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, business_name: e.target.value }))}
+                          placeholder="Your Company Pvt. Ltd."
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Tagline / Business Subtitle</label>
+                        <input 
+                          type="text" 
+                          value={formData.tagline || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, tagline: e.target.value }))}
+                          placeholder="Smarter Business, Better Growth"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Website URL</label>
+                        <input 
+                          type="text" 
+                          value={formData.website || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))}
+                          placeholder="www.yourcompany.com"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Industry Specialized Modules */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <h2 className="text-base font-bold text-slate-900">Industry Features & Modules</h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Toggle advanced modules for Pharma, Weighing Scale, or Hardware</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Pharma Batch / Expiry */}
+                      <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Pill size={16} className="text-[#166534]" />
+                            <h3 className="text-xs font-bold text-slate-900 uppercase">Pharma Batch & Expiry</h3>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            Enables Batch No., Expiry Date, and Drug License fields on items & invoices.
+                          </p>
+                        </div>
+                        <input 
+                          type="checkbox"
+                          checked={formData.industry_modules?.pharma_batch_expiry || false}
+                          onChange={(e) => setFormData(p => ({
+                            ...p,
+                            industry_modules: {
+                              ...p.industry_modules,
+                              pharma_batch_expiry: e.target.checked
+                            }
+                          }))}
+                          className="w-5 h-5 accent-[#166534] rounded cursor-pointer mt-1"
+                        />
+                      </div>
+
+                      {/* Decimal / Weighing Scale */}
+                      <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Scale size={16} className="text-[#166534]" />
+                            <h3 className="text-xs font-bold text-slate-900 uppercase">Weighing Scale & 3-Decimals</h3>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            Enables 3-decimal precise quantities (e.g. 1.250 kg) for grocery & hardware.
+                          </p>
+                        </div>
+                        <input 
+                          type="checkbox"
+                          checked={formData.industry_modules?.hardware_decimals || false}
+                          onChange={(e) => setFormData(p => ({
+                            ...p,
+                            industry_modules: {
+                              ...p.industry_modules,
+                              hardware_decimals: e.target.checked
+                            }
+                          }))}
+                          className="w-5 h-5 accent-[#166534] rounded cursor-pointer mt-1"
+                        />
+                      </div>
+
+                      {/* Electronics Serial / IMEI */}
+                      <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Smartphone size={16} className="text-[#166534]" />
+                            <h3 className="text-xs font-bold text-slate-900 uppercase">Serial & IMEI Tracking</h3>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            Enables IMEI, serial numbers, and warranty tracking on electronics invoices.
+                          </p>
+                        </div>
+                        <input 
+                          type="checkbox"
+                          checked={formData.industry_modules?.electronics_imei || false}
+                          onChange={(e) => setFormData(p => ({
+                            ...p,
+                            industry_modules: {
+                              ...p.industry_modules,
+                              electronics_imei: e.target.checked
+                            }
+                          }))}
+                          className="w-5 h-5 accent-[#166534] rounded cursor-pointer mt-1"
+                        />
+                      </div>
+
+                      {/* Services & Retainers */}
+                      <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Repeat size={16} className="text-[#166534]" />
+                            <h3 className="text-xs font-bold text-slate-900 uppercase">Recurring Retainers</h3>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            Monthly & annual automatic retainer reminders for client services.
+                          </p>
+                        </div>
+                        <input 
+                          type="checkbox"
+                          checked={formData.industry_modules?.services_recurring || false}
+                          onChange={(e) => setFormData(p => ({
+                            ...p,
+                            industry_modules: {
+                              ...p.industry_modules,
+                              services_recurring: e.target.checked
+                            }
+                          }))}
+                          className="w-5 h-5 accent-[#166534] rounded cursor-pointer mt-1"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Digital Signature & Letterhead */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-base font-bold text-slate-900">Authorized Signature</h2>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">Appears automatically at the bottom of all generated invoices</p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {formData.signature_url && (
+                          <div className="relative group">
+                            <img src={formData.signature_url} alt="Signature" className="h-10 w-28 object-contain rounded-lg border border-slate-200 bg-white p-1" />
+                            <button
+                              type="button"
+                              onClick={() => setFormData(p => ({ ...p, signature_url: '' }))}
+                              className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200 transition-colors shadow-xs"
+                              title="Remove signature"
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        )}
+                        <label className="cursor-pointer px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-colors flex items-center gap-1.5">
+                          <Upload size={13} />
+                          <span>{formData.signature_url ? 'Change Signature' : 'Upload Signature'}</span>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div className="sm:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Default Terms & Conditions</label>
+                        <textarea 
+                          rows={3}
+                          value={formData.default_terms || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, default_terms: e.target.value }))}
+                          placeholder="1. Goods once sold will not be taken back.&#10;2. Interest @18% p.a. will be charged if payment is delayed."
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {/* ================================================================= */}
+              {/* TAB 3: TAX & NUMBERING (GST, PAN, Drug License, Serials)          */}
+              {/* ================================================================= */}
+              {activeTab === 'tax' && (
+                <div className="space-y-6">
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <h2 className="text-base font-bold text-slate-900">Tax Identification Details</h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Government registration codes for valid tax compliance</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">GSTIN Number</label>
+                        <input 
+                          type="text" 
+                          value={formData.gstin || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, gstin: e.target.value.toUpperCase() }))}
+                          placeholder="24ABCDE1234F1Z5"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow uppercase font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">PAN Number</label>
+                        <input 
+                          type="text" 
+                          value={formData.pan || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, pan: e.target.value.toUpperCase() }))}
+                          placeholder="ABCDE1234F"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow uppercase font-mono"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Drug License (DL) Number</label>
+                        <input 
+                          type="text" 
+                          value={formData.drug_license_no || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, drug_license_no: e.target.value }))}
+                          placeholder="e.g. 20B/21B GJ-PAT-12345"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow uppercase"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Document Numbering & Serials */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <h2 className="text-base font-bold text-slate-900">Document Numbering & Serial Formats</h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Control how your invoice numbers and quotations are formatted</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Invoice Prefix</label>
+                        <input 
+                          type="text" 
+                          value={formData.invoice_prefix || 'INV'}
+                          onChange={(e) => setFormData(p => ({ ...p, invoice_prefix: e.target.value.toUpperCase() }))}
+                          placeholder="INV"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow uppercase font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Invoice Design Template</label>
+                        <select 
+                          value={formData.invoice_template || 'template_01'}
+                          onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow font-semibold"
+                        >
+                          <option value="template_01">Template 01 — Modern Clean A4 (Tax Invoice)</option>
+                          <option value="template_02">Template 02 — Corporate Bordered A4</option>
+                          <option value="template_03">Template 03 — Wholesale & Pharma Detailed A4</option>
+                          <option value="template_04">Template 04 — POS Thermal 3-Inch (80mm)</option>
+                          <option value="template_05">Template 05 — POS Thermal 2-Inch (58mm)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {/* ================================================================= */}
+              {/* TAB 4: PAYMENT DETAILS (UPI, QR Code, Bank Accounts)             */}
+              {/* ================================================================= */}
+              {activeTab === 'payment' && (
+                <div className="space-y-6">
+                  {/* UPI & QR Code */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h2 className="text-base font-bold text-slate-900">UPI & Dynamic Payment QR</h2>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">Customers can scan to pay instantly via Google Pay, PhonePe, or Paytm</p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {formData.social_qr_url && (
+                          <div className="relative group">
+                            <img src={formData.social_qr_url} alt="QR Code" className="w-12 h-12 object-contain rounded-lg border border-slate-200 bg-white p-0.5" />
+                            <button
+                              type="button"
+                              onClick={() => setFormData(p => ({ ...p, social_qr_url: '' }))}
+                              className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200 transition-colors shadow-xs"
+                              title="Remove QR"
+                            >
+                              <X size={10} />
+                            </button>
+                          </div>
+                        )}
+                        <label className="cursor-pointer px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-colors flex items-center gap-1.5">
+                          <Upload size={13} />
+                          <span>{formData.social_qr_url ? 'Change QR' : 'Upload Standee QR'}</span>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleQrUpload} />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Primary UPI ID</label>
+                        <input 
+                          type="text" 
+                          value={formData.upi_id || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, upi_id: e.target.value }))}
+                          placeholder="businessname@okaxis"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                        <p className="text-[11px] text-slate-400 mt-1 font-medium">Used to automatically generate printable UPI QR codes on invoices</p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">QR Code Display Label</label>
+                        <input 
+                          type="text" 
+                          value={formData.social_qr_label || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, social_qr_label: e.target.value }))}
+                          placeholder="Scan & Pay via any UPI App"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Bank Account Details */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <h2 className="text-base font-bold text-slate-900">Bank Account Details (NEFT / RTGS)</h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Printed on invoices for direct bank transfer payments</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Bank Name</label>
+                        <input 
+                          type="text" 
+                          value={formData.bank_name || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, bank_name: e.target.value }))}
+                          placeholder="HDFC Bank"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Branch Name</label>
+                        <input 
+                          type="text" 
+                          value={formData.bank_branch || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, bank_branch: e.target.value }))}
+                          placeholder="Main Branch, CG Road"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Account Number</label>
+                        <input 
+                          type="text" 
+                          value={formData.account_number || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, account_number: e.target.value }))}
+                          placeholder="50200012345678"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">IFSC Code</label>
+                        <input 
+                          type="text" 
+                          value={formData.ifsc_code || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, ifsc_code: e.target.value.toUpperCase() }))}
+                          placeholder="HDFC0000123"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow uppercase font-mono font-bold"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Account Holder Name</label>
+                        <input 
+                          type="text" 
+                          value={formData.account_holder || ''}
+                          onChange={(e) => setFormData(p => ({ ...p, account_holder: e.target.value }))}
+                          placeholder="Your Company Pvt. Ltd."
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
+                        />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {/* ================================================================= */}
+              {/* TAB 5: STORAGE & BACKUP (PC Drive, Google Drive, JSON Backup)     */}
+              {/* ================================================================= */}
+              {activeTab === 'storage' && (
+                <div className="space-y-6">
+                  {/* Storage Mode Selector Widget */}
+                  <StorageModeSelector />
+
+                  {/* PC Hard Drive Directory Folder Backup */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <HardDrive size={20} className="text-[#166534]" />
+                          <h2 className="text-base font-bold text-slate-900">PC Hard Drive Folder Backup</h2>
+                          <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-2 py-0.5 rounded uppercase">Local Disk</span>
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium mt-1">
+                          Select a folder on your computer. InvoCentric saves master backup & daily dated snapshots every 24 hours.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {pcDirConnected ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={pcDirSyncing}
+                              onClick={handleSyncPcDirNow}
+                              className="px-3.5 py-2 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
+                            >
+                              <HardDrive size={13} className={cn(pcDirSyncing && "animate-spin")} />
+                              <span>{pcDirSyncing ? 'Writing...' : 'Save Now'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSelectPcDirectory}
+                              className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Change
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleDisconnectPcDir}
+                              className="px-2.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Disconnect
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={pcDirSyncing}
+                            onClick={handleSelectPcDirectory}
+                            className="px-4 py-2.5 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-xs flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                          >
+                            <FolderOpen size={14} />
+                            <span>{pcDirSyncing ? 'Connecting...' : 'Choose PC Folder'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {pcDirConnected && (
+                      <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl text-xs font-medium text-slate-700 flex flex-wrap items-center justify-between gap-2">
+                        <span>Connected Folder: <strong className="text-emerald-900 font-mono font-bold bg-white px-2 py-0.5 rounded border border-emerald-200">{pcDirName}</strong></span>
+                        {pcDirLastBackup && <span>Last sync: {new Date(pcDirLastBackup).toLocaleString()}</span>}
+                      </div>
+                    )}
+                  </section>
+
+                  {/* Google Drive Automatic Cloud Backup */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Globe size={20} className="text-[#166534]" />
+                          <h2 className="text-base font-bold text-slate-900">Google Drive Automatic Cloud Backup</h2>
+                          <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-2 py-0.5 rounded uppercase">Cloud Sync</span>
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium mt-1">
+                          Seamless background backup to your personal Google Drive account with 24-hr daily retention.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {gdriveConnected ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={gdriveSyncing}
+                              onClick={handleSyncGoogleDriveNow}
+                              className="px-3.5 py-2 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
+                            >
+                              <RefreshCw size={13} className={cn(gdriveSyncing && "animate-spin")} />
+                              <span>{gdriveSyncing ? 'Syncing...' : 'Sync Now'}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleDisconnectGoogleDrive}
+                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Disconnect
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={gdriveSyncing}
+                            onClick={handleConnectGoogleDrive}
+                            className="px-4 py-2.5 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-xs flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                          >
+                            <CloudDownload size={14} />
+                            <span>{gdriveSyncing ? 'Connecting...' : 'Connect Google Drive'}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {gdriveConnected && (
+                      <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl text-xs font-medium text-slate-700 flex flex-wrap items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 text-emerald-900 font-bold">
+                          <CheckCircle2 size={14} /> Google Drive Connected & Active
+                        </span>
+                        {gdriveLastBackup && <span>Last sync: {new Date(gdriveLastBackup).toLocaleString()}</span>}
+                      </div>
+                    )}
+                  </section>
+
+                  {/* Manual Backup Download & Restore */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <h2 className="text-base font-bold text-slate-900">Manual Offline Backups</h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Export a complete standalone JSON database file or restore onto another machine</p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <button
+                        type="button"
+                        onClick={handleExportBackup}
+                        className="flex-1 flex items-center justify-center gap-2 bg-[#166534] hover:bg-green-800 text-white p-4 rounded-xl font-bold uppercase tracking-wider text-xs transition-colors shadow-xs cursor-pointer"
+                      >
+                        <Download size={16} />
+                        <span>Download Offline Backup</span>
+                      </button>
+
+                      <div className="flex-1 relative">
+                        <input
+                          type="file"
+                          accept=".json"
+                          ref={backupFileInputRef}
+                          onChange={handleRestoreBackup}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          title="Restore Backup"
+                        />
+                        <button
+                          type="button"
+                          className="w-full flex items-center justify-center gap-2 bg-white text-slate-800 border-2 border-slate-200 hover:border-slate-800 p-4 rounded-xl font-bold uppercase tracking-wider text-xs transition-colors cursor-pointer"
+                        >
+                          <Upload size={16} />
+                          <span>Restore From JSON</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {!isCloudDataImported && (
+                      <div className="mt-5 p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="text-xs text-slate-700">
+                          <strong className="text-emerald-900 block font-bold">Import Previous Cloud Data</strong>
+                          Download existing customer invoices and catalog records into local storage.
+                        </div>
+                        <button
+                          type="button"
+                          disabled={importingCloudData}
+                          onClick={handleImportCloudData}
+                          className="px-4 py-2 bg-[#166534] hover:bg-green-800 text-white rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer disabled:opacity-50"
+                        >
+                          {importingCloudData ? 'Importing...' : 'Import Data'}
+                        </button>
+                      </div>
+                    )}
+                  </section>
+                </div>
+              )}
+
+              {/* ================================================================= */}
+              {/* TAB 6: SYSTEM SETTINGS (Language, Currency, Updates, Alerts)      */}
+              {/* ================================================================= */}
+              {activeTab === 'system' && (
+                <div className="space-y-6">
+                  {/* System Preferences */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <h2 className="text-base font-bold text-slate-900">Regional & System Preferences</h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Configure language, time formatting and currency symbols</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Default Currency</label>
+                        <select
+                          value={formData.currency || 'INR'}
+                          onChange={(e) => setFormData(p => ({ ...p, currency: e.target.value }))}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow font-semibold"
+                        >
+                          <option value="INR">INR — Indian Rupee (₹)</option>
+                          <option value="USD">USD — US Dollar ($)</option>
+                          <option value="EUR">EUR — Euro (€)</option>
+                          <option value="AED">AED — UAE Dirham (د.إ)</option>
+                          <option value="GBP">GBP — British Pound (£)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">System Language</label>
+                        <select
+                          value={formData.language || 'English'}
+                          onChange={(e) => setFormData(p => ({ ...p, language: e.target.value }))}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow font-semibold"
+                        >
+                          <option value="English">English</option>
+                          <option value="Hindi">हिन्दी (Hindi)</option>
+                          <option value="Gujarati">ગુજરાતી (Gujarati)</option>
+                          <option value="Marathi">मराठी (Marathi)</option>
+                          <option value="Tamil">தமிழ் (Tamil)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Timezone</label>
+                        <select
+                          value={formData.timezone || 'Asia/Kolkata'}
+                          onChange={(e) => setFormData(p => ({ ...p, timezone: e.target.value }))}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow font-semibold"
+                        >
+                          <option value="Asia/Kolkata">Asia/Kolkata (IST GMT+5:30)</option>
+                          <option value="Asia/Dubai">Asia/Dubai (GST GMT+4:00)</option>
+                          <option value="Europe/London">Europe/London (GMT/BST)</option>
+                          <option value="America/New_York">America/New_York (EST/EDT)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Date Format</label>
+                        <select
+                          value={formData.date_format || 'DD-MM-YYYY'}
+                          onChange={(e) => setFormData(p => ({ ...p, date_format: e.target.value }))}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow font-semibold"
+                        >
+                          <option value="DD-MM-YYYY">DD-MM-YYYY (e.g. 26-09-2026)</option>
+                          <option value="MM/DD/YYYY">MM/DD/YYYY (e.g. 09/26/2026)</option>
+                          <option value="YYYY-MM-DD">YYYY-MM-DD (e.g. 2026-09-26)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Software & App Updates */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Smartphone size={20} className="text-[#166534]" />
+                          <h2 className="text-base font-bold text-slate-900">Software & App Updates</h2>
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">
+                          Current App Version: <strong className="text-emerald-900 font-mono font-bold">v{updateState.currentVersion || '2.0.0'}</strong>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={isCheckingUpdates}
+                          onClick={handleCheckUpdatesManual}
+                          className="px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          <RefreshCw size={13} className={cn(isCheckingUpdates && "animate-spin")} />
+                          <span>{isCheckingUpdates ? 'Checking...' : 'Check for Updates'}</span>
+                        </button>
+
+                        {updateState.status === 'available' && (
+                          <button
+                            type="button"
+                            onClick={handleDownloadUpdate}
+                            className="px-4 py-2 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            Download Update
+                          </button>
+                        )}
+
+                        {updateState.status === 'downloaded' && (
+                          <button
+                            type="button"
+                            onClick={handleInstallUpdate}
+                            className="px-4 py-2 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            Install & Restart
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {updateActionMsg && (
+                      <div className="p-3.5 bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-xl text-xs font-bold">
+                        {updateActionMsg}
+                      </div>
+                    )}
+                  </section>
+
+                  {/* Notification & Automation Alerts */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-slate-100 pb-5 mb-6">
+                      <h2 className="text-base font-bold text-slate-900">Notification Alerts</h2>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Automated communication preferences for you and your clients</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-3.5 bg-slate-50/60 border border-slate-200 rounded-xl">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Email Payment Reminders</p>
+                          <p className="text-[11px] text-slate-500 font-medium">Send automatic email receipts and invoice due notifications</p>
+                        </div>
+                        <input 
+                          type="checkbox"
+                          checked={formData.email_reminders_enabled !== false}
+                          onChange={(e) => setFormData(p => ({ ...p, email_reminders_enabled: e.target.checked }))}
+                          className="w-5 h-5 accent-[#166534] rounded cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3.5 bg-slate-50/60 border border-slate-200 rounded-xl">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">Low Stock Inventory Alerts</p>
+                          <p className="text-[11px] text-slate-500 font-medium">Show dashboard alert when product quantity falls below reorder level</p>
+                        </div>
+                        <input 
+                          type="checkbox"
+                          defaultChecked={true}
+                          className="w-5 h-5 accent-[#166534] rounded cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {/* ================================================================= */}
+              {/* TAB 7: PLAN & SECURITY (Account Tier, Receipts, Danger Zone)      */}
+              {/* ================================================================= */}
+              {activeTab === 'security' && (
+                <div className="space-y-6">
+                  {/* Account Plan & Billing Card */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck size={20} className="text-[#166534]" />
+                        <h2 className="text-base font-bold text-slate-900">Account Plan & Billing</h2>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium">Manage your subscription, feature access and billing receipts</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl border",
+                        planTier === 'pro' 
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200" 
+                          : "bg-slate-50 text-slate-600 border-slate-200"
+                      )}>
+                        {planTier === 'pro' ? 'Pro Account' : 'Free Tier'}
+                      </span>
+                      <Link 
+                        to="/pricing"
+                        className="bg-[#166534] hover:bg-green-800 text-white text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer"
+                      >
+                        {planTier === 'pro' ? 'View Plans' : 'Upgrade to Pro'}
+                      </Link>
+                    </div>
+                  </section>
+
+                  {/* Subscription History / Payment Receipts */}
+                  {receipts && receipts.length > 0 && (
+                    <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                      <div className="border-b border-slate-100 pb-5 mb-4">
+                        <h2 className="text-base font-bold text-slate-900">Subscription History & Receipts</h2>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">Download official GST tax receipts for your account upgrade</p>
+                      </div>
+
+                      <div className="divide-y divide-slate-100">
+                        {receipts.map((r) => (
+                          <div key={r.id} className="py-3.5 flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-xs font-bold text-slate-900">{r.plan_name || 'InvoCentric Pro'} - ₹{r.amount_paid}</p>
+                              <p className="text-[11px] text-slate-400 font-mono font-medium">Receipt #{r.receipt_number}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => downloadReceipt(r.id, r.receipt_number)}
+                              disabled={downloadingReceiptId === r.id}
+                              className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <Download size={13} />
+                              <span>{downloadingReceiptId === r.id ? 'Downloading...' : 'PDF'}</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Danger Zone */}
+                  <section className="bg-white border border-red-200 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="border-b border-red-100 pb-5 mb-6">
+                      <div className="flex items-center gap-2">
+                        <Trash2 size={18} className="text-red-600" />
+                        <h2 className="text-base font-bold text-red-600">Danger Zone</h2>
+                      </div>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">Irreversible actions on your account and data</p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-900 uppercase">Delete Account & Permanent Wipe</h3>
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                          Permanently delete your profile and all local & cloud data. This action cannot be reversed.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleDeleteAccount}
+                        className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shrink-0 shadow-xs cursor-pointer"
+                      >
+                        Delete Account
+                      </button>
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {/* Bottom Action Bar for Desktop/Mobile (Save & Reset) */}
+              <div className="pt-4 flex items-center justify-between gap-4 border-t border-slate-200/80">
+                <button
+                  type="button"
+                  onClick={handleResetForm}
+                  className="px-5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Reset
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Save size={14} />
+                  <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
           </div>
-        </section>
 
-        <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-4">
-          <button 
-            type="submit" 
-            disabled={saving || saveStatus === 'saving'}
-            className="bg-[#14532D] text-white flex items-center justify-center gap-2 px-12 py-4 rounded-xl font-bold hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 min-w-[200px] w-full md:w-auto"
-          >
-            <Save size={20} />
-            {saveStatus === 'saving' || saving ? 'Saving...' : saveStatus === 'saved' ? 'Saved Successfully!' : 'Save Settings'}
-          </button>
+          {/* ========================================================================= */}
+          {/* DESKTOP RIGHT SIDEBAR (Quick Links, Other Settings, Preferences, Help)     */}
+          {/* Matches reference screenshot Image 1                                     */}
+          {/* ========================================================================= */}
+          <div className="hidden lg:block lg:col-span-4 space-y-6">
+            
+            {/* Widget 1: Quick Links */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                <Sparkles size={16} className="text-[#166534]" />
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Quick Links</h3>
+              </div>
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('profile')}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-emerald-900 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Lock size={14} className="text-slate-400 group-hover:text-emerald-700" />
+                    Change Password
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-emerald-700" />
+                </button>
 
-          <button
-            type="button"
-            onClick={logout}
-            className="bg-red-50 text-red-600 flex items-center justify-center gap-2 px-12 py-4 rounded-xl font-bold hover:bg-red-100 transition-all active:scale-95 min-w-[200px] w-full md:w-auto"
-          >
-            <LogOut size={20} />
-            Logout
-          </button>
+                <button
+                  type="button"
+                  onClick={() => profilePhotoInputRef.current?.click()}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-emerald-900 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Camera size={14} className="text-slate-400 group-hover:text-emerald-700" />
+                    Update Profile Picture
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-emerald-700" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('security')}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-emerald-900 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck size={14} className="text-slate-400 group-hover:text-emerald-700" />
+                    View Plan & Billing
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-emerald-700" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => alert("Two-Factor Authentication is active via Google / Secure Identity.")}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-emerald-900 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Key size={14} className="text-slate-400 group-hover:text-emerald-700" />
+                    Two Factor Authentication
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-emerald-700" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-rose-50 text-rose-600 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <LogOut size={14} className="text-rose-500" />
+                    Logout Account
+                  </span>
+                  <ChevronRight size={14} className="text-rose-300" />
+                </button>
+              </div>
+            </div>
+
+            {/* Widget 2: Other Settings */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                <Settings size={16} className="text-[#166534]" />
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Other Settings</h3>
+              </div>
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('company')}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-emerald-900 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Store size={14} className="text-slate-400 group-hover:text-emerald-700" />
+                    Company Information
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-emerald-700" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('tax')}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-emerald-900 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <FileText size={14} className="text-slate-400 group-hover:text-emerald-700" />
+                    GST / Tax Settings
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-emerald-700" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('payment')}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-emerald-900 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <CreditCard size={14} className="text-slate-400 group-hover:text-emerald-700" />
+                    Payment & QR Details
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-emerald-700" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('storage')}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-emerald-900 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <HardDrive size={14} className="text-slate-400 group-hover:text-emerald-700" />
+                    Backup & PC Drive
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-emerald-700" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('system')}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 text-slate-700 hover:text-emerald-900 transition-colors text-xs font-bold text-left group cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    <Smartphone size={14} className="text-slate-400 group-hover:text-emerald-700" />
+                    Software & Updates
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 group-hover:text-emerald-700" />
+                </button>
+              </div>
+            </div>
+
+            {/* Widget 3: System Preferences */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-xs">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                <Globe size={16} className="text-[#166534]" />
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">System Preferences</h3>
+              </div>
+              <div className="space-y-3.5 text-xs font-medium">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Language</label>
+                  <select 
+                    value={formData.language || 'English'}
+                    onChange={(e) => setFormData(p => ({ ...p, language: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold text-xs focus:ring-1 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi (हिन्दी)</option>
+                    <option value="Gujarati">Gujarati (ગુજરાતી)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Timezone</label>
+                  <select 
+                    value={formData.timezone || 'Asia/Kolkata'}
+                    onChange={(e) => setFormData(p => ({ ...p, timezone: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold text-xs focus:ring-1 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="Asia/Kolkata">Asia/Kolkata (GMT+5:30)</option>
+                    <option value="Asia/Dubai">Asia/Dubai (GMT+4:00)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Date Format</label>
+                  <select 
+                    value={formData.date_format || 'DD-MM-YYYY'}
+                    onChange={(e) => setFormData(p => ({ ...p, date_format: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold text-xs focus:ring-1 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Currency</label>
+                  <select 
+                    value={formData.currency || 'INR'}
+                    onChange={(e) => setFormData(p => ({ ...p, currency: e.target.value }))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 font-semibold text-xs focus:ring-1 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="INR">INR (₹)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="AED">AED (د.إ)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Widget 4: Need Help? */}
+            <div className="bg-gradient-to-br from-emerald-50/70 via-slate-50 to-teal-50/50 border border-emerald-100 rounded-2xl p-6 shadow-xs">
+              <div className="flex items-center gap-2 mb-2 text-[#166534]">
+                <HelpCircle size={18} />
+                <h3 className="text-xs font-black uppercase tracking-wider">Need Help?</h3>
+              </div>
+              <p className="text-xs text-slate-600 font-medium leading-relaxed mb-4">
+                For any issues, assistance or custom requirements, contact our support team anytime.
+              </p>
+              <a 
+                href="mailto:support@invocentric.com" 
+                className="text-xs font-bold text-[#166534] hover:text-green-800 flex items-center gap-1.5 transition-colors"
+              >
+                <span>Contact Support</span>
+                <ChevronRight size={14} />
+              </a>
+            </div>
+
+          </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

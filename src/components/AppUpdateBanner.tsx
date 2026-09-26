@@ -64,7 +64,7 @@ export function AppUpdateBanner() {
             {updateState.status === 'downloading' ? (
               <RefreshCw size={13} className="text-emerald-300 animate-spin" />
             ) : updateState.status === 'downloaded' ? (
-              <CheckCircle2 size={14} className="text-yellow-400" />
+              <CheckCircle2 size={14} className="text-emerald-300" />
             ) : (
               <Sparkles size={13} className="text-emerald-400 animate-pulse" />
             )}
@@ -90,7 +90,7 @@ export function AppUpdateBanner() {
                 </span>
               </div>
             ) : updateState.status === 'downloaded' ? (
-              <span className="text-[10px] text-yellow-300 font-bold block max-w-[160px]">
+              <span className="text-[10px] text-emerald-300 font-bold block max-w-[160px]">
                 {updateState.platform === 'electron' ? 'Update ready to install' : 'Ready to install'}
               </span>
             ) : (
@@ -105,7 +105,7 @@ export function AppUpdateBanner() {
             <button
               onClick={handleApplyUpdate}
               disabled={isUpdating}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-slate-950 rounded-xl text-[11px] font-black uppercase tracking-wider shadow cursor-pointer transition-transform active:scale-95"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-[11px] font-black uppercase tracking-wider shadow cursor-pointer transition-transform active:scale-95"
             >
               <CheckCircle2 size={12} />
               <span>{updateState.platform === 'electron' ? 'Restart Now' : 'Install'}</span>

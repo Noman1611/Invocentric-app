@@ -50,10 +50,10 @@ export function TrialBanner() {
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-green-700 text-white px-3 sm:px-4 py-2.5 flex items-center justify-between shadow-md print:hidden animate-in fade-in slide-in-from-top-2 duration-300">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-            <CheckCircle2 size={16} className="text-yellow-300" />
+            <CheckCircle2 size={16} className="text-emerald-200" />
           </div>
           <p className="text-[11px] sm:text-xs font-semibold">
-            <span className="font-extrabold uppercase tracking-wide text-yellow-300">🎉 Congratulations!</span>{' '}
+            <span className="font-extrabold uppercase tracking-wide text-emerald-200">🎉 Congratulations!</span>{' '}
             Your <strong>1-Month Free Pro Plan</strong> is now active! All Pro features unlocked. Official receipt {claimReceiptNo ? `(#${claimReceiptNo})` : ''} has been sent to your email.
           </p>
         </div>
@@ -72,12 +72,12 @@ export function TrialBanner() {
     return (
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white px-3 sm:px-4 py-2.5 flex items-center justify-between shadow-md print:hidden">
         <div className="flex items-center gap-2 sm:gap-2.5 max-w-full overflow-hidden">
-          <div className="w-6 h-6 rounded-full bg-yellow-400/20 border border-yellow-300/40 flex items-center justify-center shrink-0 animate-bounce">
-            <Gift size={14} className="text-yellow-300" />
+          <div className="w-6 h-6 rounded-full bg-emerald-400/30 border border-emerald-300/50 flex items-center justify-center shrink-0 animate-bounce">
+            <Gift size={14} className="text-emerald-200" />
           </div>
           <div className="truncate">
             <p className="text-[11px] sm:text-xs font-semibold truncate">
-              <span className="bg-yellow-400 text-slate-900 font-extrabold text-[10px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider mr-1.5 shadow-xs">
+              <span className="bg-white text-[#166534] font-extrabold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wider mr-1.5 shadow-xs">
                 Special Offer
               </span>
               <span className="font-extrabold">1 Month Free Pro Plan:</span>{' '}
@@ -92,16 +92,16 @@ export function TrialBanner() {
         <button
           onClick={handleClaim}
           disabled={claiming}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-300 hover:to-amber-300 text-slate-950 rounded-lg text-xs font-black uppercase tracking-wider shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 ml-2 disabled:opacity-60 cursor-pointer"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-emerald-50 text-[#166534] rounded-lg text-xs font-black uppercase tracking-wider shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 ml-2 disabled:opacity-60 cursor-pointer"
         >
           {claiming ? (
             <>
-              <Loader2 size={13} className="animate-spin" />
+              <Loader2 size={13} className="animate-spin text-[#166534]" />
               <span>Claiming...</span>
             </>
           ) : (
             <>
-              <Sparkles size={13} className="text-slate-900" />
+              <Sparkles size={13} className="text-[#166534]" />
               <span>Claim Now</span>
             </>
           )}
@@ -120,11 +120,11 @@ export function TrialBanner() {
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white px-3 sm:px-4 py-2 flex items-center justify-between shadow-xs print:hidden">
         <div className="flex items-center gap-2 sm:gap-2.5 max-w-full overflow-hidden">
           <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-            <Sparkles size={12} className="text-yellow-300 animate-pulse" />
+            <Sparkles size={12} className="text-emerald-200 animate-pulse" />
           </div>
           <p className="text-[11px] sm:text-xs font-semibold truncate">
             <span className="font-extrabold uppercase tracking-wide">1 Month Free Pro Active:</span>{' '}
-            <span className="font-bold text-yellow-200">{daysLeftInTrial} day{daysLeftInTrial > 1 ? 's' : ''} remaining</span>
+            <span className="font-bold text-emerald-200">{daysLeftInTrial} day{daysLeftInTrial > 1 ? 's' : ''} remaining</span>
             {formattedExpiry ? ` (Valid until ${formattedExpiry})` : ''} with all Pro features unlocked.
           </p>
         </div>
@@ -143,9 +143,9 @@ export function TrialBanner() {
   // State 4: Trial expired
   if (isTrialExpired) {
     return (
-      <div className="bg-gradient-to-r from-amber-600 via-rose-600 to-rose-700 text-white px-3 sm:px-4 py-2 flex items-center justify-between shadow-xs print:hidden">
+      <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 text-white px-3 sm:px-4 py-2 flex items-center justify-between shadow-xs print:hidden">
         <div className="flex items-center gap-2 sm:gap-2.5">
-          <Clock size={15} className="text-yellow-300 shrink-0" />
+          <Clock size={15} className="text-emerald-300 shrink-0" />
           <p className="text-[11px] sm:text-xs font-bold">
             Your 1-month free trial has expired. Activate a Pro plan to keep all premium accounting features.
           </p>

@@ -212,16 +212,70 @@ export const evaluatePlanValidity = (
   };
 };
 
+export const createSyntheticUser = (data: any): User => {
+  const token = data.idToken || data.token || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : '') || '';
+  return {
+    uid: data.uid,
+    email: data.email || null,
+    displayName: data.displayName || (data.email ? data.email.split('@')[0] : 'User'),
+    photoURL: data.photoURL || null,
+    emailVerified: true,
+    isAnonymous: false,
+    metadata: {},
+    providerData: [],
+    refreshToken: '',
+    tenantId: null,
+    delete: async () => {},
+    getIdToken: async () => token || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : '') || '',
+    getIdTokenResult: async () => ({
+      token: token || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : '') || '',
+      claims: {},
+      authTime: '',
+      issuedAtTime: '',
+      expirationTime: '',
+      signInProvider: 'google.com'
+    } as any),
+    reload: async () => {},
+    toJSON: () => ({ uid: data.uid, email: data.email })
+  } as unknown as User;
+};
+
+const getInitialSessionUser = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('invocentric_session_user');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.uid) {
+        return createSyntheticUser(parsed);
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to restore initial session user:", e);
+  }
+  return null;
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [planStatus, setPlanStatus] = useState<string>('active'); // Default to active for now
-  const [planTier, setPlanTier] = useState<'free' | 'pro'>('free'); // Default to free plan
-  const [role, setRole] = useState<'user' | 'owner'>('user');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly' | null>(null);
-  const [planRenewsAt, setPlanRenewsAt] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(() => getInitialSessionUser());
+  
+  const initialProfile = (() => {
+    if (typeof window === 'undefined') return null;
+    const initialUid = localStorage.getItem('invocentric_last_uid');
+    return initialUid ? getStoredUserProfile(initialUid) : null;
+  })();
+  const initialUserEmail = typeof window !== 'undefined' ? localStorage.getItem('invocentric_last_email') : null;
+  const initialIsOwner = initialUserEmail?.toLowerCase() === 'nomanshaikh1999@gmail.com' || initialProfile?.role === 'owner';
+  const initialPlanEval = initialProfile ? evaluatePlanValidity(initialProfile, initialUserEmail) : null;
+
+  const [isAdmin, setIsAdmin] = useState(initialIsOwner);
+  const [planStatus, setPlanStatus] = useState<string>(initialPlanEval?.effectiveStatus || 'active');
+  const [planTier, setPlanTier] = useState<'free' | 'pro'>(initialPlanEval?.effectiveTier || (initialIsOwner ? 'pro' : 'free'));
+  const [role, setRole] = useState<'user' | 'owner'>(initialIsOwner ? 'owner' : 'user');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly' | null>(initialPlanEval?.billingCycle || null);
+  const [planRenewsAt, setPlanRenewsAt] = useState<string | null>(initialPlanEval?.renewsAt || null);
   const [activeLockedFeature, setActiveLockedFeature] = useState<{ name: string; benefits: string[] } | null>(null);
   const [subscriptionPending, setSubscriptionPending] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
@@ -497,7 +551,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isTrialActive = !isOwner && planTier === 'pro' && freeTrialClaimed && daysLeftInTrial > 0;
   const isTrialExpired = !isOwner && (planStatus === 'expired' || (freeTrialClaimed && planTier === 'free'));
   const trialStartDate = freeTrialClaimedAt;
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(() => !getInitialSessionUser());
 
   const setOfflineMode = (offline: boolean) => {
     setIsOfflineModeState(offline);
@@ -857,15 +911,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 5. In background, sync with Firestore asynchronously without blocking user navigation
         syncFirestoreProfileInBackground(firebaseUser, cachedProfile);
       } else {
-        // If Firebase Auth returned null, check if we have an active saved session (e.g. mobile/electron session)
+        // If Firebase Auth returned null, check if we have an active saved session (e.g. mobile/electron/offline session)
         if (typeof window !== 'undefined') {
           const savedSession = localStorage.getItem('invocentric_session_user');
-          if (savedSession) {
+          const isAuthActive = localStorage.getItem('invocentric_auth_active') === 'true';
+          if (savedSession || isAuthActive) {
             try {
-              const parsed = JSON.parse(savedSession);
+              const parsed = savedSession ? JSON.parse(savedSession) : null;
               if (parsed && parsed.uid) {
-                console.log("Restoring active user from saved session:", parsed.uid);
-                await applyExternalSessionUser(parsed);
+                console.log("Restoring and maintaining active user from saved session:", parsed.uid);
+                const synUser = createSyntheticUser(parsed);
+                setUser(synUser);
+                const cachedProfile = getStoredUserProfile(parsed.uid);
+                if (cachedProfile) {
+                  const planEval = evaluatePlanValidity(cachedProfile, parsed.email);
+                  applyPlanEvaluation(planEval, parsed.uid);
+                  if (cachedProfile.app_mode) {
+                    setAppModeState(cachedProfile.app_mode);
+                    localStorage.setItem('app_mode', cachedProfile.app_mode);
+                  }
+                  const isOwnerEmail = parsed.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+                  setRole(isOwnerEmail ? 'owner' : (cachedProfile.role === 'owner' ? 'user' : (cachedProfile.role || 'user')));
+                  setSubscriptionPending(!!cachedProfile.subscription_pending);
+                  setSubscriptionStatus(cachedProfile.subscription_status || null);
+                  setSubscriptionRequestRef(cachedProfile.subscription_request_ref || null);
+                  setIsAdmin(isOwnerEmail);
+                }
+                setLoading(false);
                 return;
               }
             } catch (sessErr) {
@@ -874,13 +946,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        try {
-          localStorage.removeItem('invocentric_auth_active');
-          localStorage.removeItem('invocentric_last_uid');
-          localStorage.removeItem('invocentric_last_email');
-          localStorage.removeItem('invocentric_session_user');
-          localStorage.removeItem('invocentric_id_token');
-        } catch (e) {}
+        // Only truly log out if there is NO active local session at all
         setUser(null);
         setIsAdmin(false);
         setLoading(false);
@@ -1129,31 +1195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
 
-      const syntheticUser = {
-        uid: data.uid,
-        email: data.email || null,
-        displayName: data.displayName || (data.email ? data.email.split('@')[0] : 'User'),
-        photoURL: data.photoURL || null,
-        emailVerified: true,
-        isAnonymous: false,
-        metadata: {},
-        providerData: [],
-        refreshToken: '',
-        tenantId: null,
-        delete: async () => {},
-        getIdToken: async () => token || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : '') || '',
-        getIdTokenResult: async () => ({
-          token: token || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : '') || '',
-          claims: {},
-          authTime: '',
-          issuedAtTime: '',
-          expirationTime: '',
-          signInProvider: 'google.com'
-        } as any),
-        reload: async () => {},
-        toJSON: () => ({ uid: data.uid, email: data.email })
-      } as unknown as User;
-
+      const syntheticUser = createSyntheticUser({ ...data, idToken: token });
       await handleUserChange(syntheticUser);
     } catch (e) {
       console.warn("Failed to apply synthetic session user:", e);
@@ -1509,7 +1551,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      if (cred?.user) {
+        localStorage.setItem('invocentric_auth_active', 'true');
+        localStorage.setItem('invocentric_last_uid', cred.user.uid);
+        if (cred.user.email) localStorage.setItem('invocentric_last_email', cred.user.email);
+        localStorage.setItem('invocentric_session_user', JSON.stringify({
+          uid: cred.user.uid,
+          email: cred.user.email || null,
+          displayName: cred.user.displayName || null,
+          photoURL: cred.user.photoURL || null,
+          savedAt: Date.now()
+        }));
+      }
     } catch (error) {
       console.error("Error signing in with email:", error);
       throw error;
@@ -1524,6 +1578,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const rawPrefix = cleanEmail.split('@')[0];
         const formattedName = rawPrefix.charAt(0).toUpperCase() + rawPrefix.slice(1);
         await updateProfile(cred.user, { displayName: formattedName }).catch(() => {});
+        localStorage.setItem('invocentric_auth_active', 'true');
+        localStorage.setItem('invocentric_last_uid', cred.user.uid);
+        localStorage.setItem('invocentric_last_email', cleanEmail);
+        localStorage.setItem('invocentric_session_user', JSON.stringify({
+          uid: cred.user.uid,
+          email: cleanEmail,
+          displayName: formattedName,
+          photoURL: null,
+          savedAt: Date.now()
+        }));
       }
     } catch (error) {
       console.error("Error signing up with email:", error);
@@ -1538,7 +1602,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithPassword = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+      const cred = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+      if (cred?.user) {
+        localStorage.setItem('invocentric_auth_active', 'true');
+        localStorage.setItem('invocentric_last_uid', cred.user.uid);
+        if (cred.user.email) localStorage.setItem('invocentric_last_email', cred.user.email);
+        localStorage.setItem('invocentric_session_user', JSON.stringify({
+          uid: cred.user.uid,
+          email: cred.user.email || null,
+          displayName: cred.user.displayName || null,
+          photoURL: cred.user.photoURL || null,
+          savedAt: Date.now()
+        }));
+      }
     } catch (error: any) {
       const code = error?.code || '';
       if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {

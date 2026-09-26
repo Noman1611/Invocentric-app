@@ -343,6 +343,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
     localStorage.setItem('theme', 'light');
   }, []);
 

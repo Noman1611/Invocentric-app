@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
 import { motion } from 'motion/react';
@@ -31,6 +31,7 @@ import {
   Sparkles,
   Lock,
   Download,
+  HardDrive,
   Layout as LayoutIcon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -40,8 +41,10 @@ import { db } from '../lib/firebase';
 
 export default function Sidebar({ onProfileClick }: { onProfileClick?: () => void }) {
   const { logout, user, isAdmin, appMode, planTier, isPro, triggerUpgradeModal } = useAuth();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [itemsOpen, setItemsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(() => location.pathname.startsWith('/settings'));
 
   const isHardcodedAdmin = user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
   const showAdmin = isAdmin || isHardcodedAdmin;
@@ -86,9 +89,18 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
         { name: 'QR Generator', path: '/qr-generator', icon: QrCode },
         { name: 'Download App / PC', path: '/download', icon: Download },
         { name: 'Plans & Pricing', path: '/pricing', icon: Sparkles },
-        { name: 'Settings', path: '/settings', icon: Settings },
       ]
     }
+  ];
+
+  const settingsSubItems = [
+    { name: 'User Profile', path: '/settings?tab=profile', icon: Users },
+    { name: 'Company Settings', path: '/settings?tab=company', icon: Store },
+    { name: 'Tax & Numbering', path: '/settings?tab=tax', icon: FileText },
+    { name: 'Payment Details', path: '/settings?tab=payment', icon: CreditCard },
+    { name: 'Storage & Backup', path: '/settings?tab=storage', icon: HardDrive },
+    { name: 'System Settings', path: '/settings?tab=system', icon: Settings },
+    { name: 'Plan & Security', path: '/settings?tab=security', icon: ShieldCheck },
   ];
 
   const itemsSubItems = [
@@ -216,12 +228,12 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                         <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between">
                           <span>{item.name}</span>
                           {item.path === '/qr-generator' && !isPro && (
-                            <Lock size={12} className="text-amber-500 ml-1.5 shrink-0" />
+                            <Lock size={12} className="text-emerald-700 ml-1.5 shrink-0" />
                           )}
                         </span>
                       )}
                       {collapsed && item.path === '/qr-generator' && !isPro && (
-                        <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 border border-white" />
+                        <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-600 border border-white" />
                       )}
                     </>
                   )}
@@ -292,6 +304,59 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
           </div>
         ))}
 
+        {/* Collapsible Settings Menu */}
+        <div className={cn("space-y-1 mb-3 mt-1", collapsed && "mb-2")}>
+          {!collapsed && (
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#8A99AD] px-4 mb-2">
+              PREFERENCES
+            </p>
+          )}
+          <button
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            className={cn(
+              "w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative",
+              location.pathname.startsWith('/settings')
+                ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            )}
+          >
+            <Settings size={18} className={cn("shrink-0 transition-colors", location.pathname.startsWith('/settings') ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
+            {!collapsed && (
+              <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between text-left">
+                <span>Settings</span>
+                {settingsOpen
+                  ? <ChevronDown size={14} className="text-[#166534] transition-transform duration-200" />
+                  : <ChevronRight size={14} className="text-slate-400 transition-transform duration-200" />
+                }
+              </span>
+            )}
+          </button>
+
+          {/* Settings Sub-Menu */}
+          {settingsOpen && !collapsed && (
+            <div className="space-y-0.5 pl-3 border-l-2 border-[#D1FAE5] ml-5">
+              {settingsSubItems.map((sub) => {
+                const isSubActive = location.pathname === '/settings' && location.search === sub.path.replace('/settings', '');
+                return (
+                  <NavLink
+                    key={sub.path}
+                    to={sub.path}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 group relative text-[12px]",
+                      isSubActive
+                        ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                    )}
+                  >
+                    <sub.icon size={15} className={cn("shrink-0", isSubActive ? "text-[#166534]" : "text-slate-400 group-hover:text-slate-600")} />
+                    <span className="tracking-tight font-bold">{sub.name}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Admin Section */}
         {showAdmin && (
           <div className={cn("space-y-1 mb-5", collapsed && "mb-3")}>
@@ -318,14 +383,14 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                     <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between">
                       <span>{adminItem.name}</span>
                       {pendingCount > 0 && (
-                        <span className="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                        <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
                           {pendingCount}
                         </span>
                       )}
                     </span>
                   )}
                   {collapsed && pendingCount > 0 && (
-                    <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse border-2 border-white" />
+                    <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse border-2 border-white" />
                   )}
                 </>
               )}

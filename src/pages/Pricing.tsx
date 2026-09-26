@@ -409,12 +409,12 @@ export default function PricingPage() {
       {!freeTrialClaimed && planTier !== 'pro' && !isOwner && (
         <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white rounded-3xl p-6 shadow-xl border border-emerald-400/30 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-yellow-400/20 border border-yellow-300/40 flex items-center justify-center text-yellow-300 shadow-sm shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-400/20 border border-emerald-300/40 flex items-center justify-center text-emerald-200 shadow-sm shrink-0">
               <Sparkles size={24} className="animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="bg-yellow-400 text-slate-900 font-extrabold text-[10px] px-2 py-0.5 rounded-sm uppercase tracking-wider shadow-xs">
+                <span className="bg-white text-[#166534] font-extrabold text-[10px] px-2 py-0.5 rounded-sm uppercase tracking-wider shadow-xs">
                   Special Launch Offer
                 </span>
                 <h4 className="text-base font-black text-white uppercase tracking-tight">1 Month Free Pro Plan</h4>
@@ -426,7 +426,7 @@ export default function PricingPage() {
                 <p className="text-xs text-rose-200 font-bold mt-1">{claimTrialError}</p>
               )}
               {claimTrialSuccess && (
-                <p className="text-xs text-yellow-300 font-extrabold mt-1">
+                <p className="text-xs text-emerald-200 font-extrabold mt-1">
                   🎉 Pro Activated! Receipt #{claimTrialSuccess} has been sent to your email.
                 </p>
               )}
@@ -435,7 +435,7 @@ export default function PricingPage() {
           <button
             onClick={handleClaimOffer}
             disabled={claimingTrial || !!claimTrialSuccess}
-            className="px-6 py-3.5 bg-gradient-to-r from-yellow-400 to-amber-400 hover:from-yellow-300 hover:to-amber-300 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 disabled:opacity-60 cursor-pointer flex items-center gap-2"
+            className="px-6 py-3.5 bg-white hover:bg-emerald-50 text-[#166534] rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 disabled:opacity-60 cursor-pointer flex items-center gap-2"
           >
             {claimingTrial ? 'Activating...' : claimTrialSuccess ? 'Claimed!' : 'Claim Now (100% Free)'}
             {!claimingTrial && !claimTrialSuccess && <ArrowRight size={14} />}

@@ -33,6 +33,7 @@
 
 @layer base {
   html {
+    color-scheme: light only !important;
     background-color: #f8fafc;
   }
   html, body {

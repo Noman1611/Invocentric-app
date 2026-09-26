@@ -1,16 +1,18 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence, indexedDBLocalPersistence } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Explicitly enforce permanent browser local persistence (localStorage + IndexedDB).
-// This guarantees that the user stays logged in across app restarts, browser closes, and PWA sessions.
+// Explicitly enforce permanent local persistence (IndexedDB + localStorage).
+// This guarantees that the user stays logged in across app restarts, browser closes, APK restarts, and PWA sessions.
 if (typeof window !== 'undefined') {
-  setPersistence(auth, browserLocalPersistence).catch((err) => {
-    console.warn("Failed to set auth persistence to browserLocalPersistence:", err);
+  setPersistence(auth, indexedDBLocalPersistence).catch(() => {
+    return setPersistence(auth, browserLocalPersistence);
+  }).catch((err) => {
+    console.warn("Failed to set auth persistence:", err);
   });
 }
 

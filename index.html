@@ -1,6 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="light" style="color-scheme: light only;">
   <head>
+    <meta name="color-scheme" content="light only" />
+    <script>
+      try {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        localStorage.setItem('theme', 'light');
+      } catch (e) {}
+    </script>
     <script>
       (function() {
         // Safe ServiceWorker Mock in Electron to prevent cache lockups and undefined errors

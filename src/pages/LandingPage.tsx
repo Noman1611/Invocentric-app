@@ -1254,7 +1254,7 @@ export default function LandingPage() {
               ].map((testimonial, i) => (
                 <div key={i} className="bg-gray-50 rounded-2xl p-8 border border-gray-100 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center gap-1 text-yellow-500 mb-6">
+                    <div className="flex items-center gap-1 text-emerald-500 mb-6">
                       {[1,2,3,4,5].map(st => <Star key={st} size={16} fill="currentColor" />)}
                     </div>
                     <p className="text-gray-600 italic text-sm leading-relaxed">"{testimonial.review}"</p>
