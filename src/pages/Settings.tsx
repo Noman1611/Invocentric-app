@@ -39,7 +39,8 @@ import {
   Bell, 
   Check, 
   ExternalLink,
-  Search
+  Search,
+  Repeat
 } from 'lucide-react';
 import { updateService, AppUpdateState } from '../services/updateService';
 import { Logo } from '../components/Logo';
@@ -168,9 +169,9 @@ export default function SettingsPage() {
     setIsCheckingUpdates(true);
     setUpdateActionMsg(null);
     try {
-      const res = await updateService.checkForUpdates();
-      if (res.available) {
-        setUpdateActionMsg(`Update found: v${res.updateInfo?.version || 'new'}`);
+      const res = await updateService.checkForUpdates(true);
+      if (res.hasUpdate) {
+        setUpdateActionMsg(`Update found: v${res.latestVersion}`);
       } else {
         setUpdateActionMsg("You are using the latest version!");
       }
@@ -181,16 +182,15 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDownloadUpdate = async () => {
+  const handleApplyUpdate = async () => {
     try {
-      await updateService.downloadUpdate();
+      const res = await updateService.applyUpdate();
+      if (res.message) {
+        setUpdateActionMsg(res.message);
+      }
     } catch (err: any) {
-      alert("Download error: " + err.message);
+      alert("Update error: " + err.message);
     }
-  };
-
-  const handleInstallUpdate = () => {
-    updateService.installUpdate();
   };
 
   const handleConnectGoogleDrive = async () => {
@@ -2200,23 +2200,13 @@ export default function SettingsPage() {
                           <span>{isCheckingUpdates ? 'Checking...' : 'Check for Updates'}</span>
                         </button>
 
-                        {updateState.status === 'available' && (
+                        {updateState.hasUpdate && (
                           <button
                             type="button"
-                            onClick={handleDownloadUpdate}
+                            onClick={handleApplyUpdate}
                             className="px-4 py-2 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
                           >
-                            Download Update
-                          </button>
-                        )}
-
-                        {updateState.status === 'downloaded' && (
-                          <button
-                            type="button"
-                            onClick={handleInstallUpdate}
-                            className="px-4 py-2 bg-[#166534] hover:bg-green-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                          >
-                            Install & Restart
+                            Update Now (v{updateState.latestVersion})
                           </button>
                         )}
                       </div>
