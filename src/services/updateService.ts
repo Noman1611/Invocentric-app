@@ -282,13 +282,15 @@ class UniversalUpdateService {
     if (platform === 'electron') {
       const electronAPI = (window as any).electronAPI;
 
-      // If already downloaded and verified by autoUpdater, restart to apply
+      // If already downloaded and verified by autoUpdater, restart to apply in-place
       if (status === 'downloaded' && electronAPI?.restartAndInstallUpdate) {
+        this.updateState({ autoApplying: true });
         const res = await electronAPI.restartAndInstallUpdate();
         if (res && res.success === false) {
+          this.updateState({ autoApplying: false });
           return { success: false, message: res.error || 'Update failed to restart.' };
         }
-        return { success: true, message: 'Restarting InvoCentric to apply update...' };
+        return { success: true, message: 'Restarting InvoCentric to apply update directly in-place...' };
       }
 
       // If already actively downloading
@@ -296,70 +298,67 @@ class UniversalUpdateService {
         return { success: true, message: `Downloading update (${this.state.progress}%)... Please wait.` };
       }
 
-      // If update is available but not yet downloaded
+      // If update is available, trigger native in-place autoUpdater
       if (electronAPI?.checkForUpdates) {
         this.updateState({ status: 'downloading', progress: 10 });
         try {
           const checkRes = await electronAPI.checkForUpdates();
-          if (checkRes?.status === 'error' || checkRes?.status === 'disabled') {
-            if (exeDownloadUrl) {
-              if (electronAPI.openInChrome) {
-                electronAPI.openInChrome(exeDownloadUrl);
-              } else {
-                window.open(exeDownloadUrl, '_blank');
-              }
-              this.updateState({ status: 'available', progress: 0 });
-              return { success: true, message: 'Opening InvoCentric-Setup.exe download in browser...' };
-            }
+          if (checkRes?.status === 'success' || checkRes?.updateInfo) {
+            return { 
+              success: true, 
+              message: 'Downloading update in the background. The installed software will update and restart in-place.' 
+            };
+          } else if (checkRes?.status === 'error') {
+            this.updateState({ status: 'available', progress: 0, error: checkRes?.error || 'Update check error' });
+            return { 
+              success: false, 
+              message: 'Auto-updater could not find release metadata. Please verify internet connection.' 
+            };
           }
-        } catch (e) {
-          if (exeDownloadUrl) {
-            window.open(exeDownloadUrl, '_blank');
-            return { success: true, message: 'Opening InvoCentric-Setup.exe download in browser...' };
-          }
+        } catch (e: any) {
+          this.updateState({ status: 'available', progress: 0, error: e?.message });
+          return { success: false, message: `Update error: ${e?.message || 'Check failed'}` };
         }
         return { success: true, message: 'Downloading latest update package in background...' };
       }
 
-      // Fallback
-      if (exeDownloadUrl) {
-        window.open(exeDownloadUrl, '_blank');
-        this.updateState({ status: 'available', progress: 0 });
-        return { success: true, message: 'Downloading InvoCentric-Setup.exe...' };
-      }
+      return {
+        success: false,
+        message: 'Desktop auto-updater is not available in current environment.'
+      };
     }
 
     if (platform === 'android') {
-      const url = apkDownloadUrl || 'https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk';
+      const url = apkDownloadUrl || DEFAULT_ANDROID_DOWNLOAD_URL;
       this.updateState({ status: 'downloading', progress: 50 });
 
-      // Check if native AndroidAppUpdater bridge is available
+      // Native AndroidAppUpdater bridge: Downloads into app folder & triggers in-place package update
       if ((window as any).AndroidAppUpdater?.downloadAndInstallApk) {
         try {
           (window as any).AndroidAppUpdater.downloadAndInstallApk(url);
           this.updateState({ status: 'downloaded', progress: 100 });
           return {
             success: true,
-            message: 'InvoCentric APK downloading. System installer will open automatically.'
+            message: 'InvoCentric update downloading in background. The system installer will open to update the installed app in-place.'
           };
         } catch (bridgeErr) {
-          console.warn('[UpdateService] Native Android bridge error, using web fallback:', bridgeErr);
+          console.warn('[UpdateService] Native Android bridge error:', bridgeErr);
         }
       }
       
-      // Fallback: browser download
-      const downloadLink = document.createElement('a');
-      downloadLink.href = url;
-      downloadLink.download = 'InvoCentric.apk';
-      downloadLink.target = '_system';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
+      // If opened via mobile web browser (not installed APK)
+      if (typeof window !== 'undefined' && !((window as any).Capacitor?.isNativePlatform?.())) {
+        window.location.href = url;
+        this.updateState({ status: 'downloaded', progress: 100 });
+        return { 
+          success: true, 
+          message: 'Downloading latest InvoCentric APK...' 
+        };
+      }
 
-      this.updateState({ status: 'downloaded', progress: 100 });
-      return { 
-        success: true, 
-        message: 'InvoCentric.apk download started! Tap notification when complete to install.' 
+      return {
+        success: false,
+        message: 'Could not trigger native app updater.'
       };
     }
 

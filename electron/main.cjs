@@ -16320,8 +16320,8 @@ ipcMain.handle("restart-and-install", () => {
   }
   if (autoUpdater) {
     try {
-      console.log("[AutoUpdater] Initiating restart and in-place install...");
-      autoUpdater.quitAndInstall(false, true);
+      console.log("[AutoUpdater] Initiating restart and in-place silent install...");
+      autoUpdater.quitAndInstall(true, true);
       return { success: true };
     } catch (err) {
       console.error("[AutoUpdater] Error during quitAndInstall:", err);

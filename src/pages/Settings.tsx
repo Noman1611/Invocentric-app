@@ -1882,6 +1882,85 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Software & Mobile App Update Hub */}
+        <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Software & App Updates</h2>
+                <span className="bg-emerald-50 text-emerald-700 text-xs font-black px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  v{updateState.currentVersion}
+                </span>
+                <span className="bg-gray-100 text-gray-700 text-xs font-semibold px-2 py-0.5 rounded-full capitalize">
+                  {updateState.platform === 'electron' ? 'Windows Desktop' : updateState.platform === 'android' ? 'Android APK' : 'Web Application'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Updates install seamlessly in-place over your existing installation with 100% automated data backup.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                disabled={isCheckingUpdates || updateState.status === 'downloading'}
+                onClick={handleCheckUpdatesManual}
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw size={13} className={cn(isCheckingUpdates && "animate-spin text-emerald-600")} />
+                <span>{isCheckingUpdates ? 'Checking...' : 'Check for Updates'}</span>
+              </button>
+
+              {(updateState.hasUpdate || updateState.status === 'downloaded') && (
+                <button
+                  type="button"
+                  onClick={handleApplyUpdateManual}
+                  className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 active:scale-95 cursor-pointer"
+                >
+                  {updateState.status === 'downloaded' ? (
+                    <>
+                      <CheckCircle2 size={14} className="text-yellow-300" />
+                      <span>{updateState.platform === 'electron' ? 'Restart & Apply Update' : 'Install Update Now'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download size={14} />
+                      <span>Update to v{updateState.latestVersion}</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Download progress bar if actively downloading */}
+          {updateState.status === 'downloading' && (
+            <div className="mb-4 p-4 bg-emerald-50/60 rounded-xl border border-emerald-200">
+              <div className="flex items-center justify-between text-xs font-bold text-emerald-900 mb-1.5">
+                <span className="flex items-center gap-2">
+                  <RefreshCw size={12} className="animate-spin text-emerald-600" />
+                  Downloading update package in-place...
+                </span>
+                <span>{updateState.progress}%</span>
+              </div>
+              <div className="w-full bg-emerald-200/60 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${Math.max(5, updateState.progress)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Status Message or Toast */}
+          {updateActionMsg && (
+            <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-700 flex items-center gap-2">
+              <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+              <span>{updateActionMsg}</span>
+            </div>
+          )}
+        </section>
+
         {/* Subscription Receipts History */}
         {!isOfflineMode && (
           <section className="bg-white border border-gray-100 rounded-2xl p-8 shadow-sm">

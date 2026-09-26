@@ -193,7 +193,7 @@ public class MainActivity extends BridgeActivity {
             try {
                 return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
             } catch (Exception e) {
-                return "1.0.14";
+                return "1.0.22";
             }
         }
 
@@ -240,16 +240,30 @@ public class MainActivity extends BridgeActivity {
                 @Override
                 public void run() {
                     try {
+                        // Check if Android 8.0+ has unknown app install permission
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            if (!getPackageManager().canRequestPackageInstalls()) {
+                                try {
+                                    Intent unknownAppIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                                    unknownAppIntent.setData(Uri.parse("package:" + getPackageName()));
+                                    unknownAppIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    startActivity(unknownAppIntent);
+                                } catch (Exception permErr) {
+                                    permErr.printStackTrace();
+                                }
+                            }
+                        }
+
                         android.app.DownloadManager.Request request = new android.app.DownloadManager.Request(android.net.Uri.parse(downloadUrl));
-                        request.setTitle("InvoCentric Auto-Update");
-                        request.setDescription("Downloading latest InvoCentric update...");
+                        request.setTitle("InvoCentric Update");
+                        request.setDescription("Downloading latest InvoCentric update package...");
                         request.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
 
                         final java.io.File destinationFile = new java.io.File(getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS), "InvoCentric.apk");
                         if (destinationFile.exists()) {
                             destinationFile.delete();
                         }
-                        request.setDestinationUri(android.net.Uri.fromFile(destinationFile));
+                        request.setDestinationInExternalFilesDir(MainActivity.this, android.os.Environment.DIRECTORY_DOWNLOADS, "InvoCentric.apk");
 
                         final android.app.DownloadManager manager = (android.app.DownloadManager) getSystemService(android.content.Context.DOWNLOAD_SERVICE);
                         if (manager != null) {
@@ -265,7 +279,21 @@ public class MainActivity extends BridgeActivity {
                                         } catch (Exception ignored) {}
 
                                         try {
-                                            if (destinationFile.exists()) {
+                                            android.app.DownloadManager.Query query = new android.app.DownloadManager.Query();
+                                            query.setFilterById(downloadId);
+                                            android.database.Cursor cursor = manager.query(query);
+                                            boolean isSuccess = false;
+                                            if (cursor != null) {
+                                                if (cursor.moveToFirst()) {
+                                                    int statusCol = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_STATUS);
+                                                    if (statusCol != -1 && cursor.getInt(statusCol) == android.app.DownloadManager.STATUS_SUCCESSFUL) {
+                                                        isSuccess = true;
+                                                    }
+                                                }
+                                                cursor.close();
+                                            }
+
+                                            if (isSuccess && destinationFile.exists() && destinationFile.length() > 0) {
                                                 android.net.Uri apkUri = androidx.core.content.FileProvider.getUriForFile(
                                                     MainActivity.this,
                                                     getPackageName() + ".fileprovider",
