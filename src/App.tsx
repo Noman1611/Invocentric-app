@@ -48,6 +48,7 @@ const SeoLandingPage = lazy(() => import('./pages/SeoLandingPage'));
 const GstCalculatorPage = lazy(() => import('./pages/GstCalculatorPage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));
 const AccountingExportPage = lazy(() => import('./pages/AccountingExportPage'));
+const HeroPreviewPage = lazy(() => import('./components/HeroPreviewPage'));
 
 function PageLoader() {
   return (
@@ -65,7 +66,7 @@ function PageLoader() {
   );
 }
 
-import { Store, Briefcase, Search, Bell, ChevronDown, CheckCircle, Settings, User as UserIcon, LogOut, X, Loader, Phone, Building, Globe, FileText, Package, Users, TrendingDown, HelpCircle, Sparkles, Play, Check, CheckSquare, Square, ArrowRight, AlertCircle, Info, Landmark, QrCode, Video, Copy, ScanLine, Plus, HardDrive, Cloud } from 'lucide-react';
+import { Store, Briefcase, Search, Bell, ChevronDown, CheckCircle, Settings, User as UserIcon, LogOut, X, Loader, Phone, Building, Globe, FileText, Package, Users, TrendingDown, HelpCircle, Sparkles, Play, Check, CheckSquare, Square, ArrowRight, AlertCircle, Info, Landmark, QrCode, Video, Copy, ScanLine, Plus, HardDrive, Cloud, Keyboard } from 'lucide-react';
 import { initializeUsbScanner, registerScanListener, registerStatusListener, getScannerSessionId } from './utils/usbScanner';
 import { playScanBeepSound } from './utils/cameraUtils';
 import { QRCodeSVG } from 'qrcode.react';
@@ -504,6 +505,44 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     };
   }, [user]);
 
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  // Sync custom User Profile photo immediately over default email/Google photo
+  useEffect(() => {
+    const updateAvatar = () => {
+      if (!user) {
+        setUserAvatar(null);
+        return;
+      }
+      const stored = getStoredUserProfile(user.uid);
+      const customPhoto = stored?.profile_photo_url || stored?.photo_url;
+      if (customPhoto) {
+        setUserAvatar(customPhoto);
+      } else if (stored && (stored.profile_photo_url === '' || stored.photo_url === '')) {
+        setUserAvatar(null);
+      } else {
+        setUserAvatar(user.photoURL || null);
+      }
+    };
+
+    updateAvatar();
+
+    const handleProfileChange = (e: any) => {
+      if (e?.detail?.profile_photo_url !== undefined) {
+        setUserAvatar(e.detail.profile_photo_url || null);
+      } else {
+        updateAvatar();
+      }
+    };
+
+    window.addEventListener('invocentric_profile_updated', handleProfileChange);
+    window.addEventListener('storage', updateAvatar);
+    return () => {
+      window.removeEventListener('invocentric_profile_updated', handleProfileChange);
+      window.removeEventListener('storage', updateAvatar);
+    };
+  }, [user]);
+
   // Quick Profile Edit Modal State
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -797,6 +836,16 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                 )}
               </button>
 
+              {/* Keyboard Shortcuts Trigger Button */}
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open_shortcuts_modal'))}
+                title="Keyboard Navigation Shortcuts (Press ? or F1)"
+                className="hidden md:flex p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-xl transition-all items-center justify-center cursor-pointer"
+              >
+                <Keyboard size={18} />
+              </button>
+
               <div className="h-6 w-px bg-slate-200/80 hidden xs:block" />
 
               {/* User Dropdown Profile Pill */}
@@ -813,8 +862,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <div className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden border border-slate-200 bg-green-50">
-                  {user?.photoURL ? (
-                    <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                  {userAvatar ? (
+                    <img src={userAvatar} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-xs font-black text-green-600">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                   )}
@@ -999,8 +1048,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                 <div ref={profileDropdownRef} className="absolute right-0 top-14 max-sm:fixed max-sm:right-3 max-sm:top-14 w-64 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-[9999] overflow-hidden animate-fadeIn">
                   <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border border-slate-200 bg-green-50 shrink-0">
-                      {user?.photoURL ? (
-                        <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                      {userAvatar ? (
+                        <img src={userAvatar} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-sm font-black text-green-600">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                       )}
@@ -1775,6 +1824,7 @@ export default function App() {
               <Route path="/gst-calculator" element={<GstCalculatorPage />} />
               <Route path="/calculator" element={<GstCalculatorPage />} />
               <Route path="/gst-calc" element={<GstCalculatorPage />} />
+              <Route path="/hero-preview" element={<HeroPreviewPage />} />
               
               {/* Private Routes */}
               <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />

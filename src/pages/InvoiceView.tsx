@@ -812,8 +812,8 @@ export default function InvoiceViewPage() {
   const renderTemplate01Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const blue='#2f6fb0', dark='#1c4a75', lb='#eaf2fb', b=`1px solid ${blue}`;
     return (
-      <div className="flex flex-col h-full justify-between" style={{ minHeight: useLetterhead ? 'auto' : (isA5 ? '138mm' : '281mm'), height: useLetterhead ? '100%' : undefined, maxHeight: useLetterhead ? '100%' : undefined, boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12, color:'#1a1a1a' }}>
-        <div style={{ flex: useLetterhead ? 'none' : 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col h-full" style={{ minHeight: isA5 ? '138mm' : '281mm', height: '100%', boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12, color:'#1a1a1a' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {(!useLetterhead || !letterheadHideHeader) ? (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom: isA5 ? 2 : 6}}>
               <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
@@ -867,8 +867,8 @@ export default function InvoiceViewPage() {
             </div>
           </div>
 
-          {/* Dynamic Items Table - Clean uninterrupted vertical lines without row dividers */}
-          <table style={{width:'100%',flex: useLetterhead ? 'none' : 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
+          {/* Dynamic Items Table - Clean uninterrupted vertical lines that extend continuously without breaking */}
+          <table style={{width:'100%',flex: 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom: isLastPage ? 'none' : b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>
                 <th style={{background:lb,borderLeft:b,borderRight:b,borderBottom:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5, width: 30}}>Sr. No.</th>
@@ -905,28 +905,26 @@ export default function InvoiceViewPage() {
                   <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{fc(it.taxable,cur)}</td>
                 </tr>
               ))}
-              {/* Spacer row to let vertical column lines extend continuously only when not using letterhead */}
-              {!useLetterhead && (
-                <tr>
-                  <td style={{borderLeft:b,borderRight:b,height:'100%'}}></td>
-                  <td style={{borderLeft:b,borderRight:b}}></td>
-                  {colVis.size && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  {colVis.hsn && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  <td style={{borderLeft:b,borderRight:b}}></td>
-                  {colVis.mrp && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  <td style={{borderLeft:b,borderRight:b}}></td>
-                  {colVis.discount && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  <td style={{borderLeft:b,borderRight:b}}></td>
-                </tr>
-              )}
+              {/* Spacer row to let vertical column lines extend continuously down to totals table */}
+              <tr>
+                <td style={{borderLeft:b,borderRight:b,height:'100%'}}></td>
+                <td style={{borderLeft:b,borderRight:b}}></td>
+                {colVis.size && <td style={{borderLeft:b,borderRight:b}}></td>}
+                {colVis.hsn && <td style={{borderLeft:b,borderRight:b}}></td>}
+                <td style={{borderLeft:b,borderRight:b}}></td>
+                {colVis.mrp && <td style={{borderLeft:b,borderRight:b}}></td>}
+                <td style={{borderLeft:b,borderRight:b}}></td>
+                {colVis.discount && <td style={{borderLeft:b,borderRight:b}}></td>}
+                {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
+                <td style={{borderLeft:b,borderRight:b}}></td>
+              </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Structured Bottom Section - Total / CGST / SGST exactly on top of Total in Words */}
+        {/* Structured Bottom Section - Total / CGST / SGST exactly attached to items table without gap */}
         {isLastPage ? (
-          <div style={{ marginTop: useLetterhead ? 'auto' : 0, paddingTop: useLetterhead ? 8 : 0 }}>
+          <div style={{ marginTop: 0, paddingTop: 0 }}>
             <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8.5 : 10.5}}>
               <tbody>
                 {isIgst ? (
@@ -1069,11 +1067,12 @@ export default function InvoiceViewPage() {
   };
 
   // Template 03 Page Renderer
+  // Template 03 Page Renderer
   const renderTemplate03Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const blue='#1a73c7', lb='#e9f2fb', b=`1px solid ${blue}`;
     return (
-      <div className="flex flex-col h-full justify-between" style={{ minHeight: useLetterhead ? 'auto' : (isA5 ? '138mm' : '281mm'), height: useLetterhead ? '100%' : undefined, maxHeight: useLetterhead ? '100%' : undefined, boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
-        <div style={{ flex: useLetterhead ? 'none' : 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col h-full" style={{ minHeight: isA5 ? '138mm' : '281mm', height: '100%', boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {(!useLetterhead || !letterheadHideHeader) ? (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
               <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue, textTransform:'uppercase'}}>{docTitle}</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}{co.drug_license ? ` | <b>DL:</b> ${co.drug_license}` : ''}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
@@ -1096,7 +1095,7 @@ export default function InvoiceViewPage() {
               ['E-Way No.:',im.eWayNo]
             ].filter(Boolean).map(([l,v]: any)=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
           </div>
-          <table style={{width:'100%',flex: useLetterhead ? 'none' : 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
+          <table style={{width:'100%',flex: 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom: isLastPage ? 'none' : b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>
                 <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left', width: 30}}>Sr.No.</th>
@@ -1133,27 +1132,25 @@ export default function InvoiceViewPage() {
                   <td style={{padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,textAlign:'right',verticalAlign:'top'}}>{fc(it.taxable,cur)}</td>
                 </tr>
               ))}
-              {/* Spacer row only when not using letterhead */}
-              {!useLetterhead && (
-                <tr>
-                  <td style={{borderLeft:b,borderRight:b,height:'100%'}}></td>
-                  <td style={{borderLeft:b,borderRight:b}}></td>
-                  {colVis.size && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  {colVis.hsn && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  <td style={{borderLeft:b,borderRight:b}}></td>
-                  {colVis.mrp && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  <td style={{borderLeft:b,borderRight:b}}></td>
-                  {colVis.discount && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
-                  <td style={{borderLeft:b,borderRight:b}}></td>
-                </tr>
-              )}
+              {/* Spacer row to let vertical column lines extend continuously */}
+              <tr>
+                <td style={{borderLeft:b,borderRight:b,height:'100%'}}></td>
+                <td style={{borderLeft:b,borderRight:b}}></td>
+                {colVis.size && <td style={{borderLeft:b,borderRight:b}}></td>}
+                {colVis.hsn && <td style={{borderLeft:b,borderRight:b}}></td>}
+                <td style={{borderLeft:b,borderRight:b}}></td>
+                {colVis.mrp && <td style={{borderLeft:b,borderRight:b}}></td>}
+                <td style={{borderLeft:b,borderRight:b}}></td>
+                {colVis.discount && <td style={{borderLeft:b,borderRight:b}}></td>}
+                {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
+                <td style={{borderLeft:b,borderRight:b}}></td>
+              </tr>
             </tbody>
           </table>
         </div>
 
         {isLastPage ? (
-          <div style={{ marginTop: 'auto' }}>
+          <div style={{ marginTop: 0 }}>
             <div style={{display:'flex',justifyContent:'flex-end',gap:20,padding:'1.5px 0',fontWeight:'bold',fontSize: isA5 ? 8.5 : 11}}><span>Taxable Amount</span><b>{fc(totalTaxable,cur)}</b></div>
             <div style={{display:'flex',justifyContent:'flex-end',gap:20,padding:'1.5px 0',fontWeight:'bold',fontSize: isA5 ? 9.5 : 12}}><span>Total Amount</span><b>₹ {fc(grandTotal,cur)}</b></div>
             {showSec.amount_in_words && (
@@ -1492,8 +1489,8 @@ export default function InvoiceViewPage() {
     const borderGray = '#e2e8f0';
 
     return (
-      <div className="flex flex-col h-full justify-between" style={{ minHeight: useLetterhead ? 'auto' : (isA5 ? '138mm' : '281mm'), height: useLetterhead ? '100%' : undefined, maxHeight: useLetterhead ? '100%' : undefined, boxSizing: 'border-box', fontFamily: 'Inter, Arial, sans-serif', fontSize: isA5 ? 9 : 11.5, color: '#0f172a' }}>
-        <div style={{ flex: useLetterhead ? 'none' : 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col h-full" style={{ minHeight: isA5 ? '138mm' : '281mm', height: '100%', boxSizing: 'border-box', fontFamily: 'Inter, Arial, sans-serif', fontSize: isA5 ? 9 : 11.5, color: '#0f172a' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           
           {/* Header Bar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `2px solid ${headerBlue}`, paddingBottom: 10, marginBottom: 12 }}>
@@ -1553,7 +1550,7 @@ export default function InvoiceViewPage() {
           </div>
 
           {/* Items Table with Dedicated Serial/Batch Column */}
-          <table style={{ width: '100%', flex: useLetterhead ? 'none' : 1, borderCollapse: 'collapse', border: `1px solid ${borderGray}`, fontSize: isA5 ? 8.5 : 10.5 }}>
+          <table style={{ width: '100%', flex: 1, borderCollapse: 'collapse', border: `1px solid ${borderGray}`, fontSize: isA5 ? 8.5 : 10.5 }}>
             <thead>
               <tr style={{ background: headerBlue, color: '#ffffff' }}>
                 <th style={{ padding: '6px 4px', textAlign: 'center', width: '30px', fontWeight: 700 }}>S.No.</th>
@@ -1596,12 +1593,10 @@ export default function InvoiceViewPage() {
                   </tr>
                 );
               })}
-              {/* Flexible spacer row only when not using letterhead */}
-              {!useLetterhead && (
-                <tr>
-                  <td colSpan={4 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0) + (colVis.mrp ? 1 : 0) + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0)} style={{ height: '100%' }}></td>
-                </tr>
-              )}
+              {/* Flexible spacer row */}
+              <tr>
+                <td colSpan={4 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0) + (colVis.mrp ? 1 : 0) + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0)} style={{ height: '100%' }}></td>
+              </tr>
             </tbody>
           </table>
 
@@ -1609,7 +1604,7 @@ export default function InvoiceViewPage() {
 
         {/* Bottom Section */}
         {isLastPage ? (
-          <div style={{ marginTop: useLetterhead ? 'auto' : 10, paddingTop: useLetterhead ? 6 : 0 }}>
+          <div style={{ marginTop: 10, paddingTop: 0 }}>
             {/* Grid for Bank Details and Summary */}
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, marginBottom: 10, alignItems: 'flex-start' }}>
               

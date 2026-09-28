@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   Loader2,
   ArrowRight,
+  Eye,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { extractInvoiceFromImage, ExtractedInvoice } from "../services/aiService";
@@ -48,12 +49,13 @@ import { Logo } from "../components/Logo";
 
 export default function Purchases() {
   const { user, isOfflineMode } = useAuth();
-  const { purchases = [], items = [], loading } = useData();
+  const { purchases = [], items = [], customers = [], loading } = useData();
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
   const [statementSupplier, setStatementSupplier] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedPurchaseForView, setSelectedPurchaseForView] = useState<any | null>(null);
 
   const location = useLocation();
   const [statusFilter, setStatusFilter] = useState<"All" | "Paid" | "Unpaid">(
@@ -184,50 +186,243 @@ export default function Purchases() {
     }
   };
 
+  const handleUpdateExtractedHeader = (field: string, value: any) => {
+    setExtractedBillData((prev) => prev ? { ...prev, [field]: value } : prev);
+  };
+
+  const handleUpdateExtractedItem = (index: number, field: string, value: any) => {
+    setExtractedBillData((prev) => {
+      if (!prev || !prev.items) return prev;
+      const updatedItems = [...prev.items];
+      const updatedItem = { ...updatedItems[index], [field]: value };
+
+      if (field === 'rate' || field === 'quantity' || field === 'price' || field === 'discount' || field === 'gstPercent') {
+        const qty = Number(field === 'quantity' ? value : updatedItem.quantity) || 1;
+        const rate = Number(field === 'rate' || field === 'price' ? value : (updatedItem.rate ?? updatedItem.price ?? 0));
+        const disc = Number(field === 'discount' ? value : (updatedItem.discount || 0));
+        const gst = Number(field === 'gstPercent' ? value : (updatedItem.gstPercent || 0));
+        const base = Math.max(0, (qty * rate) - disc);
+        updatedItem.amount = Math.round(base * (1 + (gst / 100)) * 100) / 100;
+      }
+
+      updatedItems[index] = updatedItem;
+      const totalAmount = updatedItems.reduce((acc, it) => acc + (Number(it.amount) || ((Number(it.quantity) || 1) * (Number(it.rate || it.price) || 0))), 0);
+      return { ...prev, items: updatedItems, totalAmount };
+    });
+  };
+
+  const handleRemoveExtractedItem = (index: number) => {
+    setExtractedBillData((prev) => {
+      if (!prev || !prev.items) return prev;
+      const updatedItems = prev.items.filter((_, i) => i !== index);
+      const totalAmount = updatedItems.reduce((acc, it) => acc + (Number(it.amount) || ((Number(it.quantity) || 1) * (Number(it.rate || it.price) || 0))), 0);
+      return { ...prev, items: updatedItems, totalAmount };
+    });
+  };
+
+  const handleAddExtractedItem = () => {
+    setExtractedBillData((prev) => {
+      if (!prev) return prev;
+      const newItem = {
+        description: "New Item",
+        quantity: 1,
+        rate: 0,
+        price: 0,
+        amount: 0,
+        unit: "pcs",
+        hsn: "",
+        gstPercent: 0,
+      };
+      const itemsList = [...(prev.items || []), newItem];
+      return { ...prev, items: itemsList };
+    });
+  };
+
   const handleConfirmExtractedBill = async () => {
     if (!extractedBillData || !user) return;
     setIsSubmitting(true);
     try {
-      const supplierName = extractedBillData.supplierName || formData.supplierName || "Unknown Supplier";
-      const billNo = extractedBillData.invoiceNo || extractedBillData.supplierBillNo || `BILL-${Date.now().toString().slice(-6)}`;
-      const totalAmt = extractedBillData.totalAmount || (extractedBillData.items || []).reduce((sum, it) => sum + (it.amount || ((it.quantity || 1) * (it.rate || it.price || 0))), 0);
-      const itemsDesc = (extractedBillData.items || []).map(it => `${it.description} (x${it.quantity})`).slice(0, 3).join(', ');
+      const supplierName = (extractedBillData.supplierName || formData.supplierName || "Unknown Supplier").trim();
+      const billNo = (extractedBillData.invoiceNo || extractedBillData.supplierBillNo || `BILL-${Date.now().toString().slice(-6)}`).trim();
+
+      const rawItems = Array.isArray(extractedBillData.items) ? extractedBillData.items : [];
+
+      // Format and standardize line items with all details
+      const formattedItems = rawItems.map((it: any) => {
+        const name = (it.description || it.name || "Item").trim();
+        const qty = Number(it.quantity) || 1;
+        const rate = Number(it.rate ?? it.price ?? 0);
+        const discount = Number(it.discount) || 0;
+        const gstPercent = Number(it.gstPercent) || 0;
+        const calculatedAmt = (it.amount !== undefined && !isNaN(Number(it.amount)) && Number(it.amount) > 0)
+          ? Number(it.amount)
+          : Math.round(((qty * rate) - discount) * (1 + (gstPercent / 100)) * 100) / 100;
+
+        return {
+          name,
+          description: name,
+          quantity: qty,
+          qty,
+          unit: it.unit || "pcs",
+          rate,
+          price: rate,
+          cost_price: rate,
+          costPrice: rate,
+          discount,
+          gstPercent,
+          gst_percent: gstPercent,
+          amount: calculatedAmt,
+          hsn: (it.hsn || "").toString().trim(),
+          barcode: (it.barcode || "").toString().trim(),
+          batch_no: (it.batchNo || it.batch || "").toString().trim(),
+          batch: (it.batchNo || it.batch || "").toString().trim(),
+          serial_no: (it.serialNo || it.serial_no || "").toString().trim(),
+        };
+      });
+
+      const totalAmt = extractedBillData.totalAmount || formattedItems.reduce((sum: number, it: any) => sum + (Number(it.amount) || 0), 0);
+      const taxableAmt = Number(extractedBillData.taxableAmount) || Number(extractedBillData.subTotal) || Math.max(0, totalAmt - (Number(extractedBillData.cgst) || 0) - (Number(extractedBillData.sgst) || 0) - (Number(extractedBillData.igst) || 0));
+      const cgstAmt = Number(extractedBillData.cgst) || 0;
+      const sgstAmt = Number(extractedBillData.sgst) || 0;
+      const igstAmt = Number(extractedBillData.igst) || 0;
+      const taxAmt = cgstAmt + sgstAmt + igstAmt;
+      const invoiceDateIso = extractedBillData.invoiceDate ? new Date(extractedBillData.invoiceDate).toISOString() : new Date().toISOString();
+
+      const itemsDesc = formattedItems.map((it: any) => `${it.name} (x${it.quantity})`).slice(0, 4).join(', ');
 
       const purchaseRecord = {
-        description: `Bill #${billNo} - ${itemsDesc || 'Supplier Bill Items'}`,
+        description: `Bill #${billNo} - ${itemsDesc || 'Supplier Bill Items'}${formattedItems.length > 4 ? ` +${formattedItems.length - 4} more` : ''}`,
         amount: Number(totalAmt) || 0,
+        sub_total: Number(extractedBillData.subTotal) || taxableAmt,
+        taxable_amount: taxableAmt,
+        cgst: cgstAmt,
+        sgst: sgstAmt,
+        igst: igstAmt,
+        tax_amount: taxAmt,
         supplier_name: supplierName,
-        supplier_gstin: extractedBillData.supplierGst || '',
+        supplier_gstin: (extractedBillData.supplierGst || '').toUpperCase(),
+        supplier_phone: extractedBillData.supplierPhone || '',
+        supplier_address: extractedBillData.supplierAddress || '',
         bill_number: billNo,
-        date: extractedBillData.invoiceDate ? new Date(extractedBillData.invoiceDate).toISOString() : new Date().toISOString(),
+        date: invoiceDateIso,
         payment_method: "Bank Transfer",
         status: "Paid",
-        items: extractedBillData.items || []
+        items: formattedItems
       };
 
       await dbService.add("purchases", purchaseRecord, { userId: user.uid, offlineMode: isOfflineMode });
 
-      // Auto-increment stock in inventory if selected
-      if (autoIncrementStock && Array.isArray(extractedBillData.items)) {
-        for (const item of extractedBillData.items) {
-          const itName = (item.description || '').trim().toLowerCase();
-          const invMatch = items.find((i: any) => (i.name || '').trim().toLowerCase() === itName || (item.barcode && i.barcode === item.barcode));
-          if (invMatch && invMatch.id) {
-            const addedQty = Number(item.quantity) || 1;
-            const newStock = (Number(invMatch.stock) || 0) + addedQty;
-            await dbService.update("items", invMatch.id, {
-              stock: newStock,
-              last_purchase_price: Number(item.rate || item.price) || invMatch.last_purchase_price,
-              supplier_name: supplierName || invMatch.supplier_name
+      // Auto-register Supplier in Customers/Parties if not already registered
+      if (supplierName && !['supplier', 'vendor', 'unknown supplier', 'cash'].includes(supplierName.toLowerCase())) {
+        const existingSupplier = (customers || []).find((c: any) =>
+          (c.name || '').toLowerCase().trim() === supplierName.toLowerCase() ||
+          (c.company_name || '').toLowerCase().trim() === supplierName.toLowerCase()
+        );
+        if (!existingSupplier) {
+          try {
+            await dbService.add("customers", {
+              name: supplierName,
+              company_name: supplierName,
+              gst_number: (extractedBillData.supplierGst || '').toUpperCase(),
+              phone: extractedBillData.supplierPhone || '',
+              address: extractedBillData.supplierAddress || '',
+              party_type: 'Supplier',
+              notes: `Auto-registered from AI Purchase Bill #${billNo}`,
             }, { userId: user.uid, offlineMode: isOfflineMode });
+          } catch (supErr) {
+            console.warn("Could not auto-register supplier:", supErr);
+          }
+        }
+      }
+
+      // Automatically add/update all items in Item Section (Inventory)
+      let addedCount = 0;
+      let updatedCount = 0;
+
+      if (autoIncrementStock && formattedItems.length > 0) {
+        // Track local map of processed items to handle duplicates in the same bill
+        const processedItemsByName = new Map<string, any>();
+        items.forEach((i: any) => {
+          if (i.name) processedItemsByName.set(i.name.trim().toLowerCase(), { ...i });
+        });
+
+        for (const item of formattedItems) {
+          if (!item.name) continue;
+          const itNameLower = item.name.toLowerCase();
+          const invMatch = processedItemsByName.get(itNameLower) ||
+            (item.barcode ? items.find((i: any) => i.barcode && i.barcode === item.barcode) : null);
+
+          const addedQty = Number(item.quantity) || 1;
+          const itemRate = Number(item.rate) || 0;
+
+          if (invMatch && invMatch.id) {
+            // Existing item in items collection -> update stock, cost price, and metadata
+            const currentStock = Number(invMatch.stock) || 0;
+            const newStock = currentStock + addedQty;
+
+            const updatePayload: any = {
+              stock: newStock,
+              last_purchase_price: itemRate || invMatch.last_purchase_price || 0,
+              purchase_price: itemRate || invMatch.purchase_price || 0,
+              costPrice: itemRate || invMatch.costPrice || 0,
+              cost_price: itemRate || invMatch.cost_price || 0,
+              supplier_name: supplierName || invMatch.supplier_name || '',
+            };
+
+            if (item.hsn && !invMatch.hsn) updatePayload.hsn = item.hsn;
+            if (item.barcode && !invMatch.barcode) updatePayload.barcode = item.barcode;
+            if (item.batch_no && !invMatch.batch_no) updatePayload.batch_no = item.batch_no;
+            if (item.serial_no) {
+              const existingSerials = Array.isArray(invMatch.serials) ? invMatch.serials : [];
+              const newSerials = item.serial_no.split(',').map((s: string) => s.trim()).filter(Boolean);
+              updatePayload.serials = Array.from(new Set([...existingSerials, ...newSerials]));
+              updatePayload.serial_no = item.serial_no;
+            }
+            if (item.gstPercent && !invMatch.gstPercent) updatePayload.gstPercent = item.gstPercent;
+
+            await dbService.update("items", invMatch.id, updatePayload, { userId: user.uid, offlineMode: isOfflineMode });
+            processedItemsByName.set(itNameLower, { ...invMatch, ...updatePayload, stock: newStock });
+            updatedCount++;
+          } else {
+            // New item -> automatically add to items collection so it appears in Item Section!
+            const sellingPrice = itemRate > 0 ? Math.round(itemRate * 1.25) : 0;
+            const serialsList = item.serial_no ? item.serial_no.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+
+            const newItemPayload = {
+              name: item.name,
+              description: item.description || '',
+              price: sellingPrice,
+              purchase_price: itemRate,
+              costPrice: itemRate,
+              cost_price: itemRate,
+              last_purchase_price: itemRate,
+              stock: addedQty,
+              unit: item.unit || 'pcs',
+              category: 'General',
+              low_stock_threshold: 5,
+              hsn: item.hsn || '',
+              barcode: item.barcode || '',
+              batch_no: item.batch_no || '',
+              batch: item.batch_no || '',
+              serial_no: item.serial_no || '',
+              serials: serialsList,
+              gstPercent: item.gstPercent || 0,
+              supplier_name: supplierName || '',
+              internal_notes: `Auto-added from AI Purchase Bill #${billNo}`,
+              active: true,
+            };
+
+            const created = await dbService.add("items", newItemPayload, { userId: user.uid, offlineMode: isOfflineMode });
+            processedItemsByName.set(itNameLower, { ...newItemPayload, id: created.id });
+            addedCount++;
           }
         }
       }
 
       setShowBillVerifyModal(false);
       setExtractedBillData(null);
-      setBillScanSuccess("✅ Purchase entry created and inventory stock successfully incremented!");
-      setTimeout(() => setBillScanSuccess(null), 6000);
+      setBillScanSuccess(`✅ Purchase bill #${billNo} saved! ${formattedItems.length} item(s) processed (${addedCount} new items added to Item section, ${updatedCount} existing items stock updated).`);
+      setTimeout(() => setBillScanSuccess(null), 8000);
     } catch (err: any) {
       console.error("Error confirming extracted purchase bill:", err);
       alert("Failed to save purchase bill: " + (err.message || "Unknown error"));
@@ -389,6 +584,19 @@ export default function Purchases() {
 
     setIsSubmitting(true);
     try {
+      const itemsList = poLineItems.length > 0 ? poLineItems.map(p => ({
+        name: p.name,
+        description: p.name,
+        quantity: p.quantity,
+        qty: p.quantity,
+        rate: p.price,
+        price: p.price,
+        cost_price: p.price,
+        costPrice: p.price,
+        gstPercent: p.gstPercent,
+        amount: p.total
+      })) : [];
+
       await dbService.add("purchases", {
         description: formData.billNumber ? `Bill #${formData.billNumber} - ${formData.description}` : formData.description,
         amount: parseFloat(formData.amount as string),
@@ -398,9 +606,11 @@ export default function Purchases() {
         date: new Date(formData.date).toISOString(),
         payment_method: formData.paymentMethod,
         status: formData.status,
-      }, { userId: user.uid });
+        items: itemsList
+      }, { userId: user.uid, offlineMode: isOfflineMode });
 
       setIsModalOpen(false);
+      setPoLineItems([]);
       setFormData({
         description: "",
         amount: "",
@@ -615,6 +825,19 @@ export default function Purchases() {
                     <span className="text-[11px] font-bold text-neutral-500 block mt-0.5">
                       {pur.description}
                     </span>
+                    {Array.isArray(pur.items) && pur.items.length > 0 && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Package size={10} />
+                          {pur.items.length} {pur.items.length === 1 ? 'Item' : 'Items'}
+                        </span>
+                        {pur.bill_number && (
+                          <span className="text-[9px] font-mono text-neutral-400">
+                            #{pur.bill_number}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mt-1">
                       {format(new Date(pur.date), "dd MMM yyyy")} • {pur.payment_method}
                     </span>
@@ -637,6 +860,13 @@ export default function Purchases() {
                 </div>
 
                 <div className="flex items-center justify-end gap-2 pt-1 border-t border-neutral-100/60">
+                  <button
+                    onClick={() => setSelectedPurchaseForView(pur)}
+                    className="p-1.5 text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-all"
+                    title="View Purchase Bill & Item Details"
+                  >
+                    <Eye size={14} />
+                  </button>
                   {(pur.status || "Paid") === "Unpaid" && (
                     <button
                       onClick={() => markAsPaid(pur.id)}
@@ -703,6 +933,19 @@ export default function Purchases() {
                         <span className="text-[10px] font-bold text-neutral-500">
                           {pur.description}
                         </span>
+                        {Array.isArray(pur.items) && pur.items.length > 0 && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <Package size={10} />
+                              {pur.items.length} {pur.items.length === 1 ? 'Item' : 'Items'}
+                            </span>
+                            {pur.bill_number && (
+                              <span className="text-[9px] font-mono text-neutral-400">
+                                #{pur.bill_number}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -728,6 +971,13 @@ export default function Purchases() {
                   </td>
                   <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setSelectedPurchaseForView(pur)}
+                        className="p-2 text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-all"
+                        title="View Purchase Bill & Item Details"
+                      >
+                        <Eye size={16} />
+                      </button>
                       {(pur.status || "Paid") === "Unpaid" && (
                         <button
                           onClick={() => markAsPaid(pur.id)}
@@ -1491,20 +1741,21 @@ export default function Purchases() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-2xl z-[80] max-h-[90vh] flex flex-col"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-4xl z-[80] max-h-[92vh] flex flex-col"
             >
-              <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-8 border border-neutral-100 overflow-y-auto max-h-[90vh]">
-                <div className="flex items-center justify-between pb-4 border-b border-neutral-100 mb-6">
+              <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-7 border border-neutral-100 overflow-y-auto max-h-[92vh] space-y-5">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
                       <Sparkles size={20} />
                     </div>
                     <div>
                       <h3 className="text-lg font-black text-neutral-900 uppercase tracking-tight">
-                        Verify Scanned Bill
+                        Verify Scanned Bill & Items
                       </h3>
                       <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
-                        Review AI extracted bill data before saving
+                        Review & edit AI extracted bill items • All items will auto-sync to Item Section
                       </p>
                     </div>
                   </div>
@@ -1516,46 +1767,167 @@ export default function Purchases() {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  <div className="p-3.5 bg-neutral-50 rounded-2xl border border-neutral-100">
-                    <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">Supplier</span>
-                    <span className="text-sm font-bold text-neutral-900">{extractedBillData.supplierName || "Vendor"}</span>
-                    {extractedBillData.supplierGst && (
-                      <span className="text-[10px] font-mono text-neutral-500 block mt-0.5">GSTIN: {extractedBillData.supplierGst}</span>
-                    )}
+                {/* Header Info: Supplier & Bill Metadata (Editable) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">
+                      Supplier / Vendor Name
+                    </label>
+                    <input
+                      type="text"
+                      value={extractedBillData.supplierName || ""}
+                      onChange={(e) => handleUpdateExtractedHeader("supplierName", e.target.value)}
+                      placeholder="Supplier Name"
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:bg-white focus:ring-2 focus:ring-black outline-none"
+                    />
                   </div>
-                  <div className="p-3.5 bg-neutral-50 rounded-2xl border border-neutral-100">
-                    <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">Bill No & Date</span>
-                    <span className="text-sm font-bold text-neutral-900">
-                      {extractedBillData.invoiceNo || extractedBillData.supplierBillNo || "N/A"}
-                    </span>
-                    <span className="text-[10px] font-bold text-neutral-500 block mt-0.5">
-                      {extractedBillData.invoiceDate ? new Date(extractedBillData.invoiceDate).toLocaleDateString() : "Today"}
-                    </span>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">
+                      Supplier GSTIN
+                    </label>
+                    <input
+                      type="text"
+                      value={extractedBillData.supplierGst || ""}
+                      onChange={(e) => handleUpdateExtractedHeader("supplierGst", e.target.value.toUpperCase())}
+                      placeholder="GSTIN (Optional)"
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-mono font-bold text-neutral-900 uppercase focus:bg-white focus:ring-2 focus:ring-black outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">
+                      Bill / Invoice #
+                    </label>
+                    <input
+                      type="text"
+                      value={extractedBillData.invoiceNo || extractedBillData.supplierBillNo || ""}
+                      onChange={(e) => handleUpdateExtractedHeader("invoiceNo", e.target.value)}
+                      placeholder="Bill #"
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:bg-white focus:ring-2 focus:ring-black outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">
+                      Bill Date
+                    </label>
+                    <input
+                      type="date"
+                      value={extractedBillData.invoiceDate ? extractedBillData.invoiceDate.split("T")[0] : new Date().toISOString().split("T")[0]}
+                      onChange={(e) => handleUpdateExtractedHeader("invoiceDate", e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 focus:bg-white focus:ring-2 focus:ring-black outline-none"
+                    />
                   </div>
                 </div>
 
-                <div className="mb-6">
-                  <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block mb-2">
-                    Extracted Line Items ({(extractedBillData.items || []).length})
-                  </span>
-                  <div className="border border-neutral-100 rounded-2xl overflow-x-auto max-h-48 overflow-y-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-neutral-50 text-[10px] uppercase font-black text-neutral-500 border-b border-neutral-100 sticky top-0">
+                {/* Line Items Table (Editable & Dynamic) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">
+                      Bill Items ({(extractedBillData.items || []).length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleAddExtractedItem}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 text-white hover:bg-black rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                    >
+                      <Plus size={12} />
+                      <span>Add Item</span>
+                    </button>
+                  </div>
+
+                  <div className="border border-neutral-200 rounded-2xl overflow-x-auto max-h-64 overflow-y-auto">
+                    <table className="w-full text-left text-xs min-w-[700px]">
+                      <thead className="bg-neutral-50 text-[10px] uppercase font-black text-neutral-500 border-b border-neutral-200 sticky top-0 z-10">
                         <tr>
-                          <th className="p-2.5">Item</th>
-                          <th className="p-2.5 text-center">Qty</th>
-                          <th className="p-2.5 text-right">Rate</th>
-                          <th className="p-2.5 text-right">Amount</th>
+                          <th className="p-2.5 pl-3">Item Description</th>
+                          <th className="p-2.5 w-24">HSN</th>
+                          <th className="p-2.5 w-20 text-center">Qty</th>
+                          <th className="p-2.5 w-20 text-center">Unit</th>
+                          <th className="p-2.5 w-28 text-right">Rate (₹)</th>
+                          <th className="p-2.5 w-20 text-center">GST %</th>
+                          <th className="p-2.5 w-28 text-right">Total (₹)</th>
+                          <th className="p-2.5 w-12 text-center"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100 font-bold">
                         {(extractedBillData.items || []).map((item: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-neutral-50/50">
-                            <td className="p-2.5 text-neutral-900 truncate max-w-[200px]">{item.description}</td>
-                            <td className="p-2.5 text-center text-neutral-700">{item.quantity || 1}</td>
-                            <td className="p-2.5 text-right text-neutral-700">₹{Number(item.rate || item.price || 0).toLocaleString()}</td>
-                            <td className="p-2.5 text-right text-neutral-900">₹{Number(item.amount || ((item.quantity || 1) * (item.rate || item.price || 0))).toLocaleString()}</td>
+                          <tr key={idx} className="hover:bg-neutral-50/60 transition-colors">
+                            <td className="p-2 pl-3">
+                              <input
+                                type="text"
+                                value={item.description || item.name || ""}
+                                onChange={(e) => handleUpdateExtractedItem(idx, "description", e.target.value)}
+                                placeholder="Item name"
+                                className="w-full px-2 py-1.5 bg-transparent hover:bg-neutral-100 focus:bg-white border border-transparent focus:border-neutral-300 rounded-lg text-xs font-bold text-neutral-900 outline-none"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <input
+                                type="text"
+                                value={item.hsn || ""}
+                                onChange={(e) => handleUpdateExtractedItem(idx, "hsn", e.target.value)}
+                                placeholder="HSN"
+                                className="w-full px-2 py-1.5 bg-transparent hover:bg-neutral-100 focus:bg-white border border-transparent focus:border-neutral-300 rounded-lg text-xs font-mono text-neutral-700 outline-none"
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <input
+                                type="number"
+                                min="0.01"
+                                step="any"
+                                value={item.quantity ?? 1}
+                                onChange={(e) => handleUpdateExtractedItem(idx, "quantity", parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 text-center bg-transparent hover:bg-neutral-100 focus:bg-white border border-transparent focus:border-neutral-300 rounded-lg text-xs font-bold text-neutral-900 outline-none"
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <input
+                                type="text"
+                                value={item.unit || "pcs"}
+                                onChange={(e) => handleUpdateExtractedItem(idx, "unit", e.target.value)}
+                                placeholder="pcs"
+                                className="w-full px-2 py-1.5 text-center bg-transparent hover:bg-neutral-100 focus:bg-white border border-transparent focus:border-neutral-300 rounded-lg text-xs text-neutral-600 outline-none uppercase"
+                              />
+                            </td>
+                            <td className="p-2 text-right">
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={item.rate ?? item.price ?? 0}
+                                onChange={(e) => handleUpdateExtractedItem(idx, "rate", parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 text-right bg-transparent hover:bg-neutral-100 focus:bg-white border border-transparent focus:border-neutral-300 rounded-lg text-xs font-bold text-neutral-900 outline-none"
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={item.gstPercent ?? 0}
+                                onChange={(e) => handleUpdateExtractedItem(idx, "gstPercent", parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 text-center bg-transparent hover:bg-neutral-100 focus:bg-white border border-transparent focus:border-neutral-300 rounded-lg text-xs text-neutral-700 outline-none"
+                              />
+                            </td>
+                            <td className="p-2 text-right font-black text-neutral-900">
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                value={item.amount !== undefined ? item.amount : ((Number(item.quantity) || 1) * (Number(item.rate ?? item.price ?? 0)))}
+                                onChange={(e) => handleUpdateExtractedItem(idx, "amount", parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 text-right bg-transparent hover:bg-neutral-100 focus:bg-white border border-transparent focus:border-neutral-300 rounded-lg text-xs font-black text-neutral-900 outline-none"
+                              />
+                            </td>
+                            <td className="p-2 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveExtractedItem(idx)}
+                                className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                title="Remove item"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1563,46 +1935,216 @@ export default function Purchases() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 bg-emerald-50/70 border border-emerald-100 rounded-2xl mb-6">
-                  <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-emerald-900">
-                    <input
-                      type="checkbox"
-                      checked={autoIncrementStock}
-                      onChange={(e) => setAutoIncrementStock(e.target.checked)}
-                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <span>Auto-increment stock in Inventory for matched items</span>
-                  </label>
-                  <span className="text-base font-black text-neutral-900">
-                    ₹{Number(extractedBillData.totalAmount || (extractedBillData.items || []).reduce((sum: number, it: any) => sum + (it.amount || ((it.quantity || 1) * (it.rate || it.price || 0))), 0)).toLocaleString()}
-                  </span>
+                {/* Auto-Add to Item Section Checkbox & Financial Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                  <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl space-y-1">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoIncrementStock}
+                        onChange={(e) => setAutoIncrementStock(e.target.checked)}
+                        className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <div>
+                        <span className="text-xs font-black text-emerald-950 block">
+                          Auto-add all items to Item Section (Inventory)
+                        </span>
+                        <span className="text-[11px] font-bold text-emerald-700 block leading-tight mt-0.5">
+                          New items will be automatically created in your Item Section with purchase price and stock. Existing items will have stock incremented!
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="p-4 bg-neutral-50 border border-neutral-100 rounded-2xl flex items-center justify-between text-xs font-bold text-neutral-600">
+                    <div className="space-y-0.5">
+                      <span>Total Line Items: <strong className="text-neutral-900">{(extractedBillData.items || []).length}</strong></span>
+                      {extractedBillData.taxableAmount ? (
+                        <div className="text-[11px] text-neutral-500">Taxable: ₹{Number(extractedBillData.taxableAmount).toLocaleString()}</div>
+                      ) : null}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">Total Bill Amount</span>
+                      <span className="text-xl font-black text-neutral-900">
+                        ₹{Number(extractedBillData.totalAmount || (extractedBillData.items || []).reduce((sum: number, it: any) => sum + (Number(it.amount) || ((Number(it.quantity) || 1) * (Number(it.rate || it.price) || 0))), 0)).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                {/* Modal Actions */}
+                <div className="flex items-center gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setShowBillVerifyModal(false)}
-                    className="flex-1 py-3 text-xs font-bold uppercase tracking-wider text-neutral-500 hover:text-neutral-800"
+                    className="flex-1 py-3 text-xs font-bold uppercase tracking-wider text-neutral-500 hover:text-neutral-800 transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleConfirmExtractedBill}
-                    disabled={isSubmitting}
-                    className="flex-1 py-3.5 bg-neutral-900 text-white rounded-2xl font-black uppercase text-xs tracking-wider shadow-lg hover:bg-black transition-all flex items-center justify-center gap-2"
+                    disabled={isSubmitting || !(extractedBillData.items && extractedBillData.items.length > 0)}
+                    className="flex-2 py-3.5 bg-neutral-900 text-white rounded-2xl font-black uppercase text-xs tracking-wider shadow-lg hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 size={16} className="animate-spin" />
-                        <span>Saving...</span>
+                        <span>Saving & Adding Items...</span>
                       </>
                     ) : (
                       <>
                         <CheckCircle2 size={16} />
-                        <span>Confirm & Save Purchase</span>
+                        <span>Confirm & Save Purchase ({(extractedBillData.items || []).length} Items)</span>
                       </>
                     )}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Purchase Details Modal (For viewing saved purchases with all items) */}
+      <AnimatePresence>
+        {selectedPurchaseForView && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedPurchaseForView(null)}
+              className="fixed inset-0 bg-neutral-950/40 backdrop-blur-sm z-[75]"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-3xl z-[80] max-h-[90vh] flex flex-col"
+            >
+              <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-7 border border-neutral-100 overflow-y-auto max-h-[90vh] space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-neutral-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-neutral-900 text-white flex items-center justify-center font-bold">
+                      <Package size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-neutral-900 uppercase tracking-tight">
+                        Purchase Bill Details
+                      </h3>
+                      <p className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
+                        {selectedPurchaseForView.bill_number ? `Bill #${selectedPurchaseForView.bill_number}` : 'Purchase Record'} • {format(new Date(selectedPurchaseForView.date), "dd MMM yyyy")}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedPurchaseForView(null)}
+                    className="p-2 rounded-xl text-neutral-400 hover:text-neutral-800 hover:bg-neutral-100 transition-all"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Metadata Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-100">
+                    <span className="text-[9px] font-black uppercase text-neutral-400 tracking-wider block">Supplier</span>
+                    <span className="text-xs font-black text-neutral-900 block truncate">{selectedPurchaseForView.supplier_name || "Vendor"}</span>
+                    {selectedPurchaseForView.supplier_gstin && (
+                      <span className="text-[10px] font-mono text-neutral-500 block">GSTIN: {selectedPurchaseForView.supplier_gstin}</span>
+                    )}
+                  </div>
+                  <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-100">
+                    <span className="text-[9px] font-black uppercase text-neutral-400 tracking-wider block">Bill No & Date</span>
+                    <span className="text-xs font-black text-neutral-900 block">{selectedPurchaseForView.bill_number || "N/A"}</span>
+                    <span className="text-[10px] font-bold text-neutral-500 block">{format(new Date(selectedPurchaseForView.date), "dd MMM yyyy")}</span>
+                  </div>
+                  <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-100">
+                    <span className="text-[9px] font-black uppercase text-neutral-400 tracking-wider block">Payment Method</span>
+                    <span className="text-xs font-black text-neutral-900 block">{selectedPurchaseForView.payment_method || "Cash"}</span>
+                    <span className={cn(
+                      "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full inline-block mt-0.5",
+                      (selectedPurchaseForView.status || "Paid") === "Paid" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    )}>
+                      {selectedPurchaseForView.status || "Paid"}
+                    </span>
+                  </div>
+                  <div className="p-3 bg-neutral-50 rounded-2xl border border-neutral-100">
+                    <span className="text-[9px] font-black uppercase text-neutral-400 tracking-wider block">Total Amount</span>
+                    <span className="text-sm font-black text-neutral-900 block">{formatCurrency(selectedPurchaseForView.amount, "INR")}</span>
+                    <span className="text-[10px] font-bold text-neutral-500 block">
+                      {Array.isArray(selectedPurchaseForView.items) ? `${selectedPurchaseForView.items.length} Items` : '1 Item'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Line Items Table */}
+                <div>
+                  <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block mb-2">
+                    Line Items Breakdown
+                  </span>
+                  {Array.isArray(selectedPurchaseForView.items) && selectedPurchaseForView.items.length > 0 ? (
+                    <div className="border border-neutral-100 rounded-2xl overflow-x-auto max-h-60 overflow-y-auto">
+                      <table className="w-full text-left text-xs min-w-[500px]">
+                        <thead className="bg-neutral-50 text-[10px] uppercase font-black text-neutral-500 border-b border-neutral-100 sticky top-0">
+                          <tr>
+                            <th className="p-2.5 pl-3">#</th>
+                            <th className="p-2.5">Item Name</th>
+                            <th className="p-2.5 text-center">HSN</th>
+                            <th className="p-2.5 text-center">Qty</th>
+                            <th className="p-2.5 text-right">Rate</th>
+                            <th className="p-2.5 text-center">GST %</th>
+                            <th className="p-2.5 text-right pr-3">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-neutral-100 font-bold">
+                          {selectedPurchaseForView.items.map((it: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-neutral-50/50">
+                              <td className="p-2.5 pl-3 text-neutral-400 text-xs">{idx + 1}</td>
+                              <td className="p-2.5 text-neutral-900">
+                                <span>{it.name || it.description}</span>
+                                {it.barcode && <span className="block text-[9px] font-mono text-neutral-400">Barcode: {it.barcode}</span>}
+                              </td>
+                              <td className="p-2.5 text-center text-neutral-500 font-mono text-xs">{it.hsn || '-'}</td>
+                              <td className="p-2.5 text-center text-neutral-700">{it.quantity || it.qty || 1} {it.unit || ''}</td>
+                              <td className="p-2.5 text-right text-neutral-700">{formatCurrency(it.rate || it.price || it.cost_price || 0, "INR")}</td>
+                              <td className="p-2.5 text-center text-neutral-600">{it.gstPercent || it.gst_percent ? `${it.gstPercent || it.gst_percent}%` : '-'}</td>
+                              <td className="p-2.5 pr-3 text-right text-neutral-900">{formatCurrency(it.amount || ((it.quantity || it.qty || 1) * (it.rate || it.price || 0)), "INR")}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 text-xs font-bold text-neutral-600">
+                      {selectedPurchaseForView.description || "General Purchase Bill"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Financial Summary */}
+                <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <div className="space-y-1 text-neutral-600 font-bold">
+                    {selectedPurchaseForView.taxable_amount ? (
+                      <div>Taxable Value: <span className="font-mono text-neutral-900">{formatCurrency(selectedPurchaseForView.taxable_amount, "INR")}</span></div>
+                    ) : null}
+                    {selectedPurchaseForView.tax_amount ? (
+                      <div>Total Tax (GST): <span className="font-mono text-neutral-900">{formatCurrency(selectedPurchaseForView.tax_amount, "INR")}</span></div>
+                    ) : null}
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-black uppercase text-neutral-400 tracking-wider block">Net Grand Total</span>
+                    <span className="text-xl font-black text-neutral-900">{formatCurrency(selectedPurchaseForView.amount, "INR")}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setSelectedPurchaseForView(null)}
+                    className="px-6 py-3 bg-neutral-900 text-white rounded-2xl font-black uppercase text-xs tracking-wider shadow-md hover:bg-black transition-all"
+                  >
+                    Close
                   </button>
                 </div>
               </div>

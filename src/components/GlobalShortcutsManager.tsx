@@ -15,7 +15,6 @@ import {
   Save, 
   ArrowRight,
   Sparkles,
-  Command,
   Zap
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -39,124 +38,110 @@ export function GlobalShortcutsManager() {
 
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 2500);
+    setTimeout(() => setToastMessage(null), 2200);
   }, []);
 
   const shortcuts: ShortcutItem[] = [
-    // --- Vouchers & Billing (Fast Accounting Standard F4 - F9 & Alt Keys) ---
+    // --- Vouchers & Billing ---
     {
-      key: 'F8',
-      displayKey: 'F8 / Alt + N',
+      key: 'N',
+      displayKey: 'N / Alt + N / F8',
       description: 'Create New Sales Invoice / GST Bill',
       category: 'Vouchers & Billing',
-      action: () => { navigate('/invoices/create'); showToast('Opened: Create Sales Invoice (F8 / Alt+N)'); }
+      action: () => { navigate('/invoices/create'); showToast('Opened: Create Invoice (N / F8)'); }
     },
     {
-      key: 'Alt+N',
-      displayKey: 'Alt + N',
-      description: 'New Sales Invoice / Quick Bill Entry',
-      category: 'Vouchers & Billing',
-      action: () => { navigate('/invoices/create'); showToast('Opened: Create Sales Invoice (Alt + N)'); }
-    },
-    {
-      key: 'Alt+V',
-      displayKey: 'Alt + V',
-      description: 'Sales Voucher / Tax Invoice Creation',
-      category: 'Vouchers & Billing',
-      action: () => { navigate('/invoices/create'); showToast('Opened: Sales Voucher (Alt + V)'); }
-    },
-    {
-      key: 'F9',
-      displayKey: 'F9',
+      key: 'P',
+      displayKey: 'P / Alt + P / F9',
       description: 'Open Purchases Entry (Purchase Voucher)',
       category: 'Vouchers & Billing',
-      action: () => { navigate('/purchases'); showToast('Opened: Purchases (F9)'); }
+      action: () => { navigate('/purchases'); showToast('Opened: Purchases (P / F9)'); }
     },
     {
-      key: 'F5',
-      displayKey: 'F5',
-      description: 'Payments Ledger (Payment Voucher)',
-      category: 'Vouchers & Billing',
-      action: () => { navigate('/payments'); showToast('Opened: Payments (F5)'); }
-    },
-    {
-      key: 'F6',
-      displayKey: 'F6',
+      key: 'K',
+      displayKey: 'K / Alt + K / F6',
       description: 'Quick Retail POS Counter / Cash Memo',
       category: 'Vouchers & Billing',
-      action: () => { navigate('/pos'); showToast('Opened: Quick POS Counter (F6)'); }
+      action: () => { navigate('/pos'); showToast('Opened: Quick POS Counter (K / F6)'); }
     },
     {
-      key: 'F7',
-      displayKey: 'F7',
-      description: 'Expenses & Daily Book (Journal Voucher)',
+      key: 'M',
+      displayKey: 'M / Alt + M / F5',
+      description: 'Payments Ledger (Payment Voucher)',
       category: 'Vouchers & Billing',
-      action: () => { navigate('/expenses'); showToast('Opened: Expenses Book (F7)'); }
+      action: () => { navigate('/payments'); showToast('Opened: Payments (M / F5)'); }
     },
     {
-      key: 'F4',
-      displayKey: 'F4',
-      description: 'Daily Cash & Bank Ledger (Contra Voucher)',
+      key: 'E',
+      displayKey: 'E / Alt + E / F7',
+      description: 'Expenses Book (Expense Voucher)',
       category: 'Vouchers & Billing',
-      action: () => { navigate('/dailybook'); showToast('Opened: Daily Cash Book (F4)'); }
+      action: () => { navigate('/expenses'); showToast('Opened: Expenses Book (E / F7)'); }
+    },
+    {
+      key: 'B',
+      displayKey: 'B / Alt + B / F4',
+      description: 'Daily Cash & Bank Book (Contra Ledger)',
+      category: 'Vouchers & Billing',
+      action: () => { navigate('/dailybook'); showToast('Opened: Daily Cash Book (B / F4)'); }
     },
 
-    // --- Master Navigation (Alt + Keys like Tally Gateway) ---
+    // --- Master Navigation ---
     {
-      key: 'Alt+C',
-      displayKey: 'Alt + C',
-      description: 'Open Customers / Parties Master Ledger',
+      key: 'D',
+      displayKey: 'D / Alt + D',
+      description: 'Go to Dashboard (Main Business Overview)',
       category: 'Navigation',
-      action: () => { navigate('/customers'); showToast('Opened: Parties Ledger (Alt + C)'); }
+      action: () => { navigate('/dashboard'); showToast('Opened: Dashboard (D)'); }
     },
     {
-      key: 'Alt+I',
-      displayKey: 'Alt + I',
-      description: 'Open Items & Inventory Master Stock',
+      key: 'I',
+      displayKey: 'I / Alt + I',
+      description: 'Open Invoices List & Register',
       category: 'Navigation',
-      action: () => { navigate('/items'); showToast('Opened: Products / Items (Alt + I)'); }
+      action: () => { navigate('/invoices'); showToast('Opened: Invoices Register (I)'); }
     },
     {
-      key: 'Alt+B',
-      displayKey: 'Alt + B',
-      description: 'Open Invoices List / Register',
+      key: 'C',
+      displayKey: 'C / Alt + C',
+      description: 'Open Customers & Parties Ledger',
       category: 'Navigation',
-      action: () => { navigate('/invoices'); showToast('Opened: Invoices Register (Alt + B)'); }
+      action: () => { navigate('/customers'); showToast('Opened: Customers / Parties (C)'); }
     },
     {
-      key: 'Alt+Q',
-      displayKey: 'Alt + Q',
+      key: 'T',
+      displayKey: 'T / Alt + T',
+      description: 'Open Items & Products Inventory Master',
+      category: 'Navigation',
+      action: () => { navigate('/items'); showToast('Opened: Items & Stock (T)'); }
+    },
+    {
+      key: 'Q',
+      displayKey: 'Q / Alt + Q',
       description: 'Open Quotations & Estimates',
       category: 'Navigation',
-      action: () => { navigate('/quotations'); showToast('Opened: Quotations (Alt + Q)'); }
+      action: () => { navigate('/quotations'); showToast('Opened: Quotations (Q)'); }
     },
     {
-      key: 'Alt+R',
-      displayKey: 'Alt + R',
+      key: 'R',
+      displayKey: 'R / Alt + R',
       description: 'Open Financial Reports & Tax Summary',
       category: 'Navigation',
-      action: () => { navigate('/reports'); showToast('Opened: Reports (Alt + R)'); }
+      action: () => { navigate('/reports'); showToast('Opened: Reports (R)'); }
     },
     {
-      key: 'Alt+G',
-      displayKey: 'Alt + G',
+      key: 'S',
+      displayKey: 'S / Alt + S',
+      description: 'Open Settings & Business Configuration',
+      category: 'Navigation',
+      action: () => { navigate('/settings'); showToast('Opened: Settings (S)'); }
+    },
+    {
+      key: 'G',
+      displayKey: 'G / Alt + G',
       description: 'Open Barcode Studio & Label Generator',
       category: 'Tools',
-      action: () => { navigate('/barcode-generator'); showToast('Opened: Barcode Studio (Alt + G)'); }
-    },
-    {
-      key: 'Alt+S',
-      displayKey: 'Alt + S',
-      description: 'Open Company & Billing Settings',
-      category: 'Navigation',
-      action: () => { navigate('/settings'); showToast('Opened: Settings (Alt + S)'); }
-    },
-    {
-      key: 'Alt+H',
-      displayKey: 'Alt + H',
-      description: 'Go to Home / Dashboard (Gateway of InvoCentric)',
-      category: 'Navigation',
-      action: () => { navigate('/dashboard'); showToast('Opened: Dashboard (Alt + H)'); }
+      action: () => { navigate('/barcode-generator'); showToast('Opened: Barcode Studio (G)'); }
     },
 
     // --- Actions & Helpers ---
@@ -210,9 +195,31 @@ export function GlobalShortcutsManager() {
       }
     },
     {
+      key: 'Escape',
+      displayKey: 'Esc',
+      description: 'Close Modal / Cancel / Go Back to Previous Screen',
+      category: 'Actions',
+      action: () => {
+        if (isOpen) {
+          setIsOpen(false);
+          return;
+        }
+        // If inside create/edit page, go back to invoices
+        if (location.pathname.includes('/create') || location.pathname.includes('/new') || location.pathname.includes('/edit')) {
+          navigate(-1);
+          showToast('Returned to previous screen (Esc)');
+          return;
+        }
+        // Blur active element
+        if (document.activeElement && 'blur' in document.activeElement) {
+          (document.activeElement as HTMLElement).blur();
+        }
+      }
+    },
+    {
       key: 'F1',
       displayKey: 'F1 / ?',
-      description: 'Open Keyboard Shortcuts Guide',
+      description: 'Open Full Keyboard Navigation Guide',
       category: 'Tools',
       action: () => {
         setIsOpen(prev => !prev);
@@ -223,65 +230,139 @@ export function GlobalShortcutsManager() {
   // Global Keyboard Listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Allow pressing '?' (Shift + /) or 'F1' to toggle shortcut guide
-      if ((e.key === '?' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) || e.key === 'F1') {
-        e.preventDefault();
-        setIsOpen(prev => !prev);
-        return;
-      }
+      const activeEl = document.activeElement as HTMLElement | null;
+      const isInput = activeEl ? ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName) || activeEl.isContentEditable : false;
 
-      // If typing inside an input/textarea, do not trigger standard navigation unless Alt/F-keys
-      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
-
-      // Escape to close shortcut modal or cancel
+      // Escape to close shortcut modal or cancel/go back
       if (e.key === 'Escape') {
         if (isOpen) {
           e.preventDefault();
           setIsOpen(false);
           return;
         }
+        // If an open modal exists in DOM, let modal close or blur
+        const modalCloseBtn = document.querySelector('[data-modal-close="true"], button[aria-label="Close"]') as HTMLButtonElement | null;
+        if (modalCloseBtn) {
+          e.preventDefault();
+          modalCloseBtn.click();
+          return;
+        }
+        if (isInput) {
+          activeEl?.blur();
+          return;
+        }
+        if (location.pathname.includes('/create') || location.pathname.includes('/new') || location.pathname.includes('/edit')) {
+          e.preventDefault();
+          navigate(-1);
+          return;
+        }
       }
 
-      // Check F-keys (F4, F5, F6, F7, F8, F9)
-      if (['F4', 'F5', 'F6', 'F7', 'F8', 'F9'].includes(e.key)) {
+      // Allow pressing '?' (Shift + /) or 'F1' to toggle shortcut guide (when not typing in an input)
+      if ((e.key === '?' && !isInput) || e.key === 'F1') {
         e.preventDefault();
-        const matched = shortcuts.find(s => s.key === e.key);
-        if (matched) matched.action();
+        setIsOpen(prev => !prev);
         return;
       }
 
-      // Check Alt combinations (Alt + C, Alt + I, Alt + B, Alt + Q, Alt + R, Alt + G, Alt + S, Alt + H)
+      // Check Function keys (F4, F5, F6, F7, F8, F9) - work anytime
+      const fKeyMap: Record<string, string> = {
+        'F4': '/dailybook',
+        'F5': '/payments',
+        'F6': '/pos',
+        'F7': '/expenses',
+        'F8': '/invoices/create',
+        'F9': '/purchases'
+      };
+      if (fKeyMap[e.key]) {
+        e.preventDefault();
+        navigate(fKeyMap[e.key]);
+        showToast(`Opened ${fKeyMap[e.key].replace('/', '')} (${e.key})`);
+        return;
+      }
+
+      // Check Alt + Key combinations - work from ANYWHERE (even when typing in an input)
       if (e.altKey && !e.ctrlKey && !e.metaKey) {
-        const keyLetter = e.key.toUpperCase();
-        const combo = `Alt+${keyLetter}`;
-        const matched = shortcuts.find(s => s.key === combo);
-        if (matched) {
+        const k = e.key.toUpperCase();
+        const altNavMap: Record<string, { path: string; label: string }> = {
+          'D': { path: '/dashboard', label: 'Dashboard' },
+          'I': { path: '/invoices', label: 'Invoices' },
+          'N': { path: '/invoices/create', label: 'Create Invoice' },
+          'P': { path: '/purchases', label: 'Purchases' },
+          'C': { path: '/customers', label: 'Customers' },
+          'T': { path: '/items', label: 'Items & Inventory' },
+          'Q': { path: '/quotations', label: 'Quotations' },
+          'M': { path: '/payments', label: 'Payments' },
+          'B': { path: '/dailybook', label: 'Daily Book' },
+          'E': { path: '/expenses', label: 'Expenses' },
+          'R': { path: '/reports', label: 'Reports' },
+          'S': { path: '/settings', label: 'Settings' },
+          'K': { path: '/pos', label: 'Quick POS' },
+          'G': { path: '/barcode-generator', label: 'Barcode Studio' }
+        };
+
+        if (altNavMap[k]) {
           e.preventDefault();
-          matched.action();
+          navigate(altNavMap[k].path);
+          showToast(`Opened: ${altNavMap[k].label} (Alt + ${k})`);
           return;
         }
       }
 
       // Check Ctrl+A or Ctrl+S (Accept/Save)
       if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A' || e.key === 's' || e.key === 'S')) {
-        e.preventDefault();
-        const matched = shortcuts.find(s => s.key === 'Ctrl+A' || s.key === 'Ctrl+S');
-        if (matched) matched.action();
-        return;
+        const saveBtn = document.querySelector('button[type="submit"], button#save-and-print-btn, button.btn-primary') as HTMLButtonElement | null;
+        if (saveBtn) {
+          e.preventDefault();
+          saveBtn.click();
+          showToast('Saving current form...');
+          return;
+        }
       }
 
       // Check Ctrl+Enter (Save & Print)
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        const matched = shortcuts.find(s => s.key === 'Ctrl+Enter');
-        if (matched) matched.action();
-        return;
+        const printBtn = document.querySelector('button#save-and-print-btn, button.btn-primary') as HTMLButtonElement | null;
+        if (printBtn) {
+          e.preventDefault();
+          printBtn.click();
+          showToast('Saving & Printing Invoice...');
+          return;
+        }
+      }
+
+      // Single-Key Navigation (when NOT typing inside any input, textarea or select)
+      if (!isInput && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        const singleKey = e.key.toUpperCase();
+        const singleKeyMap: Record<string, { path: string; label: string }> = {
+          'D': { path: '/dashboard', label: 'Dashboard' },
+          'I': { path: '/invoices', label: 'Invoices' },
+          'N': { path: '/invoices/create', label: 'Create Invoice' },
+          'P': { path: '/purchases', label: 'Purchases' },
+          'C': { path: '/customers', label: 'Customers / Parties' },
+          'T': { path: '/items', label: 'Items & Products' },
+          'Q': { path: '/quotations', label: 'Quotations' },
+          'M': { path: '/payments', label: 'Payments' },
+          'B': { path: '/dailybook', label: 'Daily Book' },
+          'E': { path: '/expenses', label: 'Expenses' },
+          'R': { path: '/reports', label: 'Reports' },
+          'S': { path: '/settings', label: 'Settings' },
+          'K': { path: '/pos', label: 'Quick POS' },
+          'G': { path: '/barcode-generator', label: 'Barcode Studio' }
+        };
+
+        if (singleKeyMap[singleKey]) {
+          e.preventDefault();
+          navigate(singleKeyMap[singleKey].path);
+          showToast(`⚡ ${singleKeyMap[singleKey].label} (${singleKey})`);
+          return;
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, shortcuts]);
+  }, [isOpen, navigate, location, showToast]);
 
   const categories = ['All', 'Vouchers & Billing', 'Navigation', 'Actions', 'Tools'];
 
@@ -307,7 +388,7 @@ export function GlobalShortcutsManager() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-950 text-white px-5 py-2.5 rounded-2xl shadow-2xl border border-emerald-500/40 flex items-center gap-2.5 text-xs font-bold tracking-wide pointer-events-none"
+            className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] bg-slate-950 text-white px-5 py-2.5 rounded-2xl shadow-2xl border border-emerald-500/40 flex items-center gap-2.5 text-xs font-bold tracking-wide pointer-events-none"
           >
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <Zap size={14} className="text-emerald-400" />
@@ -342,10 +423,10 @@ export function GlobalShortcutsManager() {
                   </div>
                   <div>
                     <h3 className="text-base font-black text-white flex items-center gap-2">
-                      <span>Pro Accounting Shortcut Keys</span>
+                      <span>Pro Business Shortcut Keys</span>
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] uppercase font-mono tracking-wider">Fast Workflow</span>
                     </h3>
-                    <p className="text-xs text-slate-400 font-medium">Use function &amp; Alt keys for lightning fast keyboard-first billing</p>
+                    <p className="text-xs text-slate-400 font-medium">Operate the entire application seamlessly from the keyboard without touching the mouse</p>
                   </div>
                 </div>
                 <button
@@ -365,7 +446,7 @@ export function GlobalShortcutsManager() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search shortcut (e.g. Sales, F8, Alt+C, POS)..."
+                    placeholder="Search shortcut (e.g. Invoices, F8, Purchases, POS, Esc)..."
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600 shadow-2xs"
                     autoFocus
                   />
@@ -403,7 +484,7 @@ export function GlobalShortcutsManager() {
                       className="p-3 bg-white hover:bg-emerald-50/60 border border-slate-100 hover:border-emerald-200 rounded-2xl flex items-center justify-between gap-4 transition-all cursor-pointer group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-20 shrink-0 text-center">
+                        <div className="w-24 shrink-0 text-center">
                           <kbd className="px-2.5 py-1.5 bg-slate-100 group-hover:bg-emerald-100 text-slate-800 group-hover:text-emerald-800 font-mono text-xs font-black rounded-lg border border-slate-200 group-hover:border-emerald-300 shadow-2xs">
                             {s.displayKey}
                           </kbd>
@@ -437,9 +518,9 @@ export function GlobalShortcutsManager() {
                   <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono">F1</kbd>
                   <span>or</span>
                   <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono">?</kbd>
-                  <span>opens this menu anytime anywhere</span>
+                  <span>opens this guide | Press underlined letters or Alt+Key to navigate</span>
                 </span>
-                <span className="font-bold text-slate-700">Speed Billing Workflow</span>
+                <span className="font-bold text-slate-700">Keyboard-Only Workflow</span>
               </div>
             </motion.div>
           </div>

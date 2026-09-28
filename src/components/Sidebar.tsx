@@ -1,6 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
+import { KeyUnderline } from './KeyUnderline';
+import { getStoredUserProfile } from '../utils/settingsStorage';
 import { motion } from 'motion/react';
 import { 
   Home,
@@ -45,6 +47,43 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
   const [collapsed, setCollapsed] = useState(false);
   const [itemsOpen, setItemsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(() => location.pathname.startsWith('/settings'));
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+
+  // Sync custom User Profile photo immediately over default email/Google photo
+  useEffect(() => {
+    const updateAvatar = () => {
+      if (!user) {
+        setUserAvatar(null);
+        return;
+      }
+      const stored = getStoredUserProfile(user.uid);
+      const customPhoto = stored?.profile_photo_url || stored?.photo_url;
+      if (customPhoto) {
+        setUserAvatar(customPhoto);
+      } else if (stored && (stored.profile_photo_url === '' || stored.photo_url === '')) {
+        setUserAvatar(null);
+      } else {
+        setUserAvatar(user.photoURL || null);
+      }
+    };
+
+    updateAvatar();
+
+    const handleProfileChange = (e: any) => {
+      if (e?.detail?.profile_photo_url !== undefined) {
+        setUserAvatar(e.detail.profile_photo_url || null);
+      } else {
+        updateAvatar();
+      }
+    };
+
+    window.addEventListener('invocentric_profile_updated', handleProfileChange);
+    window.addEventListener('storage', updateAvatar);
+    return () => {
+      window.removeEventListener('invocentric_profile_updated', handleProfileChange);
+      window.removeEventListener('storage', updateAvatar);
+    };
+  }, [user]);
 
   const isHardcodedAdmin = user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
   const showAdmin = isAdmin || isHardcodedAdmin;
@@ -68,24 +107,24 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
     {
       title: 'SALES',
       items: [
-        { name: 'Invoices', path: '/invoices', icon: FileText },
-        { name: appMode === 'freelancer' ? 'Proposals' : 'Quotations', path: '/quotations', icon: FileEdit },
-        { name: appMode === 'freelancer' ? 'Clients' : 'Parties', path: '/customers', icon: Users },
-        { name: 'Payments', path: '/payments', icon: CreditCard },
+        { name: 'Invoices', path: '/invoices', icon: FileText, hotkey: 'I' },
+        { name: appMode === 'freelancer' ? 'Proposals' : 'Quotations', path: '/quotations', icon: FileEdit, hotkey: 'Q' },
+        { name: appMode === 'freelancer' ? 'Clients' : 'Parties', path: '/customers', icon: Users, hotkey: appMode === 'freelancer' ? 'C' : 'P' },
+        { name: 'Payments', path: '/payments', icon: CreditCard, hotkey: 'M' },
       ]
     },
     {
       title: 'ACCOUNTING',
       items: [
-        { name: 'Daily Book', path: '/dailybook', icon: Book },
-        { name: 'Expenses', path: '/expenses', icon: TrendingDown },
+        { name: 'Daily Book', path: '/dailybook', icon: Book, hotkey: 'B' },
+        { name: 'Expenses', path: '/expenses', icon: TrendingDown, hotkey: 'E' },
       ]
     },
     {
       title: 'REPORTS',
       items: [
-        { name: 'Reports', path: '/reports', icon: BarChart3 },
-        { name: 'Barcode Generator', path: '/barcode-generator', icon: Barcode },
+        { name: 'Reports', path: '/reports', icon: BarChart3, hotkey: 'R' },
+        { name: 'Barcode Generator', path: '/barcode-generator', icon: Barcode, hotkey: 'G' },
         { name: 'QR Generator', path: '/qr-generator', icon: QrCode },
         { name: 'Download App / PC', path: '/download', icon: Download },
         { name: 'Plans & Pricing', path: '/pricing', icon: Sparkles },
@@ -114,10 +153,10 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
     { name: 'Expiry Alerts', path: '/items?tab=expiry', icon: AlertCircle },
     { name: 'Categories & Units', path: '/items?tab=categories', icon: Tag },
     { name: 'Inventory History', path: '/items?tab=history', icon: FileText },
-    { name: appMode === 'freelancer' ? 'Software & Tools' : 'Purchases', path: '/purchases', icon: ShoppingBag },
+    { name: appMode === 'freelancer' ? 'Software & Tools' : 'Purchases', path: '/purchases', icon: ShoppingBag, hotkey: 'P' },
   ];
 
-  const adminItem = { name: 'Admin Control', path: '/admin', icon: ShieldCheck };
+  const adminItem = { name: 'Admin Control', path: '/admin', icon: ShieldCheck, hotkey: 'A' };
 
 
   return (
@@ -165,7 +204,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
               <Home size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
               {!collapsed && (
                 <span className="text-[13px] tracking-tight font-bold">
-                  Dashboard
+                  <KeyUnderline text="Dashboard" hotkey="D" />
                 </span>
               )}
             </>
@@ -194,7 +233,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                   <item.icon size={18} className="shrink-0 text-slate-500 group-hover:text-slate-600" />
                   {!collapsed && (
                     <span className="text-[13px] tracking-tight font-bold">
-                      {item.name}
+                      <KeyUnderline text={item.name} hotkey={(item as any).hotkey} />
                     </span>
                   )}
                 </a>
@@ -226,7 +265,9 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                       <item.icon size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
                       {!collapsed && (
                         <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between">
-                          <span>{item.name}</span>
+                          <span>
+                            <KeyUnderline text={item.name} hotkey={(item as any).hotkey} />
+                          </span>
                           {item.path === '/qr-generator' && !isPro && (
                             <Lock size={12} className="text-emerald-700 ml-1.5 shrink-0" />
                           )}
@@ -253,7 +294,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                 <button
                   onClick={() => setItemsOpen(!itemsOpen)}
                   className={cn(
-                    "w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative",
+                    "w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative cursor-pointer",
                     itemsOpen
                       ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
                       : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -262,7 +303,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                   <Package size={18} className={cn("shrink-0 transition-colors", itemsOpen ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
                   {!collapsed && (
                     <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between">
-                      <span>Items</span>
+                      <KeyUnderline text="Items" hotkey="T" />
                       {itemsOpen
                         ? <ChevronDown size={14} className="text-[#166534] transition-transform duration-200" />
                         : <ChevronRight size={14} className="text-slate-400 transition-transform duration-200" />
@@ -291,7 +332,9 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                           <>
                             <sub.icon size={15} className={cn("shrink-0", isActive ? "text-[#166534]" : "text-slate-400 group-hover:text-slate-600")} />
                             {!collapsed && (
-                              <span className="tracking-tight font-bold">{sub.name}</span>
+                              <span className="tracking-tight font-bold">
+                                <KeyUnderline text={sub.name} hotkey={(sub as any).hotkey} />
+                              </span>
                             )}
                           </>
                         )}
@@ -314,7 +357,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
           <button
             onClick={() => setSettingsOpen(!settingsOpen)}
             className={cn(
-              "w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative",
+              "w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative cursor-pointer",
               location.pathname.startsWith('/settings')
                 ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -323,7 +366,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
             <Settings size={18} className={cn("shrink-0 transition-colors", location.pathname.startsWith('/settings') ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
             {!collapsed && (
               <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between text-left">
-                <span>Settings</span>
+                <KeyUnderline text="Settings" hotkey="S" />
                 {settingsOpen
                   ? <ChevronDown size={14} className="text-[#166534] transition-transform duration-200" />
                   : <ChevronRight size={14} className="text-slate-400 transition-transform duration-200" />
@@ -381,7 +424,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                   <adminItem.icon size={18} className={cn("shrink-0 transition-colors", isActive ? "text-slate-800" : "text-slate-500 group-hover:text-slate-600")} />
                   {!collapsed && (
                     <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between">
-                      <span>{adminItem.name}</span>
+                      <KeyUnderline text={adminItem.name} hotkey={adminItem.hotkey} />
                       {pendingCount > 0 && (
                         <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
                           {pendingCount}
@@ -408,8 +451,8 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-slate-100 bg-green-50 shadow-inner">
-                {user?.photoURL ? (
-                  <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                {userAvatar ? (
+                  <img src={userAvatar} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-sm font-black text-green-600">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                 )}
@@ -426,7 +469,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
         <button
           onClick={logout}
           className={cn(
-            "flex items-center gap-3.5 w-full py-2.5 transition-all text-[13px] font-bold px-4 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50/50",
+            "flex items-center gap-3.5 w-full py-2.5 transition-all text-[13px] font-bold px-4 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50/50 cursor-pointer",
             collapsed ? "justify-center" : "justify-start"
           )}
         >

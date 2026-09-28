@@ -16,16 +16,20 @@ export interface ExtractedInvoice {
   taxableAmount?: number;
   cgst?: number;
   sgst?: number;
+  igst?: number;
   roundOff?: number;
   items: Array<{
     description: string;
+    name?: string;
     hsn?: string;
     barcode?: string;
     batchNo?: string;
     serialNo?: string;
     quantity: number;
+    unit?: string;
     rate?: number;
     price?: number;
+    discount?: number;
     gstPercent?: number;
     amount?: number;
   }>;

@@ -214,11 +214,14 @@ export const evaluatePlanValidity = (
 
 export const createSyntheticUser = (data: any): User => {
   const token = data.idToken || data.token || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : '') || '';
+  const stored = data.uid ? getStoredUserProfile(data.uid) : null;
+  const customPhoto = stored?.profile_photo_url || stored?.photo_url;
+  const effectivePhoto = customPhoto || (stored && (stored.profile_photo_url === '' || stored.photo_url === '') ? null : data.photoURL) || null;
   return {
     uid: data.uid,
     email: data.email || null,
     displayName: data.displayName || (data.email ? data.email.split('@')[0] : 'User'),
-    photoURL: data.photoURL || null,
+    photoURL: effectivePhoto,
     emailVerified: true,
     isAnonymous: false,
     metadata: {},
@@ -861,6 +864,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (firebaseUser) {
         // 1. Immediately store session marker in localStorage
+        const cachedEarlyProfile = getStoredUserProfile(firebaseUser.uid);
+        const customEarlyPhoto = cachedEarlyProfile?.profile_photo_url || cachedEarlyProfile?.photo_url;
+        const effectivePhoto = customEarlyPhoto || (cachedEarlyProfile && (cachedEarlyProfile.profile_photo_url === '' || cachedEarlyProfile.photo_url === '') ? null : firebaseUser.photoURL) || null;
+        if (effectivePhoto) {
+          try {
+            Object.defineProperty(firebaseUser, 'photoURL', { value: effectivePhoto, writable: true });
+          } catch (e) {}
+        }
+
         try {
           localStorage.setItem('invocentric_auth_active', 'true');
           localStorage.setItem('invocentric_last_uid', firebaseUser.uid);
@@ -871,7 +883,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             uid: firebaseUser.uid,
             email: firebaseUser.email || null,
             displayName: firebaseUser.displayName || null,
-            photoURL: firebaseUser.photoURL || null,
+            photoURL: effectivePhoto,
             savedAt: Date.now()
           }));
           if (typeof (firebaseUser as any).getIdToken === 'function') {
@@ -1080,10 +1092,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             plan_renews_at: renewsAtISO,
             free_trial_claimed: true,
             free_trial_claimed_at: new Date().toISOString(),
+            claim_receipt_no: receiptNo,
+            subscription_type: 'claim',
             subscription_status: 'active',
             subscription_pending: false,
             updated_at: serverTimestamp()
           }, { merge: true });
+
+          // Also record directly in subscription_requests collection so Admin panel tracks it in real-time
+          const claimReqRef = doc(collection(db, 'subscription_requests'));
+          await setDoc(claimReqRef, {
+            id: claimReqRef.id,
+            user_id: user.uid,
+            user_email: user.email,
+            user_name: user.displayName || (user.email ? user.email.split('@')[0] : 'User'),
+            amount: 0,
+            billing_cycle: 'monthly',
+            payment_method: 'free_trial_claim',
+            type: 'claim',
+            status: 'approved',
+            upi_id_ref: receiptNo,
+            receipt_number: receiptNo,
+            created_at: new Date().toISOString(),
+            approved_at: new Date().toISOString(),
+            plan_renews_at: renewsAtISO,
+            notes: '1-Month Free Pro Promotional Offer Claimed'
+          });
         } catch (fsErr) {
           console.warn("Client Firestore update notice:", fsErr);
         }

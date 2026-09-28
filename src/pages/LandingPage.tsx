@@ -9,7 +9,7 @@ import {
   Smartphone, Activity, FileText, QrCode, TrendingUp,
   Mail, Phone, MapPin, ChevronRight, MessageCircle, HelpCircle,
   Sparkles, Star, Award, History, User, Users, RefreshCw, Upload, Download, BookOpen, X, Globe, Share2, ExternalLink,
-  Monitor, HardDrive
+  Monitor, HardDrive, Headset
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { BLOG_POSTS } from './BlogPage';
@@ -265,53 +265,53 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#fafafa] font-sans selection:bg-green-500/30 overflow-x-hidden">
       
-      {/* Navigation - Spacious and Clean */}
+      {/* Navigation - Spacious and Clean Apple Aesthetic */}
       <motion.nav 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${
-          scrolled ? 'bg-white/80 backdrop-blur-xl border-gray-200 shadow-sm py-3' : 'bg-transparent border-transparent py-5'
+          scrolled ? 'bg-white/80 backdrop-blur-xl border-slate-200/80 shadow-xs py-3' : 'bg-transparent border-transparent py-5'
         }`}
       >
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
-              <Logo size={48} />
-              <span className="font-brand text-2xl tracking-tight text-gray-900">
+              <Logo size={42} />
+              <span className="font-brand text-2xl tracking-tight text-slate-900">
                 <span className="font-extrabold">Invo</span><span className="font-bold">Centric</span>
               </span>
             </div>
             
             <div className="hidden md:flex items-center gap-8">
-               <a href="#features" className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors">Features</a>
-               <a href="#showcase" className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors">Showcase</a>
-               <a href="#pricing" className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors">Pricing</a>
-               <a href="#calculator" className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors">GST Tools</a>
-               <button onClick={() => navigate('/download')} className="text-sm font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-3 py-1 rounded-full border border-emerald-300 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm">
-                 <Download size={13} className="text-emerald-700" />
+               <a href="#features" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Features</a>
+               <a href="#showcase" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Showcase</a>
+               <a href="#pricing" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
+               <a href="#calculator" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">GST Tools</a>
+               <button onClick={() => navigate('/download')} className="text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full border border-slate-200/80 transition-all cursor-pointer flex items-center gap-1.5">
+                 <Download size={13} className="text-slate-600" />
                  Download App
                </button>
-               <button onClick={() => navigate('/blog')} className="text-sm font-semibold text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200/60 hover:bg-green-100 transition-all cursor-pointer flex items-center gap-1.5">
-                 <BookOpen size={14} className="text-green-600" />
+               <button onClick={() => navigate('/blog')} className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200/60 hover:bg-emerald-100 transition-all cursor-pointer flex items-center gap-1.5">
+                 <BookOpen size={13} className="text-emerald-700" />
                  Blogs
                </button>
-               <a href="#faq" className="text-sm font-semibold text-gray-600 hover:text-green-600 transition-colors">FAQ</a>
+               <a href="#faq" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">FAQ</a>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => navigate('/download')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-bold text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-full transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-full transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
               >
-                <Download size={13} className="text-emerald-700" />
+                <Download size={13} className="text-slate-600" />
                 <span>Download App</span>
               </button>
 
               {user ? (
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-900 text-white text-xs sm:text-sm font-bold rounded-full hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-900/20 whitespace-nowrap"
+                  className="px-5 py-2 bg-slate-950 text-white text-xs sm:text-sm font-bold rounded-full hover:bg-slate-800 transition-all active:scale-95 shadow-md shadow-slate-950/15 whitespace-nowrap cursor-pointer"
                 >
                   Dashboard
                 </button>
@@ -319,13 +319,13 @@ export default function LandingPage() {
                 <>
                   <button
                     onClick={() => navigate('/login')}
-                    className="hidden md:block px-5 py-2.5 text-sm font-bold text-gray-700 hover:text-gray-900 transition-colors"
+                    className="hidden md:block px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-950 transition-colors"
                   >
                     Log In
                   </button>
                   <button
                     onClick={() => navigate('/login')}
-                    className="px-4 sm:px-6 py-2 sm:py-2.5 bg-emerald-600 text-white text-xs sm:text-sm font-bold rounded-full hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-600/30 whitespace-nowrap cursor-pointer"
+                    className="px-5 py-2 bg-slate-950 hover:bg-slate-850 text-white text-xs sm:text-sm font-bold rounded-full transition-all active:scale-95 shadow-md shadow-slate-950/20 whitespace-nowrap cursor-pointer"
                   >
                     Get Started Free
                   </button>
@@ -336,225 +336,254 @@ export default function LandingPage() {
         </div>
       </motion.nav>
 
-      <main>
-        {/* Animated Hero Section with Spacious Margins */}
-        {/* Animated Hero Section - Perfectly Organized & 100% Smartphone Friendly */}
-        <section className="relative pt-24 pb-14 sm:pt-32 sm:pb-20 md:pt-40 md:pb-28 overflow-hidden">
-          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-             <motion.div style={{ y: heroY }} className="absolute -top-[20%] -right-[10%] w-[350px] sm:w-[600px] h-[350px] sm:h-[600px] rounded-full bg-emerald-400/15 blur-[90px] sm:blur-[120px]" />
-             <motion.div style={{ y: heroY }} className="absolute top-[20%] -left-[10%] w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] rounded-full bg-blue-400/15 blur-[90px] sm:blur-[120px]" />
+      <main className="relative z-10">
+        {/* Apple Minimalist Hero Section with Contained Fluid Ambient Animation */}
+        <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-24 overflow-hidden text-center">
+          {/* Dedicated Apple-Style Hero Ambient Background Animation */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
+            {/* Subtle Apple Dot Grid in Hero */}
+            <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:28px_28px]" />
+
+            {/* Apple Fluid Animated Aurora Orbs */}
+            <motion.div
+              animate={{
+                x: [0, 40, -30, 0],
+                y: [0, -35, 25, 0],
+                scale: [1, 1.15, 0.95, 1],
+              }}
+              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] md:w-[850px] h-[350px] md:h-[500px] rounded-full bg-gradient-to-br from-emerald-200/40 via-teal-100/35 to-transparent blur-[120px]"
+            />
+
+            <motion.div
+              animate={{
+                x: [0, -35, 25, 0],
+                y: [0, 30, -25, 0],
+                scale: [0.95, 1.1, 0.9, 0.95],
+              }}
+              transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+              className="absolute top-1/4 -left-20 w-[450px] h-[450px] rounded-full bg-gradient-to-tr from-sky-200/30 via-indigo-100/20 to-transparent blur-[110px]"
+            />
+
+            <motion.div
+              animate={{
+                x: [0, 30, -30, 0],
+                y: [0, -30, 30, 0],
+                scale: [1, 1.12, 0.96, 1],
+              }}
+              transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+              className="absolute top-1/3 -right-20 w-[450px] h-[450px] rounded-full bg-gradient-to-bl from-teal-200/30 via-emerald-100/30 to-transparent blur-[110px]"
+            />
           </div>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            
+            {/* Top Pill Offer */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-6 hover:bg-slate-200/70 transition-colors"
+            >
+              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+              <span>New: Full Offline PC App &amp; Mobile Camera Barcode Scanner</span>
+              <ChevronRight size={13} className="text-slate-400" />
+            </motion.div>
 
-          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 relative z-10 w-full">
-            <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-10 xl:gap-16">
+            {/* Large Bold Apple Typography */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.03em] text-slate-950 max-w-4xl mx-auto leading-[1.08] mb-6"
+            >
+              Billing and accounting, <br className="hidden sm:inline" />
+              <span className="text-slate-500 font-normal">re-imagined for speed.</span>
+            </motion.h1>
+
+            {/* Clean Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed mb-9"
+            >
+              InvoCentric delivers instant GST invoicing, barcode scanning, thermal printing, and automatic WhatsApp bills. Beautifully engineered for Indian businesses.
+            </motion.p>
+
+            {/* Primary Action Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-5"
+            >
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full sm:w-auto px-8 py-3.5 bg-slate-950 hover:bg-slate-800 text-white font-medium text-base rounded-full shadow-lg shadow-slate-950/15 transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Get 30 Days Free Pro Access</span>
+                <ArrowRight size={16} />
+              </button>
+
+              <a
+                href={downloadUrls.windows}
+                download="InvoCentric-Setup.exe"
+                onClick={(e) => triggerDirectDownload(e, downloadUrls.windows, 'InvoCentric-Setup.exe')}
+                className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 font-medium text-base rounded-full shadow-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Monitor size={17} className="text-slate-600" />
+                <span>Download for Windows</span>
+              </a>
+            </motion.div>
+
+            {/* Micro Trust Details */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="text-xs text-slate-400 font-medium mb-14"
+            >
+              Zero setup fee &bull; Works 100% offline without internet &bull; Windows (.exe) &amp; Android (.apk) available
+            </motion.p>
+
+            {/* -------------------- 3D MULTI-DEVICE LUXURY SHOWCASE -------------------- */}
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.4 }}
+              className="relative max-w-6xl mx-auto mt-6"
+            >
+              {/* Ambient Multi-Colored Aura Behind Mockups */}
+              <div className="absolute -inset-10 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-amber-500/15 rounded-[60px] blur-3xl -z-10 opacity-75" />
+
+              {/* Central Laptop Showcase */}
+              <div className="relative mx-auto flex justify-center">
+                <motion.img
+                  src="https://i.ibb.co/VpJQZX12/006.png"
+                  alt="InvoCentric Desktop Dashboard"
+                  className="w-full max-w-[880px] h-auto drop-shadow-[0_24px_50px_rgba(0,0,0,0.18)] filter contrast-[1.02]"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+                />
+
+                {/* Floating Left: 3D Smartphone Mobile Scanner Mockup - Bold, Extra Large & Prominently Overlapping Laptop Screen */}
+                <motion.div
+                  className="absolute bottom-0 sm:bottom-4 md:bottom-10 lg:bottom-14 -left-4 sm:-left-2 md:left-2 lg:left-6 z-30 w-[45%] max-w-[240px] sm:max-w-[325px] md:max-w-[405px] lg:max-w-[460px]"
+                  animate={{ y: [0, 8, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                >
+                  <div className="relative group">
+                      <img
+                      src="https://i.ibb.co/7t1gXWmY/Gemini-Generated-Image-lal0enlal0enlal0-1-Copy.png"
+                      alt="InvoCentric Mobile App & Scanner"
+                      className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.40)] rounded-3xl"
+                    />
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-3.5 py-1 rounded-full text-[10px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md">
+                      <Smartphone size={14} className="text-emerald-600" />
+                      <span>Mobile POS &amp; Barcode Scanner</span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Floating Right: Real Thermal Printer Mockup - Bold, Extra Large & Prominently Overlapping Laptop Screen */}
+                <motion.div
+                  className="absolute bottom-0 sm:bottom-4 md:bottom-8 lg:bottom-12 -right-6 sm:-right-4 md:-right-2 lg:right-2 z-30 w-[43%] max-w-[230px] sm:max-w-[310px] md:max-w-[385px] lg:max-w-[435px]"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+                >
+                  <div className="relative group">
+                    <img
+                      src="https://i.ibb.co/b5fwF9hp/Gemini-Generated-Image-p0k2ebp0k2ebp0k2-1.png"
+                      alt="Thermal Receipt Printer"
+                      className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.36)] rounded-2xl"
+                    />
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-3.5 py-1 rounded-full text-[10px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md">
+                      <Printer size={14} className="text-teal-600" />
+                      <span>2" / 3" High-Speed Thermal</span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Floating Top Badge: Apple-Style WhatsApp Delivery */}
+                <motion.div
+                  className="hidden lg:flex items-center gap-2.5 absolute top-6 right-6 lg:right-10 z-30 bg-white/90 border border-slate-200/80 text-slate-800 px-4 py-2.5 rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl"
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/25">
+                    <WhatsAppIcon size={18} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-slate-900 leading-tight">Instant WhatsApp Bill</p>
+                    <p className="text-[10px] text-emerald-600 font-medium">Delivered with PDF in 2 sec</p>
+                  </div>
+                </motion.div>
+
+                {/* Floating Top Left Badge: Apple-Style Offline PC Engine */}
+                <motion.div
+                  className="hidden lg:flex items-center gap-2.5 absolute top-14 left-6 lg:left-10 z-30 bg-white/90 border border-slate-200/80 text-slate-800 px-4 py-2.5 rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.08)] backdrop-blur-xl"
+                  animate={{ y: [0, 6, 0] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+                >
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center border border-slate-200">
+                    <HardDrive size={18} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-slate-900 leading-tight">100% Offline Mode</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Direct PC file storage</p>
+                  </div>
+                </motion.div>
+
+              </div>
+
+            </motion.div>
+
+          </div>
+        </section>
+
+        {/* Luxury Trust / Merchant Support Section with Businesswoman Image */}
+        <section className="py-14 bg-gradient-to-b from-white via-slate-50 to-white border-y border-slate-200/80">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 backdrop-blur-xl">
               
-              {/* Left Column: Hero Copy & Actions */}
-              <motion.div 
-                className="w-full lg:w-1/2 flex flex-col items-start text-left"
-                variants={STAGGER_CONTAINER}
-                initial="hidden"
-                animate="show"
-              >
-                {/* 1 Month Free Trial High-Impact Special Offer Pill */}
-                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-emerald-500/15 to-teal-500/15 border border-emerald-500/40 text-emerald-950 text-xs sm:text-sm font-black mb-3.5 shadow-2xs max-w-full">
-                  <span className="bg-gradient-to-r from-emerald-700 to-[#166534] text-white px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0">
-                    🎉 Special Offer
-                  </span>
-                  <span className="font-extrabold text-slate-900 text-xs sm:text-sm truncate sm:whitespace-normal">
-                    New Users Get <span className="text-[#166534] font-black underline decoration-emerald-400 decoration-2">1 Month Free Pro Access</span> on Sign Up!
-                  </span>
-                </motion.div>
-
-                {/* Sub-badge */}
-                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[11px] sm:text-xs font-bold uppercase tracking-wider mb-4 sm:mb-5 max-w-full">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                  <span className="truncate">Free GST Billing &amp; Inventory for Small Businesses</span>
-                </motion.div>
-                
-                {/* Hero H1 */}
-                <motion.h1 variants={FADE_UP_ANIMATION_VARIANTS} className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 tracking-tight leading-[1.14] sm:leading-[1.1] mb-4 sm:mb-6 break-words max-w-2xl">
-                  GST Billing &amp; Inventory Software for <br className="hidden sm:inline" />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600" style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    Indian Small Businesses
-                  </span>
-                </motion.h1>
-                
-                {/* Hero Subtitle */}
-                <motion.p variants={FADE_UP_ANIMATION_VARIANTS} className="text-sm sm:text-base md:text-lg text-gray-700 mb-6 sm:mb-8 max-w-xl leading-relaxed">
-                  Create professional GST and non-GST invoices, track live inventory, scan barcodes with phone camera, manage customer ledger accounts, and share PDF bills instantly on WhatsApp. Works 100% offline on PC and mobile.
-                </motion.p>
-                
-                {/* Primary CTA Buttons */}
-                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                  <button 
-                    onClick={() => navigate('/login')}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm sm:text-base font-bold rounded-2xl sm:rounded-full transition-all flex items-center justify-center gap-2 active:scale-95 shadow-xl shadow-emerald-600/25 group cursor-pointer"
-                  >
-                    <span>Claim 1 Month Free Pro Trial</span>
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform shrink-0" />
-                  </button>
-                  <button 
-                    onClick={() => navigate('/pos')}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-gray-900 border border-gray-200 hover:border-gray-300 text-sm sm:text-base font-bold rounded-2xl sm:rounded-full hover:bg-gray-50 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-2xs cursor-pointer"
-                  >
-                    <Store size={18} className="text-emerald-700 shrink-0" />
-                    <span>See Live POS Demo</span>
-                  </button>
-                </motion.div>
-
-                {/* Direct PC / Android App Download Box */}
-                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="mt-5 sm:mt-6 p-3.5 sm:p-4 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 shadow-2xs w-full max-w-xl">
-                  <div className="flex items-center gap-2.5 text-left min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0 shadow-sm">
-                      <Download size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">Install Offline PC Software &amp; Mobile App</p>
-                      <p className="text-[11px] text-emerald-800 font-medium truncate mt-0.5">Direct Download • Free 30-Day Pro Trial Included</p>
-                    </div>
+              <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+                <div className="relative shrink-0">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-emerald-500/20 shadow-xl bg-slate-950">
+                    <img
+                      src="https://i.ibb.co/99TZVmNX/010.png"
+                      alt="Dedicated Merchant Support Specialist"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto shrink-0">
-                    <a
-                      href={downloadUrls.windows}
-                      download="InvoCentric-Setup.exe"
-                      onClick={(e) => triggerDirectDownload(e, downloadUrls.windows, 'InvoCentric-Setup.exe')}
-                      className="px-3.5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer text-center whitespace-nowrap"
-                    >
-                      <Monitor size={14} className="shrink-0" />
-                      <span>Windows (.exe)</span>
-                    </a>
-                    <a
-                      href={downloadUrls.android}
-                      download="InvoCentric.apk"
-                      onClick={(e) => triggerDirectDownload(e, downloadUrls.android, 'InvoCentric.apk')}
-                      className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer text-center whitespace-nowrap"
-                    >
-                      <Smartphone size={14} className="shrink-0" />
-                      <span>Android (.apk)</span>
-                    </a>
-                  </div>
-                </motion.div>
-
-                {/* Subtext and Trust Badges */}
-                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="mt-3 text-xs text-gray-500 font-medium">
-                  No credit card required. Setup takes less than a minute.
-                </motion.div>
-
-                <motion.div variants={FADE_UP_ANIMATION_VARIANTS} className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs sm:text-sm font-semibold text-gray-700">
-                  <div className="flex items-center gap-1.5"><Check size={16} className="text-emerald-600 shrink-0"/> Free Plan Available</div>
-                  <div className="flex items-center gap-1.5"><Check size={16} className="text-emerald-600 shrink-0"/> 100% Offline PC Mode</div>
-                  <div className="flex items-center gap-1.5"><Check size={16} className="text-emerald-600 shrink-0"/> Instant WhatsApp Share</div>
-                </motion.div>
-              </motion.div>
-
-              {/* Right Column: Sleek Responsive POS Showcase Mockup */}
-              <motion.div 
-                className="w-full lg:w-1/2 relative mt-6 lg:mt-0 flex justify-center"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                style={{ opacity: heroOpacity }}
-              >
-                <div className="relative w-full max-w-[460px] mx-auto px-2 sm:px-4 py-6 sm:py-8">
-                  {/* Ambient Gradient Glow */}
-                  <div className="absolute inset-0 m-auto w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-gradient-to-tr from-emerald-200/40 via-teal-100/30 to-blue-200/40 blur-3xl pointer-events-none" />
-
-                  {/* Floating WhatsApp Badge (Top Right) */}
-                  <motion.div 
-                    animate={{ y: [0, -6, 0] }}
-                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 1 }}
-                    className="absolute -top-1 sm:top-1 right-2 sm:right-0 bg-emerald-600 text-white rounded-2xl shadow-xl px-3 sm:px-3.5 py-2 sm:py-2.5 z-20 flex items-center gap-2 sm:gap-2.5 border border-emerald-500/40 max-w-[190px] sm:max-w-[210px]"
-                  >
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-white/20 text-white flex items-center justify-center shrink-0">
-                      <WhatsAppIcon size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] sm:text-xs font-bold leading-tight truncate">WhatsApp Bill</p>
-                      <p className="text-[9px] sm:text-[10px] text-emerald-100 font-medium">Shared in 2 sec</p>
-                    </div>
-                  </motion.div>
-
-                  {/* Main POS Billing Showcase Card */}
-                  <motion.div 
-                    animate={{ y: [0, -6, 0] }}
-                    transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-                    className="relative bg-white rounded-3xl shadow-2xl border border-slate-200/80 p-5 sm:p-7 z-10 w-full"
-                  >
-                    {/* Store Header */}
-                    <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 shadow-inner">
-                          <Store size={22} />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-extrabold text-gray-900 text-sm sm:text-base leading-tight truncate">TechMart Electronics</h3>
-                          <p className="text-[11px] text-gray-500 font-medium">GSTIN: 27AABCU9603R1ZM</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] sm:text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider shrink-0 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Live POS
-                      </span>
-                    </div>
-                    
-                    {/* Metric Section */}
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-end">
-                        <div>
-                          <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider">Today's Sales</p>
-                          <p className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">₹48,920.00</p>
-                        </div>
-                        <div className="text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200/60 px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-2xs">
-                          <TrendingUp size={13} /> +14.8% Today
-                        </div>
-                      </div>
-                      
-                      {/* Progress Bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[10px] text-gray-500 font-semibold">
-                          <span>Daily Counter Target</span>
-                          <span className="font-bold text-gray-800">82%</span>
-                        </div>
-                        <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden p-0.5">
-                          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full w-[82%] rounded-full" />
-                        </div>
-                      </div>
-
-                      {/* Quick Features Row */}
-                      <div className="pt-2 grid grid-cols-2 gap-2 border-t border-gray-100">
-                        <div className="p-2 sm:p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
-                          <Printer size={15} className="text-emerald-700 shrink-0" />
-                          <span className="text-[11px] font-semibold text-slate-700 truncate">Thermal Print Ready</span>
-                        </div>
-                        <div className="p-2 sm:p-2.5 bg-slate-50 rounded-xl flex items-center gap-2">
-                          <QrCode size={15} className="text-teal-700 shrink-0" />
-                          <span className="text-[11px] font-semibold text-slate-700 truncate">UPI Dynamic QR</span>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Floating Invoice Badge (Bottom Left) */}
-                  <motion.div 
-                    animate={{ y: [0, 6, 0] }}
-                    transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1.5 }}
-                    className="absolute -bottom-2 sm:bottom-0 left-2 sm:left-0 bg-slate-900 text-white rounded-2xl shadow-xl px-3 sm:px-3.5 py-2 sm:py-2.5 z-20 flex items-center gap-2 sm:gap-2.5 border border-slate-800 max-w-[200px] sm:max-w-[220px]"
-                  >
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                      <Receipt size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] sm:text-xs font-bold truncate text-white leading-tight">INV-2026-089</p>
-                      <p className="text-[9px] sm:text-[10px] text-emerald-400 font-medium">Billed in 3 sec</p>
-                    </div>
-                  </motion.div>
-
+                  <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 rounded-full ring-2 ring-white" title="Support Online" />
                 </div>
-              </motion.div>
+
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-black uppercase tracking-wider mb-2">
+                    <Headset size={12} className="text-emerald-600" /> Dedicated Merchant Concierge
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                    Handcrafted Support for India's Leading Businesses
+                  </h3>
+                  <p className="text-slate-600 text-sm mt-1 max-w-xl">
+                    Direct WhatsApp &amp; phone onboarding with Indian accounting experts. Fast data import, hardware setup, and priority GST assistance.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full sm:w-auto">
+                <button
+                  onClick={() => navigate('/login')}
+                  className="w-full sm:w-auto px-6 py-3.5 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-full shadow-lg shadow-slate-950/15 hover:scale-105 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  Claim Free 1-Month Pro
+                </button>
+              </div>
 
             </div>
           </div>
         </section>
+
 
         {/* Brand Indicators / Social Proof */}
         <section className="py-12 bg-white border-y border-gray-100 text-center">
@@ -700,96 +729,92 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
-        {/* -------------------- NEW SHOWCASE SECTION (HIGHLY INTERACTIVE) -------------------- */}
-        {/* Full-Screen Premium App Preview with Floating Animation Shapes requested by user */}
-        <section id="showcase" className="py-28 bg-gradient-to-b from-gray-950 to-[#0c0f17] text-white relative overflow-hidden px-4 md:px-0">
-          {/* Grid Accent Background */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 pointer-events-none" />
-          
-          {/* Floating Neon Glow Shapes */}
-          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-green-500/10 rounded-full blur-[160px] pointer-events-none" />
-          <div className="absolute bottom-1/4 right-1/4 w-[550px] h-[550px] bg-emerald-500/10 rounded-full blur-[160px] pointer-events-none" />
+        {/* -------------------- APPLE-STYLE STUDIO SHOWCASE SECTION -------------------- */}
+        <section id="showcase" className="py-24 sm:py-32 bg-[#F5F5F7] border-y border-slate-200/80 relative overflow-hidden">
+          {/* Subtle Ambient Apple Aurora in Showcase */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-gradient-to-r from-emerald-200/30 via-teal-100/25 to-sky-200/25 rounded-full blur-[140px] pointer-events-none -z-0" />
 
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 text-center relative z-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold uppercase tracking-wider mb-6">
-              <Sparkles size={14} className="animate-pulse" /> Live Platform Showcase
+            {/* Apple Pill Tag */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 border border-slate-200/90 text-slate-700 text-xs font-semibold mb-6 shadow-xs backdrop-blur-md">
+              <Sparkles size={13} className="text-emerald-600" />
+              <span>Live Platform Showcase</span>
             </div>
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-6 leading-tight text-white">
-              Beautiful Workspaces. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-300 via-emerald-300 to-blue-300" style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Seamless Operating Flow.</span>
+
+            {/* Apple Typography */}
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-[-0.03em] text-[#1D1D1F] mb-5 leading-tight max-w-4xl mx-auto">
+              Beautiful workspaces. <br className="hidden sm:inline" />
+              <span className="text-slate-500 font-normal">Seamless operating flow.</span>
             </h2>
-            <p className="text-gray-300 text-lg md:text-xl max-w-3xl mx-auto mb-20 font-medium leading-relaxed">
-              Experience the ultra-responsive, beautifully optimized retail invoicing workspace. High performance offline processing paired with instant cloud replication.
+
+            <p className="text-slate-600 text-base sm:text-xl max-w-3xl mx-auto mb-16 font-normal leading-relaxed">
+              Experience the ultra-responsive, beautifully optimized retail invoicing workspace. High performance offline processing paired with instant cloud synchronization.
             </p>
 
-            {/* Simulated Desktop Container for the Image - Configured with a premium, interactive floating and viewport entry animation */}
+            {/* Apple Studio Monitor Frame with Exact Same Showcase Image */}
             <motion.div 
-              initial={{ opacity: 0, y: 50, scale: 0.98 }}
+              initial={{ opacity: 0, y: 40, scale: 0.98 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true, margin: "-100px" }}
+              viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              whileHover={{ y: -8, transition: { duration: 0.3, ease: "easeOut" } }}
-              className="relative w-[98%] lg:w-[96%] xl:w-[95%] max-w-[1550px] mx-auto bg-gray-950/50 rounded-[32px] p-2 md:p-3 border border-gray-900/60 shadow-[0_0_100px_-20px_rgba(20,184,166,0.25)] backdrop-blur-xl transition-shadow duration-500 hover:shadow-[0_0_120px_-10px_rgba(20,184,166,0.4)]"
+              whileHover={{ y: -6, transition: { duration: 0.3, ease: "easeOut" } }}
+              className="relative w-[98%] lg:w-[96%] xl:w-[95%] max-w-[1550px] mx-auto bg-white/95 rounded-[32px] p-2.5 sm:p-4 border border-slate-200/90 shadow-[0_24px_60px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-500 hover:shadow-[0_32px_75px_rgba(0,0,0,0.12)]"
             >
-              
-              {/* Elegant ambient corner glows behind the showcase image */}
-              <div className="absolute -top-12 -left-12 w-[300px] h-[300px] bg-green-500/10 rounded-full blur-[100px] pointer-events-none" />
-              <div className="absolute -bottom-12 -right-12 w-[350px] h-[350px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+              {/* Studio Window Top Bar */}
+              <div className="hidden sm:flex items-center justify-between px-4 py-2.5 mb-2 border-b border-slate-100 text-xs text-slate-500 font-medium">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-rose-400 inline-block" />
+                  <span className="w-3 h-3 rounded-full bg-amber-400 inline-block" />
+                  <span className="w-3 h-3 rounded-full bg-emerald-400 inline-block" />
+                  <span className="ml-3 text-[11px] text-slate-600 font-mono">app.invocentric.in/dashboard</span>
+                </div>
+                <div className="flex items-center gap-3 text-[11px]">
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Cloud Sync</span>
+                  <span className="text-slate-300">|</span>
+                  <span>100% Offline Ready</span>
+                </div>
+              </div>
 
-              {/* The user's shared image, beautifully structured and styled in full width */}
+              {/* The User's Preserved Showcase Image */}
               <div 
-                className="w-full h-auto overflow-hidden rounded-[24px] border border-gray-900/80 bg-[#07090e] relative group cursor-pointer"
+                className="w-full h-auto overflow-hidden rounded-[24px] border border-slate-200/80 bg-slate-950 relative group cursor-pointer"
                 onClick={() => navigate(user ? '/dashboard' : '/login')}
               >
                 <motion.img 
-                  initial={{ scale: 1.01 }}
-                  whileHover={{ scale: 1.02 }}
+                  initial={{ scale: 1 }}
+                  whileHover={{ scale: 1.01 }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
                   src="https://i.ibb.co/jkjMxGvz/Invo-Centric-showcase-NEW.webp" 
                   alt="InvoCentric Smart Invoicing Web Application High-Fidelity Showcase" 
-                  className="w-full h-auto object-cover object-center shadow-2xl block transition-transform duration-500"
+                  className="w-full h-auto object-cover object-center shadow-lg block transition-transform duration-500"
                   referrerPolicy="no-referrer"
                 />
 
-                {/* Center Hover Action Icon Overlay without blur */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
-                  <motion.div 
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    whileHover={{ scale: 1.1 }}
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ scale: { repeat: Infinity, duration: 2, ease: "easeInOut" } }}
-                    className="w-20 h-20 rounded-full bg-green-500/90 text-white flex items-center justify-center shadow-[0_0_50px_rgba(20,184,166,0.6)] border border-green-300/30"
-                  >
-                    <Sparkles size={36} className="text-white animate-pulse" />
-                  </motion.div>
-                </div>
-
-                {/* Floating interactive corners with icons */}
-                <div className="absolute top-4 left-4 z-20 hidden md:flex items-center gap-2 bg-gray-950/80 backdrop-blur-md px-3.5 py-2 rounded-full border border-gray-800/80 shadow-lg text-xs font-bold text-green-400">
-                  <Activity size={12} className="animate-pulse" />
+                {/* Apple Frosted Glass Floating Corner Badges */}
+                <div className="absolute top-4 left-4 z-20 hidden md:flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full border border-slate-200/80 shadow-md text-xs font-semibold text-slate-900">
+                  <Activity size={13} className="text-emerald-600 animate-pulse" />
                   <span>Realtime State Engine</span>
                 </div>
 
-                <div className="absolute top-4 right-4 z-20 hidden md:flex items-center gap-2 bg-gray-950/80 backdrop-blur-md px-3.5 py-2 rounded-full border border-gray-800/80 shadow-lg text-xs font-bold text-emerald-400">
-                  <RefreshCw size={12} className="animate-spin" style={{ animationDuration: '3s' }} />
+                <div className="absolute top-4 right-4 z-20 hidden md:flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full border border-slate-200/80 shadow-md text-xs font-semibold text-slate-900">
+                  <RefreshCw size={13} className="text-teal-600 animate-spin" style={{ animationDuration: '3s' }} />
                   <span>Cloud Sync Active</span>
                 </div>
 
-                <div className="absolute bottom-4 left-4 z-20 hidden md:flex items-center gap-2 bg-gray-950/80 backdrop-blur-md px-3.5 py-2 rounded-full border border-gray-800/80 shadow-lg text-xs font-bold text-blue-400">
-                  <Printer size={12} />
+                <div className="absolute bottom-4 left-4 z-20 hidden md:flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full border border-slate-200/80 shadow-md text-xs font-semibold text-slate-900">
+                  <Printer size={13} className="text-sky-600" />
                   <span>Multi-Format Printer</span>
                 </div>
 
-                <div className="absolute bottom-4 right-4 z-20 hidden md:flex items-center gap-2 bg-gray-950/80 backdrop-blur-md px-3.5 py-2 rounded-full border border-gray-800/80 shadow-lg text-xs font-bold text-green-400">
-                  <Check size={12} className="bg-green-500/20 p-0.5 rounded-full text-green-400" />
-                   <span>Secured with Auth</span>
-                 </div>
-               </div>
- 
-             </motion.div>
-           </div>
-         </section>
+                <div className="absolute bottom-4 right-4 z-20 hidden md:flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-full border border-slate-200/80 shadow-md text-xs font-semibold text-slate-900">
+                  <Check size={13} className="text-emerald-600" />
+                  <span>Bank-Grade Security</span>
+                </div>
+              </div>
+
+            </motion.div>
+          </div>
+        </section>
  
          {/* -------------------- STEP BY STEP "HOW IT WORKS" SECTION -------------------- */}
          <section id="how-it-works" className="py-24 bg-slate-50 border-b border-gray-200/60 relative overflow-hidden">

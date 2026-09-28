@@ -253,41 +253,46 @@ export default function ItemsPage() {
           const itemRef = doc(db, 'items', existing.id);
           const existingSerials = Array.isArray((existing as any).serials) ? (existing as any).serials : [];
           const combinedSerials = Array.from(new Set([...existingSerials, ...serialsList]));
-          
-          await updateDoc(itemRef, {
+
+          await dbService.update('items', existing.id, {
             stock: newStock,
             cost_price: itemPrice || (existing as any).cost_price || 0,
             costPrice: itemPrice || (existing as any).costPrice || 0,
+            purchase_price: itemPrice || (existing as any).purchase_price || 0,
+            last_purchase_price: itemPrice || (existing as any).last_purchase_price || 0,
             price: existing.price || (itemPrice > 0 ? Math.round(itemPrice * 1.25) : itemPrice),
             hsn: extractedItem.hsn || existing.hsn || '',
             barcode: extractedItem.barcode || existing.barcode || '',
             batch: extractedItem.batchNo || (existing as any).batch || '',
+            batch_no: extractedItem.batchNo || (existing as any).batch_no || '',
             serial_no: extractedItem.serialNo || existing.serial_no || '',
             serials: combinedSerials,
             gst_percent: extractedItem.gstPercent || existing.gstPercent || 0,
-            updated_at: serverTimestamp()
-          });
+            gstPercent: extractedItem.gstPercent || existing.gstPercent || 0,
+          }, { userId: user?.uid || '', offlineMode: isOfflineMode });
         } else {
-          await addDoc(collection(db, 'items'), {
+          await dbService.add('items', {
             name: extractedItem.description,
             description: '',
             internal_notes: `AI Scan Source: ${supplierName} (Bill: ${billNo})`,
             cost_price: itemPrice,
             costPrice: itemPrice,
+            purchase_price: itemPrice,
+            last_purchase_price: itemPrice,
             price: itemPrice > 0 ? Math.round(itemPrice * 1.25) : itemPrice, // 25% default margin if new
-            unit: 'pcs',
+            unit: extractedItem.unit || 'pcs',
             category: 'General',
             stock: extractedItem.quantity || 1,
             hsn: extractedItem.hsn || '',
             barcode: extractedItem.barcode || '',
             batch: extractedItem.batchNo || '',
+            batch_no: extractedItem.batchNo || '',
             serial_no: extractedItem.serialNo || '',
             serials: serialsList,
             gstPercent: extractedItem.gstPercent || 0,
+            gst_percent: extractedItem.gstPercent || 0,
             low_stock_threshold: 5,
-            user_id: user?.uid,
-            created_at: serverTimestamp()
-          });
+          }, { userId: user?.uid || '', offlineMode: isOfflineMode });
         }
       }
 

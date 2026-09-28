@@ -40,14 +40,17 @@ import {
   Check, 
   ExternalLink,
   Search,
-  Repeat
+  Repeat,
+  MessageCircle,
+  Copy,
+  Send
 } from 'lucide-react';
 import { updateService, AppUpdateState } from '../services/updateService';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useSearchParams } from 'react-router-dom';
 import { db, OperationType, handleFirestoreError, auth } from '../lib/firebase';
-import { doc, getDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { cn } from '../lib/utils';
 import { StorageModeSelector } from '../components/StorageModeSelector';
@@ -381,6 +384,58 @@ export default function SettingsPage() {
   const [formData, setFormData] = useState<UserProfileData>(getInitialFormData);
   const [initialDataSnapshot, setInitialDataSnapshot] = useState<UserProfileData>(getInitialFormData);
 
+  // Contact Support Modal State
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportSubmitting, setSupportSubmitting] = useState(false);
+  const [supportSuccess, setSupportSuccess] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  const handleCopySupportEmail = () => {
+    navigator.clipboard.writeText('support@invocentric.in');
+    setCopiedEmail(true);
+    setTimeout(() => setCopiedEmail(false), 2000);
+  };
+
+  const handleOpenWhatsAppSupport = (customText?: string) => {
+    const defaultMsg = `Hello InvoCentric Support, I need help with my account (${formData.business_name || formData.owner_name || user?.email || 'User'}).`;
+    const msg = customText || supportMessage || defaultMsg;
+    const url = `https://wa.me/919824194869?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleSupportFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportMessage.trim()) return;
+    setSupportSubmitting(true);
+    try {
+      if (user?.uid && navigator.onLine) {
+        await addDoc(collection(db, 'support_tickets'), {
+          user_id: user.uid,
+          user_email: user.email || formData.email || null,
+          user_name: formData.owner_name || user.displayName || 'User',
+          subject: supportSubject || 'Support Inquiry',
+          message: supportMessage,
+          status: 'open',
+          created_at: serverTimestamp()
+        });
+      }
+    } catch (ticketErr) {
+      console.warn("Support ticket log notice:", ticketErr);
+    }
+    // Also trigger direct WhatsApp
+    handleOpenWhatsAppSupport(`[Helpdesk Ticket]\nSubject: ${supportSubject || 'General Support'}\nFrom: ${formData.owner_name || user?.displayName || user?.email}\nMessage: ${supportMessage}`);
+    setSupportSubmitting(false);
+    setSupportSuccess(true);
+    setTimeout(() => {
+      setSupportSuccess(false);
+      setShowSupportModal(false);
+      setSupportMessage('');
+      setSupportSubject('');
+    }, 2500);
+  };
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -390,7 +445,30 @@ export default function SettingsPage() {
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, profile_photo_url: reader.result as string }));
+        const photoData = reader.result as string;
+        setFormData(prev => ({ 
+          ...prev, 
+          profile_photo_url: photoData,
+          photo_url: photoData
+        }));
+
+        // Immediately update session storage & broadcast event so Header & Sidebar update instantly
+        if (user?.uid) {
+          try {
+            const rawSession = localStorage.getItem('invocentric_session_user');
+            if (rawSession) {
+              const parsed = JSON.parse(rawSession);
+              parsed.photoURL = photoData;
+              localStorage.setItem('invocentric_session_user', JSON.stringify(parsed));
+            }
+            saveStoredUserProfile(user.uid, { profile_photo_url: photoData, photo_url: photoData }, user.email);
+            window.dispatchEvent(new CustomEvent('invocentric_profile_updated', {
+              detail: { profile_photo_url: photoData, photo_url: photoData }
+            }));
+          } catch (sessionErr) {
+            console.warn("Failed to update session photo:", sessionErr);
+          }
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -1123,7 +1201,23 @@ export default function SettingsPage() {
                           {formData.profile_photo_url && (
                             <button
                               type="button"
-                              onClick={() => setFormData(p => ({ ...p, profile_photo_url: '' }))}
+                              onClick={() => {
+                                setFormData(p => ({ ...p, profile_photo_url: '', photo_url: '' }));
+                                if (user?.uid) {
+                                  try {
+                                    const rawSession = localStorage.getItem('invocentric_session_user');
+                                    if (rawSession) {
+                                      const parsed = JSON.parse(rawSession);
+                                      parsed.photoURL = '';
+                                      localStorage.setItem('invocentric_session_user', JSON.stringify(parsed));
+                                    }
+                                    saveStoredUserProfile(user.uid, { profile_photo_url: '', photo_url: '' }, user.email);
+                                    window.dispatchEvent(new CustomEvent('invocentric_profile_updated', {
+                                      detail: { profile_photo_url: '', photo_url: '' }
+                                    }));
+                                  } catch (e) {}
+                                }
+                              }}
                               className="px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                             >
                               Remove
@@ -1142,7 +1236,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Grid of Profile Details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                       <div>
                         <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Full Name *</label>
                         <input 
@@ -1176,75 +1270,6 @@ export default function SettingsPage() {
                           placeholder="+91 98765 43210"
                           className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
                         />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Employee / Business ID</label>
-                        <input 
-                          type="text" 
-                          value={formData.employee_id || ''}
-                          onChange={(e) => setFormData(p => ({ ...p, employee_id: e.target.value }))}
-                          placeholder="EMP001"
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Designation</label>
-                        <input 
-                          type="text" 
-                          value={formData.designation || ''}
-                          onChange={(e) => setFormData(p => ({ ...p, designation: e.target.value }))}
-                          placeholder="e.g. Owner / Manager / Executive"
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Department</label>
-                        <input 
-                          type="text" 
-                          value={formData.department || ''}
-                          onChange={(e) => setFormData(p => ({ ...p, department: e.target.value }))}
-                          placeholder="e.g. Management / Sales / Billing"
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Date of Joining / Start</label>
-                        <input 
-                          type="date" 
-                          value={formData.date_of_joining || ''}
-                          onChange={(e) => setFormData(p => ({ ...p, date_of_joining: e.target.value }))}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow"
-                        />
-                      </div>
-
-                      <div className="flex flex-col justify-center">
-                        <label className="text-xs font-bold text-slate-700 mb-1.5 block uppercase tracking-wider">Status</label>
-                        <div className="flex items-center gap-3 pt-2">
-                          <button
-                            type="button"
-                            onClick={() => setFormData(p => ({ ...p, is_active: p.is_active === false ? true : false }))}
-                            className={cn(
-                              "relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                              formData.is_active !== false ? "bg-[#166534]" : "bg-slate-300"
-                            )}
-                            role="switch"
-                            aria-checked={formData.is_active !== false}
-                          >
-                            <span 
-                              className={cn(
-                                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out",
-                                formData.is_active !== false ? "translate-x-6" : "translate-x-0"
-                              )}
-                            />
-                          </button>
-                          <span className="text-xs font-bold text-slate-700">
-                            {formData.is_active !== false ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
                       </div>
                     </div>
                   </section>
@@ -2583,20 +2608,155 @@ export default function SettingsPage() {
                 <h3 className="text-xs font-black uppercase tracking-wider">Need Help?</h3>
               </div>
               <p className="text-xs text-slate-600 font-medium leading-relaxed mb-4">
-                For any issues, assistance or custom requirements, contact our support team anytime.
+                For any issues, assistance or custom requirements, contact our dedicated support team anytime.
               </p>
-              <a 
-                href="mailto:support@invocentric.com" 
-                className="text-xs font-bold text-[#166534] hover:text-green-800 flex items-center gap-1.5 transition-colors"
+              <button 
+                type="button"
+                onClick={() => setShowSupportModal(true)}
+                className="w-full py-2.5 px-4 bg-white hover:bg-emerald-50 border border-emerald-200 text-xs font-bold text-[#166534] rounded-xl flex items-center justify-between transition-all shadow-2xs hover:shadow-xs active:scale-98 cursor-pointer"
               >
-                <span>Contact Support</span>
+                <span className="flex items-center gap-2">
+                  <MessageCircle size={15} className="text-emerald-700" />
+                  <span>Contact Support Desk</span>
+                </span>
                 <ChevronRight size={14} />
-              </a>
+              </button>
             </div>
 
           </div>
         </div>
       </div>
+
+      {/* Interactive Contact Support Modal */}
+      {showSupportModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 print:hidden animate-fadeIn">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setShowSupportModal(false)} 
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" 
+          />
+
+          {/* Modal Container */}
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col z-10 animate-scaleUp">
+            {/* Header */}
+            <div className="px-6 py-5 bg-gradient-to-r from-[#166534] to-emerald-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-emerald-200">
+                  <HelpCircle size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Contact InvoCentric Support</h3>
+                  <p className="text-xs text-emerald-200 font-medium">Quick help via WhatsApp, Phone or Ticket</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSupportModal(false)}
+                className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+              {/* Support Channels Row */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* 1. WhatsApp Chat */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenWhatsAppSupport()}
+                  className="p-3.5 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 transition-all cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                    <MessageCircle size={18} />
+                  </div>
+                  <span className="text-xs font-black text-emerald-950">Chat on WhatsApp</span>
+                  <span className="text-[10px] font-semibold text-emerald-700">+91 98241 94869</span>
+                </button>
+
+                {/* 2. Direct Call Helpline */}
+                <a
+                  href="tel:+919824194869"
+                  className="p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center gap-1.5 transition-all cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                    <Phone size={18} />
+                  </div>
+                  <span className="text-xs font-black text-slate-900">Direct Helpline</span>
+                  <span className="text-[10px] font-semibold text-slate-500">Call +91 98241 94869</span>
+                </a>
+              </div>
+
+              {/* Email Support Banner */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                    <Mail size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Official Support Email</p>
+                    <p className="text-xs font-bold text-slate-800 truncate">support@invocentric.in</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopySupportEmail}
+                  className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+                >
+                  {copiedEmail ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                  <span>{copiedEmail ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+
+              {/* In-App Direct Message Form */}
+              <form onSubmit={handleSupportFormSubmit} className="space-y-3 pt-1 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-800 uppercase tracking-wider">Send Support Ticket / Query</label>
+                  <span className="text-[10px] font-medium text-slate-400">Instant forwarding</span>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Subject or Query title (e.g. Invoice print issue, GST query)..."
+                  value={supportSubject}
+                  onChange={(e) => setSupportSubject(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition-colors"
+                />
+
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Describe your issue, feedback or custom requirement..."
+                  value={supportMessage}
+                  onChange={(e) => setSupportMessage(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition-colors resize-none"
+                />
+
+                <button
+                  type="submit"
+                  disabled={supportSubmitting || !supportMessage.trim()}
+                  className="w-full py-3 bg-[#166534] hover:bg-green-800 disabled:opacity-50 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  {supportSuccess ? (
+                    <>
+                      <CheckCircle2 size={16} className="text-emerald-300" />
+                      <span>Ticket Submitted &amp; Opened in WhatsApp!</span>
+                    </>
+                  ) : supportSubmitting ? (
+                    <span>Submitting...</span>
+                  ) : (
+                    <>
+                      <Send size={15} />
+                      <span>Submit Query &amp; Connect with Support</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

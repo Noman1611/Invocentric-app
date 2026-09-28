@@ -1098,7 +1098,46 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
       });
     }
     const aiInstance = getAI();
-    const prompt = "Extract complete invoice information from this purchase invoice or supplier bill image. Extract header fields (invoiceNo, invoiceDate, supplierBillNo, dueDate, supplierName, supplierGst, supplierPhone, supplierAddress), item table rows (description, hsn, barcode, batchNo, serialNo, quantity, rate, gstPercent, amount), and totals (subTotal, discount, taxableAmount, cgst, sgst, roundOff, totalAmount). Ensure the output is valid JSON.";
+    const prompt = `You are an expert AI document and invoice parser specializing in Indian GST invoices, cash receipts, and supplier purchase bills.
+Carefully examine the entire invoice/bill image or document and extract ALL information accurately with 100% precision:
+
+1. Supplier / Vendor Details (The entity ISSUING the bill):
+   - supplierName: Name of the vendor, seller, wholesaler, or shop issuing the bill.
+   - supplierGst: GSTIN of the supplier (15-character alphanumeric GST number, e.g. 27AAAAA0000A1Z5).
+   - supplierPhone: Phone/mobile number of the supplier.
+   - supplierAddress: Address of the supplier.
+   - customerName: Buyer / recipient name if mentioned.
+   - invoiceNo: Invoice number, bill number, or cash memo number.
+   - supplierBillNo: Bill number if specified separately.
+   - invoiceDate: Date of the bill (formatted as YYYY-MM-DD).
+   - dueDate: Payment due date if mentioned (YYYY-MM-DD).
+   - currency: Currency code (e.g. INR).
+
+2. Line Items (CRITICAL: Extract EVERY SINGLE item row from the table without skipping or combining any items! If there are 10 items, return all 10 items):
+   - description: Complete product / item name and description (clean, readable title).
+   - hsn: HSN or SAC code (numeric code, e.g. 8471, 1001).
+   - barcode: Barcode or SKU if present.
+   - batchNo: Batch number or lot number if present.
+   - serialNo: Serial number(s) if present.
+   - quantity: Number of units purchased (numeric value, e.g. 1, 5, 10.5).
+   - unit: Unit of measurement (e.g., pcs, kg, box, nos, set, mtr, ltr, pkts). Default to 'pcs' if not specified.
+   - rate: Unit price / rate per item before tax or as listed on the line item.
+   - price: Same as rate (unit price).
+   - discount: Discount on this item if any.
+   - gstPercent: GST tax percentage applicable to this item (e.g. 0, 5, 12, 18, 28).
+   - amount: Total line item amount (quantity * rate or final line total).
+
+3. Totals & Tax Summary:
+   - subTotal: Subtotal or gross amount before taxes.
+   - discount: Total discount amount if any.
+   - taxableAmount: Net taxable value.
+   - cgst: Central GST amount.
+   - sgst: State GST amount.
+   - igst: Integrated GST amount.
+   - roundOff: Round off amount (+/-).
+   - totalAmount: Grand total / Net payable amount of the invoice.
+
+Make sure EVERY item present in the bill is included in the items list, and all amounts, quantities, and rates match the bill exactly. Output must be strictly valid JSON according to the schema.`;
     const response = await generateContentWithRetry(aiInstance, {
       model: "gemini-3.6-flash",
       contents: [{
@@ -1128,6 +1167,7 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
             taxableAmount: { type: import_genai.Type.NUMBER },
             cgst: { type: import_genai.Type.NUMBER },
             sgst: { type: import_genai.Type.NUMBER },
+            igst: { type: import_genai.Type.NUMBER },
             roundOff: { type: import_genai.Type.NUMBER },
             totalAmount: { type: import_genai.Type.NUMBER },
             items: {
@@ -1141,8 +1181,10 @@ app.post("/api/extract-invoice", checkAuth, async (req, res) => {
                   batchNo: { type: import_genai.Type.STRING },
                   serialNo: { type: import_genai.Type.STRING },
                   quantity: { type: import_genai.Type.NUMBER },
+                  unit: { type: import_genai.Type.STRING },
                   rate: { type: import_genai.Type.NUMBER },
                   price: { type: import_genai.Type.NUMBER },
+                  discount: { type: import_genai.Type.NUMBER },
                   gstPercent: { type: import_genai.Type.NUMBER },
                   amount: { type: import_genai.Type.NUMBER }
                 },
@@ -1998,7 +2040,34 @@ app.post("/api/subscription/claim-free-pro", checkAuth, async (req, res) => {
       },
       body: JSON.stringify(receiptPayload)
     }).catch((err) => console.error("Failed to save claim receipt to Firestore REST:", err));
-    const fsUserUpdateUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${userId}?updateMask.fieldPaths=plan&updateMask.fieldPaths=plan_tier&updateMask.fieldPaths=plan_status&updateMask.fieldPaths=billing_cycle&updateMask.fieldPaths=plan_renews_at&updateMask.fieldPaths=free_trial_claimed&updateMask.fieldPaths=free_trial_claimed_at&updateMask.fieldPaths=subscription_status&updateMask.fieldPaths=subscription_pending&key=${apiKey}`;
+    const fsSubReqUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/subscription_requests?key=${apiKey}`;
+    const subReqPayload = {
+      fields: {
+        receipt_number: { stringValue: receiptNo },
+        user_id: { stringValue: userId },
+        user_email: { stringValue: userEmail },
+        user_name: { stringValue: userName },
+        amount: { doubleValue: 0 },
+        billing_cycle: { stringValue: "monthly" },
+        payment_method: { stringValue: "free_trial_claim" },
+        type: { stringValue: "claim" },
+        status: { stringValue: "approved" },
+        upi_id_ref: { stringValue: receiptNo },
+        created_at: { stringValue: now.toISOString() },
+        approved_at: { stringValue: now.toISOString() },
+        plan_renews_at: { stringValue: renewsAtISO },
+        notes: { stringValue: "Claimed 1-Month Free Pro Promotional Offer" }
+      }
+    };
+    fetch(fsSubReqUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${idToken}`
+      },
+      body: JSON.stringify(subReqPayload)
+    }).catch((err) => console.error("Failed to save claim to subscription_requests in Firestore REST:", err));
+    const fsUserUpdateUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${userId}?updateMask.fieldPaths=plan&updateMask.fieldPaths=plan_tier&updateMask.fieldPaths=plan_status&updateMask.fieldPaths=billing_cycle&updateMask.fieldPaths=plan_renews_at&updateMask.fieldPaths=free_trial_claimed&updateMask.fieldPaths=free_trial_claimed_at&updateMask.fieldPaths=subscription_status&updateMask.fieldPaths=subscription_pending&updateMask.fieldPaths=subscription_type&updateMask.fieldPaths=claim_receipt_no&key=${apiKey}`;
     const userUpdatePayload = {
       fields: {
         plan: { stringValue: "pro" },
@@ -2009,6 +2078,8 @@ app.post("/api/subscription/claim-free-pro", checkAuth, async (req, res) => {
         free_trial_claimed: { booleanValue: true },
         free_trial_claimed_at: { stringValue: now.toISOString() },
         subscription_status: { stringValue: "active" },
+        subscription_type: { stringValue: "claim" },
+        claim_receipt_no: { stringValue: receiptNo },
         subscription_pending: { booleanValue: false }
       }
     };

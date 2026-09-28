@@ -41,7 +41,9 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
-  Settings
+  Settings,
+  Gift,
+  CreditCard
 } from 'lucide-react';
 import { db, auth, OperationType, handleFirestoreError } from '../lib/firebase';
 import { dbService } from '../services/dbService';
@@ -97,6 +99,12 @@ interface UserItem {
   invoiceCount: number;
   photo_url?: string;
   plan?: string;
+  free_trial_claimed?: boolean;
+  free_trial_claimed_at?: string;
+  claim_receipt_no?: string;
+  billing_cycle?: string;
+  subscription_type?: 'claim' | 'paid' | 'none';
+  plan_renews_at?: string;
 }
 
 interface ActivityItem {
@@ -143,6 +151,8 @@ export default function AdminPage() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Active' | 'Inactive' | 'Pending'>('all');
+  const [planFilter, setPlanFilter] = useState<'all' | 'paid_pro' | 'claimed_pro' | 'free'>('all');
+  const [auditFilter, setAuditFilter] = useState<'all' | 'paid' | 'claimed'>('all');
   
   // Email logs & Auto-sync reminder states
   const [testEmail, setTestEmail] = useState('');
@@ -431,6 +441,9 @@ export default function AdminPage() {
       const dateRaw = u.last_active_at || u.last_login_at || u.updated_at || u.created_at;
       const lastActiveDate = parseDateSafe(dateRaw);
       const invoiceCount = getUserInvoiceCount(u.id, u.email, dbInvoices);
+      const isClaimed = Boolean(u.free_trial_claimed || u.freeTrialClaimed || u.subscription_type === 'claim');
+      const isPro = (u.plan === 'pro' || u.plan_tier === 'pro' || u.subscription_status === 'active');
+      const subType: 'claim' | 'paid' | 'none' = isClaimed ? 'claim' : (isPro ? 'paid' : 'none');
 
       return {
         id: u.id,
@@ -442,7 +455,13 @@ export default function AdminPage() {
         lastActiveDate,
         invoiceCount,
         photo_url: u.photo_url || u.photoURL,
-        plan: u.plan || 'free'
+        plan: isPro ? 'pro' : (u.plan || 'free'),
+        free_trial_claimed: isClaimed,
+        free_trial_claimed_at: u.free_trial_claimed_at || u.freeTrialClaimedAt,
+        claim_receipt_no: u.claim_receipt_no || u.receipt_number || u.upi_id_ref,
+        billing_cycle: u.billing_cycle || u.billingCycle || 'monthly',
+        subscription_type: subType,
+        plan_renews_at: u.plan_renews_at || u.planRenewsAt
       };
     }).sort((a, b) => b.lastActiveDate.getTime() - a.lastActiveDate.getTime());
   }, [dbUsers, dbInvoices]);
@@ -553,13 +572,81 @@ export default function AdminPage() {
       const searchMatch = 
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.business.toLowerCase().includes(searchTerm.toLowerCase());
+        u.business.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (u.claim_receipt_no && u.claim_receipt_no.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const statusMatch = statusFilter === 'all' || u.status === statusFilter;
 
-      return searchMatch && statusMatch;
+      let planMatch = true;
+      if (planFilter === 'paid_pro') {
+        planMatch = u.plan === 'pro' && !u.free_trial_claimed;
+      } else if (planFilter === 'claimed_pro') {
+        planMatch = Boolean(u.free_trial_claimed);
+      } else if (planFilter === 'free') {
+        planMatch = u.plan !== 'pro' && !u.free_trial_claimed;
+      }
+
+      return searchMatch && statusMatch && planMatch;
     });
-  }, [mergedUsers, searchTerm, statusFilter]);
+  }, [mergedUsers, searchTerm, statusFilter, planFilter]);
+
+  // Combined audit trail of all Pro subscriptions: UPI paid purchases + Free trial claims
+  const processedSubscriptions = useMemo(() => {
+    // 1. Load from subscription_requests
+    const fromRequests = subscriptionRequests.filter(r => r.status !== 'pending').map(r => ({
+      id: r.id,
+      user_id: r.user_id || r.uid,
+      user_email: r.user_email || r.email || 'N/A',
+      user_name: r.user_name || r.displayName || 'User',
+      upi_id_ref: r.upi_id_ref || r.upiId || 'N/A',
+      receipt_number: r.receipt_number || r.claim_receipt_no || r.upi_id_ref,
+      billing_cycle: r.billing_cycle || 'monthly',
+      amount: Number(r.amount) || 0,
+      status: r.status || 'approved',
+      type: (r.type === 'claim' || r.payment_method === 'free_trial_claim' || Number(r.amount) === 0) ? 'claim' : 'paid',
+      notes: r.notes || (Number(r.amount) === 0 ? '1-Month Free Pro Claim' : 'SBI UPI Subscription'),
+      dateProcessed: r.approved_at || r.created_at || new Date().toISOString()
+    }));
+
+    // 2. Also incorporate any users from dbUsers who claimed free trial or have Pro so historical claims are never lost
+    const knownEmails = new Set(fromRequests.map(r => (r.user_email || '').toLowerCase()));
+    const knownUserIds = new Set(fromRequests.map(r => r.user_id).filter(Boolean));
+
+    const fromUsers: any[] = [];
+    dbUsers.forEach(u => {
+      const email = (u.email || '').toLowerCase();
+      if (!knownEmails.has(email) && !knownUserIds.has(u.id)) {
+        if (u.free_trial_claimed || u.subscription_type === 'claim') {
+          fromUsers.push({
+            id: `claim_${u.id}`,
+            user_id: u.id,
+            user_email: u.email || 'N/A',
+            user_name: u.display_name || u.owner_name || 'User',
+            upi_id_ref: u.claim_receipt_no || u.receipt_number || 'OFFER-1M-FREE-PRO',
+            receipt_number: u.claim_receipt_no || u.receipt_number || 'OFFER-1M-FREE-PRO',
+            billing_cycle: u.billing_cycle || 'monthly',
+            amount: 0,
+            status: 'approved',
+            type: 'claim',
+            notes: '1-Month Free Pro Promotional Offer Claimed',
+            dateProcessed: u.free_trial_claimed_at || u.updated_at || u.created_at || new Date().toISOString()
+          });
+        }
+      }
+    });
+
+    return [...fromRequests, ...fromUsers].sort((a, b) => new Date(b.dateProcessed).getTime() - new Date(a.dateProcessed).getTime());
+  }, [subscriptionRequests, dbUsers]);
+
+  const filteredAuditSubscriptions = useMemo(() => {
+    if (auditFilter === 'paid') {
+      return processedSubscriptions.filter(s => s.type === 'paid');
+    }
+    if (auditFilter === 'claimed') {
+      return processedSubscriptions.filter(s => s.type === 'claim');
+    }
+    return processedSubscriptions;
+  }, [processedSubscriptions, auditFilter]);
 
   // Date range handlers
   const handleSelectDateRange = (rangeText: string) => {
@@ -2133,20 +2220,61 @@ export default function AdminPage() {
 
       {/* PROCESSED LOGS / AUDIT TRAIL */}
       <div className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-8 space-y-6 shadow-sm">
-        <div>
-          <h2 className="text-lg font-black text-slate-900">Subscription Upgrades Audit Trail</h2>
-          <p className="text-xs text-slate-400 font-bold mt-0.5">
-            Historical log of all approved and processed platform subscriptions.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+          <div>
+            <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+              <span>Subscription Upgrades & Claims Audit Trail</span>
+              <span className="text-xs font-black bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200">
+                {processedSubscriptions.length} Records
+              </span>
+            </h2>
+            <p className="text-xs text-slate-400 font-bold mt-0.5">
+              Real-time audit log of all Paid Pro subscriptions and Claimed 1-Month Free Pro promotional trials.
+            </p>
+          </div>
+
+          {/* Audit Filter Tabs */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl w-fit">
+            <button
+              onClick={() => setAuditFilter('all')}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all border-none cursor-pointer",
+                auditFilter === 'all' ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800 bg-transparent"
+              )}
+            >
+              All ({processedSubscriptions.length})
+            </button>
+            <button
+              onClick={() => setAuditFilter('paid')}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all border-none cursor-pointer flex items-center gap-1",
+                auditFilter === 'paid' ? "bg-white text-emerald-800 shadow-xs" : "text-slate-500 hover:text-slate-800 bg-transparent"
+              )}
+            >
+              <CreditCard size={12} className="text-emerald-600" />
+              <span>Paid Pro ({processedSubscriptions.filter(s => s.type === 'paid').length})</span>
+            </button>
+            <button
+              onClick={() => setAuditFilter('claimed')}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all border-none cursor-pointer flex items-center gap-1",
+                auditFilter === 'claimed' ? "bg-white text-purple-800 shadow-xs" : "text-slate-500 hover:text-slate-800 bg-transparent"
+              )}
+            >
+              <Gift size={12} className="text-purple-600" />
+              <span>Claimed ({processedSubscriptions.filter(s => s.type === 'claim').length})</span>
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[600px]">
+          <table className="w-full text-left border-collapse min-w-[750px]">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-wider">
                 <th className="pb-3 font-black">User Email</th>
-                <th className="pb-3 font-black">Ref No / UTR</th>
-                <th className="pb-3 font-black">Billing Cycle</th>
+                <th className="pb-3 font-black">Pro Type</th>
+                <th className="pb-3 font-black">Ref / Receipt</th>
+                <th className="pb-3 font-black">Plan Cycle</th>
                 <th className="pb-3 font-black">Amount</th>
                 <th className="pb-3 font-black">Status</th>
                 <th className="pb-3 text-right font-black">Date Processed</th>
@@ -2154,38 +2282,82 @@ export default function AdminPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {subscriptionRequests.filter(r => r.status !== 'pending').length === 0 ? (
+              {filteredAuditSubscriptions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 italic text-xs">
-                    No historical subscription requests processed yet.
+                  <td colSpan={8} className="py-12 text-center text-slate-400 italic text-xs">
+                    No matching subscription or promotional claim records found.
                   </td>
                 </tr>
               ) : (
-                subscriptionRequests.filter(r => r.status !== 'pending').map((req) => (
+                filteredAuditSubscriptions.map((req: any) => (
                   <tr key={req.id} className="text-slate-700 hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3.5 text-xs font-extrabold text-slate-900">{req.user_email || req.email || 'N/A'}</td>
-                    <td className="py-3.5 text-xs font-mono font-bold text-slate-500">{req.upi_id_ref || req.upiId || 'N/A'}</td>
-                    <td className="py-3.5 text-xs uppercase tracking-wider font-bold">{req.billing_cycle || 'monthly'}</td>
-                    <td className="py-3.5 text-xs font-extrabold text-[#166534]">₹{req.amount}</td>
+                    <td className="py-3.5 text-xs font-extrabold text-slate-900">
+                      <div>{req.user_email || 'N/A'}</div>
+                      {req.user_name && req.user_name !== 'User' && (
+                        <div className="text-[10px] text-slate-400 font-semibold">{req.user_name}</div>
+                      )}
+                    </td>
+                    <td className="py-3.5 text-xs">
+                      {req.type === 'claim' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-1 shadow-2xs">
+                          <Gift size={10} className="text-purple-600" />
+                          <span>Claimed (Free Trial)</span>
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1 shadow-2xs">
+                          <CreditCard size={10} className="text-emerald-700" />
+                          <span>Paid Pro (Payment)</span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 text-xs">
+                      {req.type === 'claim' ? (
+                        <div className="font-mono font-bold text-purple-700 bg-purple-50/80 border border-purple-200/80 px-2 py-0.5 rounded-lg w-fit text-[11px] flex items-center gap-1">
+                          <span>{req.receipt_number || req.upi_id_ref || 'PRO-CLAIM'}</span>
+                        </div>
+                      ) : (
+                        <div className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-lg w-fit text-[11px] flex items-center gap-1">
+                          <span>{req.upi_id_ref || 'N/A'}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3.5 text-xs uppercase tracking-wider font-bold text-slate-600">
+                      {req.type === 'claim' ? '30 Days (Promo)' : (req.billing_cycle || 'monthly')}
+                    </td>
+                    <td className="py-3.5 text-xs">
+                      {req.type === 'claim' ? (
+                        <span className="font-black text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-100 text-xs">
+                          ₹0 (100% Promo)
+                        </span>
+                      ) : (
+                        <span className="font-black text-[#166534] text-xs">
+                          ₹{req.amount}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3.5 text-xs">
                       <span className={cn(
                         "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border",
-                        req.status === 'approved' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                        req.status === 'approved' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-600 border-rose-100"
                       )}>
                         {req.status}
                       </span>
                     </td>
                     <td className="py-3.5 text-right text-xs text-slate-400 font-bold">
-                      {req.approved_at ? format(parseDateSafe(req.approved_at), 'dd MMM yyyy, hh:mm a') : format(parseDateSafe(req.created_at), 'dd MMM yyyy')}
+                      {format(parseDateSafe(req.dateProcessed), 'dd MMM yyyy, hh:mm a')}
                     </td>
                     <td className="py-3.5 text-right text-xs">
-                      <button
-                        onClick={() => handleDeleteSubscriptionRequest(req.id)}
-                        className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors border-none bg-transparent cursor-pointer inline-flex items-center"
-                        title="Remove entry"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {req.id && !req.id.startsWith('claim_') ? (
+                        <button
+                          onClick={() => handleDeleteSubscriptionRequest(req.id)}
+                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors border-none bg-transparent cursor-pointer inline-flex items-center"
+                          title="Remove entry"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-slate-300 font-semibold italic">Sync</span>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -2238,6 +2410,20 @@ export default function AdminPage() {
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                     <option value="Pending">Pending</option>
+                  </select>
+                </div>
+
+                {/* Filter Plan */}
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={planFilter}
+                    onChange={(e) => setPlanFilter(e.target.value as any)}
+                    className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none cursor-pointer"
+                  >
+                    <option value="all">All Plans</option>
+                    <option value="paid_pro">Paid Pro (Payment)</option>
+                    <option value="claimed_pro">Claimed Pro (Free Trial)</option>
+                    <option value="free">Free Plan</option>
                   </select>
                 </div>
 
@@ -2366,19 +2552,39 @@ export default function AdminPage() {
                           {/* 4. Plan Tier */}
                           <div className="flex items-center justify-between text-[10px]">
                             <span className="font-bold text-slate-400 uppercase tracking-tight text-[9px]">Plan</span>
-                            <button
-                              onClick={() => handleTogglePlan(u.id, u.plan || 'free')}
-                              className={cn(
-                                "px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all select-none border border-transparent cursor-pointer flex items-center gap-0.5",
-                                (u.plan === 'pro') 
-                                  ? "bg-amber-100 text-amber-800 hover:bg-amber-200/50" 
-                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/50"
-                              )}
-                              title="Click to toggle plan tier!"
-                            >
-                              {(u.plan === 'pro') ? <Sparkles size={9} className="text-amber-600 animate-pulse" /> : null}
-                              <span>{(u.plan || 'free').toUpperCase()}</span>
-                            </button>
+                            {u.free_trial_claimed || u.subscription_type === 'claim' ? (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
+                                  <Gift size={10} className="text-purple-600" />
+                                  <span>Claimed (Free Trial)</span>
+                                </span>
+                                {u.claim_receipt_no && (
+                                  <span className="text-[8px] font-mono text-purple-700 font-bold" title={u.claim_receipt_no}>
+                                    Rcpt: {u.claim_receipt_no}
+                                  </span>
+                                )}
+                              </div>
+                            ) : u.plan === 'pro' ? (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <button
+                                  onClick={() => handleTogglePlan(u.id, u.plan || 'free')}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 hover:bg-emerald-200/60 border border-emerald-200 transition-all cursor-pointer"
+                                  title="Click to toggle plan tier!"
+                                >
+                                  <CreditCard size={10} className="text-emerald-700" />
+                                  <span>Paid Pro ({u.billing_cycle === 'yearly' ? 'Yearly' : 'Monthly'})</span>
+                                </button>
+                                <span className="text-[8px] font-bold text-emerald-600">Payment Verified</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleTogglePlan(u.id, u.plan || 'free')}
+                                className="px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all select-none border border-transparent cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200/50"
+                                title="Click to toggle plan tier!"
+                              >
+                                <span>FREE PLAN</span>
+                              </button>
+                            )}
                           </div>
 
                         </div>
@@ -2489,19 +2695,39 @@ export default function AdminPage() {
 
                           {/* Plan Tier */}
                           <td className="py-3.5">
-                            <button
-                              onClick={() => handleTogglePlan(u.id, u.plan || 'free')}
-                              className={cn(
-                                "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all select-none border border-transparent cursor-pointer flex items-center gap-1",
-                                (u.plan === 'pro') 
-                                  ? "bg-amber-100 text-amber-800 hover:bg-amber-200/50" 
-                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/50"
-                              )}
-                              title="Click to toggle plan tier!"
-                            >
-                              {(u.plan === 'pro') ? <Sparkles size={10} className="text-amber-600 animate-pulse" /> : null}
-                              <span>{(u.plan || 'free').toUpperCase()}</span>
-                            </button>
+                            {u.free_trial_claimed || u.subscription_type === 'claim' ? (
+                              <div className="inline-flex flex-col items-start gap-0.5">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
+                                  <Gift size={10} className="text-purple-600" />
+                                  <span>Claimed (Free Trial)</span>
+                                </span>
+                                {u.claim_receipt_no && (
+                                  <span className="text-[8px] font-mono text-purple-700 font-bold ml-1">
+                                    {u.claim_receipt_no}
+                                  </span>
+                                )}
+                              </div>
+                            ) : u.plan === 'pro' ? (
+                              <div className="inline-flex flex-col items-start gap-0.5">
+                                <button
+                                  onClick={() => handleTogglePlan(u.id, u.plan || 'free')}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 hover:bg-emerald-200/60 border border-emerald-200 transition-all cursor-pointer"
+                                  title="Click to toggle plan tier!"
+                                >
+                                  <CreditCard size={10} className="text-emerald-700" />
+                                  <span>Paid Pro ({u.billing_cycle === 'yearly' ? 'Yearly' : 'Monthly'})</span>
+                                </button>
+                                <span className="text-[8px] font-bold text-emerald-600 ml-1">Payment Verified</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleTogglePlan(u.id, u.plan || 'free')}
+                                className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all select-none border border-transparent cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200/50"
+                                title="Click to toggle plan tier!"
+                              >
+                                <span>FREE PLAN</span>
+                              </button>
+                            )}
                           </td>
 
                           {/* Last Active Timestamp */}
