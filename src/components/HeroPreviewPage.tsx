@@ -216,6 +216,8 @@ export function HeroPreviewPage() {
             <div className="relative mx-auto flex justify-center">
               <motion.img
                 src="https://i.ibb.co/VpJQZX12/006.png"
+                loading="eager"
+                decoding="async"
                 alt="InvoCentric Desktop Dashboard"
                 className="w-full max-w-[880px] h-auto drop-shadow-[0_24px_50px_rgba(0,0,0,0.18)] filter contrast-[1.02]"
                 animate={{ y: [0, -8, 0] }}
@@ -230,7 +232,9 @@ export function HeroPreviewPage() {
               >
                 <div className="relative group">
                   <img
-                    src="https://i.ibb.co/7t1gXWmY/Gemini-Generated-Image-lal0enlal0enlal0-1-Copy.png"
+                    src="https://i.ibb.co/99TZVmNX/010.png"
+                    loading="lazy"
+                    decoding="async"
                     alt="InvoCentric Mobile App & Scanner"
                     className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.40)] rounded-3xl"
                   />
@@ -250,6 +254,8 @@ export function HeroPreviewPage() {
                 <div className="relative group">
                   <img
                     src="https://i.ibb.co/b5fwF9hp/Gemini-Generated-Image-p0k2ebp0k2ebp0k2-1.png"
+                    loading="lazy"
+                    decoding="async"
                     alt="Thermal Receipt Printer"
                     className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.36)] rounded-2xl"
                   />
@@ -306,7 +312,9 @@ export function HeroPreviewPage() {
               <div className="relative shrink-0">
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-emerald-500/20 shadow-xl bg-slate-100">
                   <img
-                    src="https://i.ibb.co/99TZVmNX/010.png"
+                    src="https://i.ibb.co/7t1gXWmY/Gemini-Generated-Image-lal0enlal0enlal0-1-Copy.png"
+                    loading="lazy"
+                    decoding="async"
                     alt="Dedicated Merchant Support Specialist"
                     className="w-full h-full object-cover"
                   />
