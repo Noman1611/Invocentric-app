@@ -509,6 +509,55 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ---- Landing Page: CSS Aurora Animations (replaces framer-motion, GPU-accelerated) ---- */
+@keyframes aurora-orb-1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(40px,-35px) scale(1.15); }
+  66%      { transform: translate(-30px,25px) scale(0.95); }
+}
+@keyframes aurora-orb-2 {
+  0%,100% { transform: translate(0,0) scale(0.95); }
+  33%      { transform: translate(-35px,30px) scale(1.1); }
+  66%      { transform: translate(25px,-25px) scale(0.9); }
+}
+@keyframes aurora-orb-3 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(30px,-30px) scale(1.12); }
+  66%      { transform: translate(-30px,30px) scale(0.96); }
+}
+@keyframes device-float-up {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+@keyframes device-float-down {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(8px); }
+}
+@keyframes fade-up {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.aurora-orb-1 {
+  animation: aurora-orb-1 18s ease-in-out infinite;
+  will-change: transform;
+}
+.aurora-orb-2 {
+  animation: aurora-orb-2 22s ease-in-out infinite 1.5s;
+  will-change: transform;
+}
+.aurora-orb-3 {
+  animation: aurora-orb-3 20s ease-in-out infinite 3s;
+  will-change: transform;
+}
+.device-float-up   { animation: device-float-up   6s ease-in-out infinite 1s; }
+.device-float-down { animation: device-float-down 6.5s ease-in-out infinite 1.5s; }
+.hero-fade-up-1 { animation: fade-up 0.5s ease-out both; }
+.hero-fade-up-2 { animation: fade-up 0.6s ease-out 0.1s both; }
+.hero-fade-up-3 { animation: fade-up 0.6s ease-out 0.2s both; }
+.hero-fade-up-4 { animation: fade-up 0.6s ease-out 0.3s both; }
+.hero-fade-up-5 { animation: fade-up 0.5s ease-out 0.4s both; }
+
 
 
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Logo } from '../components/Logo';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
@@ -12,15 +12,53 @@ import {
   Monitor, HardDrive, Headset
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { BLOG_POSTS } from './BlogPage';
 import { cn, openInBrowser } from '../lib/utils';
-import { UniversalAccountingExportDashboard } from '../components/UniversalAccountingExportDashboard';
 import {
   DEFAULT_WINDOWS_DOWNLOAD_URL,
   DEFAULT_ANDROID_DOWNLOAD_URL,
   resolveWorkingDownloadUrls,
   triggerDirectDownload
 } from '../config/downloadLinks';
+
+// Lazy-loaded heavy components (loaded only when needed)
+const UniversalAccountingExportDashboard = lazy(() =>
+  import('../components/UniversalAccountingExportDashboard').then(m => ({ default: m.UniversalAccountingExportDashboard }))
+);
+
+// Minimal blog data inline (avoids pulling 87KB BlogPage bundle)
+const BLOG_POSTS = [
+  {
+    slug: 'gst-billing-guide',
+    title: 'Complete GST Billing Guide for Indian Businesses',
+    subtitle: 'Learn how to create GST-compliant invoices, manage HSN codes, and file returns without a CA.',
+    category: 'GST & Tax',
+    readTime: '8 min read',
+    date: 'Aug 2026',
+    coverImage: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&q=80',
+    excerpt: 'Learn how to create GST-compliant invoices and manage taxes effectively.',
+  },
+  {
+    slug: 'inventory-management-tips',
+    title: 'Top 10 Inventory Management Tips for Retailers',
+    subtitle: 'Optimize your stock management, reduce dead stock, and increase profitability with smart practices.',
+    category: 'Business Tips',
+    readTime: '6 min read',
+    date: 'Jul 2026',
+    coverImage: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80',
+    excerpt: 'Optimize your stock management and reduce losses with smart inventory practices.',
+  },
+  {
+    slug: 'whatsapp-billing-automation',
+    title: 'Automate WhatsApp Billing for Your Business',
+    subtitle: 'Send instant GST invoices via WhatsApp in one tap and improve customer satisfaction dramatically.',
+    category: 'Automation',
+    readTime: '5 min read',
+    date: 'Jun 2026',
+    coverImage: 'https://images.unsplash.com/photo-1611746872915-64382b5c76da?w=800&q=80',
+    excerpt: 'Send instant GST invoices via WhatsApp and improve customer satisfaction.',
+  },
+];
+
 
 const FADE_UP_ANIMATION_VARIANTS = {
   hidden: { opacity: 0, y: 30 },
@@ -106,9 +144,7 @@ export default function LandingPage() {
   const [tallyFile, setTallyFile] = useState<string | null>(null);
   const [tallyProgress, setTallyProgress] = useState(-1);
 
-  const { scrollYProgress } = useScroll();
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, 300]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  // Removed useScroll/useTransform parallax for perf — uses CSS animation instead
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -344,79 +380,33 @@ export default function LandingPage() {
             {/* Subtle Apple Dot Grid in Hero */}
             <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:28px_28px]" />
 
-            {/* Apple Fluid Animated Aurora Orbs */}
-            <motion.div
-              animate={{
-                x: [0, 40, -30, 0],
-                y: [0, -35, 25, 0],
-                scale: [1, 1.15, 0.95, 1],
-              }}
-              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] md:w-[850px] h-[350px] md:h-[500px] rounded-full bg-gradient-to-br from-emerald-200/40 via-teal-100/35 to-transparent blur-[120px]"
-            />
-
-            <motion.div
-              animate={{
-                x: [0, -35, 25, 0],
-                y: [0, 30, -25, 0],
-                scale: [0.95, 1.1, 0.9, 0.95],
-              }}
-              transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-              className="absolute top-1/4 -left-20 w-[450px] h-[450px] rounded-full bg-gradient-to-tr from-sky-200/30 via-indigo-100/20 to-transparent blur-[110px]"
-            />
-
-            <motion.div
-              animate={{
-                x: [0, 30, -30, 0],
-                y: [0, -30, 30, 0],
-                scale: [1, 1.12, 0.96, 1],
-              }}
-              transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-              className="absolute top-1/3 -right-20 w-[450px] h-[450px] rounded-full bg-gradient-to-bl from-teal-200/30 via-emerald-100/30 to-transparent blur-[110px]"
-            />
+            {/* Apple Fluid Animated Aurora Orbs — GPU CSS animations, no JS overhead */}
+            <div className="aurora-orb-1 absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] md:w-[850px] h-[350px] md:h-[500px] rounded-full bg-gradient-to-br from-emerald-200/40 via-teal-100/35 to-transparent blur-[120px]" />
+            <div className="aurora-orb-2 absolute top-1/4 -left-20 w-[450px] h-[450px] rounded-full bg-gradient-to-tr from-sky-200/30 via-indigo-100/20 to-transparent blur-[110px]" />
+            <div className="aurora-orb-3 absolute top-1/3 -right-20 w-[450px] h-[450px] rounded-full bg-gradient-to-bl from-teal-200/30 via-emerald-100/30 to-transparent blur-[110px]" />
           </div>
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             
-            {/* Top Pill Offer */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-6 hover:bg-slate-200/70 transition-colors"
-            >
+            {/* Top Pill Offer — CSS fade-up, no framer-motion */}
+            <div className="hero-fade-up-1 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-6 hover:bg-slate-200/70 transition-colors">
               <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
               <span>New: Full Offline PC App &amp; Mobile Camera Barcode Scanner</span>
               <ChevronRight size={13} className="text-slate-400" />
-            </motion.div>
+            </div>
 
             {/* Large Bold Apple Typography */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.03em] text-slate-950 max-w-4xl mx-auto leading-[1.08] mb-6"
-            >
+            <h1 className="hero-fade-up-2 text-4xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.03em] text-slate-950 max-w-4xl mx-auto leading-[1.08] mb-6">
               Billing and accounting, <br className="hidden sm:inline" />
               <span className="text-slate-500 font-normal">re-imagined for speed.</span>
-            </motion.h1>
+            </h1>
 
             {/* Clean Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed mb-9"
-            >
+            <p className="hero-fade-up-3 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto font-normal leading-relaxed mb-9">
               InvoCentric delivers instant GST invoicing, barcode scanning, thermal printing, and automatic WhatsApp bills. Beautifully engineered for Indian businesses.
-            </motion.p>
+            </p>
 
             {/* Primary Action Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-5"
-            >
+            <div className="hero-fade-up-4 flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-5">
               <button
                 onClick={() => navigate('/login')}
                 className="w-full sm:w-auto px-8 py-3.5 bg-slate-950 hover:bg-slate-800 text-white font-medium text-base rounded-full shadow-lg shadow-slate-950/15 transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
@@ -434,17 +424,12 @@ export default function LandingPage() {
                 <Monitor size={17} className="text-slate-600" />
                 <span>Download for Windows</span>
               </a>
-            </motion.div>
+            </div>
 
             {/* Micro Trust Details */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="text-xs text-slate-400 font-medium mb-14"
-            >
+            <p className="hero-fade-up-5 text-xs text-slate-400 font-medium mb-14">
               Zero setup fee &bull; Works 100% offline without internet &bull; Windows (.exe) &amp; Android (.apk) available
-            </motion.p>
+            </p>
 
             {/* -------------------- 3D MULTI-DEVICE LUXURY SHOWCASE -------------------- */}
             <motion.div
@@ -458,15 +443,23 @@ export default function LandingPage() {
 
               {/* Central Laptop Showcase */}
               <div className="relative mx-auto flex justify-center">
-                <motion.img
-                  src="https://i.ibb.co/VpJQZX12/006.png"
-                  loading="eager"
-                  decoding="async"
-                  alt="InvoCentric Desktop Dashboard"
-                  className="w-full max-w-[880px] h-auto drop-shadow-[0_24px_50px_rgba(0,0,0,0.18)] filter contrast-[1.02]"
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-                />
+                <a
+                  href="/download"
+                  title="Download InvoCentric Desktop GST Billing Software for Windows PC"
+                  aria-label="Download InvoCentric Desktop GST Billing Software for Windows PC"
+                  className="block cursor-pointer focus:outline-none"
+                >
+                  <motion.img
+                    src="https://i.ibb.co/VpJQZX12/006.png"
+                    loading="eager"
+                    decoding="async"
+                    alt="InvoCentric Desktop GST Billing and Accounting Software for PC"
+                    title="InvoCentric Desktop GST Billing Software"
+                    className="w-full max-w-[880px] h-auto drop-shadow-[0_24px_50px_rgba(0,0,0,0.18)] filter contrast-[1.02]"
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </a>
 
                 {/* Floating Left: 3D Smartphone Mobile Scanner Mockup - Bold, Extra Large & Prominently Overlapping Laptop Screen */}
                 <motion.div
@@ -475,14 +468,22 @@ export default function LandingPage() {
                   transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
                 >
                   <div className="relative group">
+                    <a
+                      href="/download"
+                      title="Download InvoCentric Mobile Barcode Scanner POS App for Android"
+                      aria-label="Download InvoCentric Mobile Barcode Scanner POS App for Android"
+                      className="block cursor-pointer focus:outline-none"
+                    >
                       <img
-                      src="https://i.ibb.co/99TZVmNX/010.png"
-                      loading="lazy"
-                      decoding="async"
-                      alt="InvoCentric Mobile App & Scanner"
-                      className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.40)] rounded-3xl"
-                    />
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-3.5 py-1 rounded-full text-[10px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md">
+                        src="https://i.ibb.co/99TZVmNX/010.png"
+                        loading="lazy"
+                        decoding="async"
+                        alt="InvoCentric Android Mobile POS App with Barcode Scanner"
+                        title="InvoCentric Mobile POS & Barcode Scanner"
+                        className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.40)] rounded-3xl group-hover:scale-[1.02] transition-transform duration-300"
+                      />
+                    </a>
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-3.5 py-1 rounded-full text-[10px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md pointer-events-none">
                       <Smartphone size={14} className="text-emerald-600" />
                       <span>Mobile POS &amp; Barcode Scanner</span>
                     </div>
@@ -496,14 +497,22 @@ export default function LandingPage() {
                   transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
                 >
                   <div className="relative group">
-                    <img
-                      src="https://i.ibb.co/b5fwF9hp/Gemini-Generated-Image-p0k2ebp0k2ebp0k2-1.png"
-                      loading="lazy"
-                      decoding="async"
-                      alt="Thermal Receipt Printer"
-                      className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.36)] rounded-2xl"
-                    />
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-3.5 py-1 rounded-full text-[10px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md">
+                    <a
+                      href="/pricing"
+                      title="InvoCentric Compatible Thermal POS Receipt Printers 2-inch and 3-inch"
+                      aria-label="InvoCentric Compatible Thermal POS Receipt Printers 2-inch and 3-inch"
+                      className="block cursor-pointer focus:outline-none"
+                    >
+                      <img
+                        src="https://i.ibb.co/b5fwF9hp/Gemini-Generated-Image-p0k2ebp0k2ebp0k2-1.png"
+                        loading="lazy"
+                        decoding="async"
+                        alt="InvoCentric Compatible High-Speed Thermal POS Receipt Printer"
+                        title="Thermal Receipt Printer for Invoicing"
+                        className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.36)] rounded-2xl group-hover:scale-[1.02] transition-transform duration-300"
+                      />
+                    </a>
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-3.5 py-1 rounded-full text-[10px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md pointer-events-none">
                       <Printer size={14} className="text-teal-600" />
                       <span>2" / 3" High-Speed Thermal</span>
                     </div>
@@ -554,15 +563,25 @@ export default function LandingPage() {
               
               <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
                 <div className="relative shrink-0">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-emerald-500/20 shadow-xl bg-slate-950">
-                    <img
-                      src="https://i.ibb.co/7t1gXWmY/Gemini-Generated-Image-lal0enlal0enlal0-1-Copy.png"
-                      loading="lazy"
-                      decoding="async"
-                      alt="Dedicated Merchant Support Specialist"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  <a
+                    href="https://wa.me/919999999999?text=Hello%20InvoCentric%2C%20I%20need%20assistance%20with%20GST%20Billing%20Software"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Connect with InvoCentric Dedicated Merchant Support & GST Accounting Concierge"
+                    aria-label="Connect with InvoCentric Dedicated Merchant Support & GST Accounting Concierge"
+                    className="block cursor-pointer focus:outline-none"
+                  >
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl overflow-hidden ring-4 ring-emerald-500/20 hover:ring-emerald-500/50 shadow-xl bg-slate-950 transition-all">
+                      <img
+                        src="https://i.ibb.co/7t1gXWmY/Gemini-Generated-Image-lal0enlal0enlal0-1-Copy.png"
+                        loading="lazy"
+                        decoding="async"
+                        alt="Dedicated Merchant Support Specialist & GST Accounting Advisor"
+                        title="InvoCentric Dedicated Support Specialist"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </a>
                   <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 rounded-full ring-2 ring-white" title="Support Online" />
                 </div>
 
@@ -1898,11 +1917,13 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <UniversalAccountingExportDashboard
-              useDemoData={true}
-              title="Live Accounting Data Preview (Interactive Demo)"
-              subtitle="Test the double-entry transformation engine directly from your browser"
-            />
+            <Suspense fallback={<div className="h-64 flex items-center justify-center text-slate-400 text-sm">Loading interactive demo...</div>}>
+              <UniversalAccountingExportDashboard
+                useDemoData={true}
+                title="Live Accounting Data Preview (Interactive Demo)"
+                subtitle="Test the double-entry transformation engine directly from your browser"
+              />
+            </Suspense>
           </div>
         </section>
 
