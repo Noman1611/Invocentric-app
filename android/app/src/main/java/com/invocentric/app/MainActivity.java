@@ -4,6 +4,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.app.ActivityCompat;
+import android.content.pm.PackageManager;
+import android.Manifest;
 import android.os.ParcelFileDescriptor;
 import android.os.CancellationSignal;
 import android.print.PrintAttributes;
@@ -77,13 +86,66 @@ public class MainActivity extends BridgeActivity {
             e.printStackTrace();
         }
 
+        // Request Notification permission on Android 13+ (API 33+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            try {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
+                }
+            } catch (Exception ignored) {}
+        }
+        createNotificationChannel();
+
         handleDeepLink(getIntent());
+        handleUpdateIntent(getIntent());
+    }
+
+    public static final String UPDATE_CHANNEL_ID = "invocentric_updates_channel";
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                NotificationChannel channel = new NotificationChannel(
+                    UPDATE_CHANNEL_ID,
+                    "InvoCentric Updates",
+                    NotificationManager.IMPORTANCE_HIGH
+                );
+                channel.setDescription("System notifications when a new InvoCentric update is available.");
+                channel.enableVibration(true);
+                NotificationManager notificationManager = getSystemService(NotificationManager.class);
+                if (notificationManager != null) {
+                    notificationManager.createNotificationChannel(channel);
+                }
+            } catch (Exception ignored) {}
+        }
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         handleDeepLink(intent);
+        handleUpdateIntent(intent);
+    }
+
+    private void handleUpdateIntent(Intent intent) {
+        if (intent != null && "open_updater".equals(intent.getStringExtra("action"))) {
+            final String downloadUrl = intent.getStringExtra("download_url");
+            final String versionName = intent.getStringExtra("version_name");
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        WebView webView = getBridge().getWebView();
+                        if (webView != null) {
+                            webView.evaluateJavascript(
+                                "(function(){ window.dispatchEvent(new CustomEvent('app-update-notification-clicked', { detail: { downloadUrl: '" + (downloadUrl != null ? downloadUrl : "") + "', versionName: '" + (versionName != null ? versionName : "") + "' } })); })();",
+                                null
+                            );
+                        }
+                    } catch (Exception ignored) {}
+                }
+            });
+        }
     }
 
     private void handleDeepLink(Intent intent) {
@@ -370,6 +432,48 @@ public class MainActivity extends BridgeActivity {
                 @Override
                 public void run() {
                     finishAffinity();
+                }
+            });
+        }
+
+        @android.webkit.JavascriptInterface
+        public void showUpdateNotification(final String title, final String message, final String downloadUrl, final String versionName) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        createNotificationChannel();
+
+                        Intent notifyIntent = new Intent(MainActivity.this, MainActivity.class);
+                        notifyIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        notifyIntent.putExtra("action", "open_updater");
+                        notifyIntent.putExtra("download_url", downloadUrl);
+                        notifyIntent.putExtra("version_name", versionName);
+
+                        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            flags |= PendingIntent.FLAG_IMMUTABLE;
+                        }
+
+                        PendingIntent pendingIntent = PendingIntent.getActivity(MainActivity.this, 2001, notifyIntent, flags);
+
+                        NotificationCompat.Builder builder = new NotificationCompat.Builder(MainActivity.this, UPDATE_CHANNEL_ID)
+                            .setSmallIcon(R.mipmap.ic_launcher)
+                            .setContentTitle(title != null && !title.trim().isEmpty() ? title : "InvoCentric Update Available! 🚀")
+                            .setContentText(message != null && !message.trim().isEmpty() ? message : "New version v" + (versionName != null ? versionName : "") + " is ready. Tap to update.")
+                            .setStyle(new NotificationCompat.BigTextStyle().bigText(message != null && !message.trim().isEmpty() ? message : "A new version of InvoCentric is available. Tap to update."))
+                            .setPriority(NotificationCompat.PRIORITY_HIGH)
+                            .setDefaults(NotificationCompat.DEFAULT_ALL)
+                            .setAutoCancel(true)
+                            .setContentIntent(pendingIntent);
+
+                        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                        if (notificationManager != null) {
+                            notificationManager.notify(1001, builder.build());
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             });
         }

@@ -65,10 +65,24 @@ class UniversalUpdateService {
 
   constructor() {
     this.initPlatformHandlers();
-    // Check for updates on startup (2.5s after launch)
+    // Check for updates on startup (2.5s after launch), every 30m, and on app resume
     if (typeof window !== 'undefined') {
       setTimeout(() => this.checkForUpdates(false), 2500);
-      this.checkIntervalTimer = setInterval(() => this.checkForUpdates(false), 60 * 60 * 1000);
+      this.checkIntervalTimer = setInterval(() => this.checkForUpdates(false), 30 * 60 * 1000);
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.checkForUpdates(false);
+        }
+      });
+
+      // Handle user tapping the phone's native Android system notification
+      window.addEventListener('app-update-notification-clicked', (event: any) => {
+        console.log('[UpdateService] Phone notification tapped:', event?.detail);
+        this.checkForUpdates(true).then(() => {
+          this.applyUpdate();
+        });
+      });
     }
   }
 
@@ -235,6 +249,33 @@ class UniversalUpdateService {
       }
 
       const hasUpdate = isNewerVersion(latestVer, this.state.currentVersion);
+
+      // Trigger phone status bar notification on Android devices
+      if (hasUpdate) {
+        if ((window as any).AndroidAppUpdater?.showUpdateNotification) {
+          try {
+            (window as any).AndroidAppUpdater.showUpdateNotification(
+              `InvoCentric Update Available (v${latestVer}) 🚀`,
+              `Naya update v${latestVer} taiyar hai! Tap karke turant install karein.`,
+              apkAsset,
+              latestVer
+            );
+          } catch (notifErr) {
+            console.warn('[UpdateService] Native Android notification failed:', notifErr);
+          }
+        } else if (typeof window !== 'undefined' && 'Notification' in window) {
+          try {
+            if (Notification.permission === 'granted') {
+              new Notification(`InvoCentric Update Available (v${latestVer}) 🚀`, {
+                body: `New version v${latestVer} is ready. Click to update.`,
+                icon: '/icons/icon-192x192.png'
+              });
+            } else if (Notification.permission === 'default') {
+              Notification.requestPermission().catch(() => {});
+            }
+          } catch (_) {}
+        }
+      }
 
       this.updateState({
         latestVersion: latestVer,
