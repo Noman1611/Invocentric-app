@@ -2012,12 +2012,13 @@ export default function InvoiceViewPage() {
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="w-full flex-1 px-1 sm:px-4 mt-2 sm:mt-4 flex flex-col items-center print:max-w-none print:w-full print:p-0 print:m-0 print:flex print:items-center print:justify-center overflow-x-auto custom-scrollbar"
+        className="w-full flex-1 mt-1 sm:mt-2 overflow-x-auto overflow-y-auto custom-scrollbar print:max-w-none print:w-full print:p-0 print:m-0"
         style={{
-          touchAction: 'pan-x pan-y pinch-zoom'
+          touchAction: 'pan-x pan-y pinch-zoom',
+          WebkitOverflowScrolling: 'touch'
         }}
       >
-        <div className="w-full overflow-x-auto custom-scrollbar flex justify-center py-2">
+        <div className="min-w-full w-max flex flex-col items-center justify-start px-2 sm:px-4 py-2 sm:py-3">
           <div 
             ref={invoiceRef} 
             id="invoice-document-canvas" 
@@ -2025,7 +2026,6 @@ export default function InvoiceViewPage() {
             style={{
               width: !isPOS ? `calc(${sheetWidth} * ${activeScale})` : 'auto',
               minWidth: !isPOS ? `calc(${sheetWidth} * ${activeScale})` : 'auto',
-              margin: '0 auto'
             }}
           >
             {isPOS ? (
@@ -2064,7 +2064,7 @@ export default function InvoiceViewPage() {
                           padding: useLetterhead ? 0 : sheetPadding,
                           background: '#fff',
                           boxSizing: 'border-box',
-                          margin: '0 auto 16px auto',
+                          margin: '0 0 16px 0',
                           pageBreakAfter: idx < totalPages - 1 ? 'always' : 'auto',
                           breakAfter: idx < totalPages - 1 ? 'page' : 'auto',
                           position: 'relative',
