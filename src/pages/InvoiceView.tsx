@@ -380,8 +380,11 @@ export default function InvoiceViewPage() {
     'template_03': 'template_03', // Template 03 - Supplier B2B (Dedicated Serial / Batch Column)
     'template_04': 'template_04', // Template 04 - POS Receipt Thermal (3-Inch / 80mm Roll)
     'template_05': 'template_05', // Template 05 - POS Receipt Thermal (2-Inch / 58mm Roll)
+    'template_06': 'template_06', // Template 06 - Nexus Enterprise Pro (A4)
 
     // Legacy fallback mapping
+    'nexus_pro': 'template_06',
+    'enterprise_blue': 'template_06',
     'template_16': 'template_03',
     'template_14': 'template_04',
     'template_15': 'template_05',
@@ -726,7 +729,7 @@ export default function InvoiceViewPage() {
     email: sellerInfo?.email || '', 
     pan: sellerInfo?.pan || '',
     drug_license: sellerInfo?.drug_license_no || invoice?.seller_drug_license || '',
-    logo: sellerInfo?.logo_url || '', 
+    logo: sellerInfo?.logo_url || invoice?.seller_logo || invoice?.seller_info?.logo_url || (sellerInfo as any)?.logo || '', 
     bank: sellerInfo?.bank_name || '',
     branch: sellerInfo?.bank_branch || '', 
     acc: sellerInfo?.account_number || '',
@@ -1329,7 +1332,20 @@ export default function InvoiceViewPage() {
           letterSpacing: '0.4px'
         }}
       >
-        {/* 1. Header: Business Information (Centered Bold) */}
+        {/* 1. Header: Business Logo & Information (Centered Bold) */}
+        {co.logo && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '8px' }}>
+            <img 
+              src={co.logo} 
+              alt={co.name || "Business Logo"} 
+              style={{ 
+                maxHeight: is3Inch ? '55px' : '42px', 
+                maxWidth: is3Inch ? '140px' : '100px', 
+                objectFit: 'contain' 
+              }} 
+            />
+          </div>
+        )}
         <div style={{ fontWeight: 700, fontSize: headerTitleSize, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '3px' }}>
           {co.name || 'TAX INVOICE'}
         </div>
@@ -1831,9 +1847,395 @@ export default function InvoiceViewPage() {
     );
   };
 
+  // Template 06 (Nexus Enterprise Pro A4 / Blue Grid Template matching PDF)
+  const renderTemplate06Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
+    const brandBlue = '#1a3673';
+    const grossSubtotal = itemRows.reduce((a: number, i: any) => a + (i.qty * i.price), 0);
+    const itemDiscounts = itemRows.reduce((a: number, i: any) => a + (i.qty * i.price * (i.disc / 100)), 0);
+    const globalDiscount = Number(invoice?.discount) || 0;
+    const totalDiscount = itemDiscounts + globalDiscount;
+    const shippingCharge = Number(invoice?.shipping_charges) || 0;
+
+    return (
+      <div 
+        className="flex flex-col h-full" 
+        style={{ 
+          height: '100%', 
+          minHeight: 0, 
+          boxSizing: 'border-box', 
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif', 
+          fontSize: isA5 ? 8.5 : 10.5, 
+          color: '#0f172a',
+          background: '#ffffff'
+        }}
+      >
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Top Header Section */}
+          {pageIdx === 0 ? (
+            (!useLetterhead || !letterheadHideHeader) ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: isA5 ? 8 : 14 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: isA5 ? 8 : 14 }}>
+                  {co.logo && (
+                    <img 
+                      src={co.logo} 
+                      alt="Logo" 
+                      style={{ 
+                        maxHeight: isA5 ? 42 : 62, 
+                        maxWidth: isA5 ? 110 : 160, 
+                        objectFit: 'contain' 
+                      }} 
+                    />
+                  )}
+                  <div>
+                    <h1 style={{ fontSize: isA5 ? 15 : 21, fontWeight: 900, color: brandBlue, textTransform: 'uppercase', lineHeight: 1.15, margin: '0 0 4px 0', letterSpacing: '-0.3px' }}>
+                      {co.name || 'COMPANY NAME'}
+                    </h1>
+                    {showSec.seller_address && (
+                      <div style={{ fontSize: isA5 ? 8 : 10, color: '#334155', lineHeight: 1.35 }}>
+                        <div dangerouslySetInnerHTML={{ __html: co.address.replace(/\n/g, '<br>') }} />
+                        {co.email && <div>{co.email}</div>}
+                        {co.phone && <div>{co.phone}</div>}
+                        {co.gstin && <div style={{ fontWeight: 600 }}>GSTIN: {co.gstin}{co.drug_license ? ` | DL: ${co.drug_license}` : ''}</div>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: isA5 ? 20 : 28, fontWeight: 900, color: brandBlue, textTransform: 'uppercase', letterSpacing: '0.8px', lineHeight: 1 }}>
+                    {docTitle || 'INVOICE'}
+                  </div>
+                  {docSubtitle && (
+                    <div style={{ fontSize: isA5 ? 8 : 9.5, color: '#64748b', fontWeight: 600, marginTop: 4 }}>
+                      {docSubtitle}
+                    </div>
+                  )}
+                  <div style={{ fontSize: isA5 ? 8 : 9.5, color: '#64748b', marginTop: 2 }}>
+                    Page {pageIdx + 1} of {totalPages}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: isA5 ? 2 : 6 }}>
+                <div style={{ fontSize: 8.5, color: '#666' }}>Page {pageIdx + 1} of {totalPages}</div>
+              </div>
+            )
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: 6, marginBottom: 10 }}>
+              <div style={{ fontSize: isA5 ? 10 : 13, fontWeight: 800, color: brandBlue, textTransform: 'uppercase' }}>
+                {co.name} — {docTitle || 'INVOICE'}
+              </div>
+              <div style={{ fontSize: isA5 ? 8 : 9.5, color: '#64748b' }}>
+                Page {pageIdx + 1} of {totalPages}
+              </div>
+            </div>
+          )}
+
+          {/* 3-Column Party & Invoice Details Grid (Page 1) */}
+          {pageIdx === 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1.15fr 1fr', gap: isA5 ? 12 : 20, marginBottom: isA5 ? 12 : 18, fontSize: isA5 ? 8 : 10 }}>
+              {/* Column 1: BILL TO */}
+              <div>
+                <div style={{ fontSize: isA5 ? 9.5 : 11.5, fontWeight: 800, color: brandBlue, letterSpacing: '0.5px', marginBottom: 4, textTransform: 'uppercase' }}>
+                  BILL TO:
+                </div>
+                <div style={{ fontWeight: 700, fontSize: isA5 ? 9 : 11, color: '#0f172a', marginBottom: 1 }}>
+                  {bu.name || 'CASH CUSTOMER'}
+                </div>
+                {((customer as any)?.contact_person || (customer as any)?.attn) && (
+                  <div style={{ color: '#475569', fontSize: isA5 ? 8 : 9.5, marginBottom: 1 }}>
+                    Attn: {(customer as any)?.contact_person || (customer as any)?.attn}
+                  </div>
+                )}
+                <div style={{ color: '#334155', lineHeight: 1.35, whiteSpace: 'pre-line' }}>
+                  {bu.address}
+                </div>
+                {showSec.customer_gstin && bu.gstin && (
+                  <div style={{ color: '#334155', marginTop: 2 }}>
+                    <b>Tax ID:</b> {bu.gstin}
+                  </div>
+                )}
+                {bu.phone && (
+                  <div style={{ color: '#334155', marginTop: 1 }}>
+                    <b>Phone:</b> {bu.phone}
+                  </div>
+                )}
+                {bu.drug_license && (
+                  <div style={{ color: '#334155', marginTop: 1 }}>
+                    <b>DL:</b> {bu.drug_license}
+                  </div>
+                )}
+              </div>
+
+              {/* Column 2: SHIP TO */}
+              <div>
+                <div style={{ fontSize: isA5 ? 9.5 : 11.5, fontWeight: 800, color: brandBlue, letterSpacing: '0.5px', marginBottom: 4, textTransform: 'uppercase' }}>
+                  SHIP TO:
+                </div>
+                <div style={{ fontWeight: 700, fontSize: isA5 ? 9 : 11, color: '#0f172a', marginBottom: 1 }}>
+                  {invoice?.shipping_name || (customer as any)?.shipping_name || bu.name || 'CASH CUSTOMER'}
+                </div>
+                {invoice?.shipping_attn && (
+                  <div style={{ color: '#475569', fontSize: isA5 ? 8 : 9.5, marginBottom: 1 }}>
+                    {invoice.shipping_attn}
+                  </div>
+                )}
+                <div style={{ color: '#334155', lineHeight: 1.35, whiteSpace: 'pre-line' }}>
+                  {invoice?.shipping_address || (customer as any)?.shipping_address || bu.address}
+                </div>
+                {sh.state && (
+                  <div style={{ color: '#334155', marginTop: 2 }}>
+                    <b>State:</b> {sh.state}
+                  </div>
+                )}
+              </div>
+
+              {/* Column 3: INVOICE DETAILS */}
+              <div>
+                <div style={{ fontSize: isA5 ? 9.5 : 11.5, fontWeight: 800, color: brandBlue, letterSpacing: '0.5px', marginBottom: 4, textTransform: 'uppercase' }}>
+                  {isQuotation ? 'QUOTATION DETAILS:' : 'INVOICE DETAILS:'}
+                </div>
+                <div style={{ lineHeight: 1.5, color: '#334155' }}>
+                  <div><span style={{ fontWeight: 700 }}>{isQuotation ? 'Quote No:' : 'Invoice No:'}</span> <span style={{ fontWeight: 800, color: '#0f172a' }}>{im.invoiceNo}</span></div>
+                  <div><span style={{ fontWeight: 700 }}>Date:</span> {im.invoiceDate}</div>
+                  {im.dueDate && <div><span style={{ fontWeight: 700 }}>Due Date:</span> {im.dueDate}</div>}
+                  {im.poNo && <div><span style={{ fontWeight: 700 }}>PO Number:</span> {im.poNo}</div>}
+                  {im.eWayNo && <div><span style={{ fontWeight: 700 }}>E-Way No:</span> {im.eWayNo}</div>}
+                  <div><span style={{ fontWeight: 700 }}>Payment Terms:</span> {invoice?.payment_terms || (invoice?.payment_mode ? invoice.payment_mode.toUpperCase() : 'Net 30')}</div>
+                  {invoice.is_recurring && (
+                    <div><span style={{ fontWeight: 700 }}>Recurring:</span> {(invoice.recurring_frequency || 'monthly').toUpperCase()}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Clean 10-Column Data Table matching PDF */}
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: isA5 ? 8 : 10 }}>
+              <thead>
+                <tr style={{ background: brandBlue, color: '#ffffff' }}>
+                  <th style={{ padding: isA5 ? '5px 2px' : '7px 4px', textAlign: 'center', width: 30, fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    S/N
+                  </th>
+                  <th style={{ padding: isA5 ? '5px 3px' : '7px 5px', textAlign: 'center', width: 92, fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    Product Code / SKU
+                  </th>
+                  <th style={{ padding: isA5 ? '5px 3px' : '7px 5px', textAlign: 'center', width: 70, fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    HSN/SAC
+                  </th>
+                  <th style={{ padding: isA5 ? '5px 4px' : '7px 8px', textAlign: 'left', fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    Item Description &amp; Serial / Batch Number
+                  </th>
+                  <th style={{ padding: isA5 ? '5px 2px' : '7px 4px', textAlign: 'center', width: 36, fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    Qty
+                  </th>
+                  <th style={{ padding: isA5 ? '5px 2px' : '7px 4px', textAlign: 'center', width: 36, fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    Unit
+                  </th>
+                  <th style={{ padding: isA5 ? '5px 3px' : '7px 6px', textAlign: 'right', width: 74, fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    Rate
+                  </th>
+                  <th style={{ padding: isA5 ? '5px 2px' : '7px 4px', textAlign: 'center', width: 44, fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    Tax %
+                  </th>
+                  <th style={{ padding: isA5 ? '5px 3px' : '7px 6px', textAlign: 'right', width: 68, fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    Disc
+                  </th>
+                  <th style={{ padding: isA5 ? '5px 4px' : '7px 8px', textAlign: 'right', width: 86, fontSize: isA5 ? 8 : 9.5, fontWeight: 700, border: `1px solid ${brandBlue}` }}>
+                    Amount
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageItems.map((it: any, idx: number) => {
+                  const isEven = idx % 2 === 1;
+                  const rowBg = isEven ? '#f8fafc' : '#ffffff';
+                  const itemDiscVal = it.qty * it.price * (it.disc / 100);
+                  const skuCode = it.item_code || it.sku || it.barcode || (it.id ? String(it.id).slice(0, 8).toUpperCase() : '---');
+
+                  return (
+                    <tr key={idx} style={{ background: rowBg, borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ textAlign: 'center', padding: isA5 ? '4px 2px' : '7px 4px', verticalAlign: 'top', color: '#1e293b' }}>
+                        {startIndex + idx + 1}
+                      </td>
+                      <td style={{ textAlign: 'center', padding: isA5 ? '4px 3px' : '7px 5px', verticalAlign: 'top', color: '#1e293b', wordBreak: 'break-word', fontSize: isA5 ? 7.5 : 9 }}>
+                        {skuCode}
+                      </td>
+                      <td style={{ textAlign: 'center', padding: isA5 ? '4px 3px' : '7px 5px', verticalAlign: 'top', color: '#1e293b', fontSize: isA5 ? 7.5 : 9 }}>
+                        {it.hsn || '---'}
+                      </td>
+                      <td style={{ padding: isA5 ? '4px 4px' : '7px 8px', verticalAlign: 'top' }}>
+                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{it.name}</div>
+                        {it.subLines && it.subLines.length > 0 && (
+                          <div style={{ fontSize: isA5 ? 7.5 : 9, color: '#64748b', marginTop: 2, lineHeight: 1.35 }}>
+                            {it.subLines.join(' | ')}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'center', padding: isA5 ? '4px 2px' : '7px 4px', verticalAlign: 'top', color: '#0f172a' }}>
+                        {Number.isInteger(it.qty) ? it.qty : it.qty.toFixed(2)}
+                      </td>
+                      <td style={{ textAlign: 'center', padding: isA5 ? '4px 2px' : '7px 4px', verticalAlign: 'top', color: '#475569' }}>
+                        {it.unit || 'Pcs'}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: isA5 ? '4px 3px' : '7px 6px', verticalAlign: 'top', color: '#0f172a' }}>
+                        {fc(it.price, cur)}
+                      </td>
+                      <td style={{ textAlign: 'center', padding: isA5 ? '4px 2px' : '7px 4px', verticalAlign: 'top', color: '#475569' }}>
+                        {it.gstPct ? `${it.gstPct}%` : '0%'}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: isA5 ? '4px 3px' : '7px 6px', verticalAlign: 'top', color: '#475569' }}>
+                        {fc(itemDiscVal, cur)}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: isA5 ? '4px 4px' : '7px 8px', verticalAlign: 'top', fontWeight: 600, color: '#0f172a' }}>
+                        {fc(it.total, cur)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Last Page Totals, Terms, and Signatory matching PDF */}
+          {isLastPage ? (
+            <div style={{ marginTop: 'auto', paddingTop: 14 }}>
+              {/* Totals Summary Row (Right aligned) */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <div style={{ width: isA5 ? 230 : 280, fontSize: isA5 ? 8.5 : 10.5 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: '#334155' }}>
+                    <span style={{ fontWeight: 700 }}>Gross Subtotal:</span>
+                    <span style={{ fontWeight: 700 }}>{fc(grossSubtotal, cur)}</span>
+                  </div>
+                  {totalDiscount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: '#dc2626' }}>
+                      <span style={{ fontWeight: 700 }}>Total Discount:</span>
+                      <span style={{ fontWeight: 700 }}>-{fc(totalDiscount, cur)}</span>
+                    </div>
+                  )}
+                  {shippingCharge > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: '#334155' }}>
+                      <span style={{ fontWeight: 700 }}>Shipping Charges:</span>
+                      <span style={{ fontWeight: 700 }}>+{fc(shippingCharge, cur)}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', color: '#334155' }}>
+                    <span style={{ fontWeight: 700 }}>Estimated Tax:</span>
+                    <span style={{ fontWeight: 700 }}>+{fc(totalTax, cur)}</span>
+                  </div>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: '6px 0', 
+                    marginTop: 4, 
+                    borderTop: `1px solid ${brandBlue}`, 
+                    borderBottom: `2px solid ${brandBlue}`,
+                    fontSize: isA5 ? 11.5 : 14.5, 
+                    fontWeight: 900, 
+                    color: brandBlue 
+                  }}>
+                    <span>Grand Total:</span>
+                    <span>{fc(grandTotal, cur)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Grid: Terms & Declarations on Left, Signatory on Right */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 24 }}>
+                <div style={{ flex: 1 }}>
+                  {showSec.terms && (
+                    <div>
+                      <div style={{ fontSize: isA5 ? 9.5 : 11, fontWeight: 800, color: brandBlue, marginBottom: 4 }}>
+                        Terms &amp; Declarations:
+                      </div>
+                      <ol style={{ margin: 0, paddingLeft: 16, fontSize: isA5 ? 7.5 : 9, color: '#334155', lineHeight: 1.45 }}>
+                        {termsText.length > 0 ? (
+                          termsText.map((t: string, idx: number) => <li key={idx}>{t}</li>)
+                        ) : (
+                          <>
+                            <li>Goods once sold will not be taken back or exchanged unless defective.</li>
+                            <li>Payment is due within 30 days of the invoice date.</li>
+                            <li>Please reference invoice number {im.invoiceNo} on wire transfers.</li>
+                          </>
+                        )}
+                      </ol>
+                    </div>
+                  )}
+                  {showSec.declaration && (
+                    <div style={{ fontStyle: 'italic', fontSize: isA5 ? 7.5 : 9, color: '#475569', marginTop: 8 }}>
+                      Certified that the particulars given above are true and correct.
+                    </div>
+                  )}
+
+                  {/* Optional Bank Details if configured */}
+                  {showSec.bank_details && co.bank && (
+                    <div style={{ marginTop: 8, padding: '3px 6px', background: '#f8fafc', borderRadius: 4, border: '1px solid #e2e8f0', fontSize: isA5 ? 7.5 : 8.5, color: '#334155' }}>
+                      <span style={{ fontWeight: 700, color: brandBlue }}>Bank: </span>{co.bank} | 
+                      <span style={{ fontWeight: 700, color: brandBlue }}> A/C: </span>{co.acc} | 
+                      <span style={{ fontWeight: 700, color: brandBlue }}> IFSC: </span>{co.ifsc}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Signature Block & UPI */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: isA5 ? 180 : 220, textAlign: 'center' }}>
+                  {hasUpi && showSec.upi_qr && (
+                    <div style={{ marginBottom: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <div style={{ transform: isA5 ? 'scale(0.7)' : 'scale(0.85)', transformOrigin: 'bottom center' }}>
+                        {QRNode}
+                      </div>
+                      <span style={{ fontSize: 7.5, color: '#64748b', fontWeight: 600 }}>Scan &amp; Pay via UPI</span>
+                    </div>
+                  )}
+                  {showSec.signature && (
+                    <div style={{ width: '100%' }}>
+                      {co.sign ? (
+                        <img 
+                          src={co.sign} 
+                          alt="Signature" 
+                          style={{ height: isA5 ? 32 : 44, maxWidth: 140, objectFit: 'contain', margin: '0 auto 4px', display: 'block' }} 
+                        />
+                      ) : (
+                        <div style={{ height: isA5 ? 32 : 44 }} />
+                      )}
+                      <div style={{ borderTop: '1px solid #475569', width: '100%', marginBottom: 4 }} />
+                      <div style={{ fontWeight: 700, fontSize: isA5 ? 9 : 10.5, color: brandBlue }}>
+                        Authorized Signatory
+                      </div>
+                      <div style={{ fontSize: isA5 ? 7.5 : 8.5, color: '#64748b' }}>
+                        {co.name}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Social Strip if configured */}
+              {hasSocialQr && (
+                <div style={{ marginTop: 8 }}>
+                  {renderSocialStrip('#e2e8f0', '#f8fafc')}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'right', fontSize: 9.5, fontWeight: 700, padding: 4, color: brandBlue, marginTop: 'auto' }}>
+              Continued on Next Page →
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderPage = (pageItems: any[], pageIdx: number, isLastPage: boolean) => {
     const startIndex = getStartIndex(pageIdx);
     switch (tpl) {
+      case 'template_06':
+      case 'nexus_pro':
+      case 'enterprise_blue':
+        return renderTemplate06Page(pageItems, pageIdx, isLastPage, startIndex);
       case 'template_03':
       case 'template_16':
         return renderTemplate16Page(pageItems, pageIdx, isLastPage, startIndex);

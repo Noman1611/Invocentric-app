@@ -56,7 +56,7 @@ export function computeInvoiceTotal(formData) {
   const shipping = Number(formData.shipping_charges) || 0;
   const salesReturn = Number(formData.sales_return) || 0;
 
-  const rawFinalTotal = subtotal - globalDiscount + salesReturn + totalGst + shipping;
+  const rawFinalTotal = Math.max(0, subtotal - globalDiscount + salesReturn + totalGst + shipping);
   const finalTotal = isNaN(rawFinalTotal) ? 0 : Number(rawFinalTotal.toFixed(2));
   
   const advanceAmount = Number(formData.advance_amount) || 0;

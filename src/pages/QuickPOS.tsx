@@ -1401,7 +1401,7 @@ export default function QuickPOSPage() {
                   ) : (
                     <>
                       <Sparkles size={18} />
-                      <span>Generate &amp; Print Invoice</span>
+                      <span>Generate Bill &amp; Print Invoice</span>
                     </>
                   )}
                 </button>

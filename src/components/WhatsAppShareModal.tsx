@@ -18,7 +18,7 @@ interface WhatsAppShareModalProps {
 export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
   isOpen,
   onClose,
-  whatsAppUrl,
+  whatsAppUrl = 'https://wa.me/',
   whatsAppWebUrl,
   whatsAppAppUrl,
   documentTitle,
@@ -27,6 +27,12 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
   onDirectSharePdf,
 }) => {
   if (!isOpen) return null;
+
+  const handleCopyClipboard = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(whatsAppUrl || 'https://wa.me/');
+    }
+  };
 
   // Simple heuristic for checking if it is a desktop device
   const isDesktopDevice = typeof window !== 'undefined' && window.innerWidth > 1024;

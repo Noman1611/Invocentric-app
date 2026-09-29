@@ -1244,7 +1244,7 @@ export default function CreateInvoicePage() {
     const shipping = Number(formData.shipping_charges) || 0;
     const salesReturn = Number(formData.sales_return) || 0;
 
-    const finalTotal = subtotal - globalDiscount + salesReturn + totalGst + shipping;
+    const finalTotal = Math.max(0, subtotal - globalDiscount + salesReturn + totalGst + shipping);
     return isNaN(finalTotal) ? 0 : Number(finalTotal.toFixed(2));
   };
 
@@ -3125,6 +3125,7 @@ export default function CreateInvoicePage() {
                   <Palette size={14} className="text-emerald-600 shrink-0" />
                   <span className="truncate">
                     Template: {
+                      formData.invoice_template === 'template_06' ? 'InvoCentric Template 06 (Nexus Enterprise)' :
                       formData.invoice_template === 'template_02' ? 'InvoCentric Template 02 (Blue Line)' :
                       formData.invoice_template === 'template_03' ? 'InvoCentric Template 03 (B2B Serial)' :
                       formData.invoice_template === 'template_04' ? 'InvoCentric Template 04 (POS 3")' :
@@ -3151,6 +3152,7 @@ export default function CreateInvoicePage() {
                       <option value="template_01">InvoCentric Template 01 — Blue Bordered + IGST (A4)</option>
                       <option value="template_02">InvoCentric Template 02 — Blue Line Top + IGST (A4)</option>
                       <option value="template_03">InvoCentric Template 03 — Supplier B2B (Serial/Batch)</option>
+                      <option value="template_06">InvoCentric Template 06 — Nexus Enterprise Pro (A4)</option>
                       <option value="template_04">InvoCentric Template 04 — POS Thermal (3-Inch / 80mm)</option>
                       <option value="template_05">InvoCentric Template 05 — POS Thermal (2-Inch / 58mm)</option>
                     </select>

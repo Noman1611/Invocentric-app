@@ -339,7 +339,7 @@ export default function InvoicesPage() {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-bold text-slate-900 tabular-nums">
-                      {formatCurrency(invoice.amount, invoice.currency)}
+                      {formatCurrency(invoice.amount ?? (invoice as any).total_amount, invoice.currency)}
                     </div>
                     <span className={cn(
                       "inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",

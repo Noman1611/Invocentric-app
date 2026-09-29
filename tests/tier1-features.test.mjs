@@ -227,11 +227,24 @@ export function registerTier1Tests() {
       expect(invoiceCode).toContain('category');
     });
 
-    test('F5.5: InvoiceView preserves @media print formatting for A4/A5 and POS thermal receipts', () => {
+    test('F5.5: InvoiceView preserves @media print formatting, Template 06 Nexus Pro, and POS logo', () => {
       const css = readSourceFile('src/index.css');
       expect(css).toContain('@media print');
       expect(css).toContain('page: a4-page');
       expect(css).toContain('page: a5-page');
+
+      const invoiceView = readSourceFile('src/pages/InvoiceView.tsx');
+      expect(invoiceView).toContain('template_06');
+      expect(invoiceView).toContain('renderTemplate06Page');
+      expect(invoiceView).toContain('Item Description');
+      expect(invoiceView).toContain('Serial / Batch Number');
+      expect(invoiceView).toContain('co.logo');
+
+      const createInv = readSourceFile('src/pages/CreateInvoice.tsx');
+      expect(createInv).toContain('template_06');
+
+      const settings = readSourceFile('src/pages/Settings.tsx');
+      expect(settings).toContain('template_06');
     });
 
     test('F5.6: SerialNumberInput component supports touch-friendly badges and batch input', () => {

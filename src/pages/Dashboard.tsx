@@ -132,6 +132,7 @@ export default function DashboardPage() {
       }
     ];
   }, [invoices.length, customers.length, realTotalRevenue, realPendingAmount, appMode]);
+  const metrics = statsData;
 
   // Combined chart data (High fidelity monotone curve default, active user data if sales occur)
   const chartData = useMemo(() => {
@@ -164,6 +165,7 @@ export default function DashboardPage() {
       currency: inv.currency || 'INR'
     }));
   }, [invoices]);
+  const recentInvoices = displayedInvoices;
 
   // High fidelity Real Recent Activity List
   const recentActivities = useMemo(() => {

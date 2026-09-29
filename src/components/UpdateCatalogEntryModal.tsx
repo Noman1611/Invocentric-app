@@ -76,7 +76,7 @@ export default function UpdateCatalogEntryModal({
   initialData,
   onOpenScanner,
   scannedBarcode,
-  title = "Update Catalog Entry"
+  title = "Update Item / Catalog Entry"
 }: UpdateCatalogEntryModalProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { items } = useItems();

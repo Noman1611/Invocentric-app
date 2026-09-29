@@ -931,7 +931,7 @@ export default function SettingsPage() {
       label: 'Company', 
       mobileTitle: 'Company Settings',
       icon: Store, 
-      desc: 'Company information, operating mode & logo' 
+      desc: 'Business Profile, company information, operating mode & logo' 
     },
     { 
       id: 'tax', 
@@ -1807,6 +1807,7 @@ export default function SettingsPage() {
                           <option value="template_01">Template 01 — Modern Clean A4 (Tax Invoice)</option>
                           <option value="template_02">Template 02 — Corporate Bordered A4</option>
                           <option value="template_03">Template 03 — Wholesale & Pharma Detailed A4</option>
+                          <option value="template_06">Template 06 — Nexus Enterprise Pro (A4)</option>
                           <option value="template_04">Template 04 — POS Thermal 3-Inch (80mm)</option>
                           <option value="template_05">Template 05 — POS Thermal 2-Inch (58mm)</option>
                         </select>
