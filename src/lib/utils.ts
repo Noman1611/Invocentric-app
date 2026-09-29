@@ -61,12 +61,30 @@ export function getWhatsAppAppUrl(phone?: string, text: string = '') {
 export function openInBrowser(url: string) {
   if (!url || typeof url !== 'string') return;
 
-  if (typeof window !== 'undefined' && (window as any).electronAPI?.openExternalUrl) {
-    try {
-      (window as any).electronAPI.openExternalUrl(url);
-      return;
-    } catch (err) {
-      console.warn('[Browser Launcher] Error calling electronAPI.openExternalUrl:', err);
+  if (typeof window !== 'undefined') {
+    if ((window as any).AndroidAppUpdater?.openExternalUrl) {
+      try {
+        (window as any).AndroidAppUpdater.openExternalUrl(url);
+        return;
+      } catch (err) {
+        console.warn('[Android Launcher] Error calling AndroidAppUpdater.openExternalUrl:', err);
+      }
+    }
+    if ((window as any).AndroidFileManager?.openExternalUrl) {
+      try {
+        (window as any).AndroidFileManager.openExternalUrl(url);
+        return;
+      } catch (err) {
+        console.warn('[Android Launcher] Error calling AndroidFileManager.openExternalUrl:', err);
+      }
+    }
+    if ((window as any).electronAPI?.openExternalUrl) {
+      try {
+        (window as any).electronAPI.openExternalUrl(url);
+        return;
+      } catch (err) {
+        console.warn('[Browser Launcher] Error calling electronAPI.openExternalUrl:', err);
+      }
     }
   }
 

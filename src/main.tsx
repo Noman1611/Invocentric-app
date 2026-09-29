@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from 'react-error-boundary';
 import App from './App.tsx';
 import './index.css';
+import './utils/androidBridge';
 
 // --- Domain Redirection Fallback ---
 // Handled gracefully inside App.tsx via MigrationModal for cache cleaning and session logout.

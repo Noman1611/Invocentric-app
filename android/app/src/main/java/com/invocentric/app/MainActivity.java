@@ -4,6 +4,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
+import android.os.CancellationSignal;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintDocumentInfo;
+import android.print.PrintManager;
+import android.print.PageRange;
+import android.content.ContentValues;
+import android.content.ContentResolver;
+import android.provider.MediaStore;
+import android.util.Base64;
+import android.widget.Toast;
 import android.webkit.CookieManager;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -11,6 +23,11 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 import org.json.JSONObject;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class MainActivity extends BridgeActivity {
     @Override
@@ -33,6 +50,28 @@ public class MainActivity extends BridgeActivity {
                 // Add native JavascriptInterface for automated background APK downloading, updater, & direct Google Auth
                 webView.addJavascriptInterface(new AppUpdateInterface(), "AndroidAppUpdater");
                 webView.addJavascriptInterface(new AndroidGoogleAuthInterface(), "AndroidGoogleAuth");
+                webView.addJavascriptInterface(new AndroidPrintInterface(), "AndroidPrinter");
+                webView.addJavascriptInterface(new AndroidFileInterface(), "AndroidFileManager");
+
+                webView.setDownloadListener(new android.webkit.DownloadListener() {
+                    @Override
+                    public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
+                        if (url != null) {
+                            if (url.startsWith("blob:") || url.startsWith("data:")) {
+                                webView.evaluateJavascript(
+                                    "(function(){ if (window.__handleAndroidDownload) { window.__handleAndroidDownload('" + url + "', '" + (mimeType != null ? mimeType : "") + "'); } })()",
+                                    null
+                                );
+                            } else {
+                                try {
+                                    Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    startActivity(i);
+                                } catch (Exception ignored) {}
+                            }
+                        }
+                    }
+                });
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -335,6 +374,244 @@ public class MainActivity extends BridgeActivity {
             });
         }
     }
+
+    public class AndroidPrintInterface {
+        @android.webkit.JavascriptInterface
+        public void print(final String jobName) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        WebView webView = getBridge().getWebView();
+                        if (webView != null) {
+                            PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                            if (printManager != null) {
+                                String name = (jobName != null && !jobName.trim().isEmpty()) ? jobName : "InvoCentric_Document";
+                                PrintDocumentAdapter printAdapter = webView.createPrintDocumentAdapter(name);
+                                printManager.print(name, printAdapter, new PrintAttributes.Builder().build());
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+
+        @android.webkit.JavascriptInterface
+        public void printPdf(final String base64Data, final String jobName) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (base64Data == null || base64Data.trim().isEmpty()) return;
+                        String cleanBase64 = base64Data.contains(",") ? base64Data.substring(base64Data.indexOf(",") + 1) : base64Data;
+                        byte[] pdfBytes = Base64.decode(cleanBase64, Base64.DEFAULT);
+
+                        File tempDir = new File(getCacheDir(), "print");
+                        if (!tempDir.exists()) tempDir.mkdirs();
+                        final File pdfFile = new File(tempDir, "print_" + System.currentTimeMillis() + ".pdf");
+                        try (FileOutputStream fos = new FileOutputStream(pdfFile)) {
+                            fos.write(pdfBytes);
+                            fos.flush();
+                        }
+
+                        PrintManager printManager = (PrintManager) getSystemService(Context.PRINT_SERVICE);
+                        if (printManager != null) {
+                            final String name = (jobName != null && !jobName.trim().isEmpty()) ? jobName : "InvoCentric_Document";
+                            PrintDocumentAdapter printAdapter = new PrintDocumentAdapter() {
+                                @Override
+                                public void onLayout(PrintAttributes oldAttributes, PrintAttributes newAttributes, CancellationSignal cancellationSignal, LayoutResultCallback callback, Bundle extras) {
+                                    if (cancellationSignal != null && cancellationSignal.isCanceled()) {
+                                        callback.onLayoutCancelled();
+                                        return;
+                                    }
+                                    PrintDocumentInfo info = new PrintDocumentInfo.Builder(name + ".pdf")
+                                        .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
+                                        .build();
+                                    callback.onLayoutFinished(info, true);
+                                }
+
+                                @Override
+                                public void onWrite(PageRange[] pages, ParcelFileDescriptor destination, CancellationSignal cancellationSignal, WriteResultCallback callback) {
+                                    InputStream in = null;
+                                    OutputStream out = null;
+                                    try {
+                                        in = new FileInputStream(pdfFile);
+                                        out = new FileOutputStream(destination.getFileDescriptor());
+                                        byte[] buf = new byte[16384];
+                                        int bytesRead;
+                                        while ((bytesRead = in.read(buf)) > 0) {
+                                            if (cancellationSignal != null && cancellationSignal.isCanceled()) {
+                                                callback.onWriteCancelled();
+                                                return;
+                                            }
+                                            out.write(buf, 0, bytesRead);
+                                        }
+                                        callback.onWriteFinished(new PageRange[]{ PageRange.ALL_PAGES });
+                                    } catch (Exception e) {
+                                        callback.onWriteFailed(e.getMessage());
+                                    } finally {
+                                        try { if (in != null) in.close(); } catch (Exception ignored) {}
+                                        try { if (out != null) out.close(); } catch (Exception ignored) {}
+                                    }
+                                }
+                            };
+                            printManager.print(name, printAdapter, new PrintAttributes.Builder().build());
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+    }
+
+    public class AndroidFileInterface {
+        @android.webkit.JavascriptInterface
+        public void saveFile(final String base64Data, final String fileName, final String mimeType) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (base64Data == null || base64Data.trim().isEmpty()) return;
+                        String cleanBase64 = base64Data.contains(",") ? base64Data.substring(base64Data.indexOf(",") + 1) : base64Data;
+                        byte[] fileBytes = Base64.decode(cleanBase64, Base64.DEFAULT);
+
+                        String safeFileName = (fileName != null && !fileName.trim().isEmpty()) ? fileName : ("file_" + System.currentTimeMillis());
+                        String actualMime = (mimeType != null && !mimeType.trim().isEmpty()) ? mimeType : "application/octet-stream";
+
+                        boolean saved = false;
+
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                            try {
+                                ContentValues values = new ContentValues();
+                                values.put(MediaStore.MediaColumns.DISPLAY_NAME, safeFileName);
+                                values.put(MediaStore.MediaColumns.MIME_TYPE, actualMime);
+                                values.put(MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_DOWNLOADS + "/InvoCentric");
+
+                                ContentResolver resolver = getContentResolver();
+                                Uri fileUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                                if (fileUri != null) {
+                                    try (OutputStream os = resolver.openOutputStream(fileUri)) {
+                                        if (os != null) {
+                                            os.write(fileBytes);
+                                            os.flush();
+                                            saved = true;
+                                        }
+                                    }
+                                }
+                            } catch (Exception qErr) {
+                                qErr.printStackTrace();
+                            }
+                        }
+
+                        if (!saved) {
+                            File downloadDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+                            if (downloadDir == null || !downloadDir.exists()) {
+                                downloadDir = getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS);
+                            }
+                            if (downloadDir != null) {
+                                File targetFile = new File(downloadDir, safeFileName);
+                                try (FileOutputStream fos = new FileOutputStream(targetFile)) {
+                                    fos.write(fileBytes);
+                                    fos.flush();
+                                    saved = true;
+                                }
+                            }
+                        }
+
+                        if (saved) {
+                            Toast.makeText(MainActivity.this, "Saved to Downloads: " + safeFileName, Toast.LENGTH_LONG).show();
+                        } else {
+                            Toast.makeText(MainActivity.this, "Failed to save file", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(MainActivity.this, "Save error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+
+        @android.webkit.JavascriptInterface
+        public void shareFile(final String base64Data, final String fileName, final String mimeType, final String shareText) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                        String actualMime = (mimeType != null && !mimeType.trim().isEmpty()) ? mimeType : "*/*";
+                        shareIntent.setType(actualMime);
+
+                        if (shareText != null && !shareText.trim().isEmpty()) {
+                            shareIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+                        }
+
+                        if (base64Data != null && !base64Data.trim().isEmpty()) {
+                            String cleanBase64 = base64Data.contains(",") ? base64Data.substring(base64Data.indexOf(",") + 1) : base64Data;
+                            byte[] fileBytes = Base64.decode(cleanBase64, Base64.DEFAULT);
+
+                            File shareDir = new File(getCacheDir(), "shared");
+                            if (!shareDir.exists()) shareDir.mkdirs();
+                            String safeFileName = (fileName != null && !fileName.trim().isEmpty()) ? fileName : ("doc_" + System.currentTimeMillis() + ".pdf");
+                            File shareFile = new File(shareDir, safeFileName);
+                            try (FileOutputStream fos = new FileOutputStream(shareFile)) {
+                                fos.write(fileBytes);
+                                fos.flush();
+                            }
+
+                            Uri contentUri = androidx.core.content.FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", shareFile);
+                            shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        }
+
+                        Intent chooser = Intent.createChooser(shareIntent, "Share via");
+                        chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(chooser);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(MainActivity.this, "Share error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+
+        @android.webkit.JavascriptInterface
+        public void openWhatsApp(final String phoneNumber, final String text) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        String cleanPhone = (phoneNumber != null) ? phoneNumber.replaceAll("[^0-9]", "") : "";
+                        String url = "https://api.whatsapp.com/send?phone=" + cleanPhone + "&text=" + java.net.URLEncoder.encode(text != null ? text : "", "UTF-8");
+                        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(i);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+
+        @android.webkit.JavascriptInterface
+        public void openExternalUrl(final String url) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        browserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(browserIntent);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        }
+    }
+
 
     @Override
     public void onBackPressed() {

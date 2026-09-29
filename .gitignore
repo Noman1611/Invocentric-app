@@ -8,5 +8,6 @@ dist_electron/
 .env*
 !.env.example
 *.apk
+!InvoCentric.apk
 *.exe
 .vscode/

@@ -526,20 +526,23 @@ export default function InvoiceViewPage() {
     itemPages.push([]);
   } else {
     if (isA5) {
-      if (itemRows.length <= 5) {
+      const maxFirstPage = useLetterhead ? 3 : 5;
+      if (itemRows.length <= maxFirstPage) {
         itemPages.push(itemRows);
       } else {
-        itemPages.push(itemRows.slice(0, 7));
-        for (let i = 7; i < itemRows.length; i += 4) {
+        itemPages.push(itemRows.slice(0, maxFirstPage + 2));
+        for (let i = maxFirstPage + 2; i < itemRows.length; i += 4) {
           itemPages.push(itemRows.slice(i, i + 4));
         }
       }
     } else {
-      if (itemRows.length <= 12) {
+      const maxFirstPage = useLetterhead ? (letterheadTop + letterheadBottom > 70 ? 7 : 9) : 12;
+      if (itemRows.length <= maxFirstPage) {
         itemPages.push(itemRows);
       } else {
-        itemPages.push(itemRows.slice(0, 14));
-        for (let i = 14; i < itemRows.length; i += 7) {
+        const page1Slice = useLetterhead ? 8 : 14;
+        itemPages.push(itemRows.slice(0, page1Slice));
+        for (let i = page1Slice; i < itemRows.length; i += 7) {
           itemPages.push(itemRows.slice(i, i + 7));
         }
       }
@@ -547,7 +550,13 @@ export default function InvoiceViewPage() {
   }
   const totalPages = itemPages.length;
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    if ((window as any).AndroidPrinter && typeof (window as any).AndroidPrinter.print === 'function') {
+      (window as any).AndroidPrinter.print(calculatedInvNo ? `Invoice #${calculatedInvNo}` : 'Invoice Document');
+    } else {
+      window.print();
+    }
+  };
 
   const handleDownloadPdf = async () => {
     if (!invoiceRef.current || downloading) return;
@@ -584,10 +593,6 @@ export default function InvoiceViewPage() {
         const currentFormat: [number, number] | string = isPOS ? [pdfWidth, pdfHeight] : (isA5 ? 'a5' : 'a4');
         const currentOrientation = isPOS ? 'portrait' : (isA5 ? 'landscape' : 'portrait');
 
-        if (i === 0) {
-          // Re-initialize or adjust first page
-        }
-
         const dataUrl = await toPng(el, {
           quality: 1,
           pixelRatio: 3, // High-DPI crystal clear render
@@ -609,10 +614,18 @@ export default function InvoiceViewPage() {
         pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       }
 
-      pdf.save(`Invoice_${invoice?.invoice_number || invoice?.id?.slice(0, 8) || 'doc'}.pdf`);
+      const pdfFilename = `Invoice_${invoice?.invoice_number || invoice?.id?.slice(0, 8) || 'doc'}.pdf`;
+
+      if ((window as any).AndroidFileManager && typeof (window as any).AndroidFileManager.saveFile === 'function') {
+        const dataUri = pdf.output('datauristring');
+        const base64Data = dataUri.includes(',') ? dataUri.split(',')[1] : dataUri;
+        (window as any).AndroidFileManager.saveFile(base64Data, pdfFilename, 'application/pdf');
+      } else {
+        pdf.save(pdfFilename);
+      }
     } catch (e) {
       console.error("PDF generation fallback:", e);
-      window.print();
+      handlePrint();
     } finally {
       setDownloading(false);
     }
@@ -623,7 +636,45 @@ export default function InvoiceViewPage() {
     const custName = customer?.name || invoice?.customer_name || 'Customer';
     const shareText = `Dear ${custName}, here is your invoice #${invNum} of ${fc(grandTotal, cur)} from ${sellerInfo?.business_name || 'our store'}. Thank you for your business!`;
 
-    // 1. Prepare WhatsApp links & show modal immediately
+    // 1. If running inside Android APK and native share is available, share PDF directly
+    if ((window as any).AndroidFileManager && typeof (window as any).AndroidFileManager.shareFile === 'function') {
+      try {
+        const { toPng } = await import('html-to-image');
+        const { jsPDF } = await import('jspdf');
+        const pageElements = invoiceRef.current?.querySelectorAll('.invoice-page-sheet');
+        if (pageElements && pageElements.length > 0) {
+          const pdfOrientation = isA5 ? 'landscape' : 'portrait';
+          const pdfFormat = isPOS ? [76.2, 180] : (isA5 ? 'a5' : 'a4');
+          const pdf = new jsPDF({ unit: 'mm', format: pdfFormat, orientation: pdfOrientation, compress: true });
+          for (let i = 0; i < pageElements.length; i++) {
+            const el = pageElements[i] as HTMLElement;
+            const rect = el.getBoundingClientRect();
+            const elWidthPx = rect.width || el.offsetWidth || 320;
+            const elHeightPx = rect.height || el.offsetHeight || 600;
+            const aspectRatio = elHeightPx / elWidthPx;
+            const pdfWidth = isPOS ? ((tpl === 'template_04' || tpl === 'template_14') ? 80 : 58) : (isA5 ? 210 : 210);
+            const pdfHeight = isPOS ? Math.max(pdfWidth * aspectRatio, 100) : (isA5 ? 148 : 297);
+            const currentFormat: [number, number] | string = isPOS ? [pdfWidth, pdfHeight] : (isA5 ? 'a5' : 'a4');
+            const currentOrientation = isPOS ? 'portrait' : (isA5 ? 'landscape' : 'portrait');
+            const dataUrl = await toPng(el, { quality: 1, pixelRatio: 2.5, backgroundColor: '#ffffff', skipFonts: true });
+            if (i > 0) pdf.addPage(currentFormat, currentOrientation);
+            else if (isPOS) { pdf.deletePage(1); pdf.addPage(currentFormat, currentOrientation); }
+            pdf.setFillColor(255, 255, 255);
+            pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+            pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+          }
+          const dataUri = pdf.output('datauristring');
+          const base64Data = dataUri.includes(',') ? dataUri.split(',')[1] : dataUri;
+          const pdfFilename = `Invoice_${invoice?.invoice_number || invoice?.id?.slice(0, 8) || 'doc'}.pdf`;
+          (window as any).AndroidFileManager.shareFile(base64Data, pdfFilename, 'application/pdf', shareText);
+          return;
+        }
+      } catch (err) {
+        console.warn('Native Android share attempt failed, falling back to WhatsApp modal:', err);
+      }
+    }
+
+    // 2. Prepare WhatsApp links & show modal
     const rawPhone = customer?.phone || invoice?.customer_phone || '';
     const cp = normalizePhoneNumber(rawPhone);
     const enc = encodeURIComponent(shareText);
@@ -632,7 +683,7 @@ export default function InvoiceViewPage() {
     setWhatsAppAppUrlState(`whatsapp://send?phone=${cp}&text=${enc}`);
     setShowWhatsAppModal(true);
 
-    // 2. Auto copy rendered Invoice image to Clipboard
+    // 3. Auto copy rendered Invoice image to Clipboard
     try {
       const { toBlob } = await import('html-to-image');
       const firstPage = invoiceRef.current?.querySelector('.invoice-page-sheet') as HTMLElement;
@@ -656,7 +707,7 @@ export default function InvoiceViewPage() {
       } catch (_) {}
     }
 
-    // 3. Auto download PDF in background
+    // 4. Auto download PDF in background
     try {
       await handleDownloadPdf();
     } catch (_) {}
@@ -798,6 +849,7 @@ export default function InvoiceViewPage() {
   // Dynamic column calculations
   const dynamicColCount = 1 + 1 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0) + 1 + (colVis.mrp ? 1 : 0) + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0) + 1;
   const leftColSpan = 1 + 1 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0);
+  const midColSpan = (colVis.mrp ? 1 : 0) + 1 + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0);
 
   // Helper to calculate starting index of page
   const getStartIndex = (pageIdx: number) => {
@@ -812,8 +864,9 @@ export default function InvoiceViewPage() {
   const renderTemplate01Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const blue='#2f6fb0', dark='#1c4a75', lb='#eaf2fb', b=`1px solid ${blue}`;
     return (
-      <div className="flex flex-col h-full" style={{ minHeight: isA5 ? '138mm' : '281mm', height: '100%', boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12, color:'#1a1a1a' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex flex-col h-full" style={{ height: '100%', minHeight: 0, boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12, color:'#1a1a1a' }}>
+        {/* Top Header & Details Section */}
+        <div style={{ flexShrink: 0 }}>
           {(!useLetterhead || !letterheadHideHeader) ? (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom: isA5 ? 2 : 6}}>
               <div style={{display:'flex',gap:8,alignItems:'flex-start'}}>
@@ -866,9 +919,11 @@ export default function InvoiceViewPage() {
               ].filter(Boolean).map(([l,v]: any)=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{width: isA5 ? 65 : 80,flexShrink:0,fontWeight:'bold'}}>{l}</div><div style={{flex:1}}>{v}</div></div>))}
             </div>
           </div>
+        </div>
 
-          {/* Dynamic Items Table - Clean uninterrupted vertical lines that extend continuously without breaking */}
-          <table style={{width:'100%',flex: 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom: isLastPage ? 'none' : b,fontSize: isA5 ? 8.5 : 10.5}}>
+        {/* Dynamic Items Table - Clean uninterrupted vertical lines that extend continuously without breaking */}
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <table style={{width:'100%',height:'100%',flex: 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>
                 <th style={{background:lb,borderLeft:b,borderRight:b,borderBottom:b,padding: isA5 ? '2px 3px' : '4px 6px',fontSize: isA5 ? 8.5 : 10.5, width: 30}}>Sr. No.</th>
@@ -905,9 +960,9 @@ export default function InvoiceViewPage() {
                   <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '4px 6px',borderLeft:b,borderRight:b,verticalAlign:'top'}}>{fc(it.taxable,cur)}</td>
                 </tr>
               ))}
-              {/* Spacer row to let vertical column lines extend continuously down to totals table */}
-              <tr>
-                <td style={{borderLeft:b,borderRight:b,height:'100%'}}></td>
+              {/* Spacer row to let vertical column lines extend continuously down */}
+              <tr style={{height:'100%'}}>
+                <td style={{borderLeft:b,borderRight:b}}></td>
                 <td style={{borderLeft:b,borderRight:b}}></td>
                 {colVis.size && <td style={{borderLeft:b,borderRight:b}}></td>}
                 {colVis.hsn && <td style={{borderLeft:b,borderRight:b}}></td>}
@@ -918,44 +973,50 @@ export default function InvoiceViewPage() {
                 {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
                 <td style={{borderLeft:b,borderRight:b}}></td>
               </tr>
+              {/* Embedded Totals rows on the last page */}
+              {isLastPage ? (
+                <>
+                  {isIgst ? (
+                    <tr style={{borderTop:b}}>
+                      <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}></td>
+                      <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}><b>IGST Tax Total</b></td>
+                      <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px'}}><b>{fc(totalTax,cur)}</b></td>
+                    </tr>
+                  ) : (
+                    <>
+                      <tr style={{borderTop:b}}>
+                        <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}></td>
+                        <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}><b>CGST Tax ({hsnEntries[0]?.[1]?.pct ? hsnEntries[0][1].pct / 2 : 0}%)</b></td>
+                        <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px'}}><b>{fc(cgstTotal,cur)}</b></td>
+                      </tr>
+                      <tr>
+                        <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}></td>
+                        <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}><b>SGST Tax ({hsnEntries[0]?.[1]?.pct ? hsnEntries[0][1].pct / 2 : 0}%)</b></td>
+                        <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px'}}><b>{fc(sgstTotal,cur)}</b></td>
+                      </tr>
+                    </>
+                  )}
+                  <tr style={{fontWeight:'bold',background:lb,borderTop:b}}>
+                    <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}></td>
+                    <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}>{qtyTotal}</td>
+                    <td colSpan={midColSpan} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}>Total</td>
+                    <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px'}}>₹ {fc(grandTotal,cur)}</td>
+                  </tr>
+                </>
+              ) : (
+                <tr style={{fontWeight:'bold',background:lb,borderTop:b}}>
+                  <td colSpan={dynamicColCount} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',color:dark}}>
+                    Continued on Next Page →
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Structured Bottom Section - Total / CGST / SGST exactly attached to items table without gap */}
-        {isLastPage ? (
-          <div style={{ marginTop: 0, paddingTop: 0 }}>
-            <table style={{width:'100%',borderCollapse:'collapse',border:b,borderTop:'none',fontSize: isA5 ? 8.5 : 10.5}}>
-              <tbody>
-                {isIgst ? (
-                  <tr>
-                    <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}></td>
-                    <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}><b>IGST Tax Total</b></td>
-                    <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px'}}><b>{fc(totalTax,cur)}</b></td>
-                  </tr>
-                ) : (
-                  <>
-                    <tr>
-                      <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}></td>
-                      <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}><b>CGST Tax ({hsnEntries[0]?.[1]?.pct ? hsnEntries[0][1].pct / 2 : 0}%)</b></td>
-                      <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px'}}><b>{fc(cgstTotal,cur)}</b></td>
-                    </tr>
-                    <tr>
-                      <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}></td>
-                      <td colSpan={dynamicColCount - leftColSpan - 1} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px',borderRight:b}}><b>SGST Tax ({hsnEntries[0]?.[1]?.pct ? hsnEntries[0][1].pct / 2 : 0}%)</b></td>
-                      <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '2px 6px'}}><b>{fc(sgstTotal,cur)}</b></td>
-                    </tr>
-                  </>
-                )}
-                <tr style={{fontWeight:'bold',background:lb,borderTop:b}}>
-                  <td colSpan={leftColSpan} style={{padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}></td>
-                  <td style={{textAlign:'center',padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}>{qtyTotal}</td>
-                  <td colSpan={dynamicColCount - leftColSpan - 2} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',borderRight:b}}>Total</td>
-                  <td style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px'}}>₹ {fc(grandTotal,cur)}</td>
-                </tr>
-              </tbody>
-            </table>
-
+        {/* Structured Bottom Section - Total in words, HSN, Bank, etc. */}
+        {isLastPage && (
+          <div style={{ flexShrink: 0, marginTop: 0, paddingTop: 0 }}>
             {showSec.amount_in_words && (
               <div style={{border:b,borderTop:'none',padding:'3px 6px',fontSize: isA5 ? 8.5 : 10.5}}>
                 <span style={{fontWeight:'bold'}}>Total in words: </span>
@@ -1057,21 +1118,16 @@ export default function InvoiceViewPage() {
               </div>
             )}
           </div>
-        ) : (
-          <div style={{textAlign:'right',fontSize:9.5,fontWeight:'bold',padding:3,color:dark,border:b,background:lb,marginTop:'auto'}}>
-            Continued on Next Page →
-          </div>
         )}
       </div>
     );
   };
 
   // Template 03 Page Renderer
-  // Template 03 Page Renderer
   const renderTemplate03Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const blue='#1a73c7', lb='#e9f2fb', b=`1px solid ${blue}`;
     return (
-      <div className="flex flex-col h-full" style={{ minHeight: isA5 ? '138mm' : '281mm', height: '100%', boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
+      <div className="flex flex-col h-full" style={{ height: '100%', minHeight: 0, boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {(!useLetterhead || !letterheadHideHeader) ? (
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
@@ -1095,7 +1151,7 @@ export default function InvoiceViewPage() {
               ['E-Way No.:',im.eWayNo]
             ].filter(Boolean).map(([l,v]: any)=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
           </div>
-          <table style={{width:'100%',flex: 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom: isLastPage ? 'none' : b,fontSize: isA5 ? 8.5 : 10.5}}>
+          <table style={{width:'100%',flex: 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>
                 <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left', width: 30}}>Sr.No.</th>
@@ -1489,7 +1545,7 @@ export default function InvoiceViewPage() {
     const borderGray = '#e2e8f0';
 
     return (
-      <div className="flex flex-col h-full" style={{ minHeight: isA5 ? '138mm' : '281mm', height: '100%', boxSizing: 'border-box', fontFamily: 'Inter, Arial, sans-serif', fontSize: isA5 ? 9 : 11.5, color: '#0f172a' }}>
+      <div className="flex flex-col h-full" style={{ height: '100%', minHeight: 0, boxSizing: 'border-box', fontFamily: 'Inter, Arial, sans-serif', fontSize: isA5 ? 9 : 11.5, color: '#0f172a' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           
           {/* Header Bar */}
