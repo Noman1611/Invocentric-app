@@ -1427,6 +1427,8 @@ export default function StatementPage() {
       <WhatsAppShareModal
         isOpen={showWhatsAppModal}
         onClose={() => setShowWhatsAppModal(false)}
+        phone={customer?.phone ? normalizePhoneNumber(customer.phone) : ""}
+        shareText={whatsAppShareText}
         whatsAppUrl={whatsAppUrlState}
         whatsAppWebUrl={whatsAppWebUrlState}
         whatsAppAppUrl={whatsAppAppUrlState}

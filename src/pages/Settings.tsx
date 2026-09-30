@@ -43,9 +43,11 @@ import {
   Repeat,
   MessageCircle,
   Copy,
-  Send
+  Send,
+  QrCode
 } from 'lucide-react';
 import { updateService, AppUpdateState } from '../services/updateService';
+import { whatsappDesktopService } from '../services/whatsappDesktopService';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -242,6 +244,85 @@ export default function SettingsPage() {
       disconnectGoogleDrive();
       setGdriveConnected(false);
       setGdriveLastBackup(null);
+    }
+  };
+
+  // WhatsApp Local Automation States
+  const [waStatus, setWaStatus] = useState<string>('disconnected');
+  const [waQrData, setWaQrData] = useState<string | null>(null);
+  const [waLoading, setWaLoading] = useState<boolean>(false);
+  const [waTestPhone, setWaTestPhone] = useState<string>('');
+  const [waTestMessage, setWaTestMessage] = useState<string>('Hello! This is an automated test message from InvoCentric.');
+  const [waTestResult, setWaTestResult] = useState<{ success: boolean; msg: string } | null>(null);
+
+  useEffect(() => {
+    if (!whatsappDesktopService.isSupported()) return;
+
+    whatsappDesktopService.getStatus().then((res) => {
+      setWaStatus(res.status);
+      if (res.qrCode) setWaQrData(res.qrCode);
+    });
+
+    const unsubStatus = whatsappDesktopService.onStatus((data) => {
+      setWaStatus(data.status);
+    });
+
+    const unsubQr = whatsappDesktopService.onQr((qr) => {
+      setWaQrData(qr);
+    });
+
+    return () => {
+      unsubStatus();
+      unsubQr();
+    };
+  }, []);
+
+  const handleStartWhatsAppPairing = async () => {
+    setWaLoading(true);
+    try {
+      await whatsappDesktopService.startSession();
+    } catch (e: any) {
+      alert("Error starting WhatsApp session: " + e.message);
+    } finally {
+      setWaLoading(false);
+    }
+  };
+
+  const handleDisconnectWhatsApp = async () => {
+    if (!confirm("Are you sure you want to disconnect WhatsApp from this computer?")) return;
+    setWaLoading(true);
+    try {
+      await whatsappDesktopService.disconnect();
+      setWaStatus('disconnected');
+      setWaQrData(null);
+    } catch (e: any) {
+      alert("Error disconnecting WhatsApp: " + e.message);
+    } finally {
+      setWaLoading(false);
+    }
+  };
+
+  const handleSendTestWhatsApp = async () => {
+    if (!waTestPhone.trim()) {
+      alert("Please enter a valid phone number");
+      return;
+    }
+    setWaLoading(true);
+    setWaTestResult(null);
+    try {
+      const res = await whatsappDesktopService.sendMessage({
+        phone: waTestPhone,
+        text: waTestMessage
+      });
+      if (res.success) {
+        setWaTestResult({ success: true, msg: "Test message sent successfully in background!" });
+      } else {
+        setWaTestResult({ success: false, msg: res.error || "Failed to send message" });
+      }
+    } catch (err: any) {
+      setWaTestResult({ success: false, msg: err?.message || "Error sending test message" });
+    } finally {
+      setWaLoading(false);
     }
   };
 
@@ -953,6 +1034,13 @@ export default function SettingsPage() {
       mobileTitle: 'Backup & Restore',
       icon: HardDrive, 
       desc: 'PC Hard Drive, Google Drive & data export' 
+    },
+    { 
+      id: 'whatsapp', 
+      label: 'WhatsApp Automation', 
+      mobileTitle: 'WhatsApp Settings',
+      icon: MessageCircle, 
+      desc: 'PC background auto-send, QR pairing & Android share' 
     },
     { 
       id: 'system', 
@@ -2277,6 +2365,145 @@ export default function SettingsPage() {
                           className="w-5 h-5 accent-[#166534] rounded cursor-pointer"
                         />
                       </div>
+                    </div>
+                  </section>
+                </div>
+              )}
+
+              {/* ================================================================= */}
+              {/* TAB: WHATSAPP AUTOMATION (PC Background Sender, QR & Android)    */}
+              {/* ================================================================= */}
+              {activeTab === 'whatsapp' && (
+                <div className="space-y-6">
+                  {/* Card 1: Overview & Architecture */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-100 shadow-2xs">
+                          <MessageCircle size={24} />
+                        </div>
+                        <div>
+                          <h2 className="text-base font-bold text-slate-900">WhatsApp Automation & Direct Sharing</h2>
+                          <p className="text-xs text-slate-500 font-medium mt-0.5">Zero server cost, 100% private client-side delivery</p>
+                        </div>
+                      </div>
+
+                      <span className="px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 self-start sm:self-auto">
+                        ₹0 Cloud Cost • Private
+                      </span>
+                    </div>
+
+                    {/* Desktop WhatsApp Background Engine */}
+                    <div className="p-5 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                            <span>Desktop Background WhatsApp Engine</span>
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider",
+                              waStatus === 'connected' ? "bg-emerald-100 text-emerald-800" :
+                              waStatus === 'waiting_qr' ? "bg-amber-100 text-amber-800" : "bg-slate-200 text-slate-700"
+                            )}>
+                              {waStatus === 'connected' ? '● Connected & Ready' :
+                               waStatus === 'waiting_qr' ? '● Waiting for QR Scan' :
+                               waStatus === 'initializing' ? '● Starting...' : 'Not Connected'}
+                            </span>
+                          </h4>
+                          <p className="text-[11px] text-slate-500">
+                            Runs quietly on your PC. Invoices and payment reminders send in 1 click without opening WhatsApp.
+                          </p>
+                        </div>
+
+                        {waStatus === 'connected' ? (
+                          <button
+                            type="button"
+                            onClick={handleDisconnectWhatsApp}
+                            disabled={waLoading}
+                            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                          >
+                            Disconnect
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleStartWhatsAppPairing}
+                            disabled={waLoading}
+                            className="px-4 py-2 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <QrCode size={14} />
+                            <span>{waLoading ? 'Loading...' : 'Pair WhatsApp (QR)'}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* QR Display Card if waiting for scan */}
+                      {waQrData && waStatus !== 'connected' && (
+                        <div className="p-5 bg-white rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center text-center space-y-3">
+                          <p className="text-xs font-bold text-slate-900">
+                            Scan with your phone to link your WhatsApp:
+                          </p>
+                          <img src={waQrData} alt="WhatsApp QR Code" className="w-52 h-52 rounded-xl border border-slate-100 p-2 shadow-sm bg-white" />
+                          <div className="text-[11px] text-slate-500 space-y-1">
+                            <p>1. Open <strong>WhatsApp</strong> on your mobile phone</p>
+                            <p>2. Tap <strong>Settings</strong> or <strong>3 dots</strong> &gt; <strong>Linked Devices</strong></p>
+                            <p>3. Tap <strong>Link a Device</strong> and point your camera here</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Test Message Box if Connected */}
+                      {waStatus === 'connected' && (
+                        <div className="mt-4 pt-4 border-t border-slate-200/80 space-y-3">
+                          <h5 className="text-xs font-bold text-slate-800">Send Test Background Message:</h5>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <input 
+                              type="tel" 
+                              placeholder="Customer Phone (e.g. 9876543210)"
+                              value={waTestPhone}
+                              onChange={(e) => setWaTestPhone(e.target.value)}
+                              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                            />
+                            <input 
+                              type="text" 
+                              placeholder="Test message..."
+                              value={waTestMessage}
+                              onChange={(e) => setWaTestMessage(e.target.value)}
+                              className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleSendTestWhatsApp}
+                            disabled={waLoading}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            <Send size={13} />
+                            <span>{waLoading ? 'Dispatching...' : 'Send Test WhatsApp'}</span>
+                          </button>
+                          {waTestResult && (
+                            <p className={cn("text-xs font-bold", waTestResult.success ? "text-emerald-700" : "text-rose-600")}>
+                              {waTestResult.msg}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Card 2: Android App Integration */}
+                  <section className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-xs space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Smartphone size={18} className="text-[#166534]" />
+                      <h3 className="text-base font-bold text-slate-900">Android App Native Integration</h3>
+                    </div>
+                    <div className="p-4 bg-emerald-50/50 border border-emerald-200/80 rounded-2xl text-xs text-slate-700 space-y-2">
+                      <p className="font-bold text-emerald-900 flex items-center gap-1.5">
+                        <CheckCircle2 size={16} className="text-emerald-600" />
+                        <span>Pre-Attached PDF Sharing Active on Android APK</span>
+                      </p>
+                      <p className="text-slate-600 leading-relaxed text-[11px]">
+                        When sharing from your Android smartphone or tablet, the app uses Android's native FileProvider system. Your invoice PDF is pre-attached into WhatsApp automatically without needing manual downloads or copy-pasting.
+                      </p>
                     </div>
                   </section>
                 </div>

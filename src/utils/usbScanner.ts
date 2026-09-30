@@ -64,18 +64,26 @@ export function initializeUsbScanner() {
       }
     };
 
+    let retryCount = 0;
+
     es.onerror = () => {
+      const wasConnected = isConnected;
       isConnected = false;
-      statusListeners.forEach(cb => {
-        try { cb(false); } catch (e) { console.error(e); }
-      });
+      if (wasConnected) {
+        statusListeners.forEach(cb => {
+          try { cb(false); } catch (e) { console.error(e); }
+        });
+      }
       
       try { es.close(); } catch (e) {}
       eventSource = null;
 
-      // Auto reconnect after 3 seconds
+      // Exponential backoff to prevent event loop hammering (5s up to 60s)
+      retryCount = Math.min(retryCount + 1, 10);
+      const delay = Math.min(3000 * Math.pow(1.5, retryCount), 60000);
+
       if (reconnectTimer) clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(connect, 3000);
+      reconnectTimer = setTimeout(connect, delay);
     };
   }
 

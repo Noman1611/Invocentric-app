@@ -9,6 +9,7 @@ import { cn, openInBrowser } from '../lib/utils';
 import { dbService } from '../services/dbService';
 import { parseContactFromText } from '../services/aiService';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
+import { whatsappDesktopService } from '../services/whatsappDesktopService';
 
 export default function CustomersPage() {
   const navigate = useNavigate();
@@ -386,10 +387,23 @@ export default function CustomersPage() {
                 <div className="flex items-center gap-1 opacity-100 transition-opacity">
                   <button 
                     type="button"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
                       const num = (customer.phone || '').replace(/[^0-9]/g, '');
-                      const msg = encodeURIComponent(`Dear ${customer.name}, gentle reminder regarding your outstanding balance with us. Please clear the pending dues. Thank you!`);
+                      const plainMsg = `Dear ${customer.name}, gentle reminder regarding your outstanding balance with us. Please clear the pending dues. Thank you!`;
+
+                      if (whatsappDesktopService.isSupported()) {
+                        const status = await whatsappDesktopService.getStatus();
+                        if (status.status === 'connected') {
+                          const res = await whatsappDesktopService.sendMessage({ phone: num, text: plainMsg });
+                          if (res.success) {
+                            alert(`✅ WhatsApp reminder sent directly to ${customer.name}!`);
+                            return;
+                          }
+                        }
+                      }
+
+                      const msg = encodeURIComponent(plainMsg);
                       openInBrowser(`https://wa.me/${num}?text=${msg}`);
                     }}
                     className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all flex items-center justify-center cursor-pointer"

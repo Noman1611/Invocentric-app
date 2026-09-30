@@ -46,5 +46,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-error', listener);
     return () => ipcRenderer.removeListener('update-error', listener);
   },
-  restartAndInstallUpdate: () => ipcRenderer.invoke('restart-and-install')
+  restartAndInstallUpdate: () => ipcRenderer.invoke('restart-and-install'),
+
+  // WhatsApp Local Background Automation
+  whatsappGetStatus: () => ipcRenderer.invoke('whatsapp-get-status'),
+  whatsappStartSession: () => ipcRenderer.invoke('whatsapp-start-session'),
+  whatsappDisconnect: () => ipcRenderer.invoke('whatsapp-disconnect'),
+  whatsappSendMessage: (data) => ipcRenderer.invoke('whatsapp-send-message', data),
+  onWhatsAppStatus: (callback) => {
+    const listener = (event, data) => callback(data);
+    ipcRenderer.on('whatsapp-status-changed', listener);
+    return () => ipcRenderer.removeListener('whatsapp-status-changed', listener);
+  },
+  onWhatsAppQr: (callback) => {
+    const listener = (event, qr) => callback(qr);
+    ipcRenderer.on('whatsapp-qr-code', listener);
+    return () => ipcRenderer.removeListener('whatsapp-qr-code', listener);
+  }
 });

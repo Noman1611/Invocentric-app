@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec, spawn } = require('child_process');
+const whatsAppAutomation = require('./whatsappAutomation.cjs');
 
 // Helper to reliably locate Google Chrome executable across Windows platforms
 function getChromePath() {
@@ -319,6 +320,13 @@ function createWindow() {
       try { localHttpServer.close(); } catch (e) {}
     }
   });
+
+  // Initialize WhatsApp Local Automation for Electron
+  try {
+    whatsAppAutomation.init(mainWindow);
+  } catch (err) {
+    console.error('[WhatsAppAutomation] Init error:', err);
+  }
 }
 
 // IPC Handlers for External Browser & Chrome Launching

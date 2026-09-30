@@ -35,18 +35,39 @@
   html {
     color-scheme: light only !important;
     background-color: #f8fafc;
+    -webkit-tap-highlight-color: transparent;
   }
   html, body {
     overflow-x: hidden;
+    touch-action: manipulation;
   }
   body {
     @apply bg-slate-50 text-slate-900 font-sans antialiased selection:bg-green-100 selection:text-green-900 transition-colors duration-200;
     min-height: 100vh;
     min-height: 100dvh;
+    -webkit-touch-callout: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-sans font-semibold tracking-tight text-slate-900;
+  }
+
+  /* Rapid responsive tap & click handling for Mobile, Android WebView & Desktop */
+  button, [role="button"], a, input, select, textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button, [role="button"] {
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Instant tactile feedback so clicks respond immediately */
+  button:active:not(:disabled), [role="button"]:active:not([aria-disabled="true"]) {
+    transform: scale(0.98);
+    transition: transform 0.05s ease-out;
   }
 }
 

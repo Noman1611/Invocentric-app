@@ -309,8 +309,8 @@ export function GlobalShortcutsManager() {
         }
       }
 
-      // Check Ctrl+A or Ctrl+S (Accept/Save)
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A' || e.key === 's' || e.key === 'S')) {
+      // Check Ctrl+S (Save) - only when 's' or 'S' (do NOT intercept Ctrl+A which is Select All)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
         const saveBtn = document.querySelector('button[type="submit"], button#save-and-print-btn, button.btn-primary') as HTMLButtonElement | null;
         if (saveBtn) {
           e.preventDefault();

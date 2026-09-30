@@ -55,6 +55,7 @@ export default function InvoiceViewPage() {
   const [whatsAppUrlState, setWhatsAppUrlState] = useState('');
   const [whatsAppWebUrlState, setWhatsAppWebUrlState] = useState('');
   const [whatsAppAppUrlState, setWhatsAppAppUrlState] = useState('');
+  const [shareTextState, setShareTextState] = useState('');
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [pageSize, setPageSize] = useState<'A4' | 'A5'>('A4');
   const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
@@ -684,6 +685,7 @@ export default function InvoiceViewPage() {
     setWhatsAppUrlState(`https://wa.me/${cp}?text=${enc}`);
     setWhatsAppWebUrlState(`https://web.whatsapp.com/send?phone=${cp}&text=${enc}`);
     setWhatsAppAppUrlState(`whatsapp://send?phone=${cp}&text=${enc}`);
+    setShareTextState(shareText);
     setShowWhatsAppModal(true);
 
     // 3. Auto copy rendered Invoice image to Clipboard
@@ -2821,7 +2823,19 @@ export default function InvoiceViewPage() {
         </div>
       )}
 
-      <WhatsAppShareModal isOpen={showWhatsAppModal} onClose={() => setShowWhatsAppModal(false)} whatsAppUrl={whatsAppUrlState} whatsAppWebUrl={whatsAppWebUrlState} whatsAppAppUrl={whatsAppAppUrlState} documentTitle="Invoice" copiedToClipboard={copiedToClipboard} fileName={`Invoice_${invoice?.invoice_number || 'bill'}.pdf`} />
+      <WhatsAppShareModal 
+        isOpen={showWhatsAppModal} 
+        onClose={() => setShowWhatsAppModal(false)} 
+        whatsAppUrl={whatsAppUrlState} 
+        whatsAppWebUrl={whatsAppWebUrlState} 
+        whatsAppAppUrl={whatsAppAppUrlState} 
+        documentTitle="Invoice" 
+        copiedToClipboard={copiedToClipboard} 
+        fileName={`Invoice_${invoice?.invoice_number || 'bill'}.pdf`}
+        onDirectSharePdf={handleShare}
+        phone={customer?.phone || invoice?.customer_phone || ''}
+        shareText={shareTextState}
+      />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
         @media print {

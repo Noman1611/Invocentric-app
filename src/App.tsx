@@ -1636,7 +1636,6 @@ function HomeRoute() {
 
 import InstallBanner from './components/InstallBanner';
 import { AppUpdateBanner } from './components/AppUpdateBanner';
-import OfflineSyncManager from './components/OfflineSyncManager';
 import UpgradeModal from './components/UpgradeModal';
 import { GlobalShortcutsManager } from './components/GlobalShortcutsManager';
 
@@ -1794,7 +1793,6 @@ export default function App() {
           <MigrationModal />
           <AutoBackup />
           <DataBackupRecoveryModal />
-          <OfflineSyncManager />
           <InstallBanner />
           <UpgradeModal />
           <Suspense fallback={<PageLoader />}>

@@ -7,6 +7,210 @@ var __commonJS = (cb, mod) => function __require() {
   }
 };
 
+// electron/whatsappAutomation.cjs
+var require_whatsappAutomation = __commonJS({
+  "electron/whatsappAutomation.cjs"(exports2, module2) {
+    var { BrowserWindow: BrowserWindow2, ipcMain: ipcMain2, app: app2 } = require("electron");
+    var path2 = require("path");
+    var fs2 = require("fs");
+    var WhatsAppAutomation = class {
+      constructor() {
+        this.window = null;
+        this.status = "disconnected";
+        this.qrCodeData = null;
+        this.sendQueue = [];
+        this.isProcessingQueue = false;
+        this.mainWindow = null;
+      }
+      init(mainWindow2) {
+        this.mainWindow = mainWindow2;
+        this.registerIpc();
+      }
+      registerIpc() {
+        ipcMain2.handle("whatsapp-get-status", () => {
+          return { status: this.status, qrCode: this.qrCodeData };
+        });
+        ipcMain2.handle("whatsapp-start-session", async () => {
+          return this.startSession();
+        });
+        ipcMain2.handle("whatsapp-disconnect", async () => {
+          return this.disconnect();
+        });
+        ipcMain2.handle("whatsapp-send-message", async (event, payload) => {
+          return this.queueMessage(payload);
+        });
+      }
+      notifyStatus(status, extra = {}) {
+        this.status = status;
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send("whatsapp-status-changed", { status, ...extra });
+        }
+      }
+      notifyQr(qrData) {
+        this.qrCodeData = qrData;
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          this.mainWindow.webContents.send("whatsapp-qr-code", qrData);
+        }
+      }
+      async startSession() {
+        if (this.window && !this.window.isDestroyed()) {
+          return { success: true, status: this.status, qrCode: this.qrCodeData };
+        }
+        this.notifyStatus("initializing");
+        this.window = new BrowserWindow2({
+          width: 1024,
+          height: 768,
+          show: false,
+          // Runs silently in background on user's PC
+          webPreferences: {
+            partition: "persist:whatsapp_local_session",
+            nodeIntegration: false,
+            contextIsolation: true
+          }
+        });
+        const chromeUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+        this.window.webContents.setUserAgent(chromeUA);
+        this.window.loadURL("https://web.whatsapp.com");
+        this.setupPageMonitoring();
+        return { success: true, status: "initializing" };
+      }
+      setupPageMonitoring() {
+        if (!this.window) return;
+        const checkInterval = setInterval(async () => {
+          if (!this.window || this.window.isDestroyed()) {
+            clearInterval(checkInterval);
+            return;
+          }
+          try {
+            const state = await this.window.webContents.executeJavaScript(`
+          (function() {
+            // 1. Check if logged in: chat list or search exists
+            const isChatList = Boolean(document.querySelector('#side, [data-testid="chat-list"], [aria-label="Chat list"], div[role="navigation"]'));
+            if (isChatList) {
+              return { type: 'connected' };
+            }
+
+            // 2. Check if QR code is visible
+            const qrCanvas = document.querySelector('canvas[aria-label="Scan me!"], [data-testid="qrcode"] canvas, div[data-ref] canvas, canvas');
+            if (qrCanvas) {
+              try {
+                return { type: 'qr', dataUrl: qrCanvas.toDataURL() };
+              } catch (e) {}
+            }
+
+            return { type: 'waiting' };
+          })()
+        `);
+            if (state && state.type === "connected") {
+              if (this.status !== "connected") {
+                this.qrCodeData = null;
+                this.notifyStatus("connected");
+              }
+            } else if (state && state.type === "qr" && state.dataUrl) {
+              if (this.qrCodeData !== state.dataUrl) {
+                this.notifyStatus("waiting_qr");
+                this.notifyQr(state.dataUrl);
+              }
+            }
+          } catch (err) {
+          }
+        }, 1500);
+        this.window.on("closed", () => {
+          clearInterval(checkInterval);
+          this.window = null;
+          this.notifyStatus("disconnected");
+        });
+      }
+      async queueMessage(payload) {
+        if (this.status !== "connected" || !this.window) {
+          return { success: false, error: "WhatsApp is not connected. Please scan the QR code first in Settings." };
+        }
+        return new Promise((resolve) => {
+          this.sendQueue.push({ payload, resolve });
+          this.processQueue();
+        });
+      }
+      async processQueue() {
+        if (this.isProcessingQueue || this.sendQueue.length === 0) return;
+        this.isProcessingQueue = true;
+        const item = this.sendQueue.shift();
+        try {
+          const result = await this.sendMessageDirect(item.payload);
+          item.resolve(result);
+        } catch (err) {
+          item.resolve({ success: false, error: err.message });
+        }
+        setTimeout(() => {
+          this.isProcessingQueue = false;
+          this.processQueue();
+        }, 2500);
+      }
+      async sendMessageDirect({ phone, text, base64Pdf, fileName }) {
+        if (!this.window || this.window.isDestroyed()) {
+          return { success: false, error: "WhatsApp background service is not running" };
+        }
+        let cleanPhone = (phone || "").replace(/\D/g, "");
+        if (cleanPhone.length === 10) cleanPhone = "91" + cleanPhone;
+        const encodedText = encodeURIComponent(text || "");
+        const sendUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+        await this.window.loadURL(sendUrl);
+        const sendResult = await this.window.webContents.executeJavaScript(`
+      new Promise((resolve) => {
+        let attempts = 0;
+        const maxAttempts = 35; // 17.5 seconds max
+
+        const checkBtn = setInterval(async () => {
+          attempts++;
+
+          // Look for send button
+          const sendBtn = document.querySelector('button span[data-icon="send"], [data-testid="send"], [data-icon="send"]')?.closest('button');
+          if (sendBtn) {
+            clearInterval(checkBtn);
+            sendBtn.click();
+
+            // Wait 2 seconds for message to dispatch
+            setTimeout(() => {
+              resolve({ success: true });
+            }, 2000);
+            return;
+          }
+
+          // Check if invalid phone number popup appeared
+          const invalidPopup = document.querySelector('[data-testid="popup-contents"], [data-animate-modal-body="true"]');
+          if (invalidPopup && invalidPopup.innerText.toLowerCase().includes('phone number shared via url is invalid')) {
+            clearInterval(checkBtn);
+            resolve({ success: false, error: 'Invalid customer phone number' });
+            return;
+          }
+
+          if (attempts >= maxAttempts) {
+            clearInterval(checkBtn);
+            resolve({ success: false, error: 'Timed out waiting for WhatsApp chat to open' });
+          }
+        }, 500);
+      });
+    `);
+        return sendResult;
+      }
+      async disconnect() {
+        if (this.window && !this.window.isDestroyed()) {
+          try {
+            const ses = this.window.webContents.session;
+            await ses.clearStorageData();
+            this.window.close();
+          } catch (e) {
+          }
+        }
+        this.window = null;
+        this.qrCodeData = null;
+        this.notifyStatus("disconnected");
+        return { success: true };
+      }
+    };
+    module2.exports = new WhatsAppAutomation();
+  }
+});
+
 // node_modules/universalify/index.js
 var require_universalify = __commonJS({
   "node_modules/universalify/index.js"(exports2) {
@@ -15948,6 +16152,7 @@ var { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 var path = require("path");
 var fs = require("fs");
 var { exec, spawn } = require("child_process");
+var whatsAppAutomation = require_whatsappAutomation();
 function getChromePath() {
   const localAppData = process.env.LOCALAPPDATA || "";
   const programFiles = process.env.ProgramFiles || "C:\\Program Files";
@@ -16207,6 +16412,11 @@ function createWindow() {
       }
     }
   });
+  try {
+    whatsAppAutomation.init(mainWindow);
+  } catch (err) {
+    console.error("[WhatsAppAutomation] Init error:", err);
+  }
 }
 ipcMain.handle("open-external-url", (event, url) => openInChrome(url));
 ipcMain.handle("open-in-chrome", (event, url) => openInChrome(url));
