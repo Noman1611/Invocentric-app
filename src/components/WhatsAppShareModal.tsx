@@ -113,7 +113,7 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
 
   const isDesktopDevice = typeof window !== 'undefined' && window.innerWidth > 1024;
   const hasNativeMobileShare = (typeof navigator !== 'undefined' && Boolean(navigator.share)) || 
-                               (typeof window !== 'undefined' && Boolean((window as any).AndroidFileManager?.shareFile));
+                               (typeof window !== 'undefined' && Boolean((window as any).AndroidFileManager?.shareFile || (window as any).AndroidFileManager?.shareToWhatsApp));
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn" id="whatsapp-instructions-modal">
@@ -290,7 +290,12 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
                 rel="noopener noreferrer"
                 onClick={(e) => {
                   e.preventDefault();
-                  openInBrowser(whatsAppUrl);
+                  if ((window as any).AndroidFileManager?.shareToWhatsApp && onDirectSharePdf) {
+                    onDirectSharePdf();
+                    onClose();
+                  } else {
+                    openInBrowser(whatsAppUrl);
+                  }
                 }}
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 border-none cursor-pointer no-underline text-xs"
               >

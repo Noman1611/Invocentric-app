@@ -175,36 +175,138 @@ class WhatsAppAutomation {
     const encodedText = encodeURIComponent(text || '');
     const sendUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
 
-    await this.window.loadURL(sendUrl);
+    try {
+      const currentUrl = this.window.webContents.getURL() || '';
+      if (currentUrl.includes('web.whatsapp.com')) {
+        // Fast in-page navigation: Avoid full page reload so WhatsApp Web doesn't restart from scratch
+        await this.window.webContents.executeJavaScript(`
+          (function() {
+            try {
+              const a = document.createElement('a');
+              a.href = ${JSON.stringify(sendUrl)};
+              a.style.display = 'none';
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(() => { try { a.remove(); } catch(_) {} }, 3000);
+            } catch (_) {
+              window.location.href = ${JSON.stringify(sendUrl)};
+            }
+          })()
+        `).catch(() => {});
+      } else {
+        await this.window.loadURL(sendUrl);
+      }
+    } catch (navErr) {
+      console.warn('[WhatsApp] In-page navigation fallback to loadURL:', navErr);
+      await this.window.loadURL(sendUrl).catch(() => {});
+    }
 
-    // Wait for chat to load and click send in background
+    // Wait for chat to load and click send in background (with up to 60s timeout for slower PCs)
     const sendResult = await this.window.webContents.executeJavaScript(`
       new Promise((resolve) => {
         let attempts = 0;
-        const maxAttempts = 35; // 17.5 seconds max
+        const maxAttempts = 120; // 60 seconds max
+        let attemptedEnter = false;
+
+        function findSendButton() {
+          const selectors = [
+            'button span[data-icon="send"]',
+            'button span[data-icon="send-light"]',
+            'button span[data-icon="wds-ic-send-filled"]',
+            'span[data-icon="send"]',
+            'span[data-icon="send-light"]',
+            'span[data-icon="wds-ic-send-filled"]',
+            'button[aria-label="Send"]',
+            'button[aria-label="भेजें"]',
+            '[data-testid="send"]',
+            '[data-testid="compose-btn-send"]',
+            'footer button[data-tab="11"]'
+          ];
+          for (const sel of selectors) {
+            const el = document.querySelector(sel);
+            if (el) {
+              return el.tagName.toLowerCase() === 'button' ? el : el.closest('button');
+            }
+          }
+          return null;
+        }
+
+        function findComposer() {
+          return document.querySelector('footer div[contenteditable="true"], div[contenteditable="true"][role="textbox"], div[contenteditable="true"][data-tab="10"]');
+        }
 
         const checkBtn = setInterval(async () => {
           attempts++;
 
-          // Look for send button
-          const sendBtn = document.querySelector('button span[data-icon="send"], [data-testid="send"], [data-icon="send"]')?.closest('button');
-          if (sendBtn) {
+          // 1. Check if invalid phone number popup appeared
+          const invalidPopup = document.querySelector('[data-testid="popup-contents"], [data-animate-modal-body="true"], div[role="dialog"]');
+          if (invalidPopup) {
+            const popupText = (invalidPopup.innerText || '').toLowerCase();
+            if (
+              popupText.includes('invalid') ||
+              popupText.includes('phone number shared via url is invalid') ||
+              popupText.includes('not on whatsapp') ||
+              popupText.includes('अमान्य')
+            ) {
+              clearInterval(checkBtn);
+              const okBtn = invalidPopup.querySelector('button');
+              if (okBtn) okBtn.click();
+              resolve({ success: false, error: 'Phone number is invalid or not registered on WhatsApp' });
+              return;
+            }
+          }
+
+          // 2. Check for "Continue to chat" or "Use WhatsApp Web" prompt if present
+          const actionBtn = document.querySelector('a#action-button, [data-testid="popup-controls"] button');
+          if (actionBtn && actionBtn.innerText.toLowerCase().includes('chat')) {
+            actionBtn.click();
+          }
+
+          // 3. Look for send button
+          const sendBtn = findSendButton();
+          if (sendBtn && !sendBtn.disabled) {
             clearInterval(checkBtn);
             sendBtn.click();
-
-            // Wait 2 seconds for message to dispatch
             setTimeout(() => {
               resolve({ success: true });
-            }, 2000);
+            }, 2500);
             return;
           }
 
-          // Check if invalid phone number popup appeared
-          const invalidPopup = document.querySelector('[data-testid="popup-contents"], [data-animate-modal-body="true"]');
-          if (invalidPopup && invalidPopup.innerText.toLowerCase().includes('phone number shared via url is invalid')) {
-            clearInterval(checkBtn);
-            resolve({ success: false, error: 'Invalid customer phone number' });
-            return;
+          // 4. Fallback: If composer has text loaded, dispatch Enter key
+          const composer = findComposer();
+          if (composer && (composer.innerText || composer.textContent || '').trim().length > 0) {
+            if (!attemptedEnter || attempts % 4 === 0) {
+              attemptedEnter = true;
+              composer.focus();
+              const enterEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true
+              });
+              composer.dispatchEvent(enterEvent);
+            }
+            const postBtn = findSendButton();
+            if (postBtn && !postBtn.disabled) {
+              clearInterval(checkBtn);
+              postBtn.click();
+              setTimeout(() => {
+                resolve({ success: true });
+              }, 2500);
+              return;
+            }
+          }
+
+          // 5. If 20 seconds passed and still no chat, trigger direct URL set once
+          if (attempts === 40) {
+            try {
+              if (!window.location.href.includes(${JSON.stringify(cleanPhone)})) {
+                window.location.href = ${JSON.stringify(sendUrl)};
+              }
+            } catch (_) {}
           }
 
           if (attempts >= maxAttempts) {

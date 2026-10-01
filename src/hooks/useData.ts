@@ -31,7 +31,33 @@ function mergeOfflineQueue(data: any[], collectionName: string, userId: string) 
   const deletions = getSecureStorage(`offline_deletions_${userId}`, []);
   const collectionDeletions = deletions.filter((d: any) => d.collection === collectionName).map((d: any) => d.id);
   
-  return mergedData.filter(d => !collectionDeletions.includes(d.id));
+  return mergedData.filter(d => {
+    if (!d) return false;
+    if (collectionDeletions.includes(d.id)) return false;
+    if (collectionName === 'recycle_bin') {
+      const knownPrefixRegex = /^(invoices|customers|items|payments|expenses|purchases|quotations)_/;
+      const matchD = (d.id || '').match(knownPrefixRegex);
+      const prefixD = matchD ? matchD[1] : null;
+      const cleanId = matchD ? (d.id || '').slice(matchD[0].length) : (d.id || '');
+      const colD = d.original_collection || d._original_collection || prefixD;
+
+      if (collectionDeletions.some((delId: string) => {
+        if (delId === d.id) return true;
+        const matchDel = delId.match(knownPrefixRegex);
+        const prefixDel = matchDel ? matchDel[1] : null;
+        const cleanDelId = matchDel ? delId.slice(matchDel[0].length) : delId;
+        const colDel = prefixDel;
+        if (colDel && colD && colDel !== colD) return false;
+        if (cleanDelId === cleanId) return true;
+        if (d.original_id && (delId === d.original_id || cleanDelId === d.original_id)) return true;
+        if (d._original_id && (delId === d._original_id || cleanDelId === d._original_id)) return true;
+        return false;
+      })) {
+        return false;
+      }
+    }
+    return true;
+  });
 }
 
 

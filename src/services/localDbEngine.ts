@@ -108,17 +108,43 @@ class LocalDbEngine {
   // Delete an item
   public async deleteItem(collection: string, id: string, permanent: boolean = false): Promise<boolean> {
     const list = await this.getCollection(collection);
-    const itemToDelete = list.find(i => i.id === id);
+    const isMatch = (item: any) => {
+      if (!item) return false;
+      if (item.id === id) return true;
+      if (collection === 'recycle_bin') {
+        const knownPrefixRegex = /^(invoices|customers|items|payments|expenses|purchases|quotations)_/;
+        const matchA = id.match(knownPrefixRegex);
+        const matchB = (item.id || '').match(knownPrefixRegex);
+        const prefixA = matchA ? matchA[1] : null;
+        const prefixB = matchB ? matchB[1] : null;
+        const cleanIdA = matchA ? id.slice(matchA[0].length) : id;
+        const cleanIdB = matchB ? (item.id || '').slice(matchB[0].length) : (item.id || '');
+
+        const colA = prefixA;
+        const colB = item.original_collection || item._original_collection || prefixB;
+        if (colA && colB && colA !== colB) return false;
+
+        if (cleanIdA && cleanIdA === cleanIdB) return true;
+        if (item.original_id === id || (cleanIdA && item.original_id === cleanIdA)) return true;
+        if (item._original_id === id || (cleanIdA && item._original_id === cleanIdA)) return true;
+      }
+      return false;
+    };
+
+    const itemToDelete = list.find(isMatch);
     if (!itemToDelete) return false;
 
-    const remaining = list.filter(i => i.id !== id);
+    const remaining = list.filter(i => !isMatch(i));
     await this.persistCollection(collection, remaining);
 
     // Soft delete: move to recycle bin if not permanent
     if (!permanent && collection !== 'recycle_bin') {
       const binItem = {
         ...itemToDelete,
+        id: `${collection}_${itemToDelete.id}`,
         _original_collection: collection,
+        original_collection: collection,
+        original_id: itemToDelete.id,
         deleted_at: new Date().toISOString()
       };
       await this.saveItem('recycle_bin', binItem);

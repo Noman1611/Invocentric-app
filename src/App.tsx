@@ -1830,6 +1830,7 @@ export default function App() {
               <Route path="/quotations" element={<PrivateRoute><QuotationsPage /></PrivateRoute>} />
               <Route path="/invoices/create" element={<PrivateRoute><CreateInvoicePage /></PrivateRoute>} />
               <Route path="/invoices/new" element={<PrivateRoute><CreateInvoicePage /></PrivateRoute>} />
+              <Route path="/invoices/edit" element={<PrivateRoute><CreateInvoicePage /></PrivateRoute>} />
               <Route path="/invoices/edit/:id" element={<PrivateRoute><CreateInvoicePage /></PrivateRoute>} />
               <Route path="/customers" element={<PrivateRoute><CustomersPage /></PrivateRoute>} />
               <Route path="/customers/statement/:id" element={<PrivateRoute><StatementPage /></PrivateRoute>} />

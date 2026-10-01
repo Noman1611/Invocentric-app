@@ -682,6 +682,75 @@ public class MainActivity extends BridgeActivity {
         }
 
         @android.webkit.JavascriptInterface
+        public void shareToWhatsApp(final String base64Data, final String fileName, final String phoneNumber, final String shareText) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                        shareIntent.setType("application/pdf");
+
+                        if (shareText != null && !shareText.trim().isEmpty()) {
+                            shareIntent.putExtra(Intent.EXTRA_TEXT, shareText);
+                        }
+
+                        if (base64Data != null && !base64Data.trim().isEmpty()) {
+                            String cleanBase64 = base64Data.contains(",") ? base64Data.substring(base64Data.indexOf(",") + 1) : base64Data;
+                            byte[] fileBytes = Base64.decode(cleanBase64, Base64.DEFAULT);
+
+                            File shareDir = new File(getCacheDir(), "shared");
+                            if (!shareDir.exists()) shareDir.mkdirs();
+                            String safeFileName = (fileName != null && !fileName.trim().isEmpty()) ? fileName : ("Invoice_" + System.currentTimeMillis() + ".pdf");
+                            File shareFile = new File(shareDir, safeFileName);
+                            try (FileOutputStream fos = new FileOutputStream(shareFile)) {
+                                fos.write(fileBytes);
+                                fos.flush();
+                            }
+
+                            Uri contentUri = androidx.core.content.FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", shareFile);
+                            shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        }
+
+                        // Target WhatsApp directly
+                        PackageManager pm = getPackageManager();
+                        boolean whatsappFound = false;
+                        String[] targetPackages = new String[]{"com.whatsapp", "com.whatsapp.w4b"};
+
+                        String cleanPhone = (phoneNumber != null) ? phoneNumber.replaceAll("[^0-9]", "") : "";
+                        if (cleanPhone.length() == 10) {
+                            cleanPhone = "91" + cleanPhone;
+                        }
+
+                        for (String pkg : targetPackages) {
+                            try {
+                                pm.getPackageInfo(pkg, PackageManager.GET_META_DATA);
+                                shareIntent.setPackage(pkg);
+                                if (!cleanPhone.isEmpty()) {
+                                    shareIntent.putExtra("jid", cleanPhone + "@s.whatsapp.net");
+                                }
+                                whatsappFound = true;
+                                break;
+                            } catch (PackageManager.NameNotFoundException ignored) {}
+                        }
+
+                        if (whatsappFound) {
+                            shareIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(shareIntent);
+                        } else {
+                            Intent chooser = Intent.createChooser(shareIntent, "Share Invoice via");
+                            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(chooser);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(MainActivity.this, "WhatsApp Share error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
+
+        @android.webkit.JavascriptInterface
         public void openWhatsApp(final String phoneNumber, final String text) {
             runOnUiThread(new Runnable() {
                 @Override

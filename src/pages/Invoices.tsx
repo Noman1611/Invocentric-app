@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Filter, FileText, Trash2, Download, X, Calendar, CheckCircle2, Phone, RefreshCw } from 'lucide-react';
+import { Plus, Search, Filter, FileText, Trash2, Download, X, Calendar, CheckCircle2, Phone, RefreshCw, Edit3 } from 'lucide-react';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp, deleteDoc, query, where, collection, getDocs } from 'firebase/firestore';
 import { useInvoices } from '../hooks/useData';
@@ -376,6 +376,13 @@ export default function InvoicesPage() {
                       </Link>
                     )}
                     <Link 
+                      to={`/invoices/edit/${invoice.id}`}
+                      className="p-2 text-blue-600 hover:text-blue-700 bg-blue-50 active:scale-95 rounded-xl transition-all"
+                      title="Edit Invoice"
+                    >
+                      <Edit3 size={16} />
+                    </Link>
+                    <Link 
                       to={`/invoices/${invoice.id}`}
                       className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 active:scale-95 rounded-xl transition-all"
                       title="View Invoice"
@@ -508,6 +515,13 @@ export default function InvoicesPage() {
                           <RefreshCw size={16} />
                         </Link>
                       )}
+                      <Link 
+                        to={`/invoices/edit/${invoice.id}`}
+                        className="p-2 text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all"
+                        title="Edit Invoice"
+                      >
+                        <Edit3 size={16} />
+                      </Link>
                       <Link 
                         to={`/invoices/${invoice.id}`}
                         className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"

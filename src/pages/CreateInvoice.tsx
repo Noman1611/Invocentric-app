@@ -20,6 +20,7 @@ import {
   runTransaction
 } from 'firebase/firestore';
 import { cn } from '../lib/utils';
+import { localDbEngine } from '../services/localDbEngine';
 import { extractInvoiceFromImage, parseContactFromText } from '../services/aiService';
 import { format } from 'date-fns';
 import { parseDateSafe } from '../utils/dateUtils';
@@ -69,6 +70,10 @@ export default function CreateInvoicePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const targetInvoiceId = id || searchParams.get('id') || searchParams.get('edit_id') || undefined;
+  const isEditMode = Boolean(targetInvoiceId);
+  const originalCreatedAtRef = useRef<string | null>(null);
+  const loadedInvoiceIdRef = useRef<string | null>(null);
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { customers } = useCustomers();
   const { items: inventoryItems } = useItems();
@@ -385,11 +390,11 @@ export default function CreateInvoicePage() {
     if (selCust && typeof (selCust as any).balance === 'number') {
       return (selCust as any).balance;
     }
-    const custInvoices = (existingInvoices || []).filter((inv: any) => inv.customer_id === formData.customer_id && inv.id !== id);
+    const custInvoices = (existingInvoices || []).filter((inv: any) => inv.customer_id === formData.customer_id && inv.id !== targetInvoiceId);
     const totalInvoiced = custInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.amount) || 0), 0);
     const totalPaid = custInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.advance_amount || (inv as any).advanceAmount || (inv.status === 'paid' ? inv.amount : 0)) || 0), 0);
     return totalInvoiced - totalPaid;
-  }, [formData.customer_id, existingInvoices, id, customers]);
+  }, [formData.customer_id, existingInvoices, targetInvoiceId, customers]);
 
   const [savingDefaultTerms, setSavingDefaultTerms] = useState(false);
   const [saveTermsSuccess, setSaveTermsSuccess] = useState(false);
@@ -442,7 +447,7 @@ export default function CreateInvoicePage() {
   };
 
   useEffect(() => {
-    if (appMode === 'freelancer' && !id) {
+    if (appMode === 'freelancer' && !targetInvoiceId) {
       setFormData(prev => ({
         ...prev,
         columnVisibility: {
@@ -453,7 +458,7 @@ export default function CreateInvoicePage() {
           gstPercent: prev.columnVisibility.gstPercent,
         }
       }));
-    } else if (appMode === 'shop' && !id) {
+    } else if (appMode === 'shop' && !targetInvoiceId) {
       setFormData(prev => ({
         ...prev,
         columnVisibility: {
@@ -675,92 +680,147 @@ export default function CreateInvoicePage() {
   // Fetch invoice for editing
   useEffect(() => {
     async function fetchInvoice() {
-      if (!id || !user) return;
+      if (!targetInvoiceId) {
+        loadedInvoiceIdRef.current = null;
+        return;
+      }
+      if (loadedInvoiceIdRef.current === targetInvoiceId) return;
       setFetching(true);
       try {
-        const upserts = getSecureStorage(`offline_upserts_${user.uid}`, []);
-        const localInvoices = getSecureStorage(`offline_invoices_${user.uid}`, []);
-        
         let data: any = null;
-        const queuedInvoice = upserts.find((u: any) => u.collection === "invoices" && u.item.id === id);
-        if (queuedInvoice) data = queuedInvoice.item;
-        else if (isOfflineMode) data = localInvoices.find((inv: any) => inv.id === id);
-        
-        if (!data && !isOfflineMode) {
-          const docRef = doc(db, "invoices", id);
-          const snap = await getDoc(docRef);
-          if (snap.exists()) data = snap.data();
+
+        // 1. In-memory existingInvoices from hook (immediate hit)
+        if (existingInvoices && Array.isArray(existingInvoices)) {
+          const match = existingInvoices.find((inv: any) => inv.id === targetInvoiceId);
+          if (match) data = match;
         }
-        
+
+        // 2. Offline upserts queue
+        if (!data) {
+          const allUpsertKeys = Object.keys(localStorage).filter(k => k.startsWith('offline_upserts_') || k === 'offline_queue_upserts');
+          for (const uKey of allUpsertKeys) {
+            try {
+              const list = getSecureStorage(uKey, []);
+              const queuedInvoice = list.find((u: any) => u.collection === "invoices" && u.item?.id === targetInvoiceId);
+              if (queuedInvoice?.item) { data = queuedInvoice.item; break; }
+            } catch (_) {}
+          }
+        }
+
+        // 3. Local storage invoices
+        if (!data) {
+          const candidateUids = [user?.uid, 'guest'].filter(Boolean) as string[];
+          const allInvKeys = Array.from(new Set([
+            ...candidateUids.map(uid => `offline_invoices_${uid}`),
+            ...Object.keys(localStorage).filter(k => k.startsWith('offline_invoices_'))
+          ]));
+          for (const iKey of allInvKeys) {
+            try {
+              const list = getSecureStorage(iKey, []);
+              const match = list.find((inv: any) => inv.id === targetInvoiceId);
+              if (match) { data = match; break; }
+            } catch (_) {}
+          }
+        }
+
+        // 4. localDbEngine
+        if (!data) {
+          try {
+            const localList = await localDbEngine.getCollection('invoices');
+            const match = localList.find((inv: any) => inv.id === targetInvoiceId);
+            if (match) data = match;
+          } catch (_) {}
+        }
+
+        // 5. Cloud Firestore
+        if (!data && !isOfflineMode) {
+          try {
+            const docRef = doc(db, "invoices", targetInvoiceId);
+            const snap = await getDoc(docRef);
+            if (snap.exists()) data = { id: snap.id, ...snap.data() };
+          } catch (fsErr) {
+            console.warn("Firestore fetch error:", fsErr);
+          }
+        }
+
         if (data) {
-           setOriginalStatus(data.status || 'draft');
-           const safeDate = data.due_date 
-             ? format(parseDateSafe(data.due_date), "yyyy-MM-dd") 
-             : new Date().toISOString().split("T")[0];
-           setFormData({
-             customer_id: data.customer_id,
-             invoice_number: data.invoice_number || '',
-             due_date: safeDate,
-             currency: data.currency || "INR",
-             bill_type: data.bill_type || "INVOICE",
-             discount: data.discount || 0,
-             sales_return: data.sales_return || 0,
-             advance_amount: data.advance_amount || data.advanceAmount || 0,
-             invoice_template: data.invoice_template || 'template_01',
-             invoice_title: data.invoice_title || 'TAX INVOICE',
-             copy_subtitle: data.copy_subtitle || 'ORIGINAL FOR RECIPIENT',
-             terms_text: data.terms_text || data.notes || '',
-             declaration_text: data.declaration_text || 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.',
-             signatory_title: data.signatory_title || 'Authorized Signatory',
-             hide_sections: data.hide_sections || {
-               bank_details: false,
-               upi_qr: false,
-               signature: false,
-               seller_address: false,
-               customer_gstin: false,
-               terms: false,
-               declaration: false,
-               amount_in_words: false,
-               hsn_summary: false,
-               footer: false
-              },
-              items: (Array.isArray(data.items) && data.items.length > 0)
-                ? data.items.map((it: any) => ({
-                    description: it.description || it.name || '',
-                    quantity: Number(it.quantity) || 1,
-                    price: Number(it.price || it.mrp) || 0,
-                    size: it.size || '',
-                    hsn: it.hsn || it.hsn_code || '',
-                    mrp: Number(it.mrp) || 0,
-                    discount: Number(it.discount) || 0,
-                    gstPercent: Number(it.gstPercent || it.gst_rate) || 0,
-                    custom_box: it.custom_box || '',
-                    serialNumber: it.serialNumber || it.serial_number || '',
-                    brand: it.brand || '',
-                    category: it.category || '',
-                    batch_no: it.batch_no || '',
-                    expiry_date: it.expiry_date || '',
-                    mfg_date: it.mfg_date || it.manufacturing_date || '',
-                    warranty_period: it.warranty_period || '',
-                    tare_weight: Number(it.tare_weight) || 0,
-                    gross_weight: Number(it.gross_weight) || 0
-                  }))
-                : [{ description: "", quantity: 1, price: 0, size: "", hsn: "", mrp: 0, discount: 0, gstPercent: 0, custom_box: '', serialNumber: '', brand: '', category: '', batch_no: '', expiry_date: '', mfg_date: '', warranty_period: '', tare_weight: 0, gross_weight: 0 }],
-             columnVisibility: data.columnVisibility || {
-               size: true,
-               hsn: true,
-               mrp: true,
-               discount: true,
-               gstPercent: true,
-             },
-             notes: data.notes || data.terms_text || "",
-             buyer_drug_license: data.buyer_drug_license || '',
-             is_recurring: Boolean(data.is_recurring),
-             recurring_frequency: data.recurring_frequency || 'monthly',
-             service_period_start: data.service_period_start || '',
-             service_period_end: data.service_period_end || '',
-             next_renewal_date: data.next_renewal_date || ''
-           });
+          loadedInvoiceIdRef.current = targetInvoiceId;
+          originalCreatedAtRef.current = data.created_at || data.date || null;
+          setOriginalStatus(data.status || 'draft');
+          const safeInvoiceDate = data.invoice_date || data.date
+            ? format(parseDateSafe(data.invoice_date || data.date), "yyyy-MM-dd")
+            : new Date().toISOString().split("T")[0];
+          const safeDueDate = data.due_date 
+            ? format(parseDateSafe(data.due_date), "yyyy-MM-dd") 
+            : new Date().toISOString().split("T")[0];
+          setFormData({
+            customer_id: data.customer_id || '',
+            invoice_number: data.invoice_number || '',
+            invoice_date: safeInvoiceDate,
+            due_date: safeDueDate,
+            currency: data.currency || "INR",
+            bill_type: data.bill_type || "INVOICE",
+            price_tier: data.price_tier || 'retail',
+            discount: data.discount || 0,
+            shipping_charges: data.shipping_charges || 0,
+            sales_return: data.sales_return || 0,
+            advance_amount: data.advance_amount || data.advanceAmount || 0,
+            bank_account_id: data.bank_account_id || '',
+            invoice_template: data.invoice_template || 'template_01',
+            invoice_title: data.invoice_title || 'TAX INVOICE',
+            copy_subtitle: data.copy_subtitle || 'ORIGINAL FOR RECIPIENT',
+            terms_text: data.terms_text || data.notes || '',
+            declaration_text: data.declaration_text || 'We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.',
+            signatory_title: data.signatory_title || 'Authorized Signatory',
+            hide_sections: data.hide_sections || {
+              bank_details: false,
+              upi_qr: false,
+              signature: false,
+              seller_address: false,
+              customer_gstin: false,
+              terms: false,
+              declaration: false,
+              amount_in_words: false,
+              hsn_summary: false,
+              footer: false
+            },
+            items: (Array.isArray(data.items) && data.items.length > 0)
+              ? data.items.map((it: any) => ({
+                  description: it.description || it.name || '',
+                  quantity: Number(it.quantity) || 1,
+                  price: Number(it.price || it.mrp) || 0,
+                  size: it.size || '',
+                  hsn: it.hsn || it.hsn_code || '',
+                  mrp: Number(it.mrp) || 0,
+                  discount: Number(it.discount) || 0,
+                  gstPercent: Number(it.gstPercent || it.gst_rate) || 0,
+                  custom_box: it.custom_box || '',
+                  serialNumber: it.serialNumber || it.serial_number || '',
+                  brand: it.brand || '',
+                  category: it.category || '',
+                  batch_no: it.batch_no || '',
+                  expiry_date: it.expiry_date || '',
+                  mfg_date: it.mfg_date || it.manufacturing_date || '',
+                  warranty_period: it.warranty_period || '',
+                  tare_weight: Number(it.tare_weight) || 0,
+                  gross_weight: Number(it.gross_weight) || 0
+                }))
+              : [{ description: "", quantity: 1, price: 0, size: "", hsn: "", mrp: 0, discount: 0, gstPercent: 0, custom_box: '', serialNumber: '', brand: '', category: '', batch_no: '', expiry_date: '', mfg_date: '', warranty_period: '', tare_weight: 0, gross_weight: 0 }],
+            columnVisibility: data.columnVisibility || {
+              size: true,
+              hsn: true,
+              mrp: true,
+              discount: true,
+              gstPercent: true,
+            },
+            notes: data.notes || data.terms_text || "",
+            buyer_drug_license: data.buyer_drug_license || '',
+            is_recurring: Boolean(data.is_recurring),
+            recurring_frequency: data.recurring_frequency || 'monthly',
+            service_period_start: data.service_period_start || '',
+            service_period_end: data.service_period_end || '',
+            next_renewal_date: data.next_renewal_date || ''
+          });
         }
       } catch (error) {
         console.error("Error fetching invoice:", error);
@@ -771,7 +831,7 @@ export default function CreateInvoicePage() {
 
     async function fetchRenewInvoice() {
       const renewFromId = searchParams.get('renew_from');
-      if (!renewFromId || !user || id) return;
+      if (!renewFromId || !user || targetInvoiceId) return;
       setFetching(true);
       try {
         const localInvoices = getSecureStorage(`offline_invoices_${user.uid}`, []);
@@ -839,7 +899,7 @@ export default function CreateInvoicePage() {
 
     async function fetchFromQuotation() {
       const fromQuotationId = searchParams.get('from_quotation');
-      if (!fromQuotationId || !user || id) return;
+      if (!fromQuotationId || !user || targetInvoiceId) return;
       setFetching(true);
       try {
         const docRef = doc(db, "invoices", fromQuotationId);
@@ -864,7 +924,7 @@ export default function CreateInvoicePage() {
       }
     }
 
-    if (id) {
+    if (targetInvoiceId) {
       fetchInvoice();
     } else if (searchParams.get('renew_from')) {
       fetchRenewInvoice();
@@ -902,12 +962,12 @@ export default function CreateInvoicePage() {
         }));
       }
     }
-  }, [id, user, isOfflineMode, searchParams]);
+  }, [targetInvoiceId, user, isOfflineMode, searchParams]);
 
   // Fetch default terms for new invoices
   useEffect(() => {
     async function fetchDefaultTerms() {
-      if (!user || id) return;
+      if (!user || targetInvoiceId) return;
       try {
         let terms = 'Payment is due within 15 days from the date of invoice.';
         if (isOfflineMode) {
@@ -928,11 +988,11 @@ export default function CreateInvoicePage() {
       }
     }
     fetchDefaultTerms();
-  }, [user, id, isOfflineMode]);
+  }, [user, targetInvoiceId, isOfflineMode]);
 
   // Auto-generate the next invoice number for new invoices (prefix + year + running sequence)
   useEffect(() => {
-    if (id) return; // Don't touch invoice_number while editing an existing invoice
+    if (targetInvoiceId) return; // Don't touch invoice_number while editing an existing invoice
 
     const prefix = (sellerSettings?.invoice_prefix || 'INV').trim().toUpperCase() || 'INV';
     const year = new Date().getFullYear();
@@ -1258,7 +1318,7 @@ export default function CreateInvoicePage() {
     if (!user) return; 
 
     // Strict stock check before generating final new invoice (bypassed on draft, quotation, and edit)
-    if (appMode !== 'freelancer' && status !== 'draft' && !id && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE' && formData.bill_type !== 'PROFORMA') {
+    if (appMode !== 'freelancer' && status !== 'draft' && !targetInvoiceId && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE' && formData.bill_type !== 'PROFORMA') {
       for (const item of formData.items) {
         if (!item.description || item.quantity <= 0) continue;
         const inventoryItem = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
@@ -1376,12 +1436,16 @@ export default function CreateInvoicePage() {
         next_renewal_date: formData.next_renewal_date || '',
       };
 
-      if (id) {
-        await dbService.update('invoices', id, invoiceData, { offlineMode: isOfflineMode, userId: user.uid });
+      if (targetInvoiceId) {
+        const { created_at: _unusedCreatedAt, ...restInvoiceData } = invoiceData;
+        const payloadToUpdate = restInvoiceData;
+        await dbService.update('invoices', targetInvoiceId, payloadToUpdate, { offlineMode: isOfflineMode, userId: user.uid });
+        window.dispatchEvent(new CustomEvent('invoices_updated', { detail: { id: targetInvoiceId } }));
+        window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: 'invoices', id: targetInvoiceId } }));
         
-        const invNum = formData.invoice_number || id.slice(0, 8).toUpperCase();
+        const invNum = formData.invoice_number || targetInvoiceId.slice(0, 8).toUpperCase();
         if (status === 'paid') {
-          const existingPayments = await findLinkedPayments(user.uid, id, isOfflineMode);
+          const existingPayments = await findLinkedPayments(user.uid, targetInvoiceId, isOfflineMode);
 
           const paymentPayload = {
             customer_id: formData.customer_id || null,
@@ -1390,7 +1454,7 @@ export default function CreateInvoicePage() {
             date: formData.due_date ? new Date(formData.due_date).toISOString() : new Date().toISOString(),
             note: `Invoice #${invNum} Paid`,
             method: 'cash',
-            invoice_id: id,
+            invoice_id: targetInvoiceId,
           };
 
           if (existingPayments.length > 0) {
@@ -1405,21 +1469,23 @@ export default function CreateInvoicePage() {
           }
         } else {
           // If invoice status is changed to unpaid ('draft' or 'sent'), remove any linked payment entry
-          const existingPayments = await findLinkedPayments(user.uid, id, isOfflineMode);
+          const existingPayments = await findLinkedPayments(user.uid, targetInvoiceId, isOfflineMode);
           for (const p of existingPayments) {
             await dbService.delete('payments', p.id, { offlineMode: isOfflineMode, userId: user.uid });
           }
         }
 
         if (printAfterSave) {
-          navigate(`/invoices/${id}?print=true`);
+          navigate(`/invoices/${targetInvoiceId}?print=true`);
         } else if (!skipView) {
-          navigate(status === 'sent' ? `/invoices/${id}?share=true` : `/invoices/${id}`);
+          navigate(status === 'sent' ? `/invoices/${targetInvoiceId}?share=true` : `/invoices/${targetInvoiceId}`);
         } else {
           navigate('/invoices');
         }
       } else {
         const res = await dbService.add('invoices', invoiceData, { offlineMode: isOfflineMode, userId: user.uid });
+        window.dispatchEvent(new CustomEvent('invoices_updated', { detail: { id: res.id } }));
+        window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: 'invoices', id: res.id } }));
         if (status === 'paid') {
           await dbService.add('payments', {
             user_id: user.uid,
@@ -1547,8 +1613,8 @@ export default function CreateInvoicePage() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">{id ? 'Edit' : 'Create'} Invoice</h1>
-            <p className="text-[10px] sm:text-xs font-semibold text-slate-400 hidden sm:block">{id ? 'Modify your existing invoice.' : 'Create a new invoice and deliver it instantly.'}</p>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">{targetInvoiceId ? 'Edit' : 'Create'} Invoice</h1>
+            <p className="text-[10px] sm:text-xs font-semibold text-slate-400 hidden sm:block">{targetInvoiceId ? 'Modify your existing invoice.' : 'Create a new invoice and deliver it instantly.'}</p>
           </div>
         </div>
 
@@ -3070,7 +3136,7 @@ export default function CreateInvoicePage() {
                         if (!formData.customer_id || !item.description) return null;
                         const prevInv = (existingInvoices || []).find((inv: any) => {
                           if (inv.customer_id !== formData.customer_id) return false;
-                          if (inv.id === id) return false;
+                          if (inv.id === targetInvoiceId) return false;
                           return Array.isArray(inv.items) && inv.items.some((it: any) => (it.description || '').trim().toLowerCase() === (item.description || '').trim().toLowerCase());
                         });
                         if (!prevInv) return null;

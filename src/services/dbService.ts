@@ -79,7 +79,29 @@ function saveToLocalCache(collectionName: string, userId: string, record: any) {
     // If item was previously queued for deletion, remove it from deletions
     const delKey = `offline_deletions_${userId}`;
     const dels = getSecureStorage(delKey, []);
-    const filteredDels = dels.filter((d: any) => !(d.collection === collectionName && d.id === record.id));
+    const knownPrefixRegex = /^(invoices|customers|items|payments|expenses|purchases|quotations)_/;
+    const filteredDels = dels.filter((d: any) => {
+      if (d.collection !== collectionName) return true;
+      if (collectionName === 'recycle_bin') {
+        if (d.id === record.id) return false;
+        const matchDel = (d.id || '').match(knownPrefixRegex);
+        const matchRec = (record.id || '').match(knownPrefixRegex);
+        const prefixDel = matchDel ? matchDel[1] : null;
+        const prefixRec = matchRec ? matchRec[1] : null;
+        const cleanDel = matchDel ? d.id.slice(matchDel[0].length) : d.id;
+        const cleanRec = matchRec ? record.id.slice(matchRec[0].length) : record.id;
+
+        const colDel = d.original_collection || d._original_collection || prefixDel;
+        const colRec = record.original_collection || record._original_collection || prefixRec;
+        if (colDel && colRec && colDel !== colRec) return true;
+
+        if (cleanDel && cleanDel === cleanRec) return false;
+        if (record.original_id && (d.id === record.original_id || cleanDel === record.original_id)) return false;
+        if (record._original_id && (d.id === record._original_id || cleanDel === record._original_id)) return false;
+        return true;
+      }
+      return d.id !== record.id;
+    });
     setSecureStorage(delKey, filteredDels);
 
     // Keep localDbEngine in sync for Desktop Electron JSON files & in-memory cache
@@ -94,24 +116,55 @@ function saveToLocalCache(collectionName: string, userId: string, record: any) {
 function removeFromLocalCache(collectionName: string, userId: string, docId: string, permanent: boolean = false, oldRecord?: any) {
   if (!userId) return;
   try {
+    const knownPrefixRegex = /^(invoices|customers|items|payments|expenses|purchases|quotations)_/;
+    const isDocMatch = (item: any) => {
+      if (!item) return false;
+      if (item.id === docId) return true;
+      if (collectionName === 'recycle_bin') {
+        const matchDoc = docId.match(knownPrefixRegex);
+        const matchItem = (item.id || '').match(knownPrefixRegex);
+        const prefixDoc = matchDoc ? matchDoc[1] : null;
+        const prefixItem = matchItem ? matchItem[1] : null;
+        const cleanDocId = matchDoc ? docId.slice(matchDoc[0].length) : docId;
+        const cleanItemId = matchItem ? (item.id || '').slice(matchItem[0].length) : (item.id || '');
+
+        const colDoc = prefixDoc;
+        const colItem = item.original_collection || item._original_collection || prefixItem;
+        if (colDoc && colItem && colDoc !== colItem) return false;
+
+        if (cleanDocId && cleanDocId === cleanItemId) return true;
+        if (item.original_id === docId || (cleanDocId && item.original_id === cleanDocId)) return true;
+        if (item._original_id === docId || (cleanDocId && item._original_id === cleanDocId)) return true;
+      }
+      return false;
+    };
+
     const cacheKey = `offline_${collectionName}_${userId}`;
     const list = getSecureStorage(cacheKey, []);
-    const target = oldRecord || list.find((item: any) => item.id === docId);
-    const remaining = list.filter((item: any) => item.id !== docId);
+    const target = oldRecord || list.find(isDocMatch);
+    const remaining = list.filter((item: any) => !isDocMatch(item));
     setSecureStorage(cacheKey, remaining);
 
     // Remove from offline_upserts
     const upsertsKey = `offline_upserts_${userId}`;
     const upserts = getSecureStorage(upsertsKey, []);
-    setSecureStorage(upsertsKey, upserts.filter((u: any) => !(u.collection === collectionName && u.item?.id === docId)));
+    setSecureStorage(upsertsKey, upserts.filter((u: any) => {
+      if (u.collection !== collectionName) return true;
+      return !isDocMatch(u.item);
+    }));
 
     // Queue into offline_deletions for cloud sync
     const delKey = `offline_deletions_${userId}`;
     const dels = getSecureStorage(delKey, []);
-    if (!dels.some((d: any) => d.collection === collectionName && d.id === docId)) {
-      dels.push({ collection: collectionName, id: docId });
-      setSecureStorage(delKey, dels);
+    const matchDocPrefix = docId.match(knownPrefixRegex);
+    const cleanDocId = matchDocPrefix ? docId.slice(matchDocPrefix[0].length) : docId;
+    const idsToQueue = (collectionName === 'recycle_bin' && cleanDocId !== docId) ? [docId, cleanDocId] : [docId];
+    for (const dId of idsToQueue) {
+      if (dId && !dels.some((d: any) => d.collection === collectionName && d.id === dId)) {
+        dels.push({ collection: collectionName, id: dId });
+      }
     }
+    setSecureStorage(delKey, dels);
 
     // Move to local recycle bin if not permanent
     if (!permanent && collectionName !== 'recycle_bin' && collectionName !== 'notifications') {
@@ -460,10 +513,19 @@ export const dbService = {
 
         await deleteDoc(docRef);
 
-        // Remove from offline deletions queue if cloud delete succeeded
-        const delKey = `offline_deletions_${userId}`;
-        const freshDels = getSecureStorage(delKey, []);
-        setSecureStorage(delKey, freshDels.filter((d: any) => !(d.collection === collectionName && d.id === docId)));
+        if (collectionName === 'recycle_bin') {
+          const cleanDocId = docId.replace(/^[a-z_]+_/, '');
+          if (cleanDocId !== docId) {
+            try { await deleteDoc(doc(db, 'recycle_bin', cleanDocId)); } catch (_) {}
+          }
+        }
+
+        // For non-recycle_bin collections, remove from deletions queue if cloud delete succeeded
+        if (collectionName !== 'recycle_bin') {
+          const delKey = `offline_deletions_${userId}`;
+          const freshDels = getSecureStorage(delKey, []);
+          setSecureStorage(delKey, freshDels.filter((d: any) => !(d.collection === collectionName && d.id === docId)));
+        }
       } catch (cloudErr: any) {
         console.warn(`[dbService] Cloud delete deferred for ${collectionName}/${docId} (${cloudErr?.message || cloudErr}).`);
       }

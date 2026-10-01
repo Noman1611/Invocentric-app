@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, getDocs, query, collection, where } from 'firebase/firestore';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { getSecureStorage } from '../utils/cryptoUtils';
 import { formatCurrency, cn, normalizePhoneNumber } from '../lib/utils';
@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { WhatsAppShareModal } from '../components/WhatsAppShareModal';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
 import { dbService } from '../services/dbService';
+import { localDbEngine } from '../services/localDbEngine';
 import { getStoredUserProfile, mergeProfileData } from '../utils/settingsStorage';
 
 const safeToWords = (value: number, currency: string = 'INR'): string => {
@@ -143,30 +144,82 @@ export default function InvoiceViewPage() {
   }, [pageSize]);
 
   useEffect(() => {
-    async function fetchData() {
+    let isMounted = true;
+
+    async function loadInvoiceData(showLoader: boolean = true) {
       if (!id) return;
-      setLoading(true);
-      try {
-        const upserts = getSecureStorage('offline_queue_upserts', []);
-        const localInvoices = getSecureStorage(`offline_invoices_${user?.uid || 'guest'}`, []);
-        let invData: any = null;
-        
-        // 1. Check offline queue
-        const qi = upserts.find((u: any) => u.collection === 'invoices' && u.item.id === id);
-        if (qi) invData = qi.item;
-        
-        // 2. Check local storage
-        if (!invData) invData = localInvoices.find((i: any) => i.id === id);
-        
-        // 3. Check Firestore
-        if (!invData) {
+      if (showLoader) setLoading(true);
+
+      const cleanId = decodeURIComponent(id).trim();
+
+      const findInvoiceAcrossSources = async () => {
+        // 1. Check all offline upsert queues (both user-scoped and global)
+        const allUpsertKeys = Object.keys(localStorage).filter(k => k.startsWith('offline_upserts_') || k === 'offline_queue_upserts');
+        for (const uKey of allUpsertKeys) {
           try {
-            const snap = await getDoc(doc(db, 'invoices', id));
-            if (snap.exists()) invData = { id: snap.id, ...snap.data() };
-          } catch (fsErr) {
-            console.warn("Firestore invoice fetch error:", fsErr);
-          }
+            const list = getSecureStorage(uKey, []);
+            const match = list.find((u: any) => u.collection === 'invoices' && (u.item?.id === cleanId || u.item?.invoice_number === cleanId));
+            if (match?.item) return match.item;
+          } catch (_) {}
         }
+
+        // 2. Check local invoices storage across user keys and all cached offline_invoices_ keys
+        const candidateUids = [user?.uid, 'guest'].filter(Boolean) as string[];
+        const allInvKeys = Array.from(new Set([
+          ...candidateUids.map(uid => `offline_invoices_${uid}`),
+          ...Object.keys(localStorage).filter(k => k.startsWith('offline_invoices_'))
+        ]));
+        for (const iKey of allInvKeys) {
+          try {
+            const list = getSecureStorage(iKey, []);
+            const match = list.find((i: any) => i.id === cleanId || i.invoice_number === cleanId);
+            if (match) return match;
+          } catch (_) {}
+        }
+
+        // 3. Check localDbEngine
+        try {
+          const localList = await localDbEngine.getCollection('invoices');
+          const match = localList.find((i: any) => i.id === cleanId || i.invoice_number === cleanId);
+          if (match) return match;
+        } catch (_) {}
+
+        // 4. Check Firestore by doc id and invoice_number
+        try {
+          const snap = await getDoc(doc(db, 'invoices', cleanId));
+          if (snap.exists()) {
+            return { id: snap.id, ...snap.data() };
+          }
+          const qConstraints: any[] = [where('invoice_number', '==', cleanId)];
+          if (user?.uid) {
+            qConstraints.push(where('user_id', '==', user.uid));
+          }
+          const qSnap = await getDocs(query(collection(db, 'invoices'), ...qConstraints));
+          if (!qSnap.empty) {
+            const first = qSnap.docs[0];
+            return { id: first.id, ...first.data() };
+          }
+        } catch (fsErr) {
+          console.warn("Firestore invoice fetch error:", fsErr);
+        }
+
+        return null;
+      };
+
+      try {
+        let invData = await findInvoiceAcrossSources();
+
+        // If not found immediately (e.g. navigation race right after creation), retry with backoff
+        if (!invData && isMounted) {
+          await new Promise(r => setTimeout(r, 400));
+          invData = await findInvoiceAcrossSources();
+        }
+        if (!invData && isMounted) {
+          await new Promise(r => setTimeout(r, 800));
+          invData = await findInvoiceAcrossSources();
+        }
+
+        if (!isMounted) return;
 
         if (invData) {
           setInvoice(invData);
@@ -174,19 +227,28 @@ export default function InvoiceViewPage() {
           // Fetch Customer details if present
           if (invData.customer_id) {
             let cust: any = null;
-            const qc = upserts.find((u: any) => u.collection === 'customers' && u.item.id === invData.customer_id);
-            if (qc) cust = qc.item;
-            if (!cust) cust = getSecureStorage(`offline_customers_${user?.uid || 'guest'}`, []).find((c: any) => c.id === invData.customer_id);
+            const upsertKeys = Object.keys(localStorage).filter(k => k.startsWith('offline_upserts_'));
+            for (const k of upsertKeys) {
+              const list = getSecureStorage(k, []);
+              const qc = list.find((u: any) => u.collection === 'customers' && u.item?.id === invData.customer_id);
+              if (qc?.item) { cust = qc.item; break; }
+            }
+            if (!cust) {
+              const custKeys = Object.keys(localStorage).filter(k => k.startsWith('offline_customers_'));
+              for (const k of custKeys) {
+                const list = getSecureStorage(k, []);
+                const found = list.find((c: any) => c.id === invData.customer_id);
+                if (found) { cust = found; break; }
+              }
+            }
             if (!cust) {
               try { const s = await getDoc(doc(db, 'customers', invData.customer_id)); if (s.exists()) cust = { id: s.id, ...s.data() }; } catch (_) {}
             }
-            if (cust) setCustomer(cust);
+            if (cust && isMounted) setCustomer(cust);
           }
 
           // Robust multi-layer Fetch for Seller / Business details
           let mergedSeller: any = {};
-          
-          // Specific profile keys for invData.user_id, user?.uid, or 'guest'
           const candidateUids = [invData.user_id, user?.uid, 'guest'].filter(Boolean) as string[];
           for (const uid of candidateUids) {
             try {
@@ -207,7 +269,6 @@ export default function InvoiceViewPage() {
             } catch (_) {}
           }
 
-          // Layer 3: Firestore users document if online
           if (navigator.onLine && !isOfflineMode) {
             for (const uid of candidateUids) {
               try {
@@ -219,7 +280,6 @@ export default function InvoiceViewPage() {
             }
           }
 
-          // Layer 4: Snapshot from invoice itself if available
           if (invData.seller_info && typeof invData.seller_info === 'object') {
             mergedSeller = mergeProfileData(mergedSeller, invData.seller_info);
           }
@@ -232,15 +292,28 @@ export default function InvoiceViewPage() {
             if (!mergedSeller.email) mergedSeller.email = user.email || '';
           }
 
-          setSellerInfo(mergedSeller);
+          if (isMounted) setSellerInfo(mergedSeller);
         }
       } catch (err) { 
         console.error("Error loading invoice:", err);
       } finally { 
-        setLoading(false); 
+        if (isMounted) setLoading(false); 
       }
     }
-    fetchData();
+
+    loadInvoiceData(true);
+
+    const handleDataEvent = () => loadInvoiceData(false);
+    window.addEventListener('invoices_updated', handleDataEvent);
+    window.addEventListener('invocentric_data_updated', handleDataEvent);
+    window.addEventListener('storage', handleDataEvent);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('invoices_updated', handleDataEvent);
+      window.removeEventListener('invocentric_data_updated', handleDataEvent);
+      window.removeEventListener('storage', handleDataEvent);
+    };
   }, [id, user, isOfflineMode]);
 
   // Letterhead State & Alignment Sliders
@@ -628,8 +701,7 @@ export default function InvoiceViewPage() {
         pdf.save(pdfFilename);
       }
     } catch (e) {
-      console.error("PDF generation fallback:", e);
-      handlePrint();
+      console.error("PDF generation error:", e);
     } finally {
       setDownloading(false);
     }
@@ -638,10 +710,15 @@ export default function InvoiceViewPage() {
   const handleShare = async () => {
     const invNum = invoice?.invoice_number || invoice?.id?.slice(0, 8)?.toUpperCase();
     const custName = customer?.name || invoice?.customer_name || 'Customer';
-    const shareText = `Dear ${custName}, here is your invoice #${invNum} of ${fc(grandTotal, cur)} from ${sellerInfo?.business_name || 'our store'}. Thank you for your business!`;
+    const totalAmount = grandTotal || invoice?.amount || 0;
+    const shareText = `Dear ${custName}, here is your invoice #${invNum} of ${fc(totalAmount, cur)} from ${sellerInfo?.business_name || 'our store'}. Thank you for your business!`;
+
+    const rawPhone = customer?.phone || invoice?.customer_phone || '';
+    const cp = normalizePhoneNumber(rawPhone);
 
     // 1. If running inside Android APK and native share is available, share PDF directly
-    if ((window as any).AndroidFileManager && typeof (window as any).AndroidFileManager.shareFile === 'function') {
+    const androidManager = (window as any).AndroidFileManager;
+    if (androidManager && (typeof androidManager.shareToWhatsApp === 'function' || typeof androidManager.shareFile === 'function')) {
       try {
         const { toPng } = await import('html-to-image');
         const { jsPDF } = await import('jspdf');
@@ -670,17 +747,21 @@ export default function InvoiceViewPage() {
           const dataUri = pdf.output('datauristring');
           const base64Data = dataUri.includes(',') ? dataUri.split(',')[1] : dataUri;
           const pdfFilename = `Invoice_${invoice?.invoice_number || invoice?.id?.slice(0, 8) || 'doc'}.pdf`;
-          (window as any).AndroidFileManager.shareFile(base64Data, pdfFilename, 'application/pdf', shareText);
-          return;
+
+          if (typeof androidManager.shareToWhatsApp === 'function') {
+            androidManager.shareToWhatsApp(base64Data, pdfFilename, cp, shareText);
+            return;
+          } else {
+            androidManager.shareFile(base64Data, pdfFilename, 'application/pdf', shareText);
+            return;
+          }
         }
       } catch (err) {
-        console.warn('Native Android share attempt failed, falling back to WhatsApp modal:', err);
+        console.warn('Native Android WhatsApp share attempt failed, falling back to WhatsApp modal:', err);
       }
     }
 
     // 2. Prepare WhatsApp links & show modal
-    const rawPhone = customer?.phone || invoice?.customer_phone || '';
-    const cp = normalizePhoneNumber(rawPhone);
     const enc = encodeURIComponent(shareText);
     setWhatsAppUrlState(`https://wa.me/${cp}?text=${enc}`);
     setWhatsAppWebUrlState(`https://web.whatsapp.com/send?phone=${cp}&text=${enc}`);
@@ -711,11 +792,6 @@ export default function InvoiceViewPage() {
         setCopiedToClipboard(true);
       } catch (_) {}
     }
-
-    // 4. Auto download PDF in background
-    try {
-      await handleDownloadPdf();
-    } catch (_) {}
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center gap-3"><Loader2 className="w-8 h-8 text-green-600 animate-spin" /><span className="text-sm font-semibold text-slate-600">Loading invoice…</span></div>;
