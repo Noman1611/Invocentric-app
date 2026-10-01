@@ -223,19 +223,17 @@ export default function StatementPage() {
 
     setIsSubmittingCustomer(true);
     try {
-      await updateDoc(doc(db, "customers", id), {
+      await dbService.update("customers", id, {
         name: customerFormData.name,
         company_name: customerFormData.company_name,
         gst_number: customerFormData.gst_number,
         email: customerFormData.email,
         phone: customerFormData.phone,
         address: customerFormData.address,
-        updated_at: serverTimestamp(),
-      });
+      }, { offlineMode: isOfflineMode, userId: user.uid });
       setShowEditModal(false);
     } catch (error) {
       console.error("Error updating customer:", error);
-      handleFirestoreError(error, OperationType.UPDATE, `customers/${id}`);
     } finally {
       setIsSubmittingCustomer(false);
     }

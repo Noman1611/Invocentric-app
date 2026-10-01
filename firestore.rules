@@ -86,15 +86,14 @@ service cloud.firestore {
       function isValidInvoice(data) {
         let amount = data.get('amount', data.get('total', 0));
         return (data.get('invoice_number', null) == null || data.invoice_number is string) &&
-               data.items is list && data.items.size() <= 100 &&
+               data.items is list && data.items.size() <= 500 &&
                amount is number && amount >= 0;
       }
 
       allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
       allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
       allow create: if isSignedIn() && 
-                    isValidEntity(incoming()) && isValidInvoice(incoming()) &&
-                    (incoming().get('customer_id', null) == null || exists(/databases/$(database)/documents/customers/$(incoming().customer_id)));
+                    isValidEntity(incoming()) && isValidInvoice(incoming());
       allow update: if (isOwner(existing().get('user_id', null)) || isAdmin()) &&
                     incoming().get('user_id', existing().get('user_id', request.auth.uid)) == existing().get('user_id', request.auth.uid) &&
                     isValidInvoice(incoming());
@@ -105,8 +104,7 @@ service cloud.firestore {
     match /payments/{paymentId} {
       allow get: if isOwner(existing().get('user_id', null)) || isAdmin();
       allow list: if isSignedIn() && (resource.data.get('user_id', null) == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && isValidEntity(incoming()) &&
-                    (incoming().get('customer_id', null) == null || exists(/databases/$(database)/documents/customers/$(incoming().customer_id)));
+      allow create: if isSignedIn() && isValidEntity(incoming());
       allow update: if isOwner(existing().get('user_id', null)) || isAdmin();
       allow delete: if isOwner(existing().get('user_id', null)) || isAdmin();
     }
@@ -210,7 +208,10 @@ service cloud.firestore {
     }
     // Collection: Mobile Auth Handshake Sessions (Chrome OAuth to APK bridge)
     match /app_auth_sessions/{sessionId} {
-      allow read, create, update, delete: if true;
+      allow get: if true;
+      allow list: if false;
+      allow create, update, delete: if isValidId(sessionId);
     }
   }
 }
+

@@ -84,7 +84,7 @@ interface CartItem {
 
 export default function QuickPOSPage() {
   const navigate = useNavigate();
-  const { user, appMode, isPro, triggerUpgradeModal } = useAuth();
+  const { user, appMode, isPro, triggerUpgradeModal, isOfflineMode } = useAuth();
   const { items } = useItems();
   const { customers } = useCustomers();
   const { invoices: existingInvoices } = useInvoices();
@@ -569,7 +569,7 @@ export default function QuickPOSPage() {
         items: invoiceItems,
       };
 
-      const res = await dbService.add('invoices', invoiceData, { offlineMode: false, userId: user.uid });
+      const res = await dbService.add('invoices', invoiceData, { offlineMode: isOfflineMode, userId: user.uid });
       const newInvoiceId = res.id;
 
       // Record payment entry
@@ -582,7 +582,7 @@ export default function QuickPOSPage() {
         note: `POS Invoice #${seqInvoiceNumber} (${paymentMethod.toUpperCase()})`,
         method: paymentMethod,
         invoice_id: res.id,
-      }, { offlineMode: false, userId: user.uid });
+      }, { offlineMode: isOfflineMode, userId: user.uid });
 
       // Auto-deduct stock and remove sold serials
       for (const cartItem of cart) {
@@ -604,7 +604,7 @@ export default function QuickPOSPage() {
               stock: newStock,
               serials: remainingSerials,
               serialNumber: remainingSerials.join(', ')
-            }, { offlineMode: false, userId: user.uid });
+            }, { offlineMode: isOfflineMode, userId: user.uid });
           } catch (err) {
             console.error("Failed to deduct stock/serials for", inventoryItem.name, err);
           }

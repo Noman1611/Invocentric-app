@@ -507,6 +507,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isOfflineMode = Boolean(
+    isOfflineModeState ||
+    isBrowserOffline ||
+    (typeof window !== 'undefined' && (
+      localStorage.getItem('is_offline_mode') === 'true' ||
+      localStorage.getItem('invocentric_storage_mode') === 'local_pc' ||
+      !navigator.onLine
+    ))
+  );
+
   useEffect(() => {
     const handleOnline = () => setIsBrowserOffline(false);
     const handleOffline = () => setIsBrowserOffline(true);
@@ -520,7 +530,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const isOfflineMode = false;
+  // Gate the reconnect sync strictly on the derived offline mode
+  useEffect(() => {
+    if (!isOfflineMode && typeof navigator !== 'undefined' && navigator.onLine && user?.uid) {
+      dbService.syncOfflineData(user.uid).catch(() => {});
+    }
+  }, [isOfflineMode, user?.uid]);
 
   // Plan State & Free Trial Claim Tracking
   const [freeTrialClaimed, setFreeTrialClaimed] = useState<boolean>(false);

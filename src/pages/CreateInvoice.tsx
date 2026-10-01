@@ -16,6 +16,7 @@ import {
   collection,
   getDocs,
   updateDoc,
+  setDoc,
   runTransaction
 } from 'firebase/firestore';
 import { cn } from '../lib/utils';
@@ -418,11 +419,15 @@ export default function CreateInvoicePage() {
       setSecureStorage(`offline_users_${user.uid}`, updatedList);
 
       // 2. Update in Firestore if online
-      if (!isOfflineMode) {
-        const docRef = doc(db, 'users', user.uid);
-        await updateDoc(docRef, {
-          default_terms: currentTerms
-        });
+      if (!isOfflineMode && typeof navigator !== 'undefined' && navigator.onLine) {
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          await setDoc(docRef, {
+            default_terms: currentTerms
+          }, { merge: true });
+        } catch (cloudErr) {
+          console.warn("Could not sync default terms to cloud:", cloudErr);
+        }
       }
 
       setSaveTermsSuccess(true);

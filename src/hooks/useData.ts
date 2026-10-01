@@ -63,19 +63,32 @@ export function useInvoices() {
       return;
     }
 
-    if (isOfflineMode) {
+    const loadLocal = () => {
       const localInvoices = getSecureStorage(`offline_invoices_${user.uid}`, []);
-      const uniqueLocal = localInvoices.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); setInvoices(uniqueLocal);
+      const finalData = mergeOfflineQueue(localInvoices, "invoices", user.uid);
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      setInvoices(uniqueLocal);
       setLoading(false);
-      
-      // Listen for local changes (from other tabs of same browser)
-      const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === `offline_invoices_${user.uid}`) {
-          setInvoices(JSON.parse(e.newValue || '[]'));
-        }
+    };
+
+    const handleLocalEvent = () => loadLocal();
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `offline_invoices_${user.uid}`) {
+        loadLocal();
+      }
+    };
+
+    window.addEventListener('invoices_updated', handleLocalEvent);
+    window.addEventListener('invocentric_data_updated', handleLocalEvent);
+    window.addEventListener('storage', handleStorageChange);
+
+    if (isOfflineMode) {
+      loadLocal();
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('invoices_updated', handleLocalEvent);
+        window.removeEventListener('invocentric_data_updated', handleLocalEvent);
       };
-      window.addEventListener('storage', handleStorageChange);
-      return () => window.removeEventListener('storage', handleStorageChange);
     }
 
     const q = query(
@@ -94,7 +107,8 @@ export function useInvoices() {
         if (d.last_reminded_at?.toDate) d.last_reminded_at = d.last_reminded_at.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      const finalData = mergeOfflineQueue(data, "invoices", user.uid); setInvoices(finalData);
+      const finalData = mergeOfflineQueue(data, "invoices", user.uid); 
+      setInvoices(finalData);
       setSecureStorage(`offline_invoices_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
@@ -103,14 +117,15 @@ export function useInvoices() {
       } catch (err) {
         console.error("Error fetching invoices (handled):", err);
       }
-      // Quota/network fallback
-      const localInvoices = getSecureStorage(`offline_invoices_${user.uid}`, []);
-      const uniqueLocal = localInvoices.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
-      setInvoices(uniqueLocal);
-      setLoading(false);
+      loadLocal();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('invoices_updated', handleLocalEvent);
+      window.removeEventListener('invocentric_data_updated', handleLocalEvent);
+    };
   }, [user, isOfflineMode]);
 
   return { invoices, loading };
@@ -145,18 +160,30 @@ export function useCustomers() {
       return;
     }
 
+    const loadLocal = () => {
+      const local = getSecureStorage(`offline_customers_${user.uid}`, []);
+      const finalData = mergeOfflineQueue(local, "customers", user.uid);
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      setCustomers(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
+      setLoading(false);
+    };
+
+    const handleLocalEvent = () => loadLocal();
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === `offline_customers_${user.uid}`) loadLocal();
+    };
+
+    window.addEventListener('customers_updated', handleLocalEvent);
+    window.addEventListener('invocentric_data_updated', handleLocalEvent);
+    window.addEventListener('storage', handleStorage);
+
     if (isOfflineMode) {
-      const loadLocal = () => {
-        const local = getSecureStorage(`offline_customers_${user.uid}`, []);
-        const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); setCustomers(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
-        setLoading(false);
-      };
       loadLocal();
-      const handleStorage = (e: StorageEvent) => {
-        if (e.key === `offline_customers_${user.uid}`) loadLocal();
+      return () => {
+        window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('customers_updated', handleLocalEvent);
+        window.removeEventListener('invocentric_data_updated', handleLocalEvent);
       };
-      window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
     }
 
     const q = query(
@@ -173,7 +200,8 @@ export function useCustomers() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      const finalData = mergeOfflineQueue(data, "customers", user.uid); setCustomers(finalData);
+      const finalData = mergeOfflineQueue(data, "customers", user.uid); 
+      setCustomers(finalData);
       setSecureStorage(`offline_customers_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
@@ -182,14 +210,15 @@ export function useCustomers() {
       } catch (err) {
         console.error("Error fetching customers (handled):", err);
       }
-      // Quota/network fallback
-      const local = getSecureStorage(`offline_customers_${user.uid}`, []);
-      const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
-      setCustomers(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
-      setLoading(false);
+      loadLocal();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('customers_updated', handleLocalEvent);
+      window.removeEventListener('invocentric_data_updated', handleLocalEvent);
+    };
   }, [user, isOfflineMode]);
 
   return { customers, loading };
@@ -224,18 +253,30 @@ export function useItems() {
       return;
     }
 
+    const loadLocal = () => {
+      const local = getSecureStorage(`offline_items_${user.uid}`, []);
+      const finalData = mergeOfflineQueue(local, "items", user.uid);
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      setItems(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
+      setLoading(false);
+    };
+
+    const handleLocalEvent = () => loadLocal();
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === `offline_items_${user.uid}`) loadLocal();
+    };
+
+    window.addEventListener('items_updated', handleLocalEvent);
+    window.addEventListener('invocentric_data_updated', handleLocalEvent);
+    window.addEventListener('storage', handleStorage);
+
     if (isOfflineMode) {
-      const loadLocal = () => {
-        const local = getSecureStorage(`offline_items_${user.uid}`, []);
-        const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); setItems(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
-        setLoading(false);
-      };
       loadLocal();
-      const handleStorage = (e: StorageEvent) => {
-        if (e.key === `offline_items_${user.uid}`) loadLocal();
+      return () => {
+        window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('items_updated', handleLocalEvent);
+        window.removeEventListener('invocentric_data_updated', handleLocalEvent);
       };
-      window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
     }
 
     const q = query(
@@ -252,7 +293,8 @@ export function useItems() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      const finalData = mergeOfflineQueue(data, "items", user.uid); setItems(finalData);
+      const finalData = mergeOfflineQueue(data, "items", user.uid); 
+      setItems(finalData);
       setSecureStorage(`offline_items_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
@@ -261,14 +303,15 @@ export function useItems() {
       } catch (err) {
         console.error("Error fetching items (handled):", err);
       }
-      // Quota/network fallback
-      const local = getSecureStorage(`offline_items_${user.uid}`, []);
-      const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
-      setItems(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
-      setLoading(false);
+      loadLocal();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('items_updated', handleLocalEvent);
+      window.removeEventListener('invocentric_data_updated', handleLocalEvent);
+    };
   }, [user, isOfflineMode]);
 
   return { items, loading };
@@ -286,21 +329,34 @@ export function usePayments(customerId?: string) {
       return;
     }
 
+    const loadLocal = () => {
+      let local = getSecureStorage(`offline_payments_${user.uid}`, []);
+      const finalData = mergeOfflineQueue(local, "payments", user.uid);
+      let list = finalData;
+      if (customerId) {
+        list = list.filter((p: any) => p.customer_id === customerId);
+      }
+      const uniqueLocal = list.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      setPayments(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
+      setLoading(false);
+    };
+
+    const handleLocalEvent = () => loadLocal();
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === `offline_payments_${user.uid}`) loadLocal();
+    };
+
+    window.addEventListener('payments_updated', handleLocalEvent);
+    window.addEventListener('invocentric_data_updated', handleLocalEvent);
+    window.addEventListener('storage', handleStorage);
+
     if (isOfflineMode) {
-      const loadLocal = () => {
-        let local = getSecureStorage(`offline_payments_${user.uid}`, []);
-        if (customerId) {
-          local = local.filter((p: any) => p.customer_id === customerId);
-        }
-        const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); setPayments(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
-        setLoading(false);
-      };
       loadLocal();
-      const handleStorage = (e: StorageEvent) => {
-        if (e.key === `offline_payments_${user.uid}`) loadLocal();
+      return () => {
+        window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('payments_updated', handleLocalEvent);
+        window.removeEventListener('invocentric_data_updated', handleLocalEvent);
       };
-      window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
     }
 
     let q = query(
@@ -321,7 +377,8 @@ export function usePayments(customerId?: string) {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      const finalData = mergeOfflineQueue(data, "payments", user.uid); setPayments(finalData);
+      const finalData = mergeOfflineQueue(data, "payments", user.uid); 
+      setPayments(finalData);
       if (!customerId) {
         setSecureStorage(`offline_payments_${user.uid}`, finalData);
       }
@@ -332,17 +389,15 @@ export function usePayments(customerId?: string) {
       } catch (err) {
         console.error("Error fetching payments (handled):", err);
       }
-      // Quota/network fallback
-      let local = getSecureStorage(`offline_payments_${user.uid}`, []);
-      if (customerId) {
-        local = local.filter((p: any) => p.customer_id === customerId);
-      }
-      const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
-      setPayments(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
-      setLoading(false);
+      loadLocal();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('payments_updated', handleLocalEvent);
+      window.removeEventListener('invocentric_data_updated', handleLocalEvent);
+    };
   }, [user, customerId, isOfflineMode]);
 
   return { payments, loading };
@@ -360,18 +415,30 @@ export function useExpenses() {
       return;
     }
 
+    const loadLocal = () => {
+      const local = getSecureStorage(`offline_expenses_${user.uid}`, []);
+      const finalData = mergeOfflineQueue(local, "expenses", user.uid);
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      setExpenses(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
+      setLoading(false);
+    };
+
+    const handleLocalEvent = () => loadLocal();
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === `offline_expenses_${user.uid}`) loadLocal();
+    };
+
+    window.addEventListener('expenses_updated', handleLocalEvent);
+    window.addEventListener('invocentric_data_updated', handleLocalEvent);
+    window.addEventListener('storage', handleStorage);
+
     if (isOfflineMode) {
-      const loadLocal = () => {
-        const local = getSecureStorage(`offline_expenses_${user.uid}`, []);
-        const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); setExpenses(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
-        setLoading(false);
-      };
       loadLocal();
-      const handleStorage = (e: StorageEvent) => {
-        if (e.key === `offline_expenses_${user.uid}`) loadLocal();
+      return () => {
+        window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('expenses_updated', handleLocalEvent);
+        window.removeEventListener('invocentric_data_updated', handleLocalEvent);
       };
-      window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
     }
 
     const q = query(
@@ -388,7 +455,8 @@ export function useExpenses() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      const finalData = mergeOfflineQueue(data, "expenses", user.uid); setExpenses(finalData);
+      const finalData = mergeOfflineQueue(data, "expenses", user.uid); 
+      setExpenses(finalData);
       setSecureStorage(`offline_expenses_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
@@ -397,14 +465,15 @@ export function useExpenses() {
       } catch (err) {
         console.error("Error fetching expenses (handled):", err);
       }
-      // Quota/network fallback
-      const local = getSecureStorage(`offline_expenses_${user.uid}`, []);
-      const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
-      setExpenses(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
-      setLoading(false);
+      loadLocal();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('expenses_updated', handleLocalEvent);
+      window.removeEventListener('invocentric_data_updated', handleLocalEvent);
+    };
   }, [user, isOfflineMode]);
 
   return { expenses, loading };
@@ -422,18 +491,30 @@ export function usePurchases() {
       return;
     }
 
+    const loadLocal = () => {
+      const local = getSecureStorage(`offline_purchases_${user.uid}`, []);
+      const finalData = mergeOfflineQueue(local, "purchases", user.uid);
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      setPurchases(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
+      setLoading(false);
+    };
+
+    const handleLocalEvent = () => loadLocal();
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === `offline_purchases_${user.uid}`) loadLocal();
+    };
+
+    window.addEventListener('purchases_updated', handleLocalEvent);
+    window.addEventListener('invocentric_data_updated', handleLocalEvent);
+    window.addEventListener('storage', handleStorage);
+
     if (isOfflineMode) {
-      const loadLocal = () => {
-        const local = getSecureStorage(`offline_purchases_${user.uid}`, []);
-        const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); setPurchases(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
-        setLoading(false);
-      };
       loadLocal();
-      const handleStorage = (e: StorageEvent) => {
-        if (e.key === `offline_purchases_${user.uid}`) loadLocal();
+      return () => {
+        window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('purchases_updated', handleLocalEvent);
+        window.removeEventListener('invocentric_data_updated', handleLocalEvent);
       };
-      window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
     }
 
     const q = query(
@@ -450,7 +531,8 @@ export function usePurchases() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      const finalData = mergeOfflineQueue(data, "purchases", user.uid); setPurchases(finalData);
+      const finalData = mergeOfflineQueue(data, "purchases", user.uid); 
+      setPurchases(finalData);
       setSecureStorage(`offline_purchases_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
@@ -459,14 +541,15 @@ export function usePurchases() {
       } catch (err) {
         console.error("Error fetching purchases (handled):", err);
       }
-      // Quota/network fallback
-      const local = getSecureStorage(`offline_purchases_${user.uid}`, []);
-      const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
-      setPurchases(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
-      setLoading(false);
+      loadLocal();
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('purchases_updated', handleLocalEvent);
+      window.removeEventListener('invocentric_data_updated', handleLocalEvent);
+    };
   }, [user, isOfflineMode]);
 
   return { purchases, loading };
@@ -570,17 +653,20 @@ export function useSettings() {
       const merged = saveStoredUserProfile(user.uid, newData);
       setSettings((prev: any) => ({ ...(prev || {}), ...merged }));
 
-      if (!isOfflineMode && navigator.onLine) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const cleanPayload = sanitizeFirestorePayload({
-          ...newData,
-          updated_at: serverTimestamp()
-        });
-        await setDoc(userDocRef, cleanPayload, { merge: true });
+      if (!isOfflineMode && typeof navigator !== 'undefined' && navigator.onLine) {
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const cleanPayload = sanitizeFirestorePayload({
+            ...newData,
+            updated_at: serverTimestamp()
+          });
+          await setDoc(userDocRef, cleanPayload, { merge: true });
+        } catch (cloudErr) {
+          console.warn("Could not sync settings to cloud (saved locally):", cloudErr);
+        }
       }
     } catch (error) {
       console.error("Error updating settings:", error);
-      throw error;
     }
   };
 

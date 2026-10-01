@@ -191,16 +191,15 @@ export default function PricingPage() {
             await dbService.add('subscription_requests', requestData, { offlineMode: isOfflineMode, userId: user.uid });
           }
 
-          // Update user profile in Firestore to pending
-          const userDocRef = doc(db, 'users', user.uid);
-          await updateDoc(userDocRef, {
+          // Update user profile to pending
+          await dbService.update('users', user.uid, {
             subscription_pending: true,
             subscription_status: 'pending',
             subscription_request_ref: upiId,
             subscription_request_cycle: billingCycle,
             subscription_request_amount: currentPrice,
             subscription_request_date: new Date().toISOString()
-          });
+          }, { offlineMode: isOfflineMode, userId: user.uid });
 
           // Add a notification that subscription verification is initiated
           await dbService.add('notifications', {

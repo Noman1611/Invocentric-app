@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit Configuration for Invocentric (GST Invoicing & Billing App)
+
+language: "en-US"
+early_access: false
+tone_instructions: "Provide concise, practical, and highly accurate engineering reviews. Prioritize critical bugs, data loss prevention, concurrency/race conditions, and security."
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+      - "master"
+
+  path_filters:
+    - "!dist/**"
+    - "!build/**"
+    - "!node_modules/**"
+    - "!android/**"
+    - "!public/**"
+    - "!coverage/**"
+    - "!*.min.js"
+    - "!*.min.css"
+    - "!package-lock.json"
+
+  path_instructions:
+    # 1. Database & Offline Sync Architecture
+    - path: "src/services/dbService.ts"
+      instructions: |
+        - Invocentric is an Offline-First application supporting Indian GST Billing & POS.
+        - Ensure offline queues (`offline_upserts_${userId}`, `offline_deletions_${userId}`) are never overwritten by stale snapshots during async sync operations (prevent write race conditions).
+        - Verify that local-only storage modes (`local_pc` or `is_offline_mode`) strictly prevent cloud synchronization and remote writes.
+        - Verify that `created_at` and `updated_at` properties always write uniform Firestore `Timestamp` instances to prevent indexing / `orderBy` mismatches.
+        - Ensure recycle bin clearing completely purges queued items across all offline queues.
+
+    # 2. Authentication & Network Reconnection
+    - path: "src/contexts/AuthContext.tsx"
+      instructions: |
+        - Verify that reconnection auto-sync is strictly gated on the user not being in an active offline/local storage mode.
+        - Ensure user session state transitions and storage fallbacks preserve credentials cleanly.
+
+    # 3. Firestore Security Rules
+    - path: "firestore.rules"
+      instructions: |
+        - Enforce multi-tenant data isolation: all reads and writes must be strictly validated against `request.auth.uid == resource.data.user_id`.
+        - Ensure public collections (e.g. auth bridge sessions) allow explicit ID `get` operations but forbid wide `list` queries.
+
+    # 4. Invoicing, POS & Indian GST Business Logic
+    - path: "src/pages/**"
+      instructions: |
+        - Verify Indian GST tax calculations (CGST 50% + SGST 50% for intra-state, IGST 100% for inter-state).
+        - Verify that discounts and sales returns never cause negative invoice balance due amounts.
+        - Ensure responsive layout resilience across screen widths from 320px (mobile) to 1440px (desktop).
+        - Check that inventory stock deduction handles zero, fractional, and batch quantities accurately.
+
+    # 5. Data Custom Hooks
+    - path: "src/hooks/**"
+      instructions: |
+        - Verify IndexedDB / LocalStorage fallbacks return consistent array structures even when offline.
+        - Check that real-time Firestore subscriptions unsubscribe properly on unmount.
