@@ -29,11 +29,11 @@ function mergeOfflineQueue(data: any[], collectionName: string, userId: string) 
   });
   
   const deletions = getSecureStorage(`offline_deletions_${userId}`, []);
-  const collectionDeletions = deletions.filter((d: any) => d.collection === collectionName).map((d: any) => d.id);
+  const collectionDeletions = deletions.filter((d: any) => d.collection === collectionName);
   
   return mergedData.filter(d => {
     if (!d) return false;
-    if (collectionDeletions.includes(d.id)) return false;
+    if (collectionDeletions.some((del: any) => (typeof del === 'string' ? del : del.id) === d.id)) return false;
     if (collectionName === 'recycle_bin') {
       const knownPrefixRegex = /^(invoices|customers|items|payments|expenses|purchases|quotations)_/;
       const matchD = (d.id || '').match(knownPrefixRegex);
@@ -41,16 +41,31 @@ function mergeOfflineQueue(data: any[], collectionName: string, userId: string) 
       const cleanId = matchD ? (d.id || '').slice(matchD[0].length) : (d.id || '');
       const colD = d.original_collection || d._original_collection || prefixD;
 
-      if (collectionDeletions.some((delId: string) => {
+      if (collectionDeletions.some((del: any) => {
+        const delId = typeof del === 'string' ? del : del.id;
+        if (!delId) return false;
         if (delId === d.id) return true;
         const matchDel = delId.match(knownPrefixRegex);
         const prefixDel = matchDel ? matchDel[1] : null;
         const cleanDelId = matchDel ? delId.slice(matchDel[0].length) : delId;
-        const colDel = prefixDel;
+        const colDel = (typeof del === 'object' && del.original_collection) ? del.original_collection : prefixDel;
+
+        // Prevent aliases from matching or deleting records from another collection
         if (colDel && colD && colDel !== colD) return false;
-        if (cleanDelId === cleanId) return true;
-        if (d.original_id && (delId === d.original_id || cleanDelId === d.original_id)) return true;
-        if (d._original_id && (delId === d._original_id || cleanDelId === d._original_id)) return true;
+
+        if (cleanDelId === cleanId) {
+          if (colDel && colD && colDel !== colD) return false;
+          if (!colDel && !colD) return true;
+          return colDel === colD;
+        }
+        if (d.original_id && (delId === d.original_id || cleanDelId === d.original_id)) {
+          if (colDel && colD && colDel !== colD) return false;
+          return true;
+        }
+        if (d._original_id && (delId === d._original_id || cleanDelId === d._original_id)) {
+          if (colDel && colD && colDel !== colD) return false;
+          return true;
+        }
         return false;
       })) {
         return false;

@@ -158,10 +158,16 @@ function removeFromLocalCache(collectionName: string, userId: string, docId: str
     const dels = getSecureStorage(delKey, []);
     const matchDocPrefix = docId.match(knownPrefixRegex);
     const cleanDocId = matchDocPrefix ? docId.slice(matchDocPrefix[0].length) : docId;
-    const idsToQueue = (collectionName === 'recycle_bin' && cleanDocId !== docId) ? [docId, cleanDocId] : [docId];
+    const origCol = target?.original_collection || (matchDocPrefix ? matchDocPrefix[1] : undefined);
+    const hasLegacyMatch = Boolean(origCol && (target?.original_id === cleanDocId || matchDocPrefix?.[1] === origCol));
+    const idsToQueue = (collectionName === 'recycle_bin' && cleanDocId !== docId && hasLegacyMatch) ? [docId, cleanDocId] : [docId];
     for (const dId of idsToQueue) {
-      if (dId && !dels.some((d: any) => d.collection === collectionName && d.id === dId)) {
-        dels.push({ collection: collectionName, id: dId });
+      if (dId && !dels.some((d: any) => d.collection === collectionName && d.id === dId && (!origCol || d.original_collection === origCol))) {
+        dels.push({ 
+          collection: collectionName, 
+          id: dId,
+          ...(origCol ? { original_collection: origCol } : {})
+        });
       }
     }
     setSecureStorage(delKey, dels);
@@ -514,7 +520,8 @@ export const dbService = {
         await deleteDoc(docRef);
 
         if (collectionName === 'recycle_bin') {
-          const cleanDocId = docId.replace(/^[a-z_]+_/, '');
+          const matchPrefix = docId.match(knownPrefixRegex);
+          const cleanDocId = matchPrefix ? docId.slice(matchPrefix[0].length) : docId;
           if (cleanDocId !== docId) {
             try { await deleteDoc(doc(db, 'recycle_bin', cleanDocId)); } catch (_) {}
           }

@@ -156,6 +156,31 @@ var require_whatsappAutomation = __commonJS({
         try {
           const currentUrl = this.window.webContents.getURL() || "";
           if (currentUrl.includes("web.whatsapp.com")) {
+            const navPromise = new Promise((resolveNav) => {
+              let resolved = false;
+              let timer = null;
+              const cleanup = () => {
+                if (!resolved) {
+                  resolved = true;
+                  if (timer) clearTimeout(timer);
+                  try {
+                    this.window.webContents.removeListener("did-navigate-in-page", onNavigateInPage);
+                    this.window.webContents.removeListener("did-finish-load", onFinishLoad);
+                  } catch (_) {
+                  }
+                  resolveNav();
+                }
+              };
+              const onNavigateInPage = (event, url) => {
+                if (url && (url.includes(cleanPhone) || url.includes("web.whatsapp.com"))) {
+                  cleanup();
+                }
+              };
+              const onFinishLoad = () => cleanup();
+              this.window.webContents.on("did-navigate-in-page", onNavigateInPage);
+              this.window.webContents.on("did-finish-load", onFinishLoad);
+              timer = setTimeout(cleanup, 3500);
+            });
             await this.window.webContents.executeJavaScript(`
           (function() {
             try {
@@ -171,6 +196,7 @@ var require_whatsappAutomation = __commonJS({
           })()
         `).catch(() => {
             });
+            await navPromise;
           } else {
             await this.window.loadURL(sendUrl);
           }
@@ -215,18 +241,26 @@ var require_whatsappAutomation = __commonJS({
         const checkBtn = setInterval(async () => {
           attempts++;
 
-          // 1. Check if invalid phone number popup appeared
+          // 1. Check if invalid phone number popup appeared (specific error phrases only)
           const invalidPopup = document.querySelector('[data-testid="popup-contents"], [data-animate-modal-body="true"], div[role="dialog"]');
           if (invalidPopup) {
             const popupText = (invalidPopup.innerText || '').toLowerCase();
-            if (
-              popupText.includes('invalid') ||
+            const isInvalidPhone = 
               popupText.includes('phone number shared via url is invalid') ||
+              popupText.includes('url is invalid') ||
               popupText.includes('not on whatsapp') ||
-              popupText.includes('\u0905\u092E\u093E\u0928\u094D\u092F')
-            ) {
+              popupText.includes('invalid phone number') ||
+              popupText.includes('\u0905\u092E\u093E\u0928\u094D\u092F \u092B\u093C\u094B\u0928 \u0928\u0902\u092C\u0930') ||
+              popupText.includes('\u0905\u092E\u093E\u0928\u094D\u092F \u092B\u094B\u0928 \u0928\u0902\u092C\u0930');
+
+            if (isInvalidPhone) {
               clearInterval(checkBtn);
-              const okBtn = invalidPopup.querySelector('button');
+              const buttons = Array.from(invalidPopup.querySelectorAll('button'));
+              const okBtn = buttons.find(b => {
+                const txt = (b.innerText || b.textContent || '').trim().toLowerCase();
+                const aria = (b.getAttribute('aria-label') || '').trim().toLowerCase();
+                return /^(ok|okay|got it|dismiss|\u0920\u0940\u0915 \u0939\u0948)$/i.test(txt) || /^(ok|okay|got it|dismiss)$/i.test(aria);
+              });
               if (okBtn) okBtn.click();
               resolve({ success: false, error: 'Phone number is invalid or not registered on WhatsApp' });
               return;
@@ -250,8 +284,19 @@ var require_whatsappAutomation = __commonJS({
             return;
           }
 
-          // 4. Fallback: If composer has text loaded, dispatch Enter key
+          // 4. Fallback: If composer has text loaded, dispatch Enter key; if Enter emptied composer, resolve success
           const composer = findComposer();
+          if (attemptedEnter && composer) {
+            const remainingText = (composer.innerText || composer.textContent || '').trim();
+            if (remainingText.length === 0) {
+              clearInterval(checkBtn);
+              setTimeout(() => {
+                resolve({ success: true });
+              }, 2000);
+              return;
+            }
+          }
+
           if (composer && (composer.innerText || composer.textContent || '').trim().length > 0) {
             if (!attemptedEnter || attempts % 4 === 0) {
               attemptedEnter = true;
@@ -277,8 +322,8 @@ var require_whatsappAutomation = __commonJS({
             }
           }
 
-          // 5. If 20 seconds passed and still no chat, trigger direct URL set once
-          if (attempts === 40) {
+          // 5. Restrict attempts === 40 URL fallback: cannot reload after an Enter attempt or once composer is present
+          if (attempts === 40 && !attemptedEnter && !findComposer()) {
             try {
               if (!window.location.href.includes(${JSON.stringify(cleanPhone)})) {
                 window.location.href = ${JSON.stringify(sendUrl)};

@@ -74,10 +74,12 @@ export default function CreateInvoicePage() {
   const isEditMode = Boolean(targetInvoiceId);
   const originalCreatedAtRef = useRef<string | null>(null);
   const loadedInvoiceIdRef = useRef<string | null>(null);
+  const loadedFromFallbackRef = useRef<boolean>(false);
+  const originalItemsRef = useRef<any[]>([]);
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { customers } = useCustomers();
   const { items: inventoryItems } = useItems();
-  const { invoices: existingInvoices } = useInvoices();
+  const { invoices: existingInvoices, loading: invoicesLoading } = useInvoices();
   const { settings: sellerSettings } = useSettings();
   
   const industryModules = sellerSettings?.industry_modules || {};
@@ -682,62 +684,82 @@ export default function CreateInvoicePage() {
     async function fetchInvoice() {
       if (!targetInvoiceId) {
         loadedInvoiceIdRef.current = null;
+        loadedFromFallbackRef.current = false;
+        originalItemsRef.current = [];
         return;
       }
-      if (loadedInvoiceIdRef.current === targetInvoiceId) return;
+      if (!user || invoicesLoading) return;
+
+      if (loadedInvoiceIdRef.current === targetInvoiceId) {
+        // If already loaded from authoritative useInvoices, skip
+        if (!loadedFromFallbackRef.current) return;
+        // If loaded from fallback, check if existingInvoices now has the authoritative record
+        const hookMatch = existingInvoices?.find((inv: any) => inv.id === targetInvoiceId);
+        if (!hookMatch) return;
+      }
+
       setFetching(true);
       try {
         let data: any = null;
+        let isFallback = false;
 
-        // 1. In-memory existingInvoices from hook (immediate hit)
+        // 1. In-memory existingInvoices from hook (immediate hit, current user scoped)
         if (existingInvoices && Array.isArray(existingInvoices)) {
           const match = existingInvoices.find((inv: any) => inv.id === targetInvoiceId);
-          if (match) data = match;
-        }
-
-        // 2. Offline upserts queue
-        if (!data) {
-          const allUpsertKeys = Object.keys(localStorage).filter(k => k.startsWith('offline_upserts_') || k === 'offline_queue_upserts');
-          for (const uKey of allUpsertKeys) {
-            try {
-              const list = getSecureStorage(uKey, []);
-              const queuedInvoice = list.find((u: any) => u.collection === "invoices" && u.item?.id === targetInvoiceId);
-              if (queuedInvoice?.item) { data = queuedInvoice.item; break; }
-            } catch (_) {}
+          if (match) {
+            data = match;
+            isFallback = false;
           }
         }
 
-        // 3. Local storage invoices
-        if (!data) {
-          const candidateUids = [user?.uid, 'guest'].filter(Boolean) as string[];
-          const allInvKeys = Array.from(new Set([
-            ...candidateUids.map(uid => `offline_invoices_${uid}`),
-            ...Object.keys(localStorage).filter(k => k.startsWith('offline_invoices_'))
-          ]));
-          for (const iKey of allInvKeys) {
-            try {
-              const list = getSecureStorage(iKey, []);
-              const match = list.find((inv: any) => inv.id === targetInvoiceId);
-              if (match) { data = match; break; }
-            } catch (_) {}
-          }
-        }
-
-        // 4. localDbEngine
+        // 2. User-scoped offline upserts queue
         if (!data) {
           try {
-            const localList = await localDbEngine.getCollection('invoices');
-            const match = localList.find((inv: any) => inv.id === targetInvoiceId);
-            if (match) data = match;
+            const list = getSecureStorage(`offline_upserts_${user.uid}`, []);
+            const queuedInvoice = list.find((u: any) => u.collection === "invoices" && u.item?.id === targetInvoiceId);
+            if (queuedInvoice?.item) {
+              data = queuedInvoice.item;
+              isFallback = true;
+            }
           } catch (_) {}
         }
 
-        // 5. Cloud Firestore
+        // 3. User-scoped offline invoices storage
+        if (!data) {
+          try {
+            const list = getSecureStorage(`offline_invoices_${user.uid}`, []);
+            const match = list.find((inv: any) => inv.id === targetInvoiceId);
+            if (match) {
+              data = match;
+              isFallback = true;
+            }
+          } catch (_) {}
+        }
+
+        // 4. User-scoped localDbEngine fallback
+        if (!data) {
+          try {
+            const localList = await localDbEngine.getCollection('invoices');
+            const match = localList.find((inv: any) => inv.id === targetInvoiceId && (inv.user_id === user.uid || inv.userId === user.uid));
+            if (match) {
+              data = match;
+              isFallback = true;
+            }
+          } catch (_) {}
+        }
+
+        // 5. Cloud Firestore (scoped to user)
         if (!data && !isOfflineMode) {
           try {
             const docRef = doc(db, "invoices", targetInvoiceId);
             const snap = await getDoc(docRef);
-            if (snap.exists()) data = { id: snap.id, ...snap.data() };
+            if (snap.exists()) {
+              const fsData = { id: snap.id, ...snap.data() };
+              if (!fsData.user_id || fsData.user_id === user.uid) {
+                data = fsData;
+                isFallback = false;
+              }
+            }
           } catch (fsErr) {
             console.warn("Firestore fetch error:", fsErr);
           }
@@ -745,6 +767,8 @@ export default function CreateInvoicePage() {
 
         if (data) {
           loadedInvoiceIdRef.current = targetInvoiceId;
+          loadedFromFallbackRef.current = isFallback;
+          originalItemsRef.current = Array.isArray(data.items) ? JSON.parse(JSON.stringify(data.items)) : [];
           originalCreatedAtRef.current = data.created_at || data.date || null;
           setOriginalStatus(data.status || 'draft');
           const safeInvoiceDate = data.invoice_date || data.date
@@ -962,7 +986,7 @@ export default function CreateInvoicePage() {
         }));
       }
     }
-  }, [targetInvoiceId, user, isOfflineMode, searchParams]);
+  }, [targetInvoiceId, user, invoicesLoading, existingInvoices, isOfflineMode, searchParams]);
 
   // Fetch default terms for new invoices
   useEffect(() => {
@@ -1317,22 +1341,40 @@ export default function CreateInvoicePage() {
     e.preventDefault();
     if (!user) return; 
 
-    // Strict stock check before generating final new invoice (bypassed on draft, quotation, and edit)
-    if (appMode !== 'freelancer' && status !== 'draft' && !targetInvoiceId && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE' && formData.bill_type !== 'PROFORMA') {
+    // Strict stock check before saving invoice (bypassed on draft, quotation, estimate, proforma)
+    if (appMode !== 'freelancer' && status !== 'draft' && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE' && formData.bill_type !== 'PROFORMA') {
       for (const item of formData.items) {
-        if (!item.description || item.quantity <= 0) continue;
-        const inventoryItem = inventoryItems.find(i => i.name.toLowerCase() === item.description.toLowerCase());
-        if (inventoryItem) {
-          const stock = typeof inventoryItem.stock === 'number' ? inventoryItem.stock : 0;
-          if (stock <= 0) {
-            playErrorBeepSound(soundEnabled);
-            alert(`⚠️ INVOICE CANNOT BE CREATED!\n\nItem "${inventoryItem.name}" is OUT OF STOCK (Stock: 0).\n\nPlease remove this item from the invoice or update item stock in inventory.`);
-            return;
-          }
-          if (item.quantity > stock) {
-            playErrorBeepSound(soundEnabled);
-            alert(`⚠️ INVOICE CANNOT BE CREATED!\n\nRequested quantity for "${inventoryItem.name}" (${item.quantity}) exceeds available stock (${stock}).\n\nPlease reduce quantity.`);
-            return;
+        if (!item.description || Number(item.quantity) <= 0) continue;
+        const currentQty = Number(item.quantity) || 0;
+        let origQty = 0;
+        if (targetInvoiceId && originalItemsRef.current.length > 0) {
+          const origMatch = originalItemsRef.current.find(oi => 
+            (oi.description || oi.name || '').trim().toLowerCase() === (item.description || '').trim().toLowerCase() &&
+            (!item.batch_no || (oi.batch_no || '') === (item.batch_no || ''))
+          );
+          origQty = origMatch ? (Number(origMatch.quantity) || 0) : 0;
+        }
+
+        const addedQty = targetInvoiceId ? (currentQty - origQty) : currentQty;
+        // Run availability checks against added quantities only
+        if (addedQty > 0) {
+          const inventoryItem = inventoryItems.find(i => 
+            i.name.trim().toLowerCase() === item.description.trim().toLowerCase() &&
+            (!item.batch_no || (i.batch_no || '') === (item.batch_no || ''))
+          ) || inventoryItems.find(i => i.name.trim().toLowerCase() === item.description.trim().toLowerCase());
+
+          if (inventoryItem) {
+            const stock = typeof inventoryItem.stock === 'number' ? inventoryItem.stock : 0;
+            if (stock <= 0) {
+              playErrorBeepSound(soundEnabled);
+              alert(`⚠️ INVOICE CANNOT BE SAVED!\n\nItem "${inventoryItem.name}" is OUT OF STOCK (Stock: 0).\n\nPlease remove this item or update item stock in inventory.`);
+              return;
+            }
+            if (addedQty > stock) {
+              playErrorBeepSound(soundEnabled);
+              alert(`⚠️ INVOICE CANNOT BE SAVED!\n\nAdditional quantity requested for "${inventoryItem.name}" (${addedQty}) exceeds available stock (${stock}).\n\nPlease reduce quantity.`);
+              return;
+            }
           }
         }
       }
@@ -1472,6 +1514,80 @@ export default function CreateInvoicePage() {
           const existingPayments = await findLinkedPayments(user.uid, targetInvoiceId, isOfflineMode);
           for (const p of existingPayments) {
             await dbService.delete('payments', p.id, { offlineMode: isOfflineMode, userId: user.uid });
+          }
+        }
+
+        // Adjust stock difference for edited items
+        if (appMode !== 'freelancer' && status !== 'draft' && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE' && formData.bill_type !== 'PROFORMA') {
+          const originalItems = originalItemsRef.current || [];
+          const allItemKeys = new Set<string>();
+
+          formData.items.forEach(it => {
+            if (it.description) allItemKeys.add(`${(it.description || '').trim().toLowerCase()}:::${(it.batch_no || '').trim().toLowerCase()}`);
+          });
+          originalItems.forEach((it: any) => {
+            const desc = (it.description || it.name || '').trim().toLowerCase();
+            if (desc) allItemKeys.add(`${desc}:::${(it.batch_no || '').trim().toLowerCase()}`);
+          });
+
+          for (const key of allItemKeys) {
+            const [desc, batch] = key.split(':::');
+            const currentItem = formData.items.find(it => 
+              (it.description || '').trim().toLowerCase() === desc &&
+              (!batch || (it.batch_no || '').trim().toLowerCase() === batch)
+            );
+            const origItem = originalItems.find((oi: any) => 
+              (oi.description || oi.name || '').trim().toLowerCase() === desc &&
+              (!batch || (oi.batch_no || '').trim().toLowerCase() === batch)
+            );
+
+            const currentQty = currentItem ? (Number(currentItem.quantity) || 0) : 0;
+            const origQty = origItem ? (Number(origItem.quantity) || 0) : 0;
+            const diff = parseFloat((currentQty - origQty).toFixed(4));
+
+            // Do not change stock for unchanged quantities
+            if (diff === 0) continue;
+
+            const inventoryItem = inventoryItems.find(i => 
+              i.name.trim().toLowerCase() === desc &&
+              (!batch || (i.batch_no || '').trim().toLowerCase() === batch)
+            ) || inventoryItems.find(i => i.name.trim().toLowerCase() === desc);
+
+            if (inventoryItem && inventoryItem.id) {
+              if (db && !isOfflineMode) {
+                try {
+                  const itemRef = doc(db, 'items', inventoryItem.id);
+                  await runTransaction(db, async (transaction) => {
+                    const itemDoc = await transaction.get(itemRef);
+                    if (!itemDoc.exists()) return;
+                    const currentData = itemDoc.data();
+                    const currentStock = typeof currentData.stock === 'number' ? currentData.stock : 0;
+                    const newStock = Math.max(0, parseFloat((currentStock - diff).toFixed(4)));
+                    transaction.update(itemRef, {
+                      stock: newStock,
+                      updated_at: new Date().toISOString()
+                    });
+                  });
+                } catch (txErr) {
+                  console.warn("Stock adjustment transaction failed, falling back to dbService:", txErr);
+                  const currentStock = typeof inventoryItem.stock === 'number' ? inventoryItem.stock : 0;
+                  const newStock = Math.max(0, parseFloat((currentStock - diff).toFixed(4)));
+                  try {
+                    await dbService.update('items', inventoryItem.id, { stock: newStock }, { offlineMode: isOfflineMode, userId: user.uid });
+                  } catch (err) {
+                    console.error("Failed to adjust stock for", desc, err);
+                  }
+                }
+              } else {
+                const currentStock = typeof inventoryItem.stock === 'number' ? inventoryItem.stock : 0;
+                const newStock = Math.max(0, parseFloat((currentStock - diff).toFixed(4)));
+                try {
+                  await dbService.update('items', inventoryItem.id, { stock: newStock }, { offlineMode: isOfflineMode, userId: user.uid });
+                } catch (err) {
+                  console.error("Failed to adjust stock offline for", desc, err);
+                }
+              }
+            }
           }
         }
 

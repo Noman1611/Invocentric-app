@@ -145,9 +145,11 @@ export default function InvoiceViewPage() {
 
   useEffect(() => {
     let isMounted = true;
+    let requestSequence = 0;
 
     async function loadInvoiceData(showLoader: boolean = true) {
       if (!id) return;
+      const currentSeq = ++requestSequence;
       if (showLoader) setLoading(true);
 
       const cleanId = decodeURIComponent(id).trim();
@@ -210,19 +212,19 @@ export default function InvoiceViewPage() {
         let invData = await findInvoiceAcrossSources();
 
         // If not found immediately (e.g. navigation race right after creation), retry with backoff
-        if (!invData && isMounted) {
+        if (!invData && isMounted && currentSeq === requestSequence) {
           await new Promise(r => setTimeout(r, 400));
           invData = await findInvoiceAcrossSources();
         }
-        if (!invData && isMounted) {
+        if (!invData && isMounted && currentSeq === requestSequence) {
           await new Promise(r => setTimeout(r, 800));
           invData = await findInvoiceAcrossSources();
         }
 
-        if (!isMounted) return;
+        if (!isMounted || currentSeq !== requestSequence) return;
 
         if (invData) {
-          setInvoice(invData);
+          if (isMounted && currentSeq === requestSequence) setInvoice(invData);
 
           // Fetch Customer details if present
           if (invData.customer_id) {
@@ -244,7 +246,7 @@ export default function InvoiceViewPage() {
             if (!cust) {
               try { const s = await getDoc(doc(db, 'customers', invData.customer_id)); if (s.exists()) cust = { id: s.id, ...s.data() }; } catch (_) {}
             }
-            if (cust && isMounted) setCustomer(cust);
+            if (cust && isMounted && currentSeq === requestSequence) setCustomer(cust);
           }
 
           // Robust multi-layer Fetch for Seller / Business details
@@ -292,12 +294,12 @@ export default function InvoiceViewPage() {
             if (!mergedSeller.email) mergedSeller.email = user.email || '';
           }
 
-          if (isMounted) setSellerInfo(mergedSeller);
+          if (isMounted && currentSeq === requestSequence) setSellerInfo(mergedSeller);
         }
       } catch (err) { 
         console.error("Error loading invoice:", err);
       } finally { 
-        if (isMounted) setLoading(false); 
+        if (isMounted && currentSeq === requestSequence) setLoading(false); 
       }
     }
 
@@ -750,14 +752,15 @@ export default function InvoiceViewPage() {
 
           if (typeof androidManager.shareToWhatsApp === 'function') {
             androidManager.shareToWhatsApp(base64Data, pdfFilename, cp, shareText);
-            return;
+            return true;
           } else {
             androidManager.shareFile(base64Data, pdfFilename, 'application/pdf', shareText);
-            return;
+            return true;
           }
         }
       } catch (err) {
         console.warn('Native Android WhatsApp share attempt failed, falling back to WhatsApp modal:', err);
+        return false;
       }
     }
 

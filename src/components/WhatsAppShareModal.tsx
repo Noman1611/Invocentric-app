@@ -13,7 +13,7 @@ interface WhatsAppShareModalProps {
   documentTitle: string;
   copiedToClipboard?: boolean;
   fileName?: string;
-  onDirectSharePdf?: () => void;
+  onDirectSharePdf?: () => Promise<boolean | void> | boolean | void;
   phone?: string;
   shareText?: string;
   base64Pdf?: string;
@@ -288,10 +288,19 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
                 href={whatsAppUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.preventDefault();
                   if ((window as any).AndroidFileManager?.shareToWhatsApp && onDirectSharePdf) {
-                    onDirectSharePdf();
+                    let succeeded = false;
+                    try {
+                      const res = await onDirectSharePdf();
+                      succeeded = res !== false;
+                    } catch (_) {
+                      succeeded = false;
+                    }
+                    if (!succeeded) {
+                      openInBrowser(whatsAppUrl);
+                    }
                     onClose();
                   } else {
                     openInBrowser(whatsAppUrl);
