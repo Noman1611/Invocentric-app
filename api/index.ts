@@ -279,20 +279,30 @@ app.use((req, res, next) => {
 app.use("/api/auth/", authEmailLimiter);
 
 // --- STATIC CRAWLER SEO ACCESSIBILITY ROUTES ---
+const getPublicFilePath = (fileName: string) => {
+  const p1 = path.resolve(process.cwd(), "public", fileName);
+  if (fs.existsSync(p1)) return p1;
+  const p2 = path.resolve(_dirname, "../public", fileName);
+  if (fs.existsSync(p2)) return p2;
+  const p3 = path.resolve(_dirname, "public", fileName);
+  if (fs.existsSync(p3)) return p3;
+  return p1;
+};
+
 app.get("/robots.txt", (req, res) => {
-  const robotsPath = path.resolve(_dirname, "../public/robots.txt");
+  const robotsPath = getPublicFilePath("robots.txt");
   res.setHeader("Content-Type", "text/plain");
   res.sendFile(robotsPath);
 });
 
 app.get("/sitemap.xml", (req, res) => {
-  const sitemapPath = path.resolve(_dirname, "../public/sitemap.xml");
+  const sitemapPath = getPublicFilePath("sitemap.xml");
   res.setHeader("Content-Type", "application/xml");
   res.sendFile(sitemapPath);
 });
 
 app.get("/manifest.webmanifest", (req, res) => {
-  const manifestPath = path.resolve(_dirname, "../public/manifest.webmanifest");
+  const manifestPath = getPublicFilePath("manifest.webmanifest");
   res.setHeader("Content-Type", "application/manifest+json");
   res.sendFile(manifestPath);
 });

@@ -244,18 +244,27 @@ app.use((req, res, next) => {
   next();
 });
 app.use("/api/auth/", authEmailLimiter);
+var getPublicFilePath = (fileName) => {
+  const p1 = import_path.default.resolve(process.cwd(), "public", fileName);
+  if (import_fs.default.existsSync(p1)) return p1;
+  const p2 = import_path.default.resolve(_dirname, "../public", fileName);
+  if (import_fs.default.existsSync(p2)) return p2;
+  const p3 = import_path.default.resolve(_dirname, "public", fileName);
+  if (import_fs.default.existsSync(p3)) return p3;
+  return p1;
+};
 app.get("/robots.txt", (req, res) => {
-  const robotsPath = import_path.default.resolve(_dirname, "../public/robots.txt");
+  const robotsPath = getPublicFilePath("robots.txt");
   res.setHeader("Content-Type", "text/plain");
   res.sendFile(robotsPath);
 });
 app.get("/sitemap.xml", (req, res) => {
-  const sitemapPath = import_path.default.resolve(_dirname, "../public/sitemap.xml");
+  const sitemapPath = getPublicFilePath("sitemap.xml");
   res.setHeader("Content-Type", "application/xml");
   res.sendFile(sitemapPath);
 });
 app.get("/manifest.webmanifest", (req, res) => {
-  const manifestPath = import_path.default.resolve(_dirname, "../public/manifest.webmanifest");
+  const manifestPath = getPublicFilePath("manifest.webmanifest");
   res.setHeader("Content-Type", "application/manifest+json");
   res.sendFile(manifestPath);
 });
