@@ -599,31 +599,89 @@ export default function InvoiceViewPage() {
     }
   }
 
-  // Smart Adaptive Chunking:
+  // Accurate Line-Height Aware Adaptive Pagination:
+  // Each item row height depends on base row + sublines (serial, IMEI, batch, warranty, desc) + wrapped title
+  const getItemHeight = (it: any): number => {
+    const base = isA5 ? 18 : 24;
+    const subHeight = isA5 ? 11 : 15;
+    const subCount = Array.isArray(it.subLines) ? it.subLines.length : 0;
+    const nameLen = (it.name || '').length;
+    let extraName = 0;
+    if (nameLen > 60) extraName = isA5 ? 18 : 24;
+    else if (nameLen > 30) extraName = isA5 ? 9 : 12;
+    return base + (subCount * subHeight) + extraName;
+  };
+
+  const lhDeduction = useLetterhead ? (letterheadTop + letterheadBottom) * 3.78 : 0;
+  
+  // Available height for items table body (in pixels):
+  // Single/Last page has to fit the bottom summary (totals, HSN table, bank details, terms, sign, etc.)
+  const maxLastPageHeight = isA5
+    ? Math.max(70, 140 - lhDeduction)
+    : Math.max(160, 420 - lhDeduction);
+
+  // Non-last pages only have the top header + "Continued on Next Page →" row:
+  const maxNonLastPageHeight = isA5
+    ? Math.max(140, 290 - lhDeduction)
+    : Math.max(280, 690 - lhDeduction);
+
   const itemPages: any[][] = [];
   if (itemRows.length === 0) {
     itemPages.push([]);
   } else {
-    if (isA5) {
-      const maxFirstPage = useLetterhead ? 3 : 5;
-      if (itemRows.length <= maxFirstPage) {
-        itemPages.push(itemRows);
-      } else {
-        itemPages.push(itemRows.slice(0, maxFirstPage + 2));
-        for (let i = maxFirstPage + 2; i < itemRows.length; i += 4) {
-          itemPages.push(itemRows.slice(i, i + 4));
-        }
-      }
+    const totalItemsHeight = itemRows.reduce((acc: number, it: any) => acc + getItemHeight(it), 0);
+
+    // If all items fit comfortably on a single page with all totals and footer:
+    if (totalItemsHeight <= maxLastPageHeight) {
+      itemPages.push(itemRows);
     } else {
-      const maxFirstPage = useLetterhead ? (letterheadTop + letterheadBottom > 70 ? 7 : 9) : 12;
-      if (itemRows.length <= maxFirstPage) {
-        itemPages.push(itemRows);
-      } else {
-        const page1Slice = useLetterhead ? 8 : 14;
-        itemPages.push(itemRows.slice(0, page1Slice));
-        for (let i = page1Slice; i < itemRows.length; i += 7) {
-          itemPages.push(itemRows.slice(i, i + 7));
+      // Multi-page needed: partition items dynamically
+      let remaining = [...itemRows];
+
+      while (remaining.length > 0) {
+        const remainingHeight = remaining.reduce((acc: number, it: any) => acc + getItemHeight(it), 0);
+
+        // If the remaining items can fit on the final page along with the bottom section:
+        if (remainingHeight <= maxLastPageHeight) {
+          itemPages.push(remaining);
+          break;
         }
+
+        // Fill current (non-last) page
+        let currentSlice: any[] = [];
+        let currentHeight = 0;
+
+        for (let i = 0; i < remaining.length; i++) {
+          const it = remaining[i];
+          const itH = getItemHeight(it);
+
+          // If adding it would exceed non-last capacity, break (must keep at least 1 item)
+          if (currentSlice.length > 0 && currentHeight + itH > maxNonLastPageHeight) {
+            break;
+          }
+
+          currentSlice.push(it);
+          currentHeight += itH;
+
+          // Check remaining items after this
+          const nextRemaining = remaining.slice(i + 1);
+          const nextRemHeight = nextRemaining.reduce((acc: number, item: any) => acc + getItemHeight(item), 0);
+
+          // If what's left fits cleanly on the last page, we can stop here if we have a reasonable batch
+          if (nextRemaining.length > 0 && nextRemHeight <= maxLastPageHeight) {
+            if (nextRemaining.length <= 2 || currentHeight >= maxNonLastPageHeight * 0.5) {
+              break;
+            }
+          }
+        }
+
+        // Safety fallback to prevent infinite loop
+        if (currentSlice.length === 0) {
+          currentSlice = [remaining[0]];
+        }
+
+        itemPages.push(currentSlice);
+        remaining = remaining.slice(currentSlice.length);
       }
     }
   }
@@ -1006,7 +1064,7 @@ export default function InvoiceViewPage() {
         </div>
 
         {/* Dynamic Items Table - Clean uninterrupted vertical lines that extend continuously without breaking */}
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, minHeight: 'auto', display: 'flex', flexDirection: 'column' }}>
           <table style={{width:'100%',height:'100%',flex: 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>

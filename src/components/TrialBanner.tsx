@@ -47,7 +47,7 @@ export function TrialBanner() {
   // State 1: Claimed just now in this session -> show celebratory confirmation
   if (claimSuccess) {
     return (
-      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-green-700 text-white px-3 sm:px-4 py-2.5 flex items-center justify-between shadow-md print:hidden animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-green-700 text-white px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between shadow-md print:hidden animate-in fade-in slide-in-from-top-2 duration-300">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
             <CheckCircle2 size={16} className="text-emerald-200" />
@@ -70,7 +70,7 @@ export function TrialBanner() {
   // State 2: User has NOT claimed the 1-Month Free Pro offer yet -> Show "Claim Now" button!
   if (!freeTrialClaimed && planTier !== 'pro') {
     return (
-      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white px-3 sm:px-4 py-2.5 flex items-center justify-between shadow-md print:hidden">
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white px-2.5 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between shadow-md print:hidden">
         <div className="flex items-center gap-2 sm:gap-2.5 max-w-full overflow-hidden">
           <div className="w-6 h-6 rounded-full bg-emerald-400/30 border border-emerald-300/50 flex items-center justify-center shrink-0 animate-bounce">
             <Gift size={14} className="text-emerald-200" />
@@ -92,7 +92,7 @@ export function TrialBanner() {
         <button
           onClick={handleClaim}
           disabled={claiming}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-emerald-50 text-[#166534] rounded-lg text-xs font-black uppercase tracking-wider shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 ml-2 disabled:opacity-60 cursor-pointer"
+          className="flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 bg-white hover:bg-emerald-50 text-[#166534] rounded-lg text-xs font-black uppercase tracking-wider shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 ml-2 disabled:opacity-60 cursor-pointer"
         >
           {claiming ? (
             <>
@@ -117,7 +117,7 @@ export function TrialBanner() {
       : null;
 
     return (
-      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white px-3 sm:px-4 py-2 flex items-center justify-between shadow-xs print:hidden">
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between shadow-xs print:hidden">
         <div className="flex items-center gap-2 sm:gap-2.5 max-w-full overflow-hidden">
           <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
             <Sparkles size={12} className="text-emerald-200 animate-pulse" />
@@ -143,7 +143,7 @@ export function TrialBanner() {
   // State 4: Trial expired
   if (isTrialExpired) {
     return (
-      <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 text-white px-3 sm:px-4 py-2 flex items-center justify-between shadow-xs print:hidden">
+      <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 text-white px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between shadow-xs print:hidden">
         <div className="flex items-center gap-2 sm:gap-2.5">
           <Clock size={15} className="text-emerald-300 shrink-0" />
           <p className="text-[11px] sm:text-xs font-bold">

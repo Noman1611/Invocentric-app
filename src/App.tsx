@@ -139,6 +139,26 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Mobile Standalone & Android APK Status-Bar Inset Detection
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as any).standalone === true ||
+      Boolean((window as any).AndroidPrinter || (window as any).AndroidFileManager || (window as any).AndroidAppUpdater);
+
+    if (isMobile && isStandalone) {
+      const testEl = document.createElement('div');
+      testEl.style.paddingTop = 'env(safe-area-inset-top, 0px)';
+      document.body.appendChild(testEl);
+      const computedPt = parseInt(window.getComputedStyle(testEl).paddingTop, 10) || 0;
+      document.body.removeChild(testEl);
+      if (computedPt === 0) {
+        document.documentElement.style.setProperty('--safe-area-top', '28px');
+      }
+    }
+  }, []);
+
   // Real-time Settings Hook
   const { settings, loading: settingsLoading, setSettings } = useSettings();
 
@@ -708,6 +728,14 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
         </div>
         
         <div className="flex-1 flex flex-col h-[100dvh] overflow-hidden relative print:h-auto print:overflow-visible print:static">
+          {/* Top Status Bar Spacer for Mobile PWA / Standalone / Cutout clearance */}
+          <div 
+            className="w-full bg-[#0F645D] shrink-0 print:hidden transition-all duration-200" 
+            style={{ 
+              height: 'max(env(safe-area-inset-top, 0px), var(--safe-area-top, 0px))' 
+            }} 
+          />
+
           {isPcDriveEnabled && !isPcFileConnected && (
             <div className="bg-amber-700 text-white text-xs font-bold py-2.5 px-4 text-center flex flex-col sm:flex-row items-center justify-center gap-2 animate-fadeIn z-50 shrink-0 print:hidden shadow-md">
               <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider shrink-0">
