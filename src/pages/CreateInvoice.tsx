@@ -15,9 +15,7 @@ import {
   where,
   collection,
   getDocs,
-  updateDoc,
-  setDoc,
-  runTransaction
+  setDoc
 } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 import { localDbEngine } from '../services/localDbEngine';
@@ -101,6 +99,7 @@ export default function CreateInvoicePage() {
   const [showCustomizationPanel, setShowCustomizationPanel] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [originalStatus, setOriginalStatus] = useState<'draft' | 'sent' | 'paid' | null>(null);
@@ -1337,7 +1336,13 @@ export default function CreateInvoicePage() {
     return isNaN(finalTotal) ? 0 : Number(finalTotal.toFixed(2));
   };
 
-  const handleSubmit = async (e: React.FormEvent, status: 'draft' | 'sent' | 'paid', skipView: boolean = false, printAfterSave: boolean = false) => {
+  const handleSubmit = async (
+    e: React.FormEvent, 
+    status: 'draft' | 'sent' | 'paid', 
+    skipView: boolean = false, 
+    printAfterSave: boolean = false,
+    actionType?: string
+  ) => {
     e.preventDefault();
     if (!user) return; 
 
@@ -1381,6 +1386,7 @@ export default function CreateInvoicePage() {
     }
 
     setLoading(true);
+    if (actionType) setActionLoading(actionType);
     try {
       const selectedCustomer = customers.find(c => c.id === formData.customer_id);
       const total = calculateTotal();
@@ -1530,65 +1536,41 @@ export default function CreateInvoicePage() {
             if (desc) allItemKeys.add(`${desc}:::${(it.batch_no || '').trim().toLowerCase()}`);
           });
 
-          for (const key of allItemKeys) {
-            const [desc, batch] = key.split(':::');
-            const currentItem = formData.items.find(it => 
-              (it.description || '').trim().toLowerCase() === desc &&
-              (!batch || (it.batch_no || '').trim().toLowerCase() === batch)
-            );
-            const origItem = originalItems.find((oi: any) => 
-              (oi.description || oi.name || '').trim().toLowerCase() === desc &&
-              (!batch || (oi.batch_no || '').trim().toLowerCase() === batch)
-            );
+          await Promise.all(Array.from(allItemKeys).map(async (key) => {
+            try {
+              const [desc, batch] = key.split(':::');
+              const currentItem = formData.items.find(it => 
+                (it.description || '').trim().toLowerCase() === desc &&
+                (!batch || (it.batch_no || '').trim().toLowerCase() === batch)
+              );
+              const origItem = originalItems.find((oi: any) => 
+                (oi.description || oi.name || '').trim().toLowerCase() === desc &&
+                (!batch || (oi.batch_no || '').trim().toLowerCase() === batch)
+              );
 
-            const currentQty = currentItem ? (Number(currentItem.quantity) || 0) : 0;
-            const origQty = origItem ? (Number(origItem.quantity) || 0) : 0;
-            const diff = parseFloat((currentQty - origQty).toFixed(4));
+              const currentQty = currentItem ? (Number(currentItem.quantity) || 0) : 0;
+              const origQty = origItem ? (Number(origItem.quantity) || 0) : 0;
+              const diff = parseFloat((currentQty - origQty).toFixed(4));
 
-            // Do not change stock for unchanged quantities
-            if (diff === 0) continue;
+              if (diff === 0) return;
 
-            const inventoryItem = inventoryItems.find(i => 
-              i.name.trim().toLowerCase() === desc &&
-              (!batch || (i.batch_no || '').trim().toLowerCase() === batch)
-            ) || inventoryItems.find(i => i.name.trim().toLowerCase() === desc);
+              const inventoryItem = inventoryItems.find(i => 
+                i.name.trim().toLowerCase() === desc &&
+                (!batch || (i.batch_no || '').trim().toLowerCase() === batch)
+              ) || inventoryItems.find(i => i.name.trim().toLowerCase() === desc);
 
-            if (inventoryItem && inventoryItem.id) {
-              if (db && !isOfflineMode) {
-                try {
-                  const itemRef = doc(db, 'items', inventoryItem.id);
-                  await runTransaction(db, async (transaction) => {
-                    const itemDoc = await transaction.get(itemRef);
-                    if (!itemDoc.exists()) return;
-                    const currentData = itemDoc.data();
-                    const currentStock = typeof currentData.stock === 'number' ? currentData.stock : 0;
-                    const newStock = Math.max(0, parseFloat((currentStock - diff).toFixed(4)));
-                    transaction.update(itemRef, {
-                      stock: newStock,
-                      updated_at: new Date().toISOString()
-                    });
-                  });
-                } catch (txErr) {
-                  console.warn("Stock adjustment transaction failed, falling back to dbService:", txErr);
-                  const currentStock = typeof inventoryItem.stock === 'number' ? inventoryItem.stock : 0;
-                  const newStock = Math.max(0, parseFloat((currentStock - diff).toFixed(4)));
-                  try {
-                    await dbService.update('items', inventoryItem.id, { stock: newStock }, { offlineMode: isOfflineMode, userId: user.uid });
-                  } catch (err) {
-                    console.error("Failed to adjust stock for", desc, err);
-                  }
-                }
-              } else {
+              if (inventoryItem && inventoryItem.id) {
                 const currentStock = typeof inventoryItem.stock === 'number' ? inventoryItem.stock : 0;
                 const newStock = Math.max(0, parseFloat((currentStock - diff).toFixed(4)));
-                try {
-                  await dbService.update('items', inventoryItem.id, { stock: newStock }, { offlineMode: isOfflineMode, userId: user.uid });
-                } catch (err) {
-                  console.error("Failed to adjust stock offline for", desc, err);
-                }
+                await dbService.update('items', inventoryItem.id, { 
+                  stock: newStock,
+                  updated_at: new Date().toISOString()
+                }, { offlineMode: isOfflineMode, userId: user.uid });
               }
+            } catch (err) {
+              console.error("Failed to adjust stock for key", key, err);
             }
-          }
+          }));
         }
 
         if (printAfterSave) {
@@ -1615,71 +1597,52 @@ export default function CreateInvoicePage() {
           }, { offlineMode: isOfflineMode, userId: user.uid });
         }
         
-        // Auto-deduct stock or auto-create item in catalog with transactional updates for serials
-        for (const item of formData.items) {
-          if (!item.description) continue;
-          const inventoryItem = inventoryItems.find(i => i.name.trim().toLowerCase() === item.description.trim().toLowerCase());
-          if (inventoryItem && inventoryItem.id) {
-            const selectedSerials = (item.serialNumber || '').split(',').map(s => s.trim()).filter(Boolean);
-            if (db && !isOfflineMode) {
-              try {
-                const itemRef = doc(db, 'items', inventoryItem.id);
-                await runTransaction(db, async (transaction) => {
-                  const itemDoc = await transaction.get(itemRef);
-                  if (!itemDoc.exists()) return;
-                  const currentData = itemDoc.data();
-                  const currentStock = typeof currentData.stock === 'number' ? currentData.stock : 0;
-                  const deductionQty = Math.max(item.quantity || 1, selectedSerials.length || (item.quantity || 1));
-                  const newStock = Math.max(0, currentStock - deductionQty);
-                  
-                  const updates: any = { 
-                    stock: newStock, 
-                    updated_at: new Date().toISOString() 
-                  };
+        // Auto-deduct stock and remove sold serials
+        if (appMode !== 'freelancer' && status !== 'draft' && formData.bill_type !== 'QUOTATION' && formData.bill_type !== 'ESTIMATE' && formData.bill_type !== 'PROFORMA') {
+          await Promise.all(formData.items.map(async (item) => {
+            try {
+              if (!item.description) return;
+              const inventoryItem = inventoryItems.find(i => 
+                i.name.trim().toLowerCase() === item.description.trim().toLowerCase() &&
+                (!item.batch_no || (i.batch_no || '') === (item.batch_no || ''))
+              ) || inventoryItems.find(i => i.name.trim().toLowerCase() === item.description.trim().toLowerCase());
 
-                  if (selectedSerials.length > 0 && Array.isArray(currentData.serials)) {
-                    const isStringArray = currentData.serials.length === 0 || typeof currentData.serials[0] === 'string';
-                    if (isStringArray) {
-                      const remainingSerials = (currentData.serials as string[]).filter(s => !selectedSerials.some(sel => sel.toLowerCase() === s.trim().toLowerCase()));
-                      const soldSerials = Array.isArray(currentData.sold_serials) ? currentData.sold_serials : [];
-                      updates.serials = remainingSerials;
-                      updates.sold_serials = [...soldSerials, ...selectedSerials];
-                      updates.serialNumber = remainingSerials.join(', ');
-                    } else {
-                      const updatedSerials = currentData.serials.map((s: any) => {
-                        if (s && s.code && selectedSerials.some(sel => sel.toLowerCase() === s.code.trim().toLowerCase())) {
-                          return { ...s, status: 'sold', soldAt: new Date().toISOString() };
-                        }
-                        return s;
-                      });
-                      updates.serials = updatedSerials;
-                    }
-                  }
-                  transaction.update(itemRef, updates);
-                });
-              } catch (txErr) {
-                console.warn("Transaction stock deduction failed, falling back to dbService:", txErr);
-                if (typeof inventoryItem.stock === 'number' && item.quantity > 0) {
-                  const newStock = Math.max(0, inventoryItem.stock - item.quantity);
-                  try {
-                    await dbService.update('items', inventoryItem.id, { stock: newStock }, { offlineMode: isOfflineMode, userId: user.uid });
-                  } catch (err) {
-                    console.error("Failed to deduct stock for", item.description, err);
+              if (inventoryItem && inventoryItem.id) {
+                const selectedSerials = (item.serialNumber || '').split(',').map(s => s.trim()).filter(Boolean);
+                const currentStock = typeof inventoryItem.stock === 'number' ? inventoryItem.stock : 0;
+                const deductionQty = Math.max(Number(item.quantity) || 1, selectedSerials.length || (Number(item.quantity) || 1));
+                const newStock = Math.max(0, parseFloat((currentStock - deductionQty).toFixed(4)));
+                
+                const updates: any = { 
+                  stock: newStock, 
+                  updated_at: new Date().toISOString() 
+                };
+
+                if (selectedSerials.length > 0 && Array.isArray(inventoryItem.serials)) {
+                  const isStringArray = inventoryItem.serials.length === 0 || typeof inventoryItem.serials[0] === 'string';
+                  if (isStringArray) {
+                    const remainingSerials = (inventoryItem.serials as string[]).filter(s => !selectedSerials.some(sel => sel.toLowerCase() === s.trim().toLowerCase()));
+                    const soldSerials = Array.isArray(inventoryItem.sold_serials) ? inventoryItem.sold_serials : [];
+                    updates.serials = remainingSerials;
+                    updates.sold_serials = [...soldSerials, ...selectedSerials];
+                    updates.serialNumber = remainingSerials.join(', ');
+                  } else {
+                    const updatedSerials = inventoryItem.serials.map((s: any) => {
+                      if (s && s.code && selectedSerials.some(sel => sel.toLowerCase() === s.code.trim().toLowerCase())) {
+                        return { ...s, status: 'sold', soldAt: new Date().toISOString() };
+                      }
+                      return s;
+                    });
+                    updates.serials = updatedSerials;
                   }
                 }
+
+                await dbService.update('items', inventoryItem.id, updates, { offlineMode: isOfflineMode, userId: user.uid });
               }
-            } else {
-              // Offline mode update
-              if (typeof inventoryItem.stock === 'number' && item.quantity > 0) {
-                const newStock = Math.max(0, inventoryItem.stock - item.quantity);
-                try {
-                  await dbService.update('items', inventoryItem.id, { stock: newStock }, { offlineMode: isOfflineMode, userId: user.uid });
-                } catch (err) {
-                  console.error("Failed to deduct stock for", item.description, err);
-                }
-              }
+            } catch (err) {
+              console.error("Failed to deduct stock for", item.description, err);
             }
-          }
+          }));
         }
 
         if (printAfterSave) {
@@ -1702,6 +1665,7 @@ export default function CreateInvoicePage() {
       alert("Error saving invoice.");
     } finally {
       setLoading(false);
+      setActionLoading(null);
     }
   };
 
@@ -3541,21 +3505,21 @@ export default function CreateInvoicePage() {
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'paid', false, true)}
-                  className="bg-neutral-950 hover:bg-neutral-900 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+                  onClick={(e) => handleSubmit(e, 'paid', false, true, 'print')}
+                  className="bg-neutral-950 hover:bg-neutral-900 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
                   id="save-and-print-btn"
                 >
-                  <Printer size={15} />
-                  <span>Save &amp; Print</span>
+                  {actionLoading === 'print' ? <Loader2 size={15} className="animate-spin text-emerald-400" /> : <Printer size={15} />}
+                  <span>{actionLoading === 'print' ? 'Saving & Printing...' : 'Save & Print'}</span>
                 </button>
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'paid')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+                  onClick={(e) => handleSubmit(e, 'paid', false, false, 'paid')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
                 >
-                  <CheckCircle2 size={15} />
-                  <span>Mark Paid</span>
+                  {actionLoading === 'paid' ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                  <span>{actionLoading === 'paid' ? 'Saving...' : 'Mark Paid'}</span>
                 </button>
               </div>
 
@@ -3563,38 +3527,38 @@ export default function CreateInvoicePage() {
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'draft')}
-                  className="btn-secondary py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                  onClick={(e) => handleSubmit(e, 'draft', false, false, 'draft')}
+                  className="btn-secondary py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                 >
-                  <Save size={13} />
-                  <span>Draft</span>
+                  {actionLoading === 'draft' ? <Loader2 size={13} className="animate-spin text-emerald-600" /> : <Save size={13} />}
+                  <span>{actionLoading === 'draft' ? 'Saving...' : 'Draft'}</span>
                 </button>
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'sent')}
-                  className="bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                  onClick={(e) => handleSubmit(e, 'sent', false, false, 'unpaid')}
+                  className="bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                 >
-                  <AlertCircle size={13} />
-                  <span>Unpaid</span>
+                  {actionLoading === 'unpaid' ? <Loader2 size={13} className="animate-spin" /> : <AlertCircle size={13} />}
+                  <span>{actionLoading === 'unpaid' ? 'Saving...' : 'Unpaid'}</span>
                 </button>
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'paid', true)}
-                  className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                  onClick={(e) => handleSubmit(e, 'paid', true, false, 'pos')}
+                  className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                 >
-                  <Plus size={13} />
-                  <span>POS</span>
+                  {actionLoading === 'pos' ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                  <span>{actionLoading === 'pos' ? 'Saving...' : 'POS'}</span>
                 </button>
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'sent')}
-                  className="btn-primary py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                  onClick={(e) => handleSubmit(e, 'sent', false, false, 'send')}
+                  className="btn-primary py-1.5 px-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
                 >
-                  <Send size={13} />
-                  <span>Send</span>
+                  {actionLoading === 'send' ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  <span>{actionLoading === 'send' ? 'Sending...' : 'Send'}</span>
                 </button>
               </div>
             </div>
@@ -3605,59 +3569,59 @@ export default function CreateInvoicePage() {
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'paid', false, true)}
-                  className="bg-neutral-950 text-white font-bold py-3 px-3 rounded-xl active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[46px]"
+                  onClick={(e) => handleSubmit(e, 'paid', false, true, 'print')}
+                  className="bg-neutral-950 text-white font-bold py-3 px-3 rounded-xl active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[46px] disabled:opacity-50"
                   id="save-and-print-btn-mobile"
                 >
-                  <Printer size={16} />
-                  <span>Save &amp; Print</span>
+                  {actionLoading === 'print' ? <Loader2 size={16} className="animate-spin text-emerald-400" /> : <Printer size={16} />}
+                  <span>{actionLoading === 'print' ? 'Saving & Printing...' : 'Save & Print'}</span>
                 </button>
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'paid')}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-3 rounded-xl active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[46px]"
+                  onClick={(e) => handleSubmit(e, 'paid', false, false, 'paid')}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-3 rounded-xl active:scale-95 flex items-center justify-center gap-2 text-xs min-h-[46px] disabled:opacity-50"
                 >
-                  <CheckCircle2 size={16} />
-                  <span>Mark Paid</span>
+                  {actionLoading === 'paid' ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                  <span>{actionLoading === 'paid' ? 'Saving...' : 'Mark Paid'}</span>
                 </button>
               </div>
               <div className="grid grid-cols-4 gap-1.5 w-full">
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'draft')}
-                  className="btn-secondary py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                  onClick={(e) => handleSubmit(e, 'draft', false, false, 'draft')}
+                  className="btn-secondary py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px] disabled:opacity-50"
                 >
-                  <Save size={13} />
-                  <span>Draft</span>
+                  {actionLoading === 'draft' ? <Loader2 size={13} className="animate-spin text-emerald-600" /> : <Save size={13} />}
+                  <span>{actionLoading === 'draft' ? 'Saving...' : 'Draft'}</span>
                 </button>
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'sent')}
-                  className="bg-amber-50 text-amber-700 border border-amber-200 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                  onClick={(e) => handleSubmit(e, 'sent', false, false, 'unpaid')}
+                  className="bg-amber-50 text-amber-700 border border-amber-200 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px] disabled:opacity-50"
                 >
-                  <AlertCircle size={13} />
-                  <span>Unpaid</span>
+                  {actionLoading === 'unpaid' ? <Loader2 size={13} className="animate-spin" /> : <AlertCircle size={13} />}
+                  <span>{actionLoading === 'unpaid' ? 'Saving...' : 'Unpaid'}</span>
                 </button>
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'paid', true)}
-                  className="bg-green-50 text-green-700 border border-green-200 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                  onClick={(e) => handleSubmit(e, 'paid', true, false, 'pos')}
+                  className="bg-green-50 text-green-700 border border-green-200 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px] disabled:opacity-50"
                 >
-                  <Plus size={13} />
-                  <span>POS</span>
+                  {actionLoading === 'pos' ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                  <span>{actionLoading === 'pos' ? 'Saving...' : 'POS'}</span>
                 </button>
                 <button
                   type="button"
                   disabled={loading}
-                  onClick={(e) => handleSubmit(e, 'sent')}
-                  className="btn-primary py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px]"
+                  onClick={(e) => handleSubmit(e, 'sent', false, false, 'send')}
+                  className="btn-primary py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1 min-h-[42px] disabled:opacity-50"
                 >
-                  <Send size={13} />
-                  <span>Send</span>
+                  {actionLoading === 'send' ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                  <span>{actionLoading === 'send' ? 'Sending...' : 'Send'}</span>
                 </button>
               </div>
             </div>

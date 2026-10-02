@@ -337,6 +337,13 @@ async function triggerNotification(
   }
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number = 2500, fallbackMsg: string = 'Operation timed out'): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(fallbackMsg)), ms))
+  ]);
+}
+
 export async function findLinkedPayments(userId: string, invoiceId: string, isOfflineMode?: boolean): Promise<any[]> {
   const existingPayments: any[] = [];
   if (!userId || !invoiceId) return existingPayments;
@@ -350,12 +357,12 @@ export async function findLinkedPayments(userId: string, invoiceId: string, isOf
     }
   } catch (_) {}
 
-  // 2. Query Firestore if online and not local-only
+  // 2. Query Firestore if online and not local-only with strict timeout
   if (!isOfflineMode && !isLocalOnlyMode() && typeof navigator !== 'undefined' && navigator.onLine) {
     try {
       const q = query(collection(db, 'payments'), where('user_id', '==', userId), where('invoice_id', '==', invoiceId));
-      const snap = await getDocs(q);
-      snap.forEach(d => existingPayments.push({ id: d.id, ...d.data() }));
+      const snap = await withTimeout(getDocs(q), 2000, 'Linked payments query timed out');
+      snap.forEach((d: any) => existingPayments.push({ id: d.id, ...d.data() }));
     } catch (e) {
       console.warn("Failed to fetch linked payments from Firestore:", e);
     }
@@ -388,7 +395,7 @@ export const dbService = {
       triggerNotification('create', collectionName, docId, data, null, options).catch(console.error);
     }
 
-    // 2. If online and local-only storage is NOT active, attempt cloud write with consistent Timestamp
+    // 2. If online and local-only storage is NOT active, attempt cloud write with consistent Timestamp and timeout
     if (!isLocalOnlyMode(options) && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
         const payload = {
@@ -398,7 +405,7 @@ export const dbService = {
           created_at: toFirestoreTimestamp(data.created_at),
           updated_at: serverTimestamp()
         };
-        await setDoc(doc(db, collectionName, docId), payload, { merge: true });
+        await withTimeout(setDoc(doc(db, collectionName, docId), payload, { merge: true }), 2500, 'Cloud write timeout');
 
         // Cloud write succeeded: dequeue from offline_upserts (fresh queue read)
         const upsertsKey = `offline_upserts_${userId}`;
@@ -441,7 +448,7 @@ export const dbService = {
       triggerNotification('update', collectionName, docId, data, oldDoc, options).catch(console.error);
     }
 
-    // 2. If online and not local-only, attempt cloud update gracefully
+    // 2. If online and not local-only, attempt cloud update gracefully with timeout
     if (!isLocalOnlyMode(options) && typeof navigator !== 'undefined' && navigator.onLine) {
       try {
         const docRef = doc(db, collectionName, docId);
@@ -450,7 +457,7 @@ export const dbService = {
           user_id: userId,
           updated_at: serverTimestamp()
         };
-        await setDoc(docRef, payload, { merge: true });
+        await withTimeout(setDoc(docRef, payload, { merge: true }), 2500, 'Cloud update timeout');
 
         // Dequeue from offline upserts if sync succeeded (fresh queue read)
         const upsertsKey = `offline_upserts_${userId}`;
@@ -511,13 +518,13 @@ export const dbService = {
             title: getRecycleTitle(collectionName, oldDoc, docId)
           };
 
-          await setDoc(doc(db, 'recycle_bin', binDocId), {
+          await withTimeout(setDoc(doc(db, 'recycle_bin', binDocId), {
             ...recycleItem,
             created_at: serverTimestamp()
-          });
+          }), 2500, 'Cloud recycle-bin write timeout');
         }
 
-        await deleteDoc(docRef);
+        await withTimeout(deleteDoc(docRef), 2500, 'Cloud delete timeout');
 
         if (collectionName === 'recycle_bin') {
           const matchPrefix = docId.match(knownPrefixRegex);
