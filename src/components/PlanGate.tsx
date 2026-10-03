@@ -137,46 +137,9 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (planStatus !== 'active' && planStatus !== 'trial') {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-white p-6">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-red-50 rounded-[2.5rem] p-10 text-center border border-red-100 shadow-2xl shadow-red-900/5"
-        >
-          <div className="w-20 h-20 bg-red-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-600/20">
-            <ShieldAlert className="text-white" size={40} />
-          </div>
-          <h2 className="text-2xl font-black text-neutral-900 uppercase tracking-tight mb-2">Plan Expired</h2>
-          <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] mb-8 leading-relaxed">
-            Your InvoCentric plan has expired. Please renew your plan to continue using the service.
-          </p>
-
-          <div className="bg-white rounded-3xl p-6 mb-8 border border-red-100/50">
-             <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-2">Contact Admin</p>
-             <p className="text-lg font-black text-neutral-900">+91 9876543210</p>
-          </div>
-
-          <button
-            onClick={handleVerify}
-            disabled={checking}
-            className="w-full flex items-center justify-center gap-3 bg-red-600 text-white font-black py-5 rounded-2xl uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-red-700 transition-all mb-4"
-          >
-            {checking ? "Checking..." : "Verify Re-payment"}
-            <RefreshCw size={18} className={checking ? "animate-spin" : ""} />
-          </button>
-
-          <button
-            onClick={logout}
-            className="text-[10px] font-black text-red-600/70 uppercase tracking-widest hover:text-red-600 transition-colors"
-          >
-            Switch Account
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
+  // When plan expires or trial ends, the app seamlessly allows the user to continue
+  // on the Free Forever Plan (with pro features gracefully gated by UpgradeModal).
+  // The app is NEVER blocked or locked down with a red "Plan Expired" screen.
 
   return (
     <>

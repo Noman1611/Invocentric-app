@@ -22,10 +22,19 @@ const StorageModeContext = createContext<StorageModeContextType | undefined>(und
 
 export function StorageModeProvider({ children }: { children: React.ReactNode }) {
   const [storageMode, setStorageModeState] = useState<StorageMode>(() => {
+    const isDesktop = typeof window !== 'undefined' && Boolean((window as any).electronAPI?.isElectron);
+    if (!isDesktop) {
+      if (typeof localStorage !== 'undefined') {
+        if (localStorage.getItem('invocentric_storage_mode') === 'local_pc') {
+          localStorage.setItem('invocentric_storage_mode', 'cloud');
+        }
+        localStorage.removeItem('is_offline_mode');
+      }
+      return 'cloud';
+    }
     const saved = localStorage.getItem('invocentric_storage_mode') as StorageMode;
     if (saved) return saved;
-    // Default to 'local_pc' if running inside native Electron desktop app, otherwise 'cloud'
-    return window.electronAPI?.isElectron ? 'local_pc' : 'cloud';
+    return 'local_pc';
   });
 
   const [lastBackupDate, setLastBackupDate] = useState<string | null>(() => {
@@ -97,10 +106,12 @@ export function StorageModeProvider({ children }: { children: React.ReactNode })
   }, [refreshStats, triggerDailyBackup]);
 
   const setStorageMode = (mode: StorageMode) => {
-    setStorageModeState(mode);
-    localStorage.setItem('invocentric_storage_mode', mode);
+    const isDesktop = typeof window !== 'undefined' && Boolean((window as any).electronAPI?.isElectron);
+    const targetMode = isDesktop ? mode : 'cloud';
+    setStorageModeState(targetMode);
+    localStorage.setItem('invocentric_storage_mode', targetMode);
     // Also toggle the isOfflineMode flag in localStorage so existing offline helpers align
-    if (mode === 'local_pc') {
+    if (targetMode === 'local_pc') {
       localStorage.setItem('is_offline_mode', 'true');
       // Trigger daily backup immediately when switching to local PC mode
       triggerDailyBackup(false).catch(() => {});

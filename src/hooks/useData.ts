@@ -75,13 +75,48 @@ function mergeOfflineQueue(data: any[], collectionName: string, userId: string) 
   });
 }
 
+function getResilientLocalData(colName: string, userId: string, userEmail?: string | null): any[] {
+  const currentKey = `offline_${colName}_${userId}`;
+  const currentData = getSecureStorage(currentKey, []);
+  if (Array.isArray(currentData) && currentData.length > 0) {
+    return currentData;
+  }
+
+  if (typeof window === 'undefined' || !userEmail) return [];
+  const cleanEmail = userEmail.trim().toLowerCase();
+
+  // Search localStorage for any legacy collection key belonging to this email
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(`offline_${colName}_`)) {
+      const otherUid = key.replace(`offline_${colName}_`, '');
+      if (otherUid && otherUid !== userId) {
+        const otherProfile = getSecureStorage(`user_profile_${otherUid}`, null);
+        const emailMatches = otherProfile && (otherProfile.email || '').toLowerCase() === cleanEmail;
+        const patternMatches = otherUid.includes(cleanEmail.split('@')[0]) || otherUid.startsWith('google_') || otherUid.startsWith('user_');
+
+        if (emailMatches || patternMatches) {
+          const legacyList = getSecureStorage(key, []);
+          if (Array.isArray(legacyList) && legacyList.length > 0) {
+            const remapped = legacyList.map((item: any) => ({ ...item, user_id: userId }));
+            setSecureStorage(currentKey, remapped);
+            console.log(`[useData] Instantly recovered ${remapped.length} ${colName} from ${key} for user ${userId}`);
+            return remapped;
+          }
+        }
+      }
+    }
+  }
+
+  return [];
+}
 
 export function useInvoices() {
   const { user, isOfflineMode } = useAuth();
   const [invoices, setInvoices] = useState<any[]>(() => {
     if (!user) return [];
     try {
-      const cached = getSecureStorage(`offline_invoices_${user.uid}`, []);
+      const cached = getResilientLocalData("invoices", user.uid, user.email);
       return mergeOfflineQueue(cached, "invoices", user.uid);
     } catch {
       return [];
@@ -90,7 +125,7 @@ export function useInvoices() {
   const [loading, setLoading] = useState<boolean>(() => {
     if (!user) return false;
     try {
-      const cached = getSecureStorage(`offline_invoices_${user.uid}`, null);
+      const cached = getResilientLocalData("invoices", user.uid, user.email);
       return cached === null;
     } catch {
       return true;
@@ -105,7 +140,7 @@ export function useInvoices() {
     }
 
     const loadLocal = () => {
-      const localInvoices = getSecureStorage(`offline_invoices_${user.uid}`, []);
+      const localInvoices = getResilientLocalData("invoices", user.uid, user.email);
       const finalData = mergeOfflineQueue(localInvoices, "invoices", user.uid);
       const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
       setInvoices(uniqueLocal);
@@ -177,7 +212,7 @@ export function useCustomers() {
   const [customers, setCustomers] = useState<any[]>(() => {
     if (!user) return [];
     try {
-      const cached = getSecureStorage(`offline_customers_${user.uid}`, []);
+      const cached = getResilientLocalData("customers", user.uid, user.email);
       const merged = mergeOfflineQueue(cached, "customers", user.uid);
       return merged.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
     } catch {
@@ -187,7 +222,7 @@ export function useCustomers() {
   const [loading, setLoading] = useState<boolean>(() => {
     if (!user) return false;
     try {
-      const cached = getSecureStorage(`offline_customers_${user.uid}`, null);
+      const cached = getResilientLocalData("customers", user.uid, user.email);
       return cached === null;
     } catch {
       return true;
@@ -202,7 +237,7 @@ export function useCustomers() {
     }
 
     const loadLocal = () => {
-      const local = getSecureStorage(`offline_customers_${user.uid}`, []);
+      const local = getResilientLocalData("customers", user.uid, user.email);
       const finalData = mergeOfflineQueue(local, "customers", user.uid);
       const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
       setCustomers(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
@@ -270,7 +305,7 @@ export function useItems() {
   const [items, setItems] = useState<any[]>(() => {
     if (!user) return [];
     try {
-      const cached = getSecureStorage(`offline_items_${user.uid}`, []);
+      const cached = getResilientLocalData("items", user.uid, user.email);
       const merged = mergeOfflineQueue(cached, "items", user.uid);
       return merged.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || ''));
     } catch {
@@ -280,7 +315,7 @@ export function useItems() {
   const [loading, setLoading] = useState<boolean>(() => {
     if (!user) return false;
     try {
-      const cached = getSecureStorage(`offline_items_${user.uid}`, null);
+      const cached = getResilientLocalData("items", user.uid, user.email);
       return cached === null;
     } catch {
       return true;
@@ -295,7 +330,7 @@ export function useItems() {
     }
 
     const loadLocal = () => {
-      const local = getSecureStorage(`offline_items_${user.uid}`, []);
+      const local = getResilientLocalData("items", user.uid, user.email);
       const finalData = mergeOfflineQueue(local, "items", user.uid);
       const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
       setItems(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
@@ -360,8 +395,28 @@ export function useItems() {
 
 export function usePayments(customerId?: string) {
   const { user, isOfflineMode } = useAuth();
-  const [payments, setPayments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [payments, setPayments] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      let cached = getResilientLocalData("payments", user.uid, user.email);
+      let merged = mergeOfflineQueue(cached, "payments", user.uid);
+      if (customerId) {
+        merged = merged.filter((p: any) => p.customer_id === customerId);
+      }
+      return merged.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    if (!user) return false;
+    try {
+      const cached = getResilientLocalData("payments", user.uid, user.email);
+      return cached === null;
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (!user) {
@@ -371,7 +426,7 @@ export function usePayments(customerId?: string) {
     }
 
     const loadLocal = () => {
-      let local = getSecureStorage(`offline_payments_${user.uid}`, []);
+      let local = getResilientLocalData("payments", user.uid, user.email);
       const finalData = mergeOfflineQueue(local, "payments", user.uid);
       let list = finalData;
       if (customerId) {
@@ -446,8 +501,25 @@ export function usePayments(customerId?: string) {
 
 export function useExpenses() {
   const { user, isOfflineMode } = useAuth();
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [expenses, setExpenses] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = getResilientLocalData("expenses", user.uid, user.email);
+      const merged = mergeOfflineQueue(cached, "expenses", user.uid);
+      return merged.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    if (!user) return false;
+    try {
+      const cached = getResilientLocalData("expenses", user.uid, user.email);
+      return cached === null;
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (!user) {
@@ -457,7 +529,7 @@ export function useExpenses() {
     }
 
     const loadLocal = () => {
-      const local = getSecureStorage(`offline_expenses_${user.uid}`, []);
+      const local = getResilientLocalData("expenses", user.uid, user.email);
       const finalData = mergeOfflineQueue(local, "expenses", user.uid);
       const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
       setExpenses(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
@@ -522,8 +594,25 @@ export function useExpenses() {
 
 export function usePurchases() {
   const { user, isOfflineMode } = useAuth();
-  const [purchases, setPurchases] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [purchases, setPurchases] = useState<any[]>(() => {
+    if (!user) return [];
+    try {
+      const cached = getResilientLocalData("purchases", user.uid, user.email);
+      const merged = mergeOfflineQueue(cached, "purchases", user.uid);
+      return merged.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    if (!user) return false;
+    try {
+      const cached = getResilientLocalData("purchases", user.uid, user.email);
+      return cached === null;
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     if (!user) {
@@ -533,7 +622,7 @@ export function usePurchases() {
     }
 
     const loadLocal = () => {
-      const local = getSecureStorage(`offline_purchases_${user.uid}`, []);
+      const local = getResilientLocalData("purchases", user.uid, user.email);
       const finalData = mergeOfflineQueue(local, "purchases", user.uid);
       const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
       setPurchases(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));

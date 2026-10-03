@@ -338,16 +338,101 @@ public class MainActivity extends BridgeActivity {
                 @Override
                 public void run() {
                     try {
-                        androidx.browser.customtabs.CustomTabsIntent.Builder builder = new androidx.browser.customtabs.CustomTabsIntent.Builder();
-                        builder.setShowTitle(true);
-                        builder.setToolbarColor(0xFF0F645D); // Brand green
-                        androidx.browser.customtabs.CustomTabsIntent customTabsIntent = builder.build();
-                        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                        customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        customTabsIntent.launchUrl(MainActivity.this, Uri.parse(url));
+                        final android.app.Dialog authDialog = new android.app.Dialog(MainActivity.this, android.R.style.Theme_DeviceDefault_Light_Dialog_NoActionBar_MinWidth);
+                        authDialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+
+                        android.widget.LinearLayout container = new android.widget.LinearLayout(MainActivity.this);
+                        container.setOrientation(android.widget.LinearLayout.VERTICAL);
+                        container.setLayoutParams(new android.view.ViewGroup.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT, 
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                        ));
+
+                        // Top header bar with Google branding & Cancel button
+                        android.widget.RelativeLayout header = new android.widget.RelativeLayout(MainActivity.this);
+                        header.setBackgroundColor(0xFF0F645D);
+                        int p14 = (int) (14 * getResources().getDisplayMetrics().density);
+                        header.setPadding(p14, p14, p14, p14);
+
+                        android.widget.TextView title = new android.widget.TextView(MainActivity.this);
+                        title.setText("Sign in with Google");
+                        title.setTextColor(0xFFFFFFFF);
+                        title.setTextSize(16);
+                        title.setTypeface(null, android.graphics.Typeface.BOLD);
+                        header.addView(title);
+
+                        android.widget.TextView closeBtn = new android.widget.TextView(MainActivity.this);
+                        closeBtn.setText("✕ Cancel");
+                        closeBtn.setTextColor(0xFFFFFFFF);
+                        closeBtn.setTextSize(14);
+                        android.widget.RelativeLayout.LayoutParams closeParams = new android.widget.RelativeLayout.LayoutParams(
+                            android.widget.RelativeLayout.LayoutParams.WRAP_CONTENT,
+                            android.widget.RelativeLayout.LayoutParams.WRAP_CONTENT
+                        );
+                        closeParams.addRule(android.widget.RelativeLayout.ALIGN_PARENT_RIGHT);
+                        closeBtn.setLayoutParams(closeParams);
+                        closeBtn.setOnClickListener(new android.view.View.OnClickListener() {
+                            @Override
+                            public void onClick(android.view.View v) {
+                                try { authDialog.dismiss(); } catch (Exception ignored) {}
+                            }
+                        });
+                        header.addView(closeBtn);
+                        container.addView(header);
+
+                        WebView authWebView = new WebView(MainActivity.this);
+                        authWebView.setLayoutParams(new android.widget.LinearLayout.LayoutParams(
+                            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                            android.widget.LinearLayout.LayoutParams.MATCH_PARENT
+                        ));
+                        WebSettings ws = authWebView.getSettings();
+                        ws.setJavaScriptEnabled(true);
+                        ws.setDomStorageEnabled(true);
+                        ws.setDatabaseEnabled(true);
+                        ws.setSupportMultipleWindows(true);
+                        ws.setJavaScriptCanOpenWindowsAutomatically(true);
+                        CookieManager.getInstance().setAcceptThirdPartyCookies(authWebView, true);
+
+                        authWebView.setWebViewClient(new android.webkit.WebViewClient() {
+                            @Override
+                            public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
+                                String reqUrl = request.getUrl().toString();
+                                if (reqUrl.startsWith("invocentric://") || reqUrl.startsWith("com.invocentric.app://") || reqUrl.startsWith("intent://auth")) {
+                                    handleDeepLink(new Intent(Intent.ACTION_VIEW, Uri.parse(reqUrl)));
+                                    try { authDialog.dismiss(); } catch (Exception ignored) {}
+                                    return true;
+                                }
+                                return false;
+                            }
+                        });
+
+                        container.addView(authWebView);
+                        authDialog.setContentView(container);
+
+                        android.view.Window window = authDialog.getWindow();
+                        if (window != null) {
+                            window.setLayout(
+                                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                                (int) (getResources().getDisplayMetrics().heightPixels * 0.88)
+                            );
+                            window.setGravity(android.view.Gravity.BOTTOM);
+                        }
+
+                        authDialog.show();
+                        authWebView.loadUrl(url);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        openExternalUrl(url);
+                        try {
+                            androidx.browser.customtabs.CustomTabsIntent.Builder builder = new androidx.browser.customtabs.CustomTabsIntent.Builder();
+                            builder.setShowTitle(true);
+                            builder.setToolbarColor(0xFF0F645D);
+                            androidx.browser.customtabs.CustomTabsIntent customTabsIntent = builder.build();
+                            customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                            customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            customTabsIntent.launchUrl(MainActivity.this, Uri.parse(url));
+                        } catch (Exception ex) {
+                            openExternalUrl(url);
+                        }
                     }
                 }
             });

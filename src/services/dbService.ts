@@ -22,9 +22,21 @@ export interface DbOperationOptions {
 
 export function isLocalOnlyMode(options?: DbOperationOptions): boolean {
   if (options?.offlineMode) return true;
-  if (typeof localStorage !== 'undefined') {
-    if (localStorage.getItem('is_offline_mode') === 'true') return true;
-    if (localStorage.getItem('invocentric_storage_mode') === 'local_pc') return true;
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    // Only Desktop Electron application supports dedicated local PC database mode
+    const isDesktopApp = Boolean((window as any).electronAPI?.isElectron);
+    if (isDesktopApp) {
+      if (localStorage.getItem('is_offline_mode') === 'true') return true;
+      if (localStorage.getItem('invocentric_storage_mode') === 'local_pc') return true;
+    } else {
+      // On WebApp and Android, ensure we never stay trapped in local_pc mode
+      if (localStorage.getItem('invocentric_storage_mode') === 'local_pc') {
+        localStorage.setItem('invocentric_storage_mode', 'cloud');
+      }
+      if (localStorage.getItem('is_offline_mode') === 'true') {
+        localStorage.removeItem('is_offline_mode');
+      }
+    }
   }
   return false;
 }

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { 
   AlertCircle, 
   Mail, 
@@ -158,6 +158,7 @@ const InvoiceMockup = () => {
 };
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const { 
     signInWithGoogle, 
     loginWithPassword,
@@ -168,6 +169,9 @@ export default function LoginPage() {
   } = useAuth();
   
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [googleModalOpen, setGoogleModalOpen] = useState(false);
+  const [googleAuthStep, setGoogleAuthStep] = useState<'idle' | 'selecting' | 'authorizing' | 'connected' | 'error'>('idle');
+  const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
   
   // Form states
   const [emailInput, setEmailInput] = useState('');
@@ -321,6 +325,9 @@ export default function LoginPage() {
   }, [mobileSessionId, handshakeCompleted]);
 
   const handleGoogleLogin = async () => {
+    setGoogleModalOpen(true);
+    setGoogleAuthStep('selecting');
+    setGoogleAuthError(null);
     setLoading(true);
     setError(null);
     try {
@@ -336,8 +343,13 @@ export default function LoginPage() {
         try {
           const result = await signInWithPopup(auth, provider);
           if (result?.user) {
+            setGoogleAuthStep('authorizing');
             const credential = GoogleAuthProvider.credentialFromResult(result);
             await transmitHandshake(result.user, credential?.idToken, credential?.accessToken, mobileSessionId);
+            setGoogleAuthStep('connected');
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 600);
             return;
           }
         } catch (popupErr: any) {
@@ -348,13 +360,36 @@ export default function LoginPage() {
         return;
       }
 
-      await signInWithGoogle();
+      await signInWithGoogle((step) => {
+        if (step === 'initializing' || step === 'bottom_sheet') {
+          setGoogleAuthStep('selecting');
+        } else if (step === 'token_received' || step === 'verifying_server' || step === 'session_created') {
+          setGoogleAuthStep('authorizing');
+        } else if (step === 'access_granted') {
+          setGoogleAuthStep('connected');
+        }
+      });
+      setGoogleAuthStep('connected');
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 600);
     } catch (err: any) {
+      if (
+        err?.code === 'auth/popup-closed-by-user' || 
+        err?.code === 'auth/cancelled-popup-request' ||
+        err?.message?.includes('cancelled')
+      ) {
+        setGoogleModalOpen(false);
+        setGoogleAuthStep('idle');
+        return;
+      }
       console.error("Google Login Error:", err);
       let message = err.message || "Failed to sign in with Google. Please try again.";
       if (err.code === 'auth/popup-blocked') {
         message = "Login popup was blocked by your browser. Please allow popups for this site and try again.";
       }
+      setGoogleAuthStep('error');
+      setGoogleAuthError(message);
       setError(message);
     } finally {
       setLoading(false);
@@ -1283,6 +1318,241 @@ export default function LoginPage() {
               >
                 Close
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Google In-App Popup Modal / Bottom Sheet */}
+      <AnimatePresence>
+        {googleModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative"
+            >
+              {/* Top colored accent bar */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-teal-500" />
+
+              {/* Modal Header */}
+              <div className="p-6 pb-4 flex items-center justify-between border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-xs">
+                    <svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base leading-tight">Google Sign-In</h3>
+                    <p className="text-[11px] text-slate-400 font-medium">In-App Secure Authentication</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGoogleModalOpen(false);
+                    setGoogleAuthStep('idle');
+                    setLoading(false);
+                  }}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                  title="Cancel"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Modal Stepper Progress Bar */}
+              <div className="px-6 pt-5 pb-3">
+                <div className="flex items-center justify-between mb-2">
+                  {/* Step 1 */}
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      googleAuthStep === 'selecting' 
+                        ? 'bg-blue-600 text-white ring-4 ring-blue-100' 
+                        : googleAuthStep === 'authorizing' || googleAuthStep === 'connected'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {googleAuthStep === 'authorizing' || googleAuthStep === 'connected' ? '✓' : '1'}
+                    </div>
+                    <span className={`text-xs font-semibold ${
+                      googleAuthStep === 'selecting' ? 'text-blue-600 font-bold' : 'text-slate-600'
+                    }`}>
+                      Select ID
+                    </span>
+                  </div>
+
+                  <div className={`h-0.5 flex-1 mx-2 transition-all ${
+                    googleAuthStep === 'authorizing' || googleAuthStep === 'connected' ? 'bg-emerald-500' : 'bg-slate-200'
+                  }`} />
+
+                  {/* Step 2 */}
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      googleAuthStep === 'authorizing' 
+                        ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 animate-pulse' 
+                        : googleAuthStep === 'connected'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {googleAuthStep === 'connected' ? '✓' : '2'}
+                    </div>
+                    <span className={`text-xs font-semibold ${
+                      googleAuthStep === 'authorizing' ? 'text-emerald-700 font-bold' : 'text-slate-600'
+                    }`}>
+                      Authorize
+                    </span>
+                  </div>
+
+                  <div className={`h-0.5 flex-1 mx-2 transition-all ${
+                    googleAuthStep === 'connected' ? 'bg-emerald-500' : 'bg-slate-200'
+                  }`} />
+
+                  {/* Step 3 */}
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      googleAuthStep === 'connected' 
+                        ? 'bg-emerald-600 text-white ring-4 ring-emerald-100' 
+                        : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      3
+                    </div>
+                    <span className={`text-xs font-semibold ${
+                      googleAuthStep === 'connected' ? 'text-emerald-700 font-bold' : 'text-slate-600'
+                    }`}>
+                      Connected
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Body with Animated Status */}
+              <div className="p-6 pt-3 pb-8 text-center flex flex-col items-center">
+                {googleAuthStep === 'selecting' && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center"
+                  >
+                    <div className="relative w-20 h-20 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center mb-4">
+                      <svg viewBox="0 0 24 24" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                      </svg>
+                      <div className="absolute -inset-2 rounded-full border-2 border-blue-400 animate-ping opacity-25 pointer-events-none" />
+                    </div>
+                    <h4 className="text-lg font-bold text-slate-900 mb-1">
+                      Select Your Google Account
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-xs mb-5">
+                      बिना स्क्रीन बदले अपना Google ID चुनें। आपका खाता तुरंत प्रमाणित होकर कनेक्ट हो जाएगा।
+                    </p>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold">
+                      <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      <span>Waiting for account selection...</span>
+                    </div>
+                  </motion.div>
+                )}
+
+                {googleAuthStep === 'authorizing' && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center"
+                  >
+                    <div className="relative w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center text-emerald-700 mb-4">
+                      <ShieldCheck size={42} className="animate-pulse" />
+                      <div className="absolute -inset-2 rounded-full border-2 border-emerald-400 animate-ping opacity-25 pointer-events-none" />
+                    </div>
+                    <h4 className="text-lg font-bold text-slate-900 mb-1">
+                      Authorizing & Connecting...
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-xs mb-5">
+                      Google ID सत्यापित हो रहा है और आपका इनवॉयस डेटा सर्वर से सुरक्षित सिंक हो रहा है...
+                    </p>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-semibold">
+                      <div className="w-3.5 h-3.5 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin" />
+                      <span>Connecting to InvoCentic server...</span>
+                    </div>
+                  </motion.div>
+                )}
+
+                {googleAuthStep === 'connected' && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center"
+                  >
+                    <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4 shadow-inner">
+                      <CheckCircle2 size={46} className="text-emerald-700" />
+                    </div>
+                    <h4 className="text-xl font-bold text-slate-900 mb-1">
+                      Connected Successfully!
+                    </h4>
+                    <p className="text-xs text-slate-500 max-w-xs mb-5">
+                      खाता प्रमाणित हो गया है। डैशबोर्ड खुल रहा है...
+                    </p>
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-bold shadow-md">
+                      <Sparkles size={14} className="animate-spin" />
+                      <span>Opening Dashboard...</span>
+                    </div>
+                  </motion.div>
+                )}
+
+                {googleAuthStep === 'error' && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center w-full"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
+                      <AlertCircle size={36} />
+                    </div>
+                    <h4 className="text-base font-bold text-slate-900 mb-1">
+                      Sign-In Notice
+                    </h4>
+                    <p className="text-xs text-rose-600 max-w-xs mb-5 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                      {googleAuthError || "Unable to complete Google Sign-In. Please try again."}
+                    </p>
+                    <div className="flex gap-2 w-full">
+                      <button
+                        type="button"
+                        onClick={handleGoogleLogin}
+                        className="flex-1 h-11 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+                      >
+                        Try Again
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGoogleModalOpen(false);
+                          setGoogleAuthStep('idle');
+                          setLoading(false);
+                        }}
+                        className="px-4 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              {/* Modal Footer Note */}
+              <div className="bg-slate-50 px-6 py-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                <span className="flex items-center gap-1.5 font-medium text-slate-500">
+                  <ShieldCheck size={13} className="text-emerald-700" /> 256-bit SSL Protected
+                </span>
+                <span className="font-semibold text-emerald-800">InvoCentic Secure Auth</span>
+              </div>
             </motion.div>
           </div>
         )}

@@ -1204,7 +1204,7 @@ async function verifyGoogleIdToken(idToken: string): Promise<{
 // 7. Receive Token from App -> 8. Token Verification -> 9. User Management (DB Check) -> 10. Session Creation & Response
 app.post("/api/auth/google-login", async (req, res) => {
   try {
-    const { idToken } = req.body;
+    const { idToken, clientUid } = req.body;
     if (!idToken || typeof idToken !== "string") {
       return res.status(400).json({ success: false, error: "Google ID token is required." });
     }
@@ -1216,16 +1216,61 @@ app.post("/api/auth/google-login", async (req, res) => {
     }
 
     const { googleSub, email, displayName, photoURL } = verification.payload;
+    const cleanEmail = email.trim().toLowerCase();
     const db = loadUsersDb();
     let isNewUser = false;
     let userRecord = db[email];
+    if (!userRecord && db[cleanEmail]) {
+      userRecord = db[cleanEmail];
+    }
+
+    // Check if Firestore already has an existing account document for this email
+    let firestoreExistingUid: string | null = null;
+    try {
+      const projectId = firebaseConfig?.projectId;
+      const databaseId = firebaseConfig?.firestoreDatabaseId || "(default)";
+      const apiKey = firebaseConfig?.apiKey;
+      if (projectId && apiKey) {
+        const runQueryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${apiKey}`;
+        const queryRes = await fetch(runQueryUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: "users" }],
+              where: {
+                fieldFilter: {
+                  field: { fieldPath: "email" },
+                  op: "EQUAL",
+                  value: { stringValue: cleanEmail }
+                }
+              },
+              limit: 1
+            }
+          })
+        });
+        if (queryRes.ok) {
+          const results = await queryRes.json();
+          if (Array.isArray(results) && results[0]?.document) {
+            const docName = results[0].document.name || "";
+            const extractedId = docName.split("/").pop();
+            if (extractedId) {
+              firestoreExistingUid = extractedId;
+              console.log(`[Google Auth Server] Located existing Firestore user UID for ${cleanEmail}: ${firestoreExistingUid}`);
+            }
+          }
+        }
+      }
+    } catch (fsLookupErr) {
+      console.warn("[Google Auth Server] Firestore email lookup note:", fsLookupErr);
+    }
 
     // 9. User Management (DB Check)
     if (!userRecord) {
-      isNewUser = true;
-      const cleanUid = 'google_' + (googleSub || email.replace(/[^a-zA-Z0-9]/g, '_'));
+      const targetUid = firestoreExistingUid || (typeof clientUid === 'string' && clientUid ? clientUid : null) || ('google_' + (googleSub || email.replace(/[^a-zA-Z0-9]/g, '_')));
+      isNewUser = !firestoreExistingUid;
       userRecord = {
-        uid: cleanUid,
+        uid: targetUid,
         email,
         name: displayName,
         displayName,
@@ -1236,12 +1281,19 @@ app.post("/api/auth/google-login", async (req, res) => {
         lastLoginAt: new Date().toISOString()
       };
       db[email] = userRecord;
+      db[cleanEmail] = userRecord;
       saveUsersDb(db);
-      console.log(`[Google Auth Server] New user registered in DB: ${email} (${userRecord.uid})`);
+      console.log(`[Google Auth Server] User authenticated/registered in DB: ${email} (${userRecord.uid})`);
     } else {
-      // Existing User
-      if (!userRecord.uid) {
-        userRecord.uid = 'user_' + email.replace(/[^a-zA-Z0-9]/g, '_');
+      // Existing User: ensure UID aligns with existing Firestore document or client Firebase UID
+      if (firestoreExistingUid && userRecord.uid !== firestoreExistingUid) {
+        console.log(`[Google Auth Server] Re-aligning UID for ${email} from ${userRecord.uid} to existing Firestore UID ${firestoreExistingUid}`);
+        userRecord.uid = firestoreExistingUid;
+      } else if (typeof clientUid === 'string' && clientUid && userRecord.uid?.startsWith('google_')) {
+        console.log(`[Google Auth Server] Re-aligning UID for ${email} from ${userRecord.uid} to client Firebase UID ${clientUid}`);
+        userRecord.uid = clientUid;
+      } else if (!userRecord.uid) {
+        userRecord.uid = firestoreExistingUid || (typeof clientUid === 'string' && clientUid ? clientUid : null) || ('user_' + email.replace(/[^a-zA-Z0-9]/g, '_'));
       }
       if (displayName && !userRecord.displayName) {
         userRecord.displayName = displayName;
@@ -1253,6 +1305,7 @@ app.post("/api/auth/google-login", async (req, res) => {
       userRecord.lastLoginAt = new Date().toISOString();
       userRecord.provider = userRecord.provider || 'google';
       db[email] = userRecord;
+      db[cleanEmail] = userRecord;
       saveUsersDb(db);
       console.log(`[Google Auth Server] Existing user authenticated in DB: ${email} (${userRecord.uid})`);
     }

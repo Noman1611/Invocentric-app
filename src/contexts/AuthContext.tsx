@@ -130,10 +130,10 @@ export const evaluatePlanValidity = (
       const now = Date.now();
       if (!isNaN(expiryTime)) {
         if (now > expiryTime) {
-          // EXPIRED! Cleanly downgrade to free tier
+          // EXPIRED! Cleanly downgrade to active free forever tier
           return {
             effectiveTier: 'free',
-            effectiveStatus: 'expired',
+            effectiveStatus: 'active',
             isExpired: true,
             daysRemaining: 0,
             renewsAt,
@@ -163,9 +163,10 @@ export const evaluatePlanValidity = (
       const expiryTime = claimedTime + 30 * 24 * 60 * 60 * 1000;
       const now = Date.now();
       if (now > expiryTime) {
+        // Free Trial Expired -> Active Free Forever Plan
         return {
           effectiveTier: 'free',
-          effectiveStatus: 'expired',
+          effectiveStatus: 'active',
           isExpired: true,
           daysRemaining: 0,
           renewsAt: new Date(expiryTime).toISOString(),
@@ -188,10 +189,10 @@ export const evaluatePlanValidity = (
       }
     }
 
-    // Pro with no valid renew date or corrupt data -> fallback to expired
+    // Pro with no valid renew date or corrupt data -> fallback to active Free Plan
     return {
       effectiveTier: 'free',
-      effectiveStatus: 'expired',
+      effectiveStatus: 'active',
       isExpired: true,
       daysRemaining: 0,
       renewsAt: null,
@@ -203,14 +204,121 @@ export const evaluatePlanValidity = (
 
   return {
     effectiveTier: 'free',
-    effectiveStatus: profile?.plan_status || (profile?.subscription_status === 'expired' ? 'expired' : 'active'),
-    isExpired: profile?.plan_status === 'expired' || profile?.subscription_status === 'expired',
+    effectiveStatus: 'active',
+    isExpired: false,
     daysRemaining: 0,
     renewsAt,
     billingCycle,
     freeTrialClaimed,
     freeTrialClaimedAt
   };
+};
+
+export const migrateLegacyUserData = (canonicalUid: string, userEmail?: string | null) => {
+  if (typeof window === 'undefined' || !canonicalUid) return;
+  const cleanEmail = (userEmail || '').trim().toLowerCase();
+
+  try {
+    const legacyUids = new Set<string>();
+
+    if (cleanEmail) {
+      legacyUids.add('user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+      legacyUids.add('google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+    }
+
+    // Inspect user_profile_* keys and offline_invoices_* keys in localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('user_profile_')) {
+        const otherUid = key.replace('user_profile_', '');
+        if (otherUid && otherUid !== canonicalUid) {
+          const profile = getSecureStorage(key, null);
+          if (profile && (profile.email || '').toLowerCase() === cleanEmail) {
+            legacyUids.add(otherUid);
+          }
+        }
+      } else if (key && key.startsWith('offline_invoices_')) {
+        const otherUid = key.replace('offline_invoices_', '');
+        if (otherUid && otherUid !== canonicalUid) {
+          if (cleanEmail && (otherUid.includes(cleanEmail.split('@')[0]) || otherUid.startsWith('google_') || otherUid.startsWith('user_'))) {
+            legacyUids.add(otherUid);
+          }
+        }
+      }
+    }
+
+    const collections = [
+      'invoices',
+      'customers',
+      'items',
+      'payments',
+      'expenses',
+      'quotations',
+      'purchases',
+      'daily_book',
+      'company_settings',
+      'invoice_settings'
+    ];
+
+    for (const legacyUid of legacyUids) {
+      if (!legacyUid || legacyUid === canonicalUid) continue;
+
+      for (const col of collections) {
+        const legacyKey = `offline_${col}_${legacyUid}`;
+        const targetKey = `offline_${col}_${canonicalUid}`;
+
+        const legacyItems = getSecureStorage(legacyKey, []);
+        if (Array.isArray(legacyItems) && legacyItems.length > 0) {
+          const currentItems = getSecureStorage(targetKey, []);
+          const currentMap = new Map<string, any>();
+          if (Array.isArray(currentItems)) {
+            currentItems.forEach((item: any) => {
+              if (item?.id) currentMap.set(item.id, item);
+            });
+          }
+
+          let addedCount = 0;
+          legacyItems.forEach((legacyItem: any) => {
+            if (legacyItem && legacyItem.id && !currentMap.has(legacyItem.id)) {
+              currentMap.set(legacyItem.id, {
+                ...legacyItem,
+                user_id: canonicalUid
+              });
+              addedCount++;
+            }
+          });
+
+          if (addedCount > 0) {
+            const merged = Array.from(currentMap.values());
+            setSecureStorage(targetKey, merged);
+            console.log(`[Data Migration] Recovered and merged ${addedCount} ${col} from legacy UID ${legacyUid} to ${canonicalUid}`);
+            window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: col } }));
+            window.dispatchEvent(new CustomEvent(`${col}_updated`, { detail: { collection: col } }));
+          }
+        }
+      }
+
+      // Also migrate user profile if canonical profile is missing business info
+      const legacyProfileKey = `user_profile_${legacyUid}`;
+      const targetProfileKey = `user_profile_${canonicalUid}`;
+      const legacyProfile = getSecureStorage(legacyProfileKey, null);
+      const targetProfile = getSecureStorage(targetProfileKey, null);
+
+      if (legacyProfile && (!targetProfile || !targetProfile.business_name || !targetProfile.gstin)) {
+        const mergedProfile = {
+          ...(legacyProfile || {}),
+          ...(targetProfile || {}),
+          id: canonicalUid,
+          email: cleanEmail || targetProfile?.email || legacyProfile?.email
+        };
+        setSecureStorage(targetProfileKey, mergedProfile);
+        saveStoredUserProfile(canonicalUid, mergedProfile, cleanEmail);
+        console.log(`[Data Migration] Restored business profile from legacy UID ${legacyUid} to ${canonicalUid}`);
+      }
+    }
+  } catch (err) {
+    console.warn("[Data Migration] Notice during legacy user data migration:", err);
+  }
 };
 
 export const createSyntheticUser = (data: any): User => {
@@ -507,35 +615,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isDesktopApp = typeof window !== 'undefined' && Boolean((window as any).electronAPI?.isElectron);
+
   const isOfflineMode = Boolean(
     isOfflineModeState ||
     isBrowserOffline ||
-    (typeof window !== 'undefined' && (
+    !navigator.onLine ||
+    (isDesktopApp && typeof window !== 'undefined' && (
       localStorage.getItem('is_offline_mode') === 'true' ||
-      localStorage.getItem('invocentric_storage_mode') === 'local_pc' ||
-      !navigator.onLine
+      localStorage.getItem('invocentric_storage_mode') === 'local_pc'
     ))
   );
 
   useEffect(() => {
-    const handleOnline = () => setIsBrowserOffline(false);
+    const triggerCloudSync = () => {
+      setIsBrowserOffline(false);
+      if (user?.uid && typeof navigator !== 'undefined' && navigator.onLine) {
+        console.log("[Auto-Sync] Connection active. Synchronizing offline queue with online Firestore database...");
+        dbService.syncOfflineData(user.uid).then((res) => {
+          if (res.processed > 0) {
+            console.log(`[Auto-Sync] Successfully synchronized ${res.processed} pending items to cloud.`);
+            window.dispatchEvent(new CustomEvent('invocentric_data_updated'));
+          }
+        }).catch((err) => console.warn("[Auto-Sync] Sync notice:", err));
+      }
+    };
+
+    const handleOnline = () => triggerCloudSync();
     const handleOffline = () => setIsBrowserOffline(true);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Initial check on mount or when user becomes available
+    if (typeof navigator !== 'undefined' && navigator.onLine && user?.uid && !isOfflineMode) {
+      triggerCloudSync();
+    }
+
+    // Periodic auto-sync every 30 seconds when online so no offline data remains unsynced
+    const syncTimer = setInterval(() => {
+      if (typeof navigator !== 'undefined' && navigator.onLine && user?.uid && !isOfflineMode) {
+        triggerCloudSync();
+      }
+    }, 30000);
+
+    // Auto-sync on window focus and app resume (e.g. user switching back to app)
+    const handleAppFocus = () => {
+      if (typeof navigator !== 'undefined' && navigator.onLine && user?.uid && !isOfflineMode) {
+        triggerCloudSync();
+      }
+    };
+    window.addEventListener('focus', handleAppFocus);
+    window.addEventListener('app-resumed', handleAppFocus);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleAppFocus();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('focus', handleAppFocus);
+      window.removeEventListener('app-resumed', handleAppFocus);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      clearInterval(syncTimer);
     };
-  }, []);
-
-  // Gate the reconnect sync strictly on the derived offline mode
-  useEffect(() => {
-    if (!isOfflineMode && typeof navigator !== 'undefined' && navigator.onLine && user?.uid) {
-      dbService.syncOfflineData(user.uid).catch(() => {});
-    }
-  }, [isOfflineMode, user?.uid]);
+  }, [user?.uid, isOfflineMode]);
 
   // Plan State & Free Trial Claim Tracking
   const [freeTrialClaimed, setFreeTrialClaimed] = useState<boolean>(false);
@@ -549,13 +696,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setFreeTrialClaimed(evalResult.freeTrialClaimed);
     setFreeTrialClaimedAt(evalResult.freeTrialClaimedAt);
 
-    // If plan was recorded as pro but has now cleanly expired, heal Firestore and local cache
+    // If plan was recorded as pro but has now cleanly expired, heal Firestore and local cache to active Free plan
     if (evalResult.isExpired && userUid && navigator.onLine) {
       const userDocRef = doc(db, 'users', userUid);
       setDoc(userDocRef, {
         plan: 'free',
         plan_tier: 'free',
-        plan_status: 'expired',
+        plan_status: 'active',
         subscription_status: 'expired',
         updated_at: serverTimestamp()
       }, { merge: true }).catch(() => {});
@@ -911,6 +1058,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // 2. Set user immediately in state so PrivateRoute and HomeRoute know user is active!
         setUser(firebaseUser);
+
+        // Run legacy data migration to ensure previous invoices/items/customers are merged into active UID
+        migrateLegacyUserData(firebaseUser.uid, firebaseUser.email);
 
         // 3. Fast offline-first hydration from local storage (0ms - instantaneous)
         const cachedProfile = getStoredUserProfile(firebaseUser.uid);
@@ -1463,12 +1613,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Phase 2: Backend Flow (Server-Side)
         // 7. Send Token to Server -> 8. Verify -> 9. User DB Check -> 10. Session Creation & Response
         if (authData?.idToken) {
-          console.log("Sending Google ID token to server for cryptographic verification & session creation...");
+          console.log("Authenticating Firebase Auth & sending Google ID token to server for verification...");
           onProgress?.('verifying_server');
+
+          // Authenticate client Firebase Auth first to obtain the official permanent Firebase UID
+          let canonicalUid: string | null = null;
+          try {
+            const cred = GoogleAuthProvider.credential(authData.idToken);
+            const userCred = await signInWithCredential(auth, cred);
+            if (userCred?.user?.uid) {
+              canonicalUid = userCred.user.uid;
+              console.log("Client Firebase Auth verified official UID:", canonicalUid);
+            }
+          } catch (fbErr) {
+            console.warn("Client Firebase Auth sync note:", fbErr);
+          }
+
+          // Retrieve previous local UID if stored on this device for the same email
+          const previousLocalUid = (typeof window !== 'undefined' && localStorage.getItem('invocentric_last_email')?.toLowerCase() === (authData.email || '').toLowerCase())
+            ? localStorage.getItem('invocentric_last_uid')
+            : null;
+
           const serverRes = await fetch(apiUrl('/api/auth/google-login'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idToken: authData.idToken })
+            body: JSON.stringify({ idToken: authData.idToken, clientUid: canonicalUid || previousLocalUid || undefined })
           });
 
           if (!serverRes.ok) {
@@ -1483,28 +1652,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           onProgress?.('session_created');
 
+          // Ensure UID matches the canonical user UID
+          const effectiveUid = canonicalUid || previousLocalUid || serverData.user.uid;
+
           // 10. Store Session Token (JWT) and user details
           localStorage.setItem('invocentric_jwt_token', serverData.token);
           localStorage.setItem('invocentric_auth_active', 'true');
-          localStorage.setItem('invocentric_last_uid', serverData.user.uid);
+          localStorage.setItem('invocentric_last_uid', effectiveUid);
           if (serverData.user.email) {
             localStorage.setItem('invocentric_last_email', serverData.user.email);
           }
 
+          // Automatically recover and migrate any data created under older legacy UIDs
+          migrateLegacyUserData(effectiveUid, serverData.user.email || authData.email);
+
           // Apply authenticated user session in app state
           await applyExternalSessionUser({
             ...serverData.user,
+            uid: effectiveUid,
             token: serverData.token,
             idToken: authData.idToken
           });
-
-          // In background: also authenticate client Firebase so Firestore rules/offline listeners stay active
-          try {
-            const cred = GoogleAuthProvider.credential(authData.idToken);
-            await signInWithCredential(auth, cred);
-          } catch (fbErr) {
-            console.warn("Client Firebase Auth sync note:", fbErr);
-          }
 
           onProgress?.('access_granted');
           console.log("Successfully authenticated via Google Login Flow:", serverData.user.email);
@@ -1718,13 +1886,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const serverRes = await fetch(apiUrl('/api/auth/google-login'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ idToken })
+              body: JSON.stringify({ idToken, clientUid: result.user.uid })
             });
 
             if (serverRes.ok) {
               const serverData = await serverRes.json();
               if (serverData?.token) {
                 localStorage.setItem('invocentric_jwt_token', serverData.token);
+                localStorage.setItem('invocentric_last_uid', result.user.uid);
+                if (result.user.email) {
+                  localStorage.setItem('invocentric_last_email', result.user.email);
+                }
+                migrateLegacyUserData(result.user.uid, result.user.email);
                 onProgress?.('session_created');
               }
             }
