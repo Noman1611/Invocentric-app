@@ -121,10 +121,44 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    WebView webView = getBridge().getWebView();
+                    if (webView != null) {
+                        webView.evaluateJavascript(
+                            "(function(){ window.dispatchEvent(new CustomEvent('app-resumed')); })();",
+                            null
+                        );
+                    }
+                } catch (Exception ignored) {}
+            }
+        });
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        setIntent(intent);
         handleDeepLink(intent);
         handleUpdateIntent(intent);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    WebView webView = getBridge().getWebView();
+                    if (webView != null) {
+                        webView.evaluateJavascript(
+                            "(function(){ window.dispatchEvent(new CustomEvent('app-resumed')); })();",
+                            null
+                        );
+                    }
+                } catch (Exception ignored) {}
+            }
+        });
     }
 
     private void handleUpdateIntent(Intent intent) {

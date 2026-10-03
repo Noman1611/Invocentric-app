@@ -139,23 +139,15 @@ test('Step 11: Frontend stores invocentric_jwt_token and applies user session',
   authContext.includes('applyExternalSessionUser(')
 );
 
-console.log('\n► Live Stepper & Real-Time Pipeline Progress UI');
-test('Interactive 11-step progress modal rendered during Google Login',
-  loginPage.includes('Google Login Flow') &&
-  loginPage.includes('Phase 1: Frontend Flow (Android App)') &&
-  loginPage.includes('Phase 2: Backend Flow (Server-Side)') &&
-  loginPage.includes('Initialize Credential Manager') &&
-  loginPage.includes('Google Bottom Sheet UI') &&
-  loginPage.includes('Token Verification & DB Check') &&
-  loginPage.includes('Session Creation & Response')
+console.log('\n► User Experience & Seamless App Return');
+test('Clean button loading state with no confusing flow diagrams shown to user',
+  !loginPage.includes('Google Login Flow') &&
+  loginPage.includes('Connecting...') &&
+  loginPage.includes('intent://auth')
 );
-test('AuthContext exposes onProgress callback across all login stages',
+test('AuthContext exposes onProgress callback and instant resume listener',
   authContext.includes("onProgress?.('initializing')") &&
-  authContext.includes("onProgress?.('bottom_sheet')") &&
-  authContext.includes("onProgress?.('token_received')") &&
-  authContext.includes("onProgress?.('verifying_server')") &&
-  authContext.includes("onProgress?.('session_created')") &&
-  authContext.includes("onProgress?.('access_granted')")
+  authContext.includes("app-resumed")
 );
 
 console.log('\n► Cryptographic HMAC-SHA256 Roundtrip Verification');

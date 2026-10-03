@@ -787,13 +787,13 @@ app.post("/api/auth/verify-email-otp", async (req, res) => {
   return res.json({ success: true, email: key });
 });
 var mobileAuthSessions = /* @__PURE__ */ new Map();
-app.post("/api/auth/mobile-session", (req, res) => {
+app.post("/api/auth/mobile-session", async (req, res) => {
   const { sessionId, status, idToken, accessToken, uid, email, displayName, photoURL } = req.body;
   if (!sessionId || typeof sessionId !== "string") {
     return res.status(400).json({ error: "sessionId is required." });
   }
   const existing = mobileAuthSessions.get(sessionId);
-  mobileAuthSessions.set(sessionId, {
+  const sessionData = {
     ...existing || {},
     status: status || "authenticated",
     idToken: idToken !== void 0 ? idToken : existing?.idToken,
@@ -804,19 +804,65 @@ app.post("/api/auth/mobile-session", (req, res) => {
     photoURL: photoURL !== void 0 ? photoURL : existing?.photoURL,
     expires: Date.now() + 10 * 60 * 1e3
     // 10 minutes
-  });
+  };
+  mobileAuthSessions.set(sessionId, sessionData);
+  try {
+    const apiKey = firebaseConfig?.apiKey || process.env.FIREBASE_API_KEY;
+    const projectId = firebaseConfig?.projectId || process.env.FIREBASE_PROJECT_ID;
+    const databaseId = firebaseConfig?.firestoreDatabaseId || "(default)";
+    if (apiKey && projectId) {
+      const fsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/app_auth_sessions/${sessionId}?key=${apiKey}`;
+      const fields = {
+        sessionId: { stringValue: sessionId },
+        status: { stringValue: sessionData.status || "authenticated" },
+        expires: { integerValue: sessionData.expires.toString() }
+      };
+      if (sessionData.idToken) fields.idToken = { stringValue: sessionData.idToken };
+      if (sessionData.accessToken) fields.accessToken = { stringValue: sessionData.accessToken };
+      if (sessionData.uid) fields.uid = { stringValue: sessionData.uid };
+      if (sessionData.email) fields.email = { stringValue: sessionData.email };
+      if (sessionData.displayName) fields.displayName = { stringValue: sessionData.displayName };
+      if (sessionData.photoURL) fields.photoURL = { stringValue: sessionData.photoURL };
+      fetch(fsUrl, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields })
+      }).catch((err) => console.warn("Firestore mobile-session backup notice:", err));
+    }
+  } catch (err) {
+    console.warn("Firestore session persist error:", err);
+  }
   return res.json({ success: true, sessionId });
 });
-app.get("/api/auth/mobile-session", (req, res) => {
+app.get("/api/auth/mobile-session", async (req, res) => {
   const sessionId = (req.query.session || req.query.sessionId)?.toString();
   if (!sessionId) {
     return res.status(400).json({ error: "sessionId is required." });
   }
   const record = mobileAuthSessions.get(sessionId);
-  if (!record || record.expires < Date.now()) {
-    return res.json({ status: "not_found" });
+  if (record && record.expires >= Date.now()) {
+    return res.json(record);
   }
-  return res.json(record);
+  try {
+    const apiKey = firebaseConfig?.apiKey || process.env.FIREBASE_API_KEY;
+    const projectId = firebaseConfig?.projectId || process.env.FIREBASE_PROJECT_ID;
+    const databaseId = firebaseConfig?.firestoreDatabaseId || "(default)";
+    if (apiKey && projectId) {
+      const fsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/app_auth_sessions/${sessionId}?key=${apiKey}`;
+      const fsRes = await fetch(fsUrl);
+      if (fsRes.ok) {
+        const docData = await fsRes.json();
+        const parsed = parseFirestoreDocument(docData);
+        if (parsed && (!parsed.expires || Number(parsed.expires) >= Date.now())) {
+          mobileAuthSessions.set(sessionId, { ...parsed, expires: Number(parsed.expires) || Date.now() + 6e5 });
+          return res.json(parsed);
+        }
+      }
+    }
+  } catch (fsErr) {
+    console.warn("Firestore mobile-session lookup notice:", fsErr);
+  }
+  return res.json({ status: "not_found" });
 });
 var usersDbPath = import_path.default.resolve(process.cwd(), "users_db.json");
 var PASSWORD_PEPPER = process.env.VITE_ENCRYPTION_KEY || process.env.FIREBASE_API_KEY || "invocentric-secure-pepper-2026";

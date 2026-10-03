@@ -1647,6 +1647,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           window.addEventListener('app-deep-link', onDeepLink);
           cleanupFns.push(() => window.removeEventListener('app-deep-link', onDeepLink));
+
+          // 4. Instant session check on app foreground resume or window focus
+          const checkImmediate = async () => {
+            if (resolved) return;
+            try {
+              const res = await fetch(`https://invocentric.in/api/auth/mobile-session?session=${sessionId}`);
+              if (res.ok) {
+                const sData = await res.json();
+                if (sData?.status === 'authenticated') {
+                  handleAuthPayload(sData);
+                  return;
+                }
+              }
+            } catch (_) {}
+
+            try {
+              const snap = await getDoc(sessionRef);
+              if (snap.exists()) {
+                const data = snap.data();
+                if (data?.status === 'authenticated') {
+                  handleAuthPayload(data);
+                }
+              }
+            } catch (_) {}
+          };
+
+          window.addEventListener('app-resumed', checkImmediate);
+          window.addEventListener('focus', checkImmediate);
+          const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+              checkImmediate();
+            }
+          };
+          document.addEventListener('visibilitychange', onVisibilityChange);
+
+          cleanupFns.push(() => window.removeEventListener('app-resumed', checkImmediate));
+          cleanupFns.push(() => window.removeEventListener('focus', checkImmediate));
+          cleanupFns.push(() => document.removeEventListener('visibilitychange', onVisibilityChange));
         });
         return;
       }
