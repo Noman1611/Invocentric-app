@@ -947,7 +947,20 @@ function verifyPassword(inputPassword: string, storedHashOrPlain: string): boole
   return false;
 }
 
-function loadUsersDb(): Record<string, { email: string; passwordHash: string; name: string }> {
+interface UserDbRecord {
+  email: string;
+  passwordHash?: string;
+  name?: string;
+  displayName?: string;
+  uid?: string;
+  photoURL?: string;
+  provider?: string;
+  plan?: string;
+  createdAt?: string;
+  lastLoginAt?: string;
+}
+
+function loadUsersDb(): Record<string, UserDbRecord> {
   try {
     if (fs.existsSync(usersDbPath)) {
       return JSON.parse(fs.readFileSync(usersDbPath, 'utf-8'));
@@ -958,13 +971,299 @@ function loadUsersDb(): Record<string, { email: string; passwordHash: string; na
   return {};
 }
 
-function saveUsersDb(db: Record<string, { email: string; passwordHash: string; name: string }>) {
+function saveUsersDb(db: Record<string, UserDbRecord>) {
   try {
     fs.writeFileSync(usersDbPath, JSON.stringify(db, null, 2), 'utf-8');
   } catch (e) {
     console.error("Error writing users db:", e);
   }
 }
+
+// --- JWT & SESSION TOKEN SYSTEM ---
+const JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_ENCRYPTION_KEY || PASSWORD_PEPPER || "invocentric-jwt-secret-secure-2026";
+
+function base64UrlEncode(str: string): string {
+  return Buffer.from(str)
+    .toString("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+function base64UrlDecode(str: string): string {
+  let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+  while (base64.length % 4) {
+    base64 += "=";
+  }
+  return Buffer.from(base64, "base64").toString("utf-8");
+}
+
+function createSessionJwt(payload: Record<string, any>, expiresInSeconds: number = 30 * 24 * 60 * 60): string {
+  const header = { alg: "HS256", typ: "JWT" };
+  const now = Math.floor(Date.now() / 1000);
+  const fullPayload = {
+    ...payload,
+    iat: now,
+    exp: now + expiresInSeconds,
+  };
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
+  const signature = crypto
+    .createHmac("sha256", JWT_SECRET)
+    .update(`${encodedHeader}.${encodedPayload}`)
+    .digest("base64")
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
+}
+
+function verifySessionJwt(token: string): { valid: boolean; payload?: any; error?: string } {
+  try {
+    if (!token || typeof token !== "string") {
+      return { valid: false, error: "Token missing" };
+    }
+    const parts = token.trim().split(".");
+    if (parts.length !== 3) {
+      return { valid: false, error: "Invalid token format" };
+    }
+    const [encodedHeader, encodedPayload, signature] = parts;
+    const expectedSignature = crypto
+      .createHmac("sha256", JWT_SECRET)
+      .update(`${encodedHeader}.${encodedPayload}`)
+      .digest("base64")
+      .replace(/=/g, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+
+    const expectedBuf = Buffer.from(expectedSignature);
+    const actualBuf = Buffer.from(signature);
+    if (expectedBuf.length !== actualBuf.length || !crypto.timingSafeEqual(expectedBuf, actualBuf)) {
+      return { valid: false, error: "Invalid token signature" };
+    }
+
+    const payload = JSON.parse(base64UrlDecode(encodedPayload));
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) {
+      return { valid: false, error: "Session token expired" };
+    }
+
+    return { valid: true, payload };
+  } catch (err: any) {
+    return { valid: false, error: err?.message || "Token verification failed" };
+  }
+}
+
+// --- GOOGLE ID TOKEN VERIFIER (Server-Side Phase 2) ---
+async function verifyGoogleIdToken(idToken: string): Promise<{
+  valid: boolean;
+  payload?: {
+    googleSub: string;
+    email: string;
+    emailVerified: boolean;
+    displayName: string;
+    photoURL: string;
+    givenName?: string;
+    familyName?: string;
+  };
+  error?: string;
+}> {
+  try {
+    if (!idToken || typeof idToken !== "string" || !idToken.includes(".")) {
+      return { valid: false, error: "Invalid ID token format" };
+    }
+
+    // Call Google's official public OAuth2 token verification endpoint
+    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken.trim())}`);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.warn("[Google Auth Server] Google rejected ID token:", response.status, errText);
+      return { valid: false, error: "Google rejected the token as invalid or expired" };
+    }
+
+    const tokenInfo = await response.json();
+
+    // 1. Verify Issuer
+    const validIssuers = ["accounts.google.com", "https://accounts.google.com"];
+    if (!tokenInfo.iss || !validIssuers.includes(tokenInfo.iss)) {
+      return { valid: false, error: "Invalid token issuer" };
+    }
+
+    // 2. Verify Expiration
+    const now = Math.floor(Date.now() / 1000);
+    if (!tokenInfo.exp || Number(tokenInfo.exp) < now) {
+      return { valid: false, error: "Google ID token has expired" };
+    }
+
+    // 3. Verify Audience (Audience must match configured client ID or be a valid Google OAuth Client ID)
+    const expectedClientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
+    if (expectedClientId && expectedClientId !== "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com") {
+      if (tokenInfo.aud !== expectedClientId) {
+        console.warn(`[Google Auth Server] Audience mismatch. Got: ${tokenInfo.aud}, Expected: ${expectedClientId}`);
+        return { valid: false, error: "Token audience does not match this application" };
+      }
+    } else {
+      // Validate that audience is a googleusercontent client ID
+      if (!tokenInfo.aud || !tokenInfo.aud.endsWith(".apps.googleusercontent.com")) {
+        return { valid: false, error: "Invalid token audience" };
+      }
+    }
+
+    // 4. Verify Email
+    if (!tokenInfo.email) {
+      return { valid: false, error: "Google token has no verified email" };
+    }
+
+    return {
+      valid: true,
+      payload: {
+        googleSub: tokenInfo.sub,
+        email: tokenInfo.email.toLowerCase().trim(),
+        emailVerified: tokenInfo.email_verified === "true" || tokenInfo.email_verified === true,
+        displayName: tokenInfo.name || tokenInfo.email.split("@")[0],
+        givenName: tokenInfo.given_name || "",
+        familyName: tokenInfo.family_name || "",
+        photoURL: tokenInfo.picture || ""
+      }
+    };
+  } catch (err: any) {
+    console.error("[Google Auth Server] Error verifying Google ID Token:", err);
+    return { valid: false, error: "Failed to verify token with Google servers" };
+  }
+}
+
+// --- PHASE 2: SERVER-SIDE GOOGLE LOGIN ENDPOINT ---
+// 7. Receive Token from App -> 8. Token Verification -> 9. User Management (DB Check) -> 10. Session Creation & Response
+app.post("/api/auth/google-login", async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken || typeof idToken !== "string") {
+      return res.status(400).json({ success: false, error: "Google ID token is required." });
+    }
+
+    // 8. Token Verification
+    const verification = await verifyGoogleIdToken(idToken);
+    if (!verification.valid || !verification.payload) {
+      return res.status(401).json({ success: false, error: verification.error || "Google ID token verification failed." });
+    }
+
+    const { googleSub, email, displayName, photoURL } = verification.payload;
+    const db = loadUsersDb();
+    let isNewUser = false;
+    let userRecord = db[email];
+
+    // 9. User Management (DB Check)
+    if (!userRecord) {
+      isNewUser = true;
+      const cleanUid = 'google_' + (googleSub || email.replace(/[^a-zA-Z0-9]/g, '_'));
+      userRecord = {
+        uid: cleanUid,
+        email,
+        name: displayName,
+        displayName,
+        photoURL,
+        provider: 'google',
+        plan: 'free',
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString()
+      };
+      db[email] = userRecord;
+      saveUsersDb(db);
+      console.log(`[Google Auth Server] New user registered in DB: ${email} (${userRecord.uid})`);
+    } else {
+      // Existing User
+      if (!userRecord.uid) {
+        userRecord.uid = 'user_' + email.replace(/[^a-zA-Z0-9]/g, '_');
+      }
+      if (displayName && !userRecord.displayName) {
+        userRecord.displayName = displayName;
+        userRecord.name = displayName;
+      }
+      if (photoURL && !userRecord.photoURL) {
+        userRecord.photoURL = photoURL;
+      }
+      userRecord.lastLoginAt = new Date().toISOString();
+      userRecord.provider = userRecord.provider || 'google';
+      db[email] = userRecord;
+      saveUsersDb(db);
+      console.log(`[Google Auth Server] Existing user authenticated in DB: ${email} (${userRecord.uid})`);
+    }
+
+    // Auxiliary Firestore sync (if Firestore REST is available)
+    try {
+      const projectId = firebaseConfig?.projectId;
+      const databaseId = firebaseConfig?.firestoreDatabaseId || "(default)";
+      const apiKey = firebaseConfig?.apiKey;
+      if (projectId && apiKey) {
+        const fsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${userRecord.uid}?key=${apiKey}`;
+        fetch(fsUrl, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fields: {
+              email: { stringValue: email },
+              displayName: { stringValue: userRecord.displayName || userRecord.name || email.split("@")[0] },
+              photoURL: { stringValue: userRecord.photoURL || "" },
+              provider: { stringValue: "google" },
+              plan: { stringValue: userRecord.plan || "free" },
+              lastLoginAt: { stringValue: new Date().toISOString() },
+              ...(isNewUser ? { createdAt: { stringValue: new Date().toISOString() } } : {})
+            }
+          })
+        }).catch(() => {});
+      }
+    } catch (_) {}
+
+    // 10. Session Creation & Response (JWT)
+    const sessionToken = createSessionJwt({
+      uid: userRecord.uid,
+      email: userRecord.email,
+      displayName: userRecord.displayName || userRecord.name,
+      photoURL: userRecord.photoURL,
+      plan: userRecord.plan || "free",
+      provider: "google"
+    });
+
+    return res.json({
+      success: true,
+      isNewUser,
+      token: sessionToken,
+      user: {
+        uid: userRecord.uid,
+        email: userRecord.email,
+        displayName: userRecord.displayName || userRecord.name,
+        photoURL: userRecord.photoURL,
+        plan: userRecord.plan || "free",
+        provider: "google"
+      }
+    });
+  } catch (err: any) {
+    console.error("[Google Auth Server] Internal error during Google login:", err);
+    return res.status(500).json({ success: false, error: "Internal server error during authentication." });
+  }
+});
+
+// Verify active session token (Used by App for Step 2 Session Check)
+app.post("/api/auth/verify-session", (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : req.body.token)?.trim();
+
+  if (!token) {
+    return res.status(400).json({ valid: false, error: "Token is required." });
+  }
+
+  const result = verifySessionJwt(token);
+  if (!result.valid) {
+    return res.status(401).json({ valid: false, error: result.error || "Session invalid or expired." });
+  }
+
+  return res.json({
+    valid: true,
+    user: result.payload
+  });
+});
 
 app.post("/api/auth/check-user", (req, res) => {
   const { email } = req.body;

@@ -542,6 +542,12 @@ export default function LoginPage() {
     );
   }
 
+  // Step 2: Check Session (Optional but recommended)
+  // If user is already logged in, redirect directly to Home Screen (/dashboard)
+  if (!isMobileAuth && user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   // Handle already logged in in Chrome with mobile_auth=1
   if (isMobileAuth && mobileSessionId && user) {
     return (

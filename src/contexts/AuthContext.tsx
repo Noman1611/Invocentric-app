@@ -1329,6 +1329,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     window.addEventListener('app-deep-link', handleDeepLinkAuth);
+
+    // Step 2: Background Session Check for JWT session token
+    const verifyBackgroundSession = async () => {
+      try {
+        const storedJwt = localStorage.getItem('invocentric_jwt_token');
+        if (storedJwt) {
+          const res = await fetch(apiUrl('/api/auth/verify-session'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: storedJwt })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.valid && data.user) {
+              if (!auth.currentUser) {
+                await applyExternalSessionUser({
+                  ...data.user,
+                  token: storedJwt
+                });
+              }
+            } else {
+              localStorage.removeItem('invocentric_jwt_token');
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Background JWT session verification notice:", err);
+      }
+    };
+    verifyBackgroundSession();
+
     return () => window.removeEventListener('app-deep-link', handleDeepLinkAuth);
   }, []);
 
@@ -1355,12 +1386,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         let authData: { idToken: string; email?: string; displayName?: string; photoUrl?: string } | null = null;
 
-        // 1. Try Capacitor NativeGoogleAuth Plugin first (if available)
+        // 1. Try Capacitor NativeGoogleAuth Plugin first (Step 3: Initialize Credential Manager with Web Client ID)
+        const webClientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID || undefined;
         try {
           const { registerPlugin } = await import('@capacitor/core');
           const NativeGoogleAuth = registerPlugin<any>('NativeGoogleAuth');
           if (NativeGoogleAuth && typeof NativeGoogleAuth.signIn === 'function') {
             const res = await NativeGoogleAuth.signIn({
+              serverClientId: webClientId,
               filterByAuthorizedAccounts: false,
               autoSelectEnabled: false
             });
@@ -1402,7 +1435,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   }
                 };
                 try {
-                  bridge.signIn(JSON.stringify({ filterByAuthorizedAccounts: false, autoSelectEnabled: false }), callbackId);
+                  bridge.signIn(JSON.stringify({ 
+                    serverClientId: webClientId,
+                    filterByAuthorizedAccounts: false, 
+                    autoSelectEnabled: false 
+                  }), callbackId);
                 } catch (bridgeErr) {
                   delete (window as any).__onNativeGoogleAuth;
                   reject(bridgeErr);
@@ -1414,12 +1451,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // If native Credential Manager succeeded with valid ID Token:
+        // Phase 2: Backend Flow (Server-Side)
+        // 7. Send Token to Server -> 8. Verify -> 9. User DB Check -> 10. Session Creation & Response
         if (authData?.idToken) {
-          console.log("Authenticating with Firebase using native Google ID Token...");
-          const cred = GoogleAuthProvider.credential(authData.idToken);
-          const userCredential = await signInWithCredential(auth, cred);
-          console.log("Successfully signed in with Google account:", userCredential.user?.email);
+          console.log("Sending Google ID token to server for cryptographic verification & session creation...");
+          const serverRes = await fetch(apiUrl('/api/auth/google-login'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: authData.idToken })
+          });
+
+          if (!serverRes.ok) {
+            const errData = await serverRes.json().catch(() => ({}));
+            throw new Error(errData?.error || `Server verification failed with status ${serverRes.status}`);
+          }
+
+          const serverData = await serverRes.json();
+          if (!serverData?.token || !serverData?.user) {
+            throw new Error("Invalid response received from authentication server.");
+          }
+
+          // 10. Store Session Token (JWT) and user details
+          localStorage.setItem('invocentric_jwt_token', serverData.token);
+          localStorage.setItem('invocentric_auth_active', 'true');
+          localStorage.setItem('invocentric_last_uid', serverData.user.uid);
+          if (serverData.user.email) {
+            localStorage.setItem('invocentric_last_email', serverData.user.email);
+          }
+
+          // Apply authenticated user session in app state
+          await applyExternalSessionUser({
+            ...serverData.user,
+            token: serverData.token,
+            idToken: authData.idToken
+          });
+
+          // In background: also authenticate client Firebase so Firestore rules/offline listeners stay active
+          try {
+            const cred = GoogleAuthProvider.credential(authData.idToken);
+            await signInWithCredential(auth, cred);
+          } catch (fbErr) {
+            console.warn("Client Firebase Auth sync note:", fbErr);
+          }
+
+          console.log("Successfully authenticated via Google Login Flow:", serverData.user.email);
           return;
         }
 
@@ -1561,8 +1636,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Non-Android environments (Web / Desktop Electron)
       try {
-        await signInWithPopup(auth, provider);
-        console.log("Popup login success");
+        const result = await signInWithPopup(auth, provider);
+        console.log("Popup login success:", result?.user?.email);
+
+        if (result?.user) {
+          try {
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const idToken = credential?.idToken || (await result.user.getIdToken());
+
+            // Phase 2: Send Token to Server for verification, user DB check & JWT session creation
+            const serverRes = await fetch(apiUrl('/api/auth/google-login'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ idToken })
+            });
+
+            if (serverRes.ok) {
+              const serverData = await serverRes.json();
+              if (serverData?.token) {
+                localStorage.setItem('invocentric_jwt_token', serverData.token);
+              }
+            }
+          } catch (sErr) {
+            console.warn("Server-side session sync notice:", sErr);
+          }
+        }
       } catch (popupError: any) {
         console.warn("Popup login failed:", popupError);
 
@@ -1756,6 +1854,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      localStorage.removeItem('invocentric_jwt_token');
       localStorage.removeItem('invocentric_auth_active');
       localStorage.removeItem('invocentric_last_uid');
       localStorage.removeItem('invocentric_last_email');
