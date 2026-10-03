@@ -212,6 +212,21 @@ async function checkAuth(req: any, res: any, next: any) {
   }
 
   try {
+    // 1. Verify Server Session JWT (Step 10 Session Token)
+    try {
+      const sessionCheck = verifySessionJwt(token);
+      if (sessionCheck.valid && sessionCheck.payload) {
+        req.user = {
+          uid: sessionCheck.payload.uid,
+          email: sessionCheck.payload.email,
+          emailVerified: true,
+          displayName: sessionCheck.payload.displayName,
+          idToken: token
+        };
+        return next();
+      }
+    } catch (_) {}
+
     const apiKey = firebaseConfig.apiKey;
     if (!apiKey) {
       return res.status(500).json({ error: "SERVER_ERROR: Firebase API Key configuration missing." });

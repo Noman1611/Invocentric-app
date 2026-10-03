@@ -753,7 +753,7 @@ export default function CreateInvoicePage() {
             const docRef = doc(db, "invoices", targetInvoiceId);
             const snap = await getDoc(docRef);
             if (snap.exists()) {
-              const fsData = { id: snap.id, ...snap.data() };
+              const fsData: any = { id: snap.id, ...snap.data() };
               if (!fsData.user_id || fsData.user_id === user.uid) {
                 data = fsData;
                 isFallback = false;

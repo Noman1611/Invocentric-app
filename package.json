@@ -1,7 +1,7 @@
 {
   "name": "invocentric",
   "private": true,
-  "version": "1.0.36",
+  "version": "1.0.37",
   "description": "InvoCentric - Professional GST Billing, Inventory & Accounting Software",
   "author": "InvoCentric <support@invocentric.com>",
   "type": "module",
@@ -18,7 +18,7 @@
     "cap:sync": "cap sync android",
     "cap:copy": "cap copy android",
     "lint": "eslint . && tsc --noEmit",
-    "test": "node tests/run-all-tests.mjs"
+    "test": "node tests/run-all-tests.mjs && node tests/google-login-flow.test.mjs"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",

@@ -53,7 +53,7 @@ interface AuthContextType {
   appMode: 'shop' | 'freelancer';
   setAppMode: (mode: 'shop' | 'freelancer') => Promise<void>;
   updatePlanTier: (tier: 'free' | 'pro', billing_cycle?: 'monthly' | 'yearly') => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (onProgress?: (step: 'initializing' | 'bottom_sheet' | 'token_received' | 'verifying_server' | 'session_created' | 'access_granted') => void) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   loginWithEmailOtp: (email: string) => void;
@@ -1363,9 +1363,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('app-deep-link', handleDeepLinkAuth);
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (
+    onProgress?: (step: 'initializing' | 'bottom_sheet' | 'token_received' | 'verifying_server' | 'session_created' | 'access_granted') => void
+  ) => {
     try {
       console.log("Initiating Google Sign-In...");
+      onProgress?.('initializing');
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({
         prompt: 'select_account'
@@ -1392,6 +1395,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const { registerPlugin } = await import('@capacitor/core');
           const NativeGoogleAuth = registerPlugin<any>('NativeGoogleAuth');
           if (NativeGoogleAuth && typeof NativeGoogleAuth.signIn === 'function') {
+            onProgress?.('bottom_sheet');
             const res = await NativeGoogleAuth.signIn({
               serverClientId: webClientId,
               filterByAuthorizedAccounts: false,
@@ -1399,6 +1403,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
             if (res?.idToken) {
               authData = res;
+              onProgress?.('token_received');
             }
           }
         } catch (capErr: any) {
@@ -1418,6 +1423,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const bridge = (window as any).AndroidGoogleAuth;
           if (bridge && typeof bridge.signIn === 'function') {
             try {
+              onProgress?.('bottom_sheet');
               authData = await new Promise((resolve, reject) => {
                 const callbackId = 'cb_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
                 (window as any).__onNativeGoogleAuth = (cbId: string, err: any, data: any) => {
@@ -1445,6 +1451,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   reject(bridgeErr);
                 }
               });
+              if (authData?.idToken) {
+                onProgress?.('token_received');
+              }
             } catch (credErr: any) {
               console.warn("Credential Manager unconfigured or skipped, smoothly falling back to Chrome handshake:", credErr?.message);
             }
@@ -1455,6 +1464,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 7. Send Token to Server -> 8. Verify -> 9. User DB Check -> 10. Session Creation & Response
         if (authData?.idToken) {
           console.log("Sending Google ID token to server for cryptographic verification & session creation...");
+          onProgress?.('verifying_server');
           const serverRes = await fetch(apiUrl('/api/auth/google-login'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1470,6 +1480,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!serverData?.token || !serverData?.user) {
             throw new Error("Invalid response received from authentication server.");
           }
+
+          onProgress?.('session_created');
 
           // 10. Store Session Token (JWT) and user details
           localStorage.setItem('invocentric_jwt_token', serverData.token);
@@ -1494,6 +1506,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.warn("Client Firebase Auth sync note:", fbErr);
           }
 
+          onProgress?.('access_granted');
           console.log("Successfully authenticated via Google Login Flow:", serverData.user.email);
           return;
         }
@@ -1501,6 +1514,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 3. Fallback: Seamless Chrome Custom Tabs / Browser Handshake
         // 100% reliable across all Android devices and versions without requiring google-services.json
         console.log("Launching seamless Chrome Custom Tab Google Authentication handshake...");
+        onProgress?.('bottom_sheet');
         const sessionId = 'mob_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
         const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}`;
 
@@ -1541,18 +1555,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             cleanup();
 
             try {
+              onProgress?.('verifying_server');
               if (data.idToken) {
                 const cred = GoogleAuthProvider.credential(data.idToken, data.accessToken || undefined);
                 await signInWithCredential(auth, cred);
               } else if (data.uid) {
                 await applyExternalSessionUser(data);
               }
+              onProgress?.('access_granted');
               try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
               resolve();
             } catch (err: any) {
               console.error("Failed to authenticate session in APK:", err);
               if (data.uid) {
                 await applyExternalSessionUser(data);
+                onProgress?.('access_granted');
                 try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
                 resolve();
               } else {
@@ -1636,14 +1653,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Non-Android environments (Web / Desktop Electron)
       try {
+        onProgress?.('bottom_sheet');
         const result = await signInWithPopup(auth, provider);
         console.log("Popup login success:", result?.user?.email);
 
         if (result?.user) {
+          onProgress?.('token_received');
           try {
             const credential = GoogleAuthProvider.credentialFromResult(result);
             const idToken = credential?.idToken || (await result.user.getIdToken());
 
+            onProgress?.('verifying_server');
             // Phase 2: Send Token to Server for verification, user DB check & JWT session creation
             const serverRes = await fetch(apiUrl('/api/auth/google-login'), {
               method: 'POST',
@@ -1655,11 +1675,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const serverData = await serverRes.json();
               if (serverData?.token) {
                 localStorage.setItem('invocentric_jwt_token', serverData.token);
+                onProgress?.('session_created');
               }
             }
           } catch (sErr) {
             console.warn("Server-side session sync notice:", sErr);
           }
+          onProgress?.('access_granted');
         }
       } catch (popupError: any) {
         console.warn("Popup login failed:", popupError);

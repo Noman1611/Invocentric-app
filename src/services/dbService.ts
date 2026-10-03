@@ -527,6 +527,7 @@ export const dbService = {
         await withTimeout(deleteDoc(docRef), 2500, 'Cloud delete timeout');
 
         if (collectionName === 'recycle_bin') {
+          const knownPrefixRegex = /^(invoices|customers|items|expenses|purchases|quotations|daily_books|recycle_bin)_/;
           const matchPrefix = docId.match(knownPrefixRegex);
           const cleanDocId = matchPrefix ? docId.slice(matchPrefix[0].length) : docId;
           if (cleanDocId !== docId) {

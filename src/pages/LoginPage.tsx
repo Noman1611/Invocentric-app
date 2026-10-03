@@ -20,7 +20,11 @@ import {
   Sparkles,
   ExternalLink,
   Clock,
-  X
+  X,
+  UserCheck,
+  KeyRound,
+  Server,
+  Smartphone
 } from 'lucide-react';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
 import { openInBrowser } from '../lib/utils';
@@ -177,6 +181,9 @@ export default function LoginPage() {
   
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleStep, setGoogleStep] = useState<
+    'idle' | 'initializing' | 'bottom_sheet' | 'token_received' | 'verifying_server' | 'session_created' | 'access_granted'
+  >('idle');
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [handshakeCompleted, setHandshakeCompleted] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
@@ -292,16 +299,21 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError(null);
+    setGoogleStep('initializing');
     try {
       if (isMobileAuth && mobileSessionId) {
+        setGoogleStep('bottom_sheet');
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
 
         try {
           const result = await signInWithPopup(auth, provider);
           if (result?.user) {
+            setGoogleStep('token_received');
             const credential = GoogleAuthProvider.credentialFromResult(result);
+            setGoogleStep('verifying_server');
             await transmitHandshake(result.user, credential?.idToken, credential?.accessToken);
+            setGoogleStep('access_granted');
             return;
           }
         } catch (popupErr: any) {
@@ -320,7 +332,9 @@ export default function LoginPage() {
         return;
       }
 
-      await signInWithGoogle();
+      await signInWithGoogle((step) => {
+        setGoogleStep(step);
+      });
     } catch (err: any) {
       console.error("Google Login Error:", err);
       let message = err.message || "Failed to sign in with Google. Please try again.";
@@ -328,8 +342,12 @@ export default function LoginPage() {
         message = "Login popup was blocked by your browser. Please allow popups for this site and try again.";
       }
       setError(message);
+      setGoogleStep('idle');
     } finally {
       setLoading(false);
+      setTimeout(() => {
+        setGoogleStep('idle');
+      }, 1500);
     }
   };
 
@@ -507,9 +525,38 @@ export default function LoginPage() {
     }
   };
 
-  // Wait for auth to resolve before deciding to redirect
+  // Step 2: Check Session (Phase 1 Frontend Flow)
+  // Display clean session validation screen matching the architecture diagram
   if (authLoading) {
-    return null; // Let the global PageLoader handle this
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-900 font-sans">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="w-full max-w-sm bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-slate-200/80 text-center flex flex-col items-center"
+        >
+          {/* Circular User Avatar Outline from Diagram */}
+          <div className="w-20 h-20 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-6 relative">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <div className="absolute -inset-1.5 rounded-full border-2 border-blue-200/50 animate-ping pointer-events-none opacity-30" />
+          </div>
+
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Checking session...</h2>
+          <p className="text-xs text-slate-500 max-w-xs mb-8 leading-relaxed">
+            If you are already signed in, we will take you to the home screen.
+          </p>
+
+          <div className="relative w-8 h-8">
+            <div className="w-8 h-8 border-3 border-blue-100 rounded-full" />
+            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0" />
+          </div>
+        </motion.div>
+      </div>
+    );
   }
 
   // Handle Chrome Mobile Handshake Success Screen (Web Chrome)
@@ -696,50 +743,41 @@ export default function LoginPage() {
             </div>
 
             <h1 className="text-2xl font-bold text-slate-950 tracking-tight">
-              {authMode === 'login' && 'Sign in to InvoCentric'}
+              {authMode === 'login' && 'Welcome Back'}
               {authMode === 'signup' && 'Create your account'}
               {authMode === 'forgot' && 'Reset your password'}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              {authMode === 'login' && 'Enter your account credentials to access your billing dashboard.'}
+              {authMode === 'login' && 'Sign in to continue to your billing dashboard.'}
               {authMode === 'signup' && 'Set up your business profile and start generating GST invoices.'}
               {authMode === 'forgot' && 'Enter your registered email to receive a password reset code.'}
             </p>
           </div>
 
-          {/* Social Google Login Button (Shown on Login & Signup) */}
+          {/* Step 1: User Action - Sign in with Google Button */}
           {authMode !== 'forgot' && (
             <div className="mb-6">
-              {loading && isNativeAndroid && (
-                <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-center animate-fadeIn">
-                  <div className="flex items-center justify-center gap-2 font-medium text-xs text-emerald-800">
-                    <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                    <span>Connecting with Google...</span>
-                  </div>
-                </div>
-              )}
-
               <button
                 onClick={handleGoogleLogin}
                 disabled={loading}
                 type="button"
-                className="w-full h-11 px-4 flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 transition-colors shadow-sm active:scale-[0.99] disabled:opacity-50"
+                className="w-full h-12 px-4 flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl font-semibold text-sm text-slate-800 transition-all shadow-sm hover:shadow active:scale-[0.99] disabled:opacity-50"
               >
-                <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+                <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                   <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05"/>
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                 </svg>
-                <span>Continue with Google</span>
+                <span>Sign in with Google</span>
               </button>
 
               <div className="relative my-6 text-center">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-slate-200" />
                 </div>
-                <span className="relative px-3 bg-white text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Or continue with email
+                <span className="relative px-3 bg-white text-xs font-bold uppercase tracking-wider text-slate-400">
+                  OR
                 </span>
               </div>
             </div>
@@ -1211,6 +1249,214 @@ export default function LoginPage() {
               >
                 Close
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Interactive Google Sign-In Flow Progress Modal (Phase 1 & Phase 2 Pipeline) */}
+      <AnimatePresence>
+        {googleStep !== 'idle' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fadeIn">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.25 }}
+              className="w-full max-w-md bg-white rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-100 text-slate-900 overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+                <div className="flex items-center gap-2.5">
+                  <svg viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 leading-tight">Google Login Flow</h3>
+                    <p className="text-[10px] text-slate-400 font-medium">Android App + Server Verification</p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Secure • Simple • Reliable
+                </span>
+              </div>
+
+              {/* Step Pipeline List */}
+              <div className="space-y-3 mb-6">
+                {/* Phase 1: Frontend Flow Header */}
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Phase 1: Frontend Flow (Android App)</span>
+                  {['token_received', 'verifying_server', 'session_created', 'access_granted'].includes(googleStep) && (
+                    <span className="text-emerald-600 flex items-center gap-1 text-[10px] font-bold lowercase">
+                      <CheckCircle2 size={12} /> verified
+                    </span>
+                  )}
+                </div>
+
+                {/* Step 3: Initialize Credential Manager */}
+                <div className={`p-3 rounded-2xl border transition-all ${
+                  googleStep === 'initializing'
+                    ? 'bg-blue-50/70 border-blue-200 shadow-sm'
+                    : ['bottom_sheet', 'token_received', 'verifying_server', 'session_created', 'access_granted'].includes(googleStep)
+                    ? 'bg-slate-50 border-slate-200 opacity-90'
+                    : 'bg-white border-slate-100 opacity-50'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                      ['bottom_sheet', 'token_received', 'verifying_server', 'session_created', 'access_granted'].includes(googleStep)
+                        ? 'bg-emerald-500 text-white'
+                        : googleStep === 'initializing'
+                        ? 'bg-blue-600 text-white animate-pulse'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {['bottom_sheet', 'token_received', 'verifying_server', 'session_created', 'access_granted'].includes(googleStep) ? (
+                        <CheckCircle2 size={15} />
+                      ) : (
+                        <span className="text-xs font-bold">1</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800">Initialize Credential Manager</p>
+                      <p className="text-[11px] text-slate-500 truncate">Triggering Jetpack API with Web Client ID</p>
+                    </div>
+                    {googleStep === 'initializing' && (
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Step 4 & 5: Google Bottom Sheet UI & User Selection */}
+                <div className={`p-3 rounded-2xl border transition-all ${
+                  googleStep === 'bottom_sheet'
+                    ? 'bg-blue-50/70 border-blue-200 shadow-sm'
+                    : ['token_received', 'verifying_server', 'session_created', 'access_granted'].includes(googleStep)
+                    ? 'bg-slate-50 border-slate-200 opacity-90'
+                    : 'bg-white border-slate-100 opacity-50'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                      ['token_received', 'verifying_server', 'session_created', 'access_granted'].includes(googleStep)
+                        ? 'bg-emerald-500 text-white'
+                        : googleStep === 'bottom_sheet'
+                        ? 'bg-blue-600 text-white animate-pulse'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {['token_received', 'verifying_server', 'session_created', 'access_granted'].includes(googleStep) ? (
+                        <CheckCircle2 size={15} />
+                      ) : (
+                        <span className="text-xs font-bold">2</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800">Google Bottom Sheet UI</p>
+                      <p className="text-[11px] text-slate-500 truncate">Select account & biometrics / screen lock verify</p>
+                    </div>
+                    {googleStep === 'bottom_sheet' && (
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Phase 2: Backend Flow (Server-Side) */}
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pt-2 mb-1 flex items-center justify-between">
+                  <span>Phase 2: Backend Flow (Server-Side)</span>
+                  {['session_created', 'access_granted'].includes(googleStep) && (
+                    <span className="text-emerald-600 flex items-center gap-1 text-[10px] font-bold lowercase">
+                      <CheckCircle2 size={12} /> active
+                    </span>
+                  )}
+                </div>
+
+                {/* Step 7, 8 & 9: Token Verification & User DB Check */}
+                <div className={`p-3 rounded-2xl border transition-all ${
+                  ['token_received', 'verifying_server'].includes(googleStep)
+                    ? 'bg-blue-50/70 border-blue-200 shadow-sm'
+                    : ['session_created', 'access_granted'].includes(googleStep)
+                    ? 'bg-slate-50 border-slate-200 opacity-90'
+                    : 'bg-white border-slate-100 opacity-50'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                      ['session_created', 'access_granted'].includes(googleStep)
+                        ? 'bg-emerald-500 text-white'
+                        : ['token_received', 'verifying_server'].includes(googleStep)
+                        ? 'bg-blue-600 text-white animate-pulse'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {['session_created', 'access_granted'].includes(googleStep) ? (
+                        <CheckCircle2 size={15} />
+                      ) : (
+                        <span className="text-xs font-bold">3</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800">Token Verification & DB Check</p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        Google Public Keys signature & user account sync
+                      </p>
+                    </div>
+                    {['token_received', 'verifying_server'].includes(googleStep) && (
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Step 10 & 11: Session Creation & Access Granted */}
+                <div className={`p-3 rounded-2xl border transition-all ${
+                  ['session_created', 'access_granted'].includes(googleStep)
+                    ? 'bg-emerald-50 border-emerald-200 shadow-sm'
+                    : 'bg-white border-slate-100 opacity-50'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                      googleStep === 'access_granted'
+                        ? 'bg-emerald-600 text-white'
+                        : googleStep === 'session_created'
+                        ? 'bg-emerald-500 text-white animate-pulse'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {googleStep === 'access_granted' ? (
+                        <CheckCircle2 size={15} />
+                      ) : (
+                        <span className="text-xs font-bold">4</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800">
+                        {googleStep === 'access_granted' ? 'Access Granted' : 'Session Creation & Response'}
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        {googleStep === 'access_granted' ? 'Redirecting to your Home Screen...' : 'Generating secure Session Token (JWT)'}
+                      </p>
+                    </div>
+                    {googleStep === 'session_created' && (
+                      <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-100">
+                <span className="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                  <Lock size={12} className="text-emerald-600" />
+                  Google Public Keys Verified
+                </span>
+                {googleStep !== 'access_granted' && (
+                  <button
+                    onClick={() => {
+                      setGoogleStep('idle');
+                      setLoading(false);
+                    }}
+                    className="text-slate-400 hover:text-slate-600 transition-colors font-medium text-[11px]"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </motion.div>
           </div>
         )}

@@ -190,6 +190,20 @@ async function checkAuth(req, res, next) {
     return res.status(401).json({ error: "UNAUTHORIZED: No access token provided." });
   }
   try {
+    try {
+      const sessionCheck = verifySessionJwt(token);
+      if (sessionCheck.valid && sessionCheck.payload) {
+        req.user = {
+          uid: sessionCheck.payload.uid,
+          email: sessionCheck.payload.email,
+          emailVerified: true,
+          displayName: sessionCheck.payload.displayName,
+          idToken: token
+        };
+        return next();
+      }
+    } catch (_) {
+    }
     const apiKey = firebaseConfig.apiKey;
     if (!apiKey) {
       return res.status(500).json({ error: "SERVER_ERROR: Firebase API Key configuration missing." });
