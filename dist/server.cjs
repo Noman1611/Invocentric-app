@@ -809,7 +809,7 @@ app.post("/api/auth/mobile-session", async (req, res) => {
   try {
     const apiKey = firebaseConfig?.apiKey || process.env.FIREBASE_API_KEY;
     const projectId = firebaseConfig?.projectId || process.env.FIREBASE_PROJECT_ID;
-    const databaseId = firebaseConfig?.firestoreDatabaseId || "(default)";
+    const databaseId = process.env.FIREBASE_DATABASE_ID || firebaseConfig?.firestoreDatabaseId || "(default)";
     if (apiKey && projectId) {
       const fsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/app_auth_sessions/${sessionId}?key=${apiKey}`;
       const fields = {
@@ -846,7 +846,7 @@ app.get("/api/auth/mobile-session", async (req, res) => {
   try {
     const apiKey = firebaseConfig?.apiKey || process.env.FIREBASE_API_KEY;
     const projectId = firebaseConfig?.projectId || process.env.FIREBASE_PROJECT_ID;
-    const databaseId = firebaseConfig?.firestoreDatabaseId || "(default)";
+    const databaseId = process.env.FIREBASE_DATABASE_ID || firebaseConfig?.firestoreDatabaseId || "(default)";
     if (apiKey && projectId) {
       const fsUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/app_auth_sessions/${sessionId}?key=${apiKey}`;
       const fsRes = await fetch(fsUrl);

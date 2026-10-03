@@ -1673,7 +1673,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } catch (_) {}
           };
 
-          window.addEventListener('app-resumed', checkImmediate);
+          let resumeCheckCount = 0;
+          const onAppResumed = () => {
+            checkImmediate();
+            const rapidInterval = setInterval(() => {
+              resumeCheckCount++;
+              checkImmediate();
+              if (resolved || resumeCheckCount > 8) {
+                clearInterval(rapidInterval);
+              }
+            }, 600);
+          };
+
+          window.addEventListener('app-resumed', onAppResumed);
           window.addEventListener('focus', checkImmediate);
           const onVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
@@ -1682,7 +1694,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           document.addEventListener('visibilitychange', onVisibilityChange);
 
-          cleanupFns.push(() => window.removeEventListener('app-resumed', checkImmediate));
+          cleanupFns.push(() => window.removeEventListener('app-resumed', onAppResumed));
           cleanupFns.push(() => window.removeEventListener('focus', checkImmediate));
           cleanupFns.push(() => document.removeEventListener('visibilitychange', onVisibilityChange));
         });

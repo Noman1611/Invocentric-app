@@ -194,8 +194,23 @@ export default function LoginPage() {
   }, [cooldownSeconds]);
 
   const searchParams = new URLSearchParams(window.location.search);
-  const isMobileAuth = searchParams.get('mobile_auth') === '1';
-  const mobileSessionId = searchParams.get('session');
+  const urlMobileAuth = searchParams.get('mobile_auth') === '1';
+  const urlSessionId = searchParams.get('session');
+
+  // Persist mobile auth session across Google redirects in mobile browsers
+  if (urlMobileAuth && urlSessionId && typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('invocentric_mobile_auth', '1');
+      localStorage.setItem('invocentric_mobile_session', urlSessionId);
+    } catch (_) {}
+  }
+
+  const storedMobileAuth = typeof window !== 'undefined' ? localStorage.getItem('invocentric_mobile_auth') === '1' : false;
+  const storedSessionId = typeof window !== 'undefined' ? localStorage.getItem('invocentric_mobile_session') : null;
+
+  const isMobileAuth = urlMobileAuth || storedMobileAuth;
+  const mobileSessionId = urlSessionId || storedSessionId;
+
   const isNativeAndroid = typeof window !== 'undefined' && Boolean(
     (window as any).AndroidAppUpdater || 
     (window as any).Capacitor?.isNativePlatform?.() ||
@@ -207,9 +222,11 @@ export default function LoginPage() {
   const transmitHandshake = async (
     authenticatedUser: any,
     credentialIdToken?: string | null,
-    accessToken?: string | null
+    accessToken?: string | null,
+    targetSessionId?: string | null
   ) => {
-    if (!mobileSessionId || handshakeCompleted) return;
+    const activeSid = targetSessionId || mobileSessionId;
+    if (!activeSid || handshakeCompleted) return;
 
     let idToken = credentialIdToken;
     if (!idToken && typeof authenticatedUser?.getIdToken === 'function') {
@@ -221,7 +238,7 @@ export default function LoginPage() {
     }
 
     const payload = {
-      sessionId: mobileSessionId,
+      sessionId: activeSid,
       status: 'authenticated',
       idToken: idToken || null,
       accessToken: accessToken || null,
@@ -231,7 +248,7 @@ export default function LoginPage() {
       photoURL: authenticatedUser.photoURL || ''
     };
 
-    // 1. Post to Server-side session API (always allowed, no Firestore rules issues)
+    // 1. Post to Server-side session API (always allowed, cross-instance serverless)
     try {
       await fetch(apiUrl('/api/auth/mobile-session'), {
         method: 'POST',
@@ -244,7 +261,7 @@ export default function LoginPage() {
 
     // 2. Auxiliary Firestore write (safely caught)
     try {
-      const sessionRef = doc(db, 'app_auth_sessions', mobileSessionId);
+      const sessionRef = doc(db, 'app_auth_sessions', activeSid);
       await setDoc(sessionRef, {
         ...payload,
         completedAt: Date.now()
@@ -253,12 +270,17 @@ export default function LoginPage() {
       console.warn("Firestore session auxiliary write notice:", fsErr);
     }
 
+    try {
+      localStorage.removeItem('invocentric_mobile_auth');
+      localStorage.removeItem('invocentric_mobile_session');
+    } catch (_) {}
+
     setHandshakeCompleted(true);
     setLoading(false);
 
     // 3. Deep link and Android Intent back to Android app
-    const intentUrl = `intent://auth?session=${mobileSessionId}&status=authenticated&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}#Intent;scheme=invocentric;package=com.invocentric.app;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
-    const schemeUrl = `invocentric://auth?session=${mobileSessionId}&status=authenticated&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}`;
+    const intentUrl = `intent://auth?session=${activeSid}&status=authenticated&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}#Intent;scheme=invocentric;package=com.invocentric.app;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+    const schemeUrl = `invocentric://auth?session=${activeSid}&status=authenticated&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}`;
 
     try {
       window.location.assign(intentUrl);
@@ -270,7 +292,8 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    if (!isMobileAuth || !mobileSessionId) return;
+    const activeSid = mobileSessionId || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_mobile_session') : null);
+    if (!activeSid) return;
 
     let isCancelled = false;
 
@@ -279,7 +302,7 @@ export default function LoginPage() {
       if (isCancelled) return;
       if (result?.user) {
         const credential = GoogleAuthProvider.credentialFromResult(result);
-        await transmitHandshake(result.user, credential?.idToken, credential?.accessToken);
+        await transmitHandshake(result.user, credential?.idToken, credential?.accessToken, activeSid);
       }
     }).catch(err => {
       console.warn("Mobile auth redirect handling:", err);
@@ -288,24 +311,25 @@ export default function LoginPage() {
     // 2. Listen to auth state changes (e.g. if redirect resolved or user is already authenticated)
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       if (isCancelled || !u || handshakeCompleted) return;
-      const wasPending = sessionStorage.getItem('mobile_auth_redirect_pending') === mobileSessionId;
-      if (wasPending) {
-        sessionStorage.removeItem('mobile_auth_redirect_pending');
-        await transmitHandshake(u);
-      }
+      await transmitHandshake(u, null, null, activeSid);
     });
 
     return () => {
       isCancelled = true;
       unsubscribe();
     };
-  }, [isMobileAuth, mobileSessionId]);
+  }, [mobileSessionId, handshakeCompleted]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError(null);
     try {
       if (isMobileAuth && mobileSessionId) {
+        try {
+          localStorage.setItem('invocentric_mobile_auth', '1');
+          localStorage.setItem('invocentric_mobile_session', mobileSessionId);
+        } catch (_) {}
+
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -313,21 +337,13 @@ export default function LoginPage() {
           const result = await signInWithPopup(auth, provider);
           if (result?.user) {
             const credential = GoogleAuthProvider.credentialFromResult(result);
-            await transmitHandshake(result.user, credential?.idToken, credential?.accessToken);
+            await transmitHandshake(result.user, credential?.idToken, credential?.accessToken, mobileSessionId);
             return;
           }
         } catch (popupErr: any) {
           console.warn("Popup attempt notice:", popupErr?.code);
-          if (
-            popupErr.code === 'auth/popup-blocked' ||
-            popupErr.code === 'auth/cancelled-popup-request' ||
-            popupErr.code === 'auth/popup-closed-by-user'
-          ) {
-            sessionStorage.setItem('mobile_auth_redirect_pending', mobileSessionId);
-            await signInWithRedirect(auth, provider);
-            return;
-          }
-          throw popupErr;
+          await signInWithRedirect(auth, provider);
+          return;
         }
         return;
       }
@@ -777,6 +793,18 @@ export default function LoginPage() {
                 )}
                 <span>{loading ? "Connecting..." : "Sign in with Google"}</span>
               </button>
+
+              {loading && (
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => { setLoading(false); setError(null); }}
+                    className="text-xs text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                  >
+                    Cancel and try again
+                  </button>
+                </div>
+              )}
 
               <div className="relative my-6 text-center">
                 <div className="absolute inset-0 flex items-center">
