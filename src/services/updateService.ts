@@ -7,6 +7,7 @@
 import { localDbEngine } from './localDbEngine';
 import pkg from '../../package.json';
 import { DEFAULT_WINDOWS_DOWNLOAD_URL, DEFAULT_ANDROID_DOWNLOAD_URL } from '../config/downloadLinks';
+import { IS_TEST_BUILD, TEST_RELEASE_API_URL, TEST_APK_DOWNLOAD_URL, TEST_APK_FILENAME } from '../config/appChannel';
 
 export interface AppUpdateState {
   currentVersion: string;
@@ -223,8 +224,12 @@ class UniversalUpdateService {
         (window as any).electronAPI.checkForUpdates().catch(() => {});
       }
 
-      // Step 2: Fetch latest release from official GitHub repo
-      const response = await fetch('https://api.github.com/repos/Noman1611/Invocentric-app/releases/latest', {
+      // Step 2: Fetch latest release from official GitHub repo (test channel vs production)
+      const releaseEndpoint = IS_TEST_BUILD 
+        ? TEST_RELEASE_API_URL 
+        : 'https://api.github.com/repos/Noman1611/Invocentric-app/releases/latest';
+
+      const response = await fetch(releaseEndpoint, {
         headers: { Accept: 'application/vnd.github.v3+json' },
         cache: 'no-store'
       });
@@ -239,13 +244,16 @@ class UniversalUpdateService {
 
       // Find platform-specific binaries
       let exeAsset = releaseData.assets?.find((a: any) => a.name?.endsWith('.exe'))?.browser_download_url;
-      let apkAsset = releaseData.assets?.find((a: any) => a.name?.endsWith('.apk'))?.browser_download_url;
+      let apkAsset = IS_TEST_BUILD
+        ? (releaseData.assets?.find((a: any) => a.name === TEST_APK_FILENAME)?.browser_download_url ||
+           releaseData.assets?.find((a: any) => a.name?.endsWith('.apk'))?.browser_download_url ||
+           TEST_APK_DOWNLOAD_URL)
+        : (releaseData.assets?.find((a: any) => a.name === 'InvoCentric.apk')?.browser_download_url ||
+           releaseData.assets?.find((a: any) => a.name?.endsWith('.apk'))?.browser_download_url ||
+           DEFAULT_ANDROID_DOWNLOAD_URL);
 
       if (!exeAsset) {
         exeAsset = DEFAULT_WINDOWS_DOWNLOAD_URL;
-      }
-      if (!apkAsset) {
-        apkAsset = DEFAULT_ANDROID_DOWNLOAD_URL;
       }
 
       const hasUpdate = isNewerVersion(latestVer, this.state.currentVersion);
@@ -370,7 +378,7 @@ class UniversalUpdateService {
     }
 
     if (platform === 'android') {
-      const url = apkDownloadUrl || DEFAULT_ANDROID_DOWNLOAD_URL;
+      const url = apkDownloadUrl || (IS_TEST_BUILD ? TEST_APK_DOWNLOAD_URL : DEFAULT_ANDROID_DOWNLOAD_URL);
       this.updateState({ status: 'downloading', progress: 50 });
 
       // Native AndroidAppUpdater bridge: Downloads into app folder & triggers in-place package update

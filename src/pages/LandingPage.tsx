@@ -338,7 +338,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => navigate('/download')}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-full transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
+                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-full transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
               >
                 <Download size={13} className="text-slate-600" />
                 <span>Download App</span>
@@ -388,8 +388,11 @@ export default function LandingPage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             
             {/* Top Pill Offer — CSS fade-up, no framer-motion */}
-            <div className="hero-fade-up-1 inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-6 hover:bg-slate-200/70 transition-colors">
-              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+            <div 
+              onClick={() => navigate('/download')}
+              className="hero-fade-up-1 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-6 hover:bg-slate-200/70 transition-colors cursor-pointer"
+            >
+              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
               <span>New: Full Offline PC App &amp; Mobile Camera Barcode Scanner</span>
               <ChevronRight size={13} className="text-slate-400" />
             </div>
@@ -406,7 +409,7 @@ export default function LandingPage() {
             </p>
 
             {/* Primary Action Buttons */}
-            <div className="hero-fade-up-4 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3.5 mb-5">
+            <div className="hero-fade-up-4 flex flex-col items-center justify-center gap-3.5 mb-5 max-w-2xl mx-auto w-full">
               <button
                 onClick={() => navigate('/login')}
                 className="w-full sm:w-auto px-8 py-3.5 bg-slate-950 hover:bg-slate-800 text-white font-medium text-base rounded-full shadow-lg shadow-slate-950/15 transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
@@ -415,25 +418,28 @@ export default function LandingPage() {
                 <ArrowRight size={16} />
               </button>
 
-              <a
-                href={downloadUrls.windows}
-                download="InvoCentric-Setup.exe"
-                onClick={(e) => triggerDirectDownload(e, downloadUrls.windows, 'InvoCentric-Setup.exe')}
-                className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 font-medium text-base rounded-full shadow-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Monitor size={17} className="text-slate-600" />
-                <span>Download for Windows</span>
-              </a>
+              {/* Dedicated Windows & Android Download Dual Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full sm:w-auto">
+                <a
+                  href={downloadUrls.windows}
+                  download="InvoCentric-Setup.exe"
+                  onClick={(e) => triggerDirectDownload(e, downloadUrls.windows, 'InvoCentric-Setup.exe')}
+                  className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 font-medium text-sm sm:text-base rounded-full shadow-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2.5 cursor-pointer"
+                >
+                  <Monitor size={18} className="text-slate-700 shrink-0" />
+                  <span className="font-semibold whitespace-nowrap">Download for Windows</span>
+                </a>
 
-              <a
-                href={downloadUrls.android}
-                download="InvoCentric.apk"
-                onClick={(e) => triggerDirectDownload(e, downloadUrls.android, 'InvoCentric.apk')}
-                className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-emerald-50 text-slate-900 hover:text-emerald-950 border border-slate-200/90 hover:border-emerald-300 font-medium text-base rounded-full shadow-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Smartphone size={17} className="text-emerald-600" />
-                <span>Download Android App (.apk)</span>
-              </a>
+                <a
+                  href={downloadUrls.android}
+                  download="InvoCentric.apk"
+                  onClick={(e) => triggerDirectDownload(e, downloadUrls.android, 'InvoCentric.apk')}
+                  className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-emerald-50 text-slate-900 hover:text-emerald-950 border border-emerald-300/80 font-medium text-sm sm:text-base rounded-full shadow-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2.5 cursor-pointer"
+                >
+                  <Smartphone size={18} className="text-emerald-600 shrink-0" />
+                  <span className="font-semibold whitespace-nowrap">Download for Android (.apk)</span>
+                </a>
+              </div>
             </div>
 
             {/* Micro Trust Details */}

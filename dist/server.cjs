@@ -294,6 +294,18 @@ app.get("/InvoCentric.apk", (req, res) => {
 app.get("/download.apk", (req, res) => {
   return res.redirect(302, "/InvoCentric.apk");
 });
+app.get("/InvoCentric-Test.apk", (req, res) => {
+  const apkPath = getPublicFilePath("InvoCentric-Test.apk");
+  if (import_fs.default.existsSync(apkPath)) {
+    res.setHeader("Content-Type", "application/vnd.android.package-archive");
+    res.setHeader("Content-Disposition", 'attachment; filename="InvoCentric-Test.apk"');
+    return res.sendFile(apkPath);
+  }
+  return res.redirect(302, "https://github.com/Noman1611/Invocentric-app/releases/download/test-channel/InvoCentric-Test.apk");
+});
+app.get("/test.apk", (req, res) => {
+  return res.redirect(302, "/InvoCentric-Test.apk");
+});
 app.get("/api/download", async (req, res) => {
   const platform = (req.query.platform || req.query.type || "windows").toString().toLowerCase();
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;

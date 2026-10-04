@@ -12,4 +12,5 @@ dist_electron/
 !public/InvoCentric.apk
 *.exe
 *.jar
+*.idsig
 .vscode/
