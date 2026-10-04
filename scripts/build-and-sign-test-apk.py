@@ -35,22 +35,22 @@ def main():
                     continue
                 
                 content = src_zip.read(name)
-                # Store uncompressed for .so or unaligned resources if needed, otherwise deflate
-                if name.endswith('.so') or name == 'resources.arsc':
-                    dst_zip.writestr(item, content, compress_type=zipfile.ZIP_STORED)
-                else:
-                    dst_zip.writestr(item, content, compress_type=zipfile.ZIP_DEFLATED)
+                # Strictly preserve the exact original compression type of every Android resource
+                dst_zip.writestr(item, content, compress_type=item.compress_type)
 
             # 2. Inject fresh test web assets into assets/public/
             print(f"[*] Injecting web assets from '{dist_dir}' into assets/public/...")
             file_count = 0
             for root, dirs, files in os.walk(dist_dir):
                 for f in files:
+                    if f.endswith('.apk') or f.endswith('.map'):
+                        continue
                     full_path = os.path.join(root, f)
                     rel_path = os.path.relpath(full_path, dist_dir).replace('\\', '/')
                     archive_path = f"assets/public/{rel_path}"
                     with open(full_path, 'rb') as fp:
-                        dst_zip.writestr(archive_path, fp.read(), compress_type=zipfile.ZIP_DEFLATED)
+                        c_type = zipfile.ZIP_STORED if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.ico')) else zipfile.ZIP_DEFLATED
+                        dst_zip.writestr(archive_path, fp.read(), compress_type=c_type)
                         file_count += 1
             print(f"[*] Added {file_count} web asset files to APK.")
 

@@ -224,6 +224,10 @@ export default function DashboardPage() {
       .reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
   }, [invoices]);
 
+  const quotations = useMemo(() => {
+    return invoices.filter(inv => inv.bill_type === 'ESTIMATE' || inv.bill_type === 'QUOTATION');
+  }, [invoices]);
+
   const handleWhatsAppShare = (inv: any, e: React.MouseEvent) => {
     e.stopPropagation();
     const phone = (inv.customerPhone || inv.rawInvoice?.customer?.phone || '').replace(/\D/g, '');
@@ -267,13 +271,13 @@ export default function DashboardPage() {
       )}
 
       {/* ======================================================== */}
-      {/* ======================================================== */}
       {/* 📱 MOBILE VIEW: InvoCentric Indian GST Mobile UI (< md)   */}
       {/* ======================================================== */}
       <div className="block md:hidden -mx-4 -mt-4 pb-20">
         <GimBooksStyleHome
           storeName={storeName}
           invoices={invoices}
+          quotations={quotations}
           customers={customers}
           inventoryItems={inventoryItems}
           todaySales={todaySales}
