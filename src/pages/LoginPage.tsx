@@ -232,19 +232,22 @@ export default function LoginPage() {
     const activeSid = targetSessionId || mobileSessionId;
     if (!activeSid || handshakeCompleted) return;
 
-    let idToken = credentialIdToken;
-    if (!idToken && typeof authenticatedUser?.getIdToken === 'function') {
+    let firebaseToken = null;
+    if (typeof authenticatedUser?.getIdToken === 'function') {
       try {
-        idToken = await authenticatedUser.getIdToken(true);
+        firebaseToken = await authenticatedUser.getIdToken(true);
       } catch (tokenErr) {
-        console.warn("Could not get fresh ID token:", tokenErr);
+        console.warn("Could not get fresh Firebase ID token:", tokenErr);
       }
     }
 
     const payload = {
       sessionId: activeSid,
       status: 'authenticated',
-      idToken: idToken || null,
+      idToken: credentialIdToken || firebaseToken || null,
+      googleIdToken: credentialIdToken || null,
+      googleAccessToken: accessToken || null,
+      firebaseIdToken: firebaseToken || null,
       accessToken: accessToken || null,
       uid: authenticatedUser.uid,
       email: authenticatedUser.email || '',
@@ -315,7 +318,11 @@ export default function LoginPage() {
     // 2. Listen to auth state changes (e.g. if redirect resolved or user is already authenticated)
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       if (isCancelled || !u || handshakeCompleted) return;
-      await transmitHandshake(u, null, null, activeSid);
+      setTimeout(async () => {
+        if (!isCancelled && !handshakeCompleted && auth.currentUser) {
+          await transmitHandshake(auth.currentUser, null, null, activeSid);
+        }
+      }, 500);
     });
 
     return () => {

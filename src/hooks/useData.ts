@@ -1,5 +1,6 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import { getStoredUserProfile, saveStoredUserProfile, sanitizeFirestorePayload } from '../utils/settingsStorage';
+import { syncAllUserDataFromFirestore, fetchCollectionRest } from '../utils/firestoreRestFallback';
 import { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { 
@@ -145,6 +146,9 @@ export function useInvoices() {
       const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
       setInvoices(uniqueLocal);
       setLoading(false);
+      if (uniqueLocal.length === 0) {
+        syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      }
     };
 
     const handleLocalEvent = () => loadLocal();
@@ -194,6 +198,7 @@ export function useInvoices() {
         console.error("Error fetching invoices (handled):", err);
       }
       loadLocal();
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
     });
 
     return () => {
@@ -242,6 +247,9 @@ export function useCustomers() {
       const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
       setCustomers(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
       setLoading(false);
+      if (uniqueLocal.length === 0) {
+        syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      }
     };
 
     const handleLocalEvent = () => loadLocal();
@@ -287,6 +295,7 @@ export function useCustomers() {
         console.error("Error fetching customers (handled):", err);
       }
       loadLocal();
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
     });
 
     return () => {
@@ -335,6 +344,9 @@ export function useItems() {
       const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
       setItems(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
       setLoading(false);
+      if (uniqueLocal.length === 0) {
+        syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      }
     };
 
     const handleLocalEvent = () => loadLocal();
@@ -380,6 +392,7 @@ export function useItems() {
         console.error("Error fetching items (handled):", err);
       }
       loadLocal();
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
     });
 
     return () => {

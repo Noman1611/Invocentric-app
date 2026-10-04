@@ -62,6 +62,7 @@ import { cn } from '../lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
+import { fetchCollectionRest } from '../utils/firestoreRestFallback';
 import { Navigate, useLocation } from 'react-router-dom';
 import { 
   ResponsiveContainer, 
@@ -367,6 +368,9 @@ export default function AdminPage() {
       } catch (err) {
         console.warn("Handled users listener error:", err);
       }
+      fetchCollectionRest('users', '', user?.email || 'nomanshaikh1999@gmail.com').then((restUsers) => {
+        if (restUsers && restUsers.length > 0) setDbUsers(restUsers);
+      }).catch(() => {});
       setLoading(false);
     });
 
@@ -387,6 +391,9 @@ export default function AdminPage() {
       } catch (err) {
         console.warn("Handled invoices listener error:", err);
       }
+      fetchCollectionRest('invoices', '', user?.email || 'nomanshaikh1999@gmail.com').then((restInvoices) => {
+        if (restInvoices && restInvoices.length > 0) setDbInvoices(restInvoices);
+      }).catch(() => {});
     });
 
     const unsubscribeRequests = onSnapshot(collection(db, 'subscription_requests'), (snapshot) => {

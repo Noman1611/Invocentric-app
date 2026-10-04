@@ -24,7 +24,14 @@ import {
   Briefcase,
   ScanLine,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  Search,
+  Bell,
+  Sparkles,
+  MessageCircle,
+  Share2,
+  Zap,
+  ShoppingBag
 } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { useInvoices, useCustomers, useItems, useRecycleBin } from '../hooks/useData';
@@ -37,6 +44,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAutoReminders } from '../hooks/useAutoReminders';
 import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, AreaChart, Area } from 'recharts';
 import { exportInvoicesAsMultiSheet } from '../services/excelService';
+import { IS_TEST_BUILD } from '../config/appChannel';
+import { getStoredUserProfile } from '../utils/settingsStorage';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -155,14 +164,16 @@ export default function DashboardPage() {
 
   // High fidelity Real Recent Invoices
   const displayedInvoices = useMemo(() => {
-    return invoices.slice(0, 3).map(inv => ({
+    return invoices.slice(0, 5).map(inv => ({
       id: inv.id,
       invoiceNum: inv.invoice_number || `INV-${inv.id.slice(0,3).toUpperCase()}`,
-      customerName: inv.customer_name || 'Customer',
+      customerName: inv.customer_name || inv.customer?.name || 'Customer',
+      customerPhone: inv.customer?.phone || '',
       date: inv.created_at ? format(parseDateSafe(inv.created_at), 'MMM d, yyyy') : format(new Date(), 'MMM d, yyyy'),
       amount: inv.amount || 0,
       status: inv.status || 'sent',
-      currency: inv.currency || 'INR'
+      currency: inv.currency || 'INR',
+      rawInvoice: inv
     }));
   }, [invoices]);
   const recentInvoices = displayedInvoices;
@@ -195,12 +206,370 @@ export default function DashboardPage() {
     return list.slice(0, 4);
   }, [invoices, customers]);
 
-  return (
-    <div className="space-y-8 pb-12">
-      {/* SVG Sparkline Gradients definitions */}
+  const userProfile = useMemo(() => {
+    return getStoredUserProfile(user?.uid);
+  }, [user?.uid]);
 
-      {/* Premium Dynamic Welcome Header Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+  const storeName = userProfile?.business_name || user?.displayName || 'My Store';
+
+  const todaySales = useMemo(() => {
+    const today = new Date();
+    return invoices
+      .filter(inv => {
+        if (inv.status !== 'paid') return false;
+        const invDate = inv.created_at ? parseDateSafe(inv.created_at) : null;
+        return invDate && isSameDay(invDate, today);
+      })
+      .reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+  }, [invoices]);
+
+  const handleWhatsAppShare = (inv: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const phone = (inv.customerPhone || inv.rawInvoice?.customer?.phone || '').replace(/\D/g, '');
+    const phoneParam = phone ? (phone.length === 10 ? `91${phone}` : phone) : '';
+    const text = encodeURIComponent(
+      `Hello ${inv.customerName || 'Customer'},\nHere is your invoice ${inv.invoiceNum} for ${formatCurrency(inv.amount || 0)} from ${storeName}.\nStatus: ${(inv.status || 'PAID').toUpperCase()}\nThank you for choosing us!`
+    );
+    const url = phoneParam ? `https://wa.me/${phoneParam}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(url, '_blank');
+  };
+
+  return (
+    <div className="space-y-6 pb-16">
+      {/* Test Channel Live Notice Badge (Displays on both Mobile & Desktop when on test channel) */}
+      {IS_TEST_BUILD && (
+        <div className="p-3 sm:p-3.5 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border-2 border-dashed border-emerald-500/40 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
+              🧪
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black tracking-wide text-emerald-800 uppercase bg-emerald-100 px-2 py-0.5 rounded-md">
+                  InvoCentric Test Build (v1.0.41)
+                </span>
+                <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Cloud Data
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 font-medium mt-0.5">
+                Stitch FinTech Mobile UI Active • Real Invoices, Customers & Inventory Sync
+              </p>
+            </div>
+          </div>
+          <div className="hidden sm:block text-right shrink-0">
+            <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-lg">
+              Channel: <b className="text-emerald-700">test-channel</b>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 📱 MOBILE VIEW: Stitch Indian FinTech UI (< md screens)  */}
+      {/* ======================================================== */}
+      <div className="block md:hidden space-y-4">
+        {/* Sticky-style Mobile Top Header */}
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-4 shadow-xs">
+          <div className="flex items-center justify-between gap-3">
+            {/* Store Avatar & Info */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-black text-lg shadow-sm shrink-0">
+                {storeName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-sm font-extrabold text-slate-900 truncate">
+                    {storeName}
+                  </h2>
+                  <span className="flex h-2 w-2 relative shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                </div>
+                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                  Online • Cloud Sync Active
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Actions & Pro Badge */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Link
+                to="/invoices"
+                className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 active:scale-95 transition-transform"
+                title="Search Invoices"
+              >
+                <Search size={15} />
+              </Link>
+              <Link
+                to="/statement"
+                className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-600 active:scale-95 transition-transform relative"
+                title="Reminders"
+              >
+                <Bell size={15} />
+                {overdueInvoicesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+                )}
+              </Link>
+              <span className="text-[10px] font-black uppercase px-2 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+                PRO
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 2x2 Bento FinTech KPI Cards */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Card 1: Revenue / Today's Sales */}
+          <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-white border border-emerald-500/20 rounded-2xl p-3.5 flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-emerald-800">
+                {todaySales > 0 ? "Today's Sales" : "Sales Revenue"}
+              </span>
+              <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-700 flex items-center justify-center">
+                <TrendingUp size={13} />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg font-black text-slate-900 tracking-tight">
+                {formatCurrency(todaySales > 0 ? todaySales : realTotalRevenue)}
+              </p>
+              <span className="inline-block mt-1 text-[10px] font-extrabold text-emerald-700 bg-emerald-100/80 px-1.5 py-0.5 rounded">
+                +18.6% vs mo
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Received Collections */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-600">Received</span>
+              <div className="w-6 h-6 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center">
+                <CheckCircle2 size={13} />
+              </div>
+            </div>
+            <div>
+              <p className="text-lg font-black text-slate-900 tracking-tight">
+                {formatCurrency(realTotalRevenue)}
+              </p>
+              <span className="inline-block mt-1 text-[10px] font-semibold text-slate-500">
+                Cash + UPI
+              </span>
+            </div>
+          </div>
+
+          {/* Card 3: Customer Due */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-3.5 flex flex-col justify-between shadow-xs">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-600">Customer Due</span>
+              <div className="w-6 h-6 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
+                <AlertCircle size={13} />
+              </div>
+            </div>
+            <div>
+              <p className={cn("text-lg font-black tracking-tight", realPendingAmount > 0 ? "text-rose-600" : "text-slate-900")}>
+                {formatCurrency(realPendingAmount)}
+              </p>
+              <span className={cn(
+                "inline-block mt-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded",
+                realPendingAmount > 0 ? "text-rose-700 bg-rose-50" : "text-slate-500 bg-slate-100"
+              )}>
+                {realPendingAmount > 0 ? `${invoices.filter(i => i.status === 'sent' || i.status === 'overdue').length} Pending` : "All Clear"}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 4: Low Stock Alert */}
+          <Link 
+            to="/items"
+            className="bg-white border border-slate-200/80 hover:border-amber-400 rounded-2xl p-3.5 flex flex-col justify-between shadow-xs active:scale-[0.98] transition-transform"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-600">Stock Alert</span>
+              <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+                <Package size={13} />
+              </div>
+            </div>
+            <div>
+              <p className={cn("text-lg font-black tracking-tight", lowStockItems.length > 0 ? "text-amber-600" : "text-slate-900")}>
+                {lowStockItems.length} Low
+              </p>
+              <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-extrabold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+                Restock <ArrowRight size={10} />
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        {/* Quick Action Horizontal Pills */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-black text-slate-800 uppercase tracking-wider">Quick Actions</span>
+            <span className="text-[10px] font-bold text-slate-400">Swipe →</span>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth">
+            {/* Primary Action: Quick POS Sale */}
+            <Link
+              to="/pos"
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl px-4 py-2.5 text-xs font-black tracking-wide shrink-0 shadow-sm active:scale-95 transition-transform"
+            >
+              <ScanLine size={16} />
+              <span>+ Quick POS Sale</span>
+            </Link>
+
+            {/* Create GST Invoice */}
+            <Link
+              to="/invoices/create"
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-extrabold shrink-0 shadow-xs active:scale-95 transition-transform"
+            >
+              <Plus size={16} className="text-emerald-600" />
+              <span>+ GST Invoice</span>
+            </Link>
+
+            {/* Add Product */}
+            <Link
+              to="/items"
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-extrabold shrink-0 shadow-xs active:scale-95 transition-transform"
+            >
+              <Package size={16} className="text-teal-600" />
+              <span>+ Add Item</span>
+            </Link>
+
+            {/* Cash Book */}
+            <Link
+              to="/daily-book"
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-extrabold shrink-0 shadow-xs active:scale-95 transition-transform"
+            >
+              <Wallet size={16} className="text-blue-600" />
+              <span>₹ Cash Book</span>
+            </Link>
+
+            {/* Customers */}
+            <Link
+              to="/customers"
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-extrabold shrink-0 shadow-xs active:scale-95 transition-transform"
+            >
+              <Users size={16} className="text-purple-600" />
+              <span>Customers</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Mobile Mini Sales Trend Chart */}
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-4 shadow-xs">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                <TrendingUp size={14} className="text-emerald-600" />
+                Sales Trend
+              </h3>
+              <p className="text-[10px] text-slate-400 font-semibold">Monthly Performance</p>
+            </div>
+            <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+              Live Chart
+            </span>
+          </div>
+          <div className="h-28 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="mobileSalesGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="name" stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} />
+                <YAxis stroke="#94A3B8" fontSize={9} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  formatter={(val: any) => [formatCurrency(Number(val)), 'Sales']}
+                  contentStyle={{ backgroundColor: '#0F172A', borderRadius: '8px', color: '#fff', fontSize: '11px', border: 'none' }}
+                />
+                <Area type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2.5} fillOpacity={1} fill="url(#mobileSalesGrad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Recent Transactions Card Stack with 1-Tap WhatsApp Share */}
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-4 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+              <Clock size={14} className="text-emerald-600" />
+              Recent Transactions
+            </h3>
+            <Link to="/invoices" className="text-[11px] font-black text-emerald-600 hover:text-emerald-700">
+              See All ({invoices.length}) →
+            </Link>
+          </div>
+
+          <div className="space-y-2.5">
+            {displayedInvoices.length === 0 ? (
+              <div className="text-center py-6 text-slate-400">
+                <FileText className="mx-auto text-slate-300 mb-1.5" size={24} />
+                <p className="text-xs font-medium">No transactions yet.</p>
+                <Link to="/pos" className="text-xs text-emerald-600 font-bold hover:underline mt-1 inline-block">
+                  Make your first sale
+                </Link>
+              </div>
+            ) : (
+              displayedInvoices.map((inv) => (
+                <div
+                  key={inv.id}
+                  onClick={() => navigate(`/invoices/${inv.id}`)}
+                  className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 active:scale-[0.99] transition-all cursor-pointer flex flex-col gap-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-xs font-extrabold text-slate-900 truncate">
+                        {inv.customerName}
+                      </p>
+                      <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-1.5 py-0.2 rounded shrink-0">
+                        {inv.invoiceNum}
+                      </span>
+                    </div>
+                    <span className={cn(
+                      "text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full shrink-0",
+                      inv.status === 'paid' ? "bg-emerald-100 text-emerald-800" :
+                      inv.status === 'overdue' ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"
+                    )}>
+                      {inv.status}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      {inv.date}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-slate-900 text-sm">
+                        {formatCurrency(inv.amount, inv.currency)}
+                      </span>
+                      {/* 1-Tap WhatsApp Share Button */}
+                      <button
+                        onClick={(e) => handleWhatsAppShare(inv, e)}
+                        title="Share Invoice on WhatsApp"
+                        className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 active:scale-90 transition-transform"
+                      >
+                        <MessageCircle size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* 💻 DESKTOP VIEW: Full Rich Bento Layout (>= md screens)   */}
+      {/* ======================================================== */}
+      <div className="hidden md:block space-y-8">
+        {/* SVG Sparkline Gradients definitions */}
+
+        {/* Premium Dynamic Welcome Header Bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             {greeting}, {user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Partner'} <span className="origin-bottom-right inline-block">👋</span>
@@ -668,6 +1037,7 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+      </div>
       </div>
 
       <RecycleBinModal

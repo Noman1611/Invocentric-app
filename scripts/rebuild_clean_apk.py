@@ -34,11 +34,11 @@ def patch_android_manifest(raw_bytes, version_code=40, version_name="1.0.40"):
 def patch_resources_arsc_for_test(raw_bytes):
     arsc = bytearray(raw_bytes)
     target = b"\x0b\x0bInvoCentric\x00"
-    replacement = b"\x0b\x0bInvoC (TEST)\x00"
+    replacement = b"\x0b\x0bInvoC(TEST)\x00"
     idx = arsc.find(target)
     if idx != -1:
         arsc[idx : idx + len(replacement)] = replacement
-        print(f"[ARSC] Successfully patched app title to 'InvoC (TEST)' at offset {idx}")
+        print(f"[ARSC] Successfully patched app title to 'InvoC(TEST)' at offset {idx}")
     return bytes(arsc)
 
 def build_web_dist(channel="production"):
@@ -82,7 +82,7 @@ def build_clean_apk(target_apk_name, channel="production", do_web_build=True):
                 # Patch AndroidManifest.xml
                 if item.filename == "AndroidManifest.xml":
                     v_code = 40 if channel == "production" else 41
-                    v_name = "1.0.40"
+                    v_name = "1.0.40" if channel == "production" else "1.0.41"
                     content = patch_android_manifest(content, version_code=v_code, version_name=v_name)
 
                 # Patch resources.arsc for test build to display TEST in icon label

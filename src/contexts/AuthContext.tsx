@@ -1,6 +1,7 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, clearGlobalProfileBackup, sanitizeUserProfile } from '../utils/settingsStorage';
 import { apiUrl } from '../utils/apiConfig';
+import { syncAllUserDataFromFirestore } from '../utils/firestoreRestFallback';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth, db } from '../lib/firebase';
 import { OperationType, handleFirestoreError } from '../lib/firebase';
@@ -1062,6 +1063,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Run legacy data migration to ensure previous invoices/items/customers are merged into active UID
         migrateLegacyUserData(firebaseUser.uid, firebaseUser.email);
 
+        // Ensure real cloud data is actively hydrated if local cache is empty
+        try {
+          const cachedInvoices = getSecureStorage(`offline_invoices_${firebaseUser.uid}`, []);
+          if (!cachedInvoices || cachedInvoices.length === 0) {
+            syncAllUserDataFromFirestore(firebaseUser.uid, firebaseUser.email).catch(() => {});
+          }
+        } catch (_) {}
+
         // 3. Fast offline-first hydration from local storage (0ms - instantaneous)
         const cachedProfile = getStoredUserProfile(firebaseUser.uid);
         if (cachedProfile) {
@@ -1100,6 +1109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 console.log("Restoring and maintaining active user from saved session:", parsed.uid);
                 const synUser = createSyntheticUser(parsed);
                 setUser(synUser);
+                syncAllUserDataFromFirestore(parsed.uid, parsed.email, parsed.idToken || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : null)).catch(() => {});
                 const cachedProfile = getStoredUserProfile(parsed.uid);
                 if (cachedProfile) {
                   const planEval = evaluatePlanValidity(cachedProfile, parsed.email);
@@ -1397,6 +1407,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const syntheticUser = createSyntheticUser({ ...data, idToken: token });
       await handleUserChange(syntheticUser);
+      syncAllUserDataFromFirestore(data.uid, data.email, token).catch(() => {});
     } catch (e) {
       console.warn("Failed to apply synthetic session user:", e);
     }
@@ -1724,12 +1735,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             try {
               onProgress?.('verifying_server');
-              if (data.idToken) {
-                const cred = GoogleAuthProvider.credential(data.idToken, data.accessToken || undefined);
-                await signInWithCredential(auth, cred);
-              } else if (data.uid) {
+              const googleToken = data.googleIdToken || data.idToken;
+              const googleAccess = data.googleAccessToken || data.accessToken;
+              let signedInSuccessfully = false;
+
+              if (googleToken) {
+                try {
+                  const cred = GoogleAuthProvider.credential(googleToken, googleAccess || undefined);
+                  await signInWithCredential(auth, cred);
+                  signedInSuccessfully = true;
+                } catch (credErr) {
+                  console.warn("Credential sign-in notice, using session user fallback:", credErr);
+                }
+              }
+
+              if (!signedInSuccessfully && data.uid) {
                 await applyExternalSessionUser(data);
               }
+
+              // Guarantee real cloud data is hydrated
+              syncAllUserDataFromFirestore(data.uid || auth.currentUser?.uid, data.email || auth.currentUser?.email, data.firebaseIdToken || data.idToken).catch(() => {});
+
               onProgress?.('access_granted');
               try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
               resolve();
@@ -1737,6 +1763,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               console.error("Failed to authenticate session in APK:", err);
               if (data.uid) {
                 await applyExternalSessionUser(data);
+                syncAllUserDataFromFirestore(data.uid, data.email, data.idToken).catch(() => {});
                 onProgress?.('access_granted');
                 try { deleteDoc(sessionRef).catch(() => {}); } catch (e) {}
                 resolve();

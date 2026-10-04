@@ -928,7 +928,7 @@ const mobileAuthSessions = new Map<string, {
 }>();
 
 app.post("/api/auth/mobile-session", async (req, res) => {
-  const { sessionId, status, idToken, accessToken, uid, email, displayName, photoURL } = req.body;
+  const { sessionId, status, idToken, accessToken, googleIdToken, googleAccessToken, firebaseIdToken, uid, email, displayName, photoURL } = req.body;
   if (!sessionId || typeof sessionId !== 'string') {
     return res.status(400).json({ error: "sessionId is required." });
   }
@@ -939,6 +939,9 @@ app.post("/api/auth/mobile-session", async (req, res) => {
     status: status || 'authenticated',
     idToken: idToken !== undefined ? idToken : existing?.idToken,
     accessToken: accessToken !== undefined ? accessToken : existing?.accessToken,
+    googleIdToken: googleIdToken !== undefined ? googleIdToken : existing?.googleIdToken,
+    googleAccessToken: googleAccessToken !== undefined ? googleAccessToken : existing?.googleAccessToken,
+    firebaseIdToken: firebaseIdToken !== undefined ? firebaseIdToken : existing?.firebaseIdToken,
     uid: uid !== undefined ? uid : existing?.uid,
     email: email !== undefined ? email : existing?.email,
     displayName: displayName !== undefined ? displayName : existing?.displayName,
@@ -961,6 +964,9 @@ app.post("/api/auth/mobile-session", async (req, res) => {
       };
       if (sessionData.idToken) fields.idToken = { stringValue: sessionData.idToken };
       if (sessionData.accessToken) fields.accessToken = { stringValue: sessionData.accessToken };
+      if (sessionData.googleIdToken) fields.googleIdToken = { stringValue: sessionData.googleIdToken };
+      if (sessionData.googleAccessToken) fields.googleAccessToken = { stringValue: sessionData.googleAccessToken };
+      if (sessionData.firebaseIdToken) fields.firebaseIdToken = { stringValue: sessionData.firebaseIdToken };
       if (sessionData.uid) fields.uid = { stringValue: sessionData.uid };
       if (sessionData.email) fields.email = { stringValue: sessionData.email };
       if (sessionData.displayName) fields.displayName = { stringValue: sessionData.displayName };
