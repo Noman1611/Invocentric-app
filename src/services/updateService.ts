@@ -249,7 +249,7 @@ class UniversalUpdateService {
            releaseData.assets?.find((a: any) => a.name?.endsWith('.apk'))?.browser_download_url ||
            TEST_APK_DOWNLOAD_URL)
         : (releaseData.assets?.find((a: any) => a.name === 'InvoCentric.apk')?.browser_download_url ||
-           releaseData.assets?.find((a: any) => a.name?.endsWith('.apk'))?.browser_download_url ||
+           releaseData.assets?.find((a: any) => a.name?.endsWith('.apk') && !a.name?.toLowerCase().includes('test'))?.browser_download_url ||
            DEFAULT_ANDROID_DOWNLOAD_URL);
 
       if (!exeAsset) {

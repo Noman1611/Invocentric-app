@@ -3,12 +3,43 @@ import sys
 import zipfile
 import subprocess
 import shutil
+import struct
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMP_ORIG_APK = os.path.join(BASE_DIR, "temp_orig.apk")
 DIST_DIR = os.path.join(BASE_DIR, "dist")
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
 UBER_JAR = os.path.join(BASE_DIR, "uber-apk-signer.jar")
+
+def patch_android_manifest(raw_bytes, version_code=40, version_name="1.0.40"):
+    manifest = bytearray(raw_bytes)
+    # 1. Patch versionName string in UTF-16LE string pool
+    target_utf16 = "1.0.39".encode("utf-16le")
+    new_utf16 = version_name.encode("utf-16le")
+    if len(target_utf16) == len(new_utf16):
+        idx = manifest.find(target_utf16)
+        if idx != -1:
+            manifest[idx : idx + len(new_utf16)] = new_utf16
+            print(f"[AXML] Successfully patched versionName to '{version_name}' at offset {idx}")
+
+    # 2. Patch versionCode typed int value
+    for i in range(len(manifest) - 8):
+        if manifest[i : i + 4] == b"\x08\x00\x00\x10" and manifest[i + 4 : i + 8] == b"\x27\x00\x00\x00":
+            manifest[i + 4 : i + 8] = struct.pack("<I", version_code)
+            print(f"[AXML] Successfully patched versionCode to {version_code} at offset {i + 4}")
+            break
+
+    return bytes(manifest)
+
+def patch_resources_arsc_for_test(raw_bytes):
+    arsc = bytearray(raw_bytes)
+    target = b"\x0b\x0bInvoCentric\x00"
+    replacement = b"\x0b\x0bInvoC (TEST)\x00"
+    idx = arsc.find(target)
+    if idx != -1:
+        arsc[idx : idx + len(replacement)] = replacement
+        print(f"[ARSC] Successfully patched app title to 'InvoC (TEST)' at offset {idx}")
+    return bytes(arsc)
 
 def build_web_dist(channel="production"):
     print(f"\n[Build] Building web application for channel: '{channel}'...")
@@ -47,6 +78,17 @@ def build_clean_apk(target_apk_name, channel="production", do_web_build=True):
                     continue
 
                 content = src_zip.read(item.filename)
+
+                # Patch AndroidManifest.xml
+                if item.filename == "AndroidManifest.xml":
+                    v_code = 40 if channel == "production" else 41
+                    v_name = "1.0.40"
+                    content = patch_android_manifest(content, version_code=v_code, version_name=v_name)
+
+                # Patch resources.arsc for test build to display TEST in icon label
+                if item.filename == "resources.arsc" and channel == "test":
+                    content = patch_resources_arsc_for_test(content)
+
                 zinfo = zipfile.ZipInfo(item.filename)
                 # Ensure resources.arsc is always STORED (uncompressed)
                 if item.filename == "resources.arsc":

@@ -53,14 +53,17 @@ export async function resolveWorkingDownloadUrls(): Promise<{ windows: string; a
     let foundApk = '';
 
     for (const rel of releases) {
+      if (rel.prerelease || rel.draft || rel.tag_name === 'test-channel') {
+        continue;
+      }
       if (!foundWin) {
-        const exeAsset = rel.assets?.find((a: any) => typeof a.name === 'string' && a.name.toLowerCase().endsWith('.exe'));
+        const exeAsset = rel.assets?.find((a: any) => typeof a.name === 'string' && a.name.toLowerCase().endsWith('.exe') && !a.name.toLowerCase().includes('test'));
         if (exeAsset?.browser_download_url) {
           foundWin = exeAsset.browser_download_url;
         }
       }
       if (!foundApk) {
-        const apkAsset = rel.assets?.find((a: any) => typeof a.name === 'string' && a.name.toLowerCase().endsWith('.apk'));
+        const apkAsset = rel.assets?.find((a: any) => typeof a.name === 'string' && a.name === 'InvoCentric.apk');
         if (apkAsset?.browser_download_url) {
           foundApk = apkAsset.browser_download_url;
         }

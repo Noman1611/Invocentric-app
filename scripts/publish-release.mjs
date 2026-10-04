@@ -150,11 +150,11 @@ async function main() {
     // Check if asset already exists in release
     const existingAsset = release.assets?.find(a => a.name === asset.name);
     if (existingAsset) {
-      if (existingAsset.size === stat.size) {
+      if (existingAsset.size === stat.size && asset.name !== 'InvoCentric.apk') {
         console.log(`✓ [Release] ${asset.name} is already fully uploaded (${(existingAsset.size / 1024 / 1024).toFixed(2)} MB), skipping.`);
         continue;
       }
-      console.log(`[Release] Existing asset ${asset.name} size mismatch (${existingAsset.size} vs ${stat.size}), deleting old asset (ID: ${existingAsset.id})...`);
+      console.log(`[Release] Re-uploading asset ${asset.name} (fresh build), deleting old asset (ID: ${existingAsset.id})...`);
       await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/assets/${existingAsset.id}`, {
         method: 'DELETE',
         headers
