@@ -406,7 +406,7 @@ export default function LandingPage() {
             </p>
 
             {/* Primary Action Buttons */}
-            <div className="hero-fade-up-4 flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-5">
+            <div className="hero-fade-up-4 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3.5 mb-5">
               <button
                 onClick={() => navigate('/login')}
                 className="w-full sm:w-auto px-8 py-3.5 bg-slate-950 hover:bg-slate-800 text-white font-medium text-base rounded-full shadow-lg shadow-slate-950/15 transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
@@ -423,6 +423,16 @@ export default function LandingPage() {
               >
                 <Monitor size={17} className="text-slate-600" />
                 <span>Download for Windows</span>
+              </a>
+
+              <a
+                href={downloadUrls.android}
+                download="InvoCentric.apk"
+                onClick={(e) => triggerDirectDownload(e, downloadUrls.android, 'InvoCentric.apk')}
+                className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-emerald-50 text-slate-900 hover:text-emerald-950 border border-slate-200/90 hover:border-emerald-300 font-medium text-base rounded-full shadow-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Smartphone size={17} className="text-emerald-600" />
+                <span>Download Android App (.apk)</span>
               </a>
             </div>
 

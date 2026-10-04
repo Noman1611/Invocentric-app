@@ -282,10 +282,23 @@ app.get("/manifest.webmanifest", (req, res) => {
   res.setHeader("Content-Type", "application/manifest+json");
   res.sendFile(manifestPath);
 });
+app.get("/InvoCentric.apk", (req, res) => {
+  const apkPath = getPublicFilePath("InvoCentric.apk");
+  if (import_fs.default.existsSync(apkPath)) {
+    res.setHeader("Content-Type", "application/vnd.android.package-archive");
+    res.setHeader("Content-Disposition", 'attachment; filename="InvoCentric.apk"');
+    return res.sendFile(apkPath);
+  }
+  return res.redirect(302, "https://github.com/Noman1611/Invocentric-app/releases/latest/download/InvoCentric.apk");
+});
+app.get("/download.apk", (req, res) => {
+  return res.redirect(302, "/InvoCentric.apk");
+});
 app.get("/api/download", async (req, res) => {
   const platform = (req.query.platform || req.query.type || "windows").toString().toLowerCase();
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
   const repo = "Noman1611/Invocentric-app";
+  const isAndroid = platform.includes("android") || platform.includes("apk") || platform.includes("mobile");
   try {
     const headers = {
       "User-Agent": "InvoCentric-Server"
@@ -304,9 +317,11 @@ app.get("/api/download", async (req, res) => {
       }
     }
     if (!releaseData) {
+      if (isAndroid) {
+        return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric.apk`);
+      }
       return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric-Setup.exe`);
     }
-    const isAndroid = platform.includes("android") || platform.includes("apk") || platform.includes("mobile");
     const asset = releaseData.assets?.find((a) => {
       const n = a.name.toLowerCase();
       if (isAndroid) return n.includes("invocentric") && n.endsWith(".apk") || n.includes("invocentic") && n.endsWith(".apk") || n === "app-release.apk";
@@ -314,15 +329,15 @@ app.get("/api/download", async (req, res) => {
     });
     if (!asset) {
       if (isAndroid) {
-        return res.redirect(302, "/download?platform=android&guide=open");
+        return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric.apk`);
       }
       return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric-Setup.exe`);
     }
     return res.redirect(302, asset.browser_download_url);
   } catch (err) {
     console.error("[Download Route Error]:", err);
-    if (platform.includes("android") || platform.includes("apk") || platform.includes("mobile")) {
-      return res.redirect(302, "/download?platform=android&guide=open");
+    if (isAndroid) {
+      return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric.apk`);
     }
     return res.redirect(302, `https://github.com/${repo}/releases/latest/download/InvoCentric-Setup.exe`);
   }
