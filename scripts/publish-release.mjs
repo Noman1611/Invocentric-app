@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const OWNER = 'Noman1611';

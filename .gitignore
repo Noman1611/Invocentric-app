@@ -10,6 +10,8 @@ dist_electron/
 *.apk
 !InvoCentric.apk
 !public/InvoCentric.apk
+!InvoCentric-Test.apk
+!public/InvoCentric-Test.apk
 *.exe
 *.jar
 *.idsig
