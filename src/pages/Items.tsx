@@ -725,8 +725,8 @@ export default function ItemsPage() {
               className={cn(
                 "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0",
                 isActive
-                  ? "bg-[#166534] text-white shadow-md shadow-green-900/10"
-                  : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-100"
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/10"
+                  : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
               )}
             >
               <Icon size={15} />

@@ -206,12 +206,35 @@ export default function InvoicesPage() {
             onClick={() => setShowFilters(!showFilters)}
             className={cn(
               "btn-secondary flex items-center gap-2 px-6 h-12 justify-center transition-all",
-              showFilters && "bg-slate-50 ring-2 ring-green-500/10 border-green-500/20"
+              showFilters && "bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20 border-emerald-500/30"
             )}
           >
-            <Filter size={18} className={cn("transition-colors", showFilters ? "text-green-600" : "text-slate-500")} />
+            <Filter size={18} className={cn("transition-colors", showFilters ? "text-emerald-600" : "text-slate-500")} />
             <span className="text-sm">Filters</span>
           </button>
+        </div>
+
+        {/* Stitch Quick Status Filter Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {[
+            { id: 'all', label: `All (${invoices.length})` },
+            { id: 'paid', label: `Paid (${invoices.filter(i => i.status === 'paid').length})` },
+            { id: 'sent', label: `Unpaid (${invoices.filter(i => i.status === 'sent').length})` },
+            { id: 'overdue', label: `Overdue (${invoices.filter(i => i.status === 'overdue').length})` }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setStatusFilter(tab.id)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer border",
+                statusFilter === tab.id
+                  ? "bg-slate-900 text-white border-slate-900 shadow-xs"
+                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <AnimatePresence>
@@ -342,12 +365,19 @@ export default function InvoicesPage() {
                       {formatCurrency(invoice.amount ?? (invoice as any).total_amount, invoice.currency)}
                     </div>
                     <span className={cn(
-                      "inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                      invoice.status === 'paid' && "bg-green-50 text-green-700",
-                      invoice.status === 'sent' && "bg-amber-50 text-amber-700",
-                      invoice.status === 'draft' && "bg-slate-100 text-slate-600",
-                      invoice.status === 'overdue' && "bg-rose-50 text-rose-700",
+                      "inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                      invoice.status === 'paid' && "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
+                      invoice.status === 'sent' && "bg-amber-50 text-amber-700 border border-amber-200/60",
+                      invoice.status === 'draft' && "bg-slate-100 text-slate-600 border border-slate-200",
+                      invoice.status === 'overdue' && "bg-rose-50 text-rose-700 border border-rose-200/60",
                     )}>
+                      <span className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        invoice.status === 'paid' && "bg-emerald-500",
+                        invoice.status === 'sent' && "bg-amber-500",
+                        invoice.status === 'draft' && "bg-slate-400",
+                        invoice.status === 'overdue' && "bg-rose-500",
+                      )} />
                       {invoice.status}
                     </span>
                     {invoice.is_recurring && (

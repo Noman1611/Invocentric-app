@@ -8,16 +8,26 @@
 
   --breakpoint-xs: 480px;
 
-  --color-primary: #166534;
-  --color-accent: #15803D;
-  --color-success: #22C55E;
+  --color-primary: #059669;
+  --color-accent: #10B981;
+  --color-success: #10B981;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;
-  --radius-lg: 12px;
-  --radius-xl: 12px;
-  --radius-2xl: 12px;
-  --radius-3xl: 12px;
-  --radius-4xl: 12px;
+
+  /* Stitch FinTech Emerald overrides for green-50 to green-700 */
+  --color-green-50: #ecfdf5;
+  --color-green-100: #d1fae5;
+  --color-green-200: #a7f3d0;
+  --color-green-500: #10b981;
+  --color-green-600: #059669;
+  --color-green-700: #047857;
+  --color-green-800: #065f46;
+
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-2xl: 18px;
+  --radius-3xl: 20px;
+  --radius-4xl: 24px;
 
   /* Global high-contrast theme overrides for light mode readability */
   --color-slate-400: #475569;
@@ -75,13 +85,13 @@
 :root {
   --inv-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --inv-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --inv-primary: #166534;
+  --inv-primary: #059669;
   --inv-secondary: #0f172a;
   --inv-text: #0f172a;
-  --inv-muted: #475569;
-  --inv-border: #cbd5e1;
+  --inv-muted: #64748b;
+  --inv-border: #e2e8f0;
   --inv-bg-light: #ffffff;
-  --inv-table-header: #f1f5f9;
+  --inv-table-header: #f8fafc;
   --inv-total-bg: #f8fafc;
 }
 

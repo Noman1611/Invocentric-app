@@ -70,7 +70,7 @@ export default function MobileNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden print:hidden h-[calc(64px+env(safe-area-inset-bottom,0px))] pb-safe flex items-center justify-between px-2 bg-white/95 backdrop-blur-md border-t border-slate-200/80 shadow-lg shadow-slate-900/5">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden print:hidden h-[calc(64px+env(safe-area-inset-bottom,0px))] pb-safe flex items-center justify-between px-2 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_16px_rgba(15,23,42,0.04)]">
         
         <div className="flex-1 flex justify-around items-center">
           {navItems.map((item) => {
@@ -80,20 +80,22 @@ export default function MobileNav() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
-                  isActive ? "text-green-600" : "text-neutral-400"
+                  "flex flex-col items-center justify-center gap-1 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
+                  isActive ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-700"
                 )}
                 onClick={() => setMenuOpen(false)}
               >
-                <item.icon size={20} className={cn("transition-transform duration-300", isActive && "scale-110")} strokeWidth={isActive ? 3 : 2} />
-                <span className={cn("text-[8px] font-black uppercase tracking-widest leading-none", isActive ? "opacity-100" : "opacity-60")}>{item.name}</span>
+                <div className={cn("flex items-center justify-center px-2 py-0.5 rounded-full transition-all", isActive && "bg-emerald-50 text-emerald-600")}>
+                  <item.icon size={20} className={cn("transition-transform duration-300", isActive && "scale-110")} strokeWidth={isActive ? 2.5 : 1.75} />
+                </div>
+                <span className={cn("text-[9px] font-semibold tracking-wider leading-none", isActive ? "opacity-100" : "opacity-70")}>{item.name}</span>
               </NavLink>
             );
           })}
         </div>
 
         {/* Center FAB */}
-        <div className="relative -top-6 mx-1">
+        <div className="relative -top-5 mx-1">
           <button
             onClick={() => {
               if (!isPro) {
@@ -107,7 +109,7 @@ export default function MobileNav() {
                 navigate('/pos');
               }
             }}
-            className="w-14 h-14 rounded-full flex items-center justify-center  active:scale-95 transition-all outline-none bg-green-600 text-white shadow-lg shadow-green-600/30"
+            className="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-all outline-none bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border-2 border-white ring-2 ring-emerald-500/20"
           >
             <ScanLine size={24} strokeWidth={2.5} />
           </button>
@@ -121,13 +123,15 @@ export default function MobileNav() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
-                  isActive ? "text-green-600" : "text-neutral-400"
+                  "flex flex-col items-center justify-center gap-1 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
+                  isActive ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-700"
                 )}
                 onClick={() => setMenuOpen(false)}
               >
-                <item.icon size={20} className={cn("transition-transform duration-300", isActive && "scale-110")} strokeWidth={isActive ? 3 : 2} />
-                <span className={cn("text-[8px] font-black uppercase tracking-widest leading-none", isActive ? "opacity-100" : "opacity-60")}>{item.name}</span>
+                <div className={cn("flex items-center justify-center px-2 py-0.5 rounded-full transition-all", isActive && "bg-emerald-50 text-emerald-600")}>
+                  <item.icon size={20} className={cn("transition-transform duration-300", isActive && "scale-110")} strokeWidth={isActive ? 2.5 : 1.75} />
+                </div>
+                <span className={cn("text-[9px] font-semibold tracking-wider leading-none", isActive ? "opacity-100" : "opacity-70")}>{item.name}</span>
               </NavLink>
             );
           })}
@@ -135,12 +139,14 @@ export default function MobileNav() {
           <button
             onClick={() => setMenuOpen(true)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
-              menuOpen ? "text-green-600" : "text-neutral-400"
+              "flex flex-col items-center justify-center gap-1 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
+              menuOpen ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-700"
             )}
           >
-            <MenuIcon size={20} className={cn("transition-transform duration-300", menuOpen && "scale-110")} strokeWidth={menuOpen ? 3 : 2} />
-            <span className={cn("text-[8px] font-black uppercase tracking-widest leading-none", menuOpen ? "opacity-100" : "opacity-60")}>Menu</span>
+            <div className={cn("flex items-center justify-center px-2 py-0.5 rounded-full transition-all", menuOpen && "bg-emerald-50 text-emerald-600")}>
+              <MenuIcon size={20} className={cn("transition-transform duration-300", menuOpen && "scale-110")} strokeWidth={menuOpen ? 2.5 : 1.75} />
+            </div>
+            <span className={cn("text-[9px] font-semibold tracking-wider leading-none", menuOpen ? "opacity-100" : "opacity-70")}>Menu</span>
           </button>
         </div>
       </nav>

@@ -700,18 +700,19 @@ export default function DailyBook() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-[#0f172a] p-8 rounded-[2rem] text-white flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-lg"
+        className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-7 sm:p-8 rounded-3xl text-white flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl border border-slate-800"
       >
         <div>
-          <p className="text-xs font-black text-green-300 uppercase tracking-[0.2em] mb-2">
+          <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             Net Daily Cash Balance (Payments In - Purchases - Expenses)
           </p>
           <div className="flex items-center gap-4">
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight text-white tabular-nums">
               {formatCurrency(netBalance, "INR")}
             </h2>
             <div
-              className={`p-2.5 rounded-2xl ${netBalance >= 0 ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-rose-500/20 text-rose-400 border border-rose-500/30"}`}
+              className={`p-2.5 rounded-2xl ${netBalance >= 0 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-rose-500/20 text-rose-400 border border-rose-500/30"}`}
             >
               {netBalance >= 0 ? (
                 <ArrowUpRight size={28} />
@@ -725,14 +726,14 @@ export default function DailyBook() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleExportExcel}
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2 border border-white/10"
+            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 border border-white/10"
           >
             <FileSpreadsheet size={16} />
             <span>Export Excel</span>
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center gap-2 shadow-md"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 shadow-lg shadow-emerald-900/30"
           >
             <Download size={16} />
             <span>Download PDF</span>
