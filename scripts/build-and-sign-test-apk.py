@@ -60,9 +60,8 @@ def main():
     print(f"[*] Signing and zipaligning with {signer_jar}...")
     cmd = [
         "java", "-jar", signer_jar,
-        "--apks", unsigned_apk,
-        "--out", ".",
-        "--overwrite"
+        "-a", unsigned_apk,
+        "--allowResign"
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
     print(res.stdout)
@@ -70,19 +69,16 @@ def main():
         print("Signer stderr:", res.stderr)
         sys.exit(res.returncode)
 
-    # uber-apk-signer outputs InvoCentric-Test-unsigned-aligned-debugSigned.apk
+    # uber-apk-signer outputs InvoCentric-Test-aligned-debugSigned.apk
     candidates = [
-        "InvoCentric-Test-unsigned-aligned-debugSigned.apk",
-        "InvoCentric-Test-unsigned.apk"
+        "InvoCentric-Test-aligned-debugSigned.apk",
+        "InvoCentric-Test-unsigned-aligned-debugSigned.apk"
     ]
     signed_found = None
     for c in candidates:
-        if os.path.exists(c) and c != unsigned_apk:
+        if os.path.exists(c):
             signed_found = c
             break
-
-    if not signed_found and os.path.exists("InvoCentric-Test-unsigned-aligned-debugSigned.apk"):
-        signed_found = "InvoCentric-Test-unsigned-aligned-debugSigned.apk"
 
     if signed_found and os.path.exists(signed_found):
         if os.path.exists(output_apk):
