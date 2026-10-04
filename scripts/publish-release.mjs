@@ -8,17 +8,20 @@ dotenv.config();
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.41';
+const TAG = 'v1.0.42';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.41 - Desktop Startup Hardening, Trial Claim Engine & Fast POS Navigation';
-const RELEASE_NOTES = `## InvoCentric v1.0.41 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.42 - Restored Original UI/UX & Enhanced Quick Actions (Invoices, Quotations, Purchases)';
+const RELEASE_NOTES = `## InvoCentric v1.0.42 Release Notes
 
-### What's New in v1.0.41:
-- **Desktop Windows App Startup Hardening:** Fixed Windows startup and instance locking; added reliable local HTTP server with automatic fallback, zero icon path errors in asar package, and automatic window restore and focus on launch.
-- **1-Month Free Pro Trial Engine:** Strict once-in-a-lifetime free Pro trial claiming with Firestore claimed_trials record, instant activation, and receipt generation.
-- **Quick POS Direct Access:** Promoted Quick POS to top-level navigation directly under Dashboard for instant cashier access.
-- **Brand & Vector SVG Assets:** Added official branding identity, color system, and production SVG codes in BRANDING.md.
-- **Multiplatform Production Binaries:** Updated Windows setup installer (\`InvoCentric-Setup.exe\`) and Android production APK (\`InvoCentric.apk\`).
+### What's New in v1.0.42:
+- **Restored Pure InvoCentric UI/UX:** Completely reverted to the classic, high-performance, clutter-free InvoCentric design system.
+- **Enhanced Quick Actions:** Added 1-tap direct navigation cards for:
+  - **Invoices ➔** (\`/invoices\`) - View, search, and manage all sales tax invoices
+  - **Quotations ➔** (\`/quotations\`) - Generate and manage customer quotations and estimates
+  - **Purchases ➔** (\`/purchases\`) - Record vendor purchase bills, inwards, and expense vouchers
+- **100% Interactive Cards & Zero Demo Mockups:** All dashboard KPI cards (Sales Revenue, Collections Received, Customer Due, Low Stock) are fully interactive with direct error-free routing to live data views.
+- **Test Channel Decommissioned:** Internal experimental test channel purged; all production builds now ship with hardened stability.
+- **Multiplatform Production Binaries:** Updated Windows installer (\`InvoCentric-Setup.exe\`) and Android production APK (\`InvoCentric.apk\`).
 `;
 
 const ASSETS = [

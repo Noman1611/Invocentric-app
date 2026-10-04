@@ -337,19 +337,9 @@ app.get("/download.apk", (req, res) => {
   return res.redirect(302, "/InvoCentric.apk");
 });
 
-// --- DIRECT TEST / BETA APK DOWNLOAD ROUTE ---
-app.get("/InvoCentric-Test.apk", (req, res) => {
-  const apkPath = getPublicFilePath("InvoCentric-Test.apk");
-  if (fs.existsSync(apkPath)) {
-    res.setHeader("Content-Type", "application/vnd.android.package-archive");
-    res.setHeader("Content-Disposition", 'attachment; filename="InvoCentric-Test.apk"');
-    return res.sendFile(apkPath);
-  }
-  return res.redirect(302, "https://github.com/Noman1611/Invocentric-app/releases/download/test-channel/InvoCentric-Test.apk");
-});
-
-app.get("/test.apk", (req, res) => {
-  return res.redirect(302, "/InvoCentric-Test.apk");
+// Redirect legacy test APK requests to official production APK
+app.get(["/InvoCentric-Test.apk", "/test.apk"], (req, res) => {
+  return res.redirect(302, "/InvoCentric.apk");
 });
 
 // --- OFFICIAL SOFTWARE & APP DOWNLOAD ROUTE ---

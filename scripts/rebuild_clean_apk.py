@@ -11,7 +11,7 @@ DIST_DIR = os.path.join(BASE_DIR, "dist")
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
 UBER_JAR = os.path.join(BASE_DIR, "uber-apk-signer.jar")
 
-def patch_android_manifest(raw_bytes, version_code=40, version_name="1.0.40"):
+def patch_android_manifest(raw_bytes, version_code=42, version_name="1.0.42"):
     manifest = bytearray(raw_bytes)
     # 1. Patch versionName string in UTF-16LE string pool
     target_utf16 = "1.0.39".encode("utf-16le")
@@ -81,8 +81,8 @@ def build_clean_apk(target_apk_name, channel="production", do_web_build=True):
 
                 # Patch AndroidManifest.xml
                 if item.filename == "AndroidManifest.xml":
-                    v_code = 40 if channel == "production" else 41
-                    v_name = "1.0.40" if channel == "production" else "1.0.41"
+                    v_code = 42
+                    v_name = "1.0.42"
                     content = patch_android_manifest(content, version_code=v_code, version_name=v_name)
 
                 # Patch resources.arsc for test build to display TEST in icon label
@@ -180,8 +180,4 @@ def build_clean_apk(target_apk_name, channel="production", do_web_build=True):
     print(f"[OK] DONE: {final_apk} ready ({os.path.getsize(final_apk)} bytes)\n")
 
 if __name__ == "__main__":
-    mode = sys.argv[1] if len(sys.argv) > 1 else "all"
-    if mode in ("prod", "production", "all"):
-        build_clean_apk("InvoCentric.apk", channel="production", do_web_build=True)
-    if mode in ("test", "all"):
-        build_clean_apk("InvoCentric-Test.apk", channel="test", do_web_build=True)
+    build_clean_apk("InvoCentric.apk", channel="production", do_web_build=False)
