@@ -45,7 +45,6 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
   const { logout, user, isAdmin, appMode, planTier, isPro, triggerUpgradeModal } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const [itemsOpen, setItemsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(() => location.pathname.startsWith('/settings'));
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
@@ -105,7 +104,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
 
   const menuGroups = [
     {
-      title: 'SALES',
+      title: 'SALES & CLIENTS',
       items: [
         { name: 'Invoices', path: '/invoices', icon: FileText, hotkey: 'I' },
         { name: appMode === 'freelancer' ? 'Proposals' : 'Quotations', path: '/quotations', icon: FileEdit, hotkey: 'Q' },
@@ -114,19 +113,24 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
       ]
     },
     {
-      title: 'ACCOUNTING',
+      title: 'INVENTORY & PURCHASES',
+      items: [
+        { name: 'Products & Stock', path: '/items', icon: Package, hotkey: 'T' },
+        { name: appMode === 'freelancer' ? 'Software & Tools' : 'Purchases', path: '/purchases', icon: ShoppingBag, hotkey: 'U' },
+      ]
+    },
+    {
+      title: 'ACCOUNTS & EXPENSES',
       items: [
         { name: 'Daily Book', path: '/dailybook', icon: Book, hotkey: 'B' },
         { name: 'Expenses', path: '/expenses', icon: TrendingDown, hotkey: 'E' },
       ]
     },
     {
-      title: 'REPORTS',
+      title: 'REPORTS & TOOLS',
       items: [
         { name: 'Reports', path: '/reports', icon: BarChart3, hotkey: 'R' },
         { name: 'Barcode Generator', path: '/barcode-generator', icon: Barcode, hotkey: 'G' },
-        { name: 'QR Generator', path: '/qr-generator', icon: QrCode },
-        { name: 'Download App / PC', path: '/download', icon: Download },
         { name: 'Plans & Pricing', path: '/pricing', icon: Sparkles },
       ]
     }
@@ -142,22 +146,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
     { name: 'Plan & Security', path: '/settings?tab=security', icon: ShieldCheck },
   ];
 
-  const itemsSubItems = [
-    { name: 'Products', path: '/items', icon: Package },
-    { name: 'Stock Overview', path: '/items?tab=overview', icon: BarChart3 },
-    { name: 'Stock Adjustment', path: '/items?tab=adjustment', icon: FileEdit },
-    { name: 'Stock Transfer', path: '/items?tab=transfer', icon: ArrowRight },
-    { name: 'Serial Numbers', path: '/items?tab=serials', icon: Barcode },
-    { name: 'Lot / Batch', path: '/items?tab=batches', icon: Database },
-    { name: 'Low Stock', path: '/items?tab=lowstock', icon: TrendingDown },
-    { name: 'Expiry Alerts', path: '/items?tab=expiry', icon: AlertCircle },
-    { name: 'Categories & Units', path: '/items?tab=categories', icon: Tag },
-    { name: 'Inventory History', path: '/items?tab=history', icon: FileText },
-    { name: appMode === 'freelancer' ? 'Software & Tools' : 'Purchases', path: '/purchases', icon: ShoppingBag, hotkey: 'P' },
-  ];
-
   const adminItem = { name: 'Admin Control', path: '/admin', icon: ShieldCheck, hotkey: 'A' };
-
 
   return (
     <aside className={cn(
@@ -192,7 +181,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
           to="/"
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative mb-4",
+              "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative mb-1.5",
               isActive 
                 ? "bg-[#F0FDF4] text-[#166534] font-extrabold" 
                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -205,6 +194,45 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
               {!collapsed && (
                 <span className="text-[13px] tracking-tight font-bold">
                   <KeyUnderline text="Dashboard" hotkey="D" />
+                </span>
+              )}
+            </>
+          )}
+        </NavLink>
+
+        {/* Quick POS mode directly under Dashboard */}
+        <NavLink
+          to="/pos"
+          onClick={(e) => {
+            if (!isPro) {
+              e.preventDefault();
+              triggerUpgradeModal('Quick POS & Barcode Billing', [
+                'Fast point-of-sale layout designed for touch screens and thermal printers.',
+                'Real-time barcode scanning using device camera or handheld USB laser scanners.',
+                'Automated cash till logging, customer balance tracking, and retail analytics.'
+              ]);
+            }
+          }}
+          className={({ isActive }) =>
+            cn(
+              "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative mb-4",
+              isActive 
+                ? "bg-[#F0FDF4] text-[#166534] font-extrabold" 
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+            )
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <Store size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
+              {!collapsed && (
+                <span className="text-[13px] tracking-tight font-bold flex items-center justify-between flex-1">
+                  <KeyUnderline text="Quick POS" hotkey="K" />
+                  {!isPro ? (
+                    <Lock size={12} className="text-emerald-700 ml-1.5 shrink-0" />
+                  ) : (
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">FAST</span>
+                  )}
                 </span>
               )}
             </>
@@ -241,16 +269,6 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                  <NavLink
                   key={item.path}
                   to={item.path}
-                  onClick={(e) => {
-                    if (item.path === '/qr-generator' && !isPro) {
-                      e.preventDefault();
-                      triggerUpgradeModal('QR Generator & Digital Branding', [
-                        'Generate dynamic, beautifully branded UPI & website QR codes.',
-                        'Auto-embed QR codes directly onto your PDF invoices for quick payments.',
-                        'Real-time verification of payment status via custom QR layouts.'
-                      ]);
-                    }
-                  }}
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative",
@@ -268,82 +286,13 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                           <span>
                             <KeyUnderline text={item.name} hotkey={(item as any).hotkey} />
                           </span>
-                          {item.path === '/qr-generator' && !isPro && (
-                            <Lock size={12} className="text-emerald-700 ml-1.5 shrink-0" />
-                          )}
                         </span>
-                      )}
-                      {collapsed && item.path === '/qr-generator' && !isPro && (
-                        <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-600 border border-white" />
                       )}
                     </>
                   )}
                 </NavLink>
               )
             ))}
-
-            {/* Insert collapsible ITEMS section after SALES group */}
-            {group.title === 'SALES' && (
-              <div className={cn("space-y-1 mt-5 mb-2", collapsed && "mt-3 mb-1")}>
-                {!collapsed && (
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#8A99AD] px-4 mb-2">
-                    ITEMS
-                  </p>
-                )}
-                {/* Items Collapsible Toggle Button */}
-                <button
-                  onClick={() => setItemsOpen(!itemsOpen)}
-                  className={cn(
-                    "w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative cursor-pointer",
-                    itemsOpen
-                      ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                  )}
-                >
-                  <Package size={18} className={cn("shrink-0 transition-colors", itemsOpen ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
-                  {!collapsed && (
-                    <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between">
-                      <KeyUnderline text="Items" hotkey="T" />
-                      {itemsOpen
-                        ? <ChevronDown size={14} className="text-[#166534] transition-transform duration-200" />
-                        : <ChevronRight size={14} className="text-slate-400 transition-transform duration-200" />
-                      }
-                    </span>
-                  )}
-                </button>
-
-                {/* Items Sub-Menu */}
-                {itemsOpen && (
-                  <div className={cn("space-y-0.5", !collapsed && "pl-3 border-l-2 border-[#D1FAE5] ml-5")}>
-                    {itemsSubItems.map((sub) => (
-                      <NavLink
-                        key={sub.path}
-                        to={sub.path}
-                        className={({ isActive }) =>
-                          cn(
-                            "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 group relative text-[12px]",
-                            isActive
-                              ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
-                              : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-                          )
-                        }
-                      >
-                        {({ isActive }) => (
-                          <>
-                            <sub.icon size={15} className={cn("shrink-0", isActive ? "text-[#166534]" : "text-slate-400 group-hover:text-slate-600")} />
-                            {!collapsed && (
-                              <span className="tracking-tight font-bold">
-                                <KeyUnderline text={sub.name} hotkey={(sub as any).hotkey} />
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         ))}
 

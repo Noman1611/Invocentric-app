@@ -815,7 +815,7 @@ app.post("/api/auth/verify-email-otp", async (req, res) => {
 });
 var mobileAuthSessions = /* @__PURE__ */ new Map();
 app.post("/api/auth/mobile-session", async (req, res) => {
-  const { sessionId, status, idToken, accessToken, uid, email, displayName, photoURL } = req.body;
+  const { sessionId, status, idToken, accessToken, googleIdToken, googleAccessToken, firebaseIdToken, uid, email, displayName, photoURL } = req.body;
   if (!sessionId || typeof sessionId !== "string") {
     return res.status(400).json({ error: "sessionId is required." });
   }
@@ -825,6 +825,9 @@ app.post("/api/auth/mobile-session", async (req, res) => {
     status: status || "authenticated",
     idToken: idToken !== void 0 ? idToken : existing?.idToken,
     accessToken: accessToken !== void 0 ? accessToken : existing?.accessToken,
+    googleIdToken: googleIdToken !== void 0 ? googleIdToken : existing?.googleIdToken,
+    googleAccessToken: googleAccessToken !== void 0 ? googleAccessToken : existing?.googleAccessToken,
+    firebaseIdToken: firebaseIdToken !== void 0 ? firebaseIdToken : existing?.firebaseIdToken,
     uid: uid !== void 0 ? uid : existing?.uid,
     email: email !== void 0 ? email : existing?.email,
     displayName: displayName !== void 0 ? displayName : existing?.displayName,
@@ -846,6 +849,9 @@ app.post("/api/auth/mobile-session", async (req, res) => {
       };
       if (sessionData.idToken) fields.idToken = { stringValue: sessionData.idToken };
       if (sessionData.accessToken) fields.accessToken = { stringValue: sessionData.accessToken };
+      if (sessionData.googleIdToken) fields.googleIdToken = { stringValue: sessionData.googleIdToken };
+      if (sessionData.googleAccessToken) fields.googleAccessToken = { stringValue: sessionData.googleAccessToken };
+      if (sessionData.firebaseIdToken) fields.firebaseIdToken = { stringValue: sessionData.firebaseIdToken };
       if (sessionData.uid) fields.uid = { stringValue: sessionData.uid };
       if (sessionData.email) fields.email = { stringValue: sessionData.email };
       if (sessionData.displayName) fields.displayName = { stringValue: sessionData.displayName };
@@ -1195,6 +1201,150 @@ app.post("/api/auth/verify-session", (req, res) => {
     valid: true,
     user: result.payload
   });
+});
+app.post("/api/subscription/claim-free-pro", async (req, res) => {
+  try {
+    let userEmail = null;
+    let userUid = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.slice(7).trim();
+      const sessionVerify = verifySessionJwt(token);
+      if (sessionVerify.valid && sessionVerify.payload) {
+        userEmail = sessionVerify.payload.email;
+        userUid = sessionVerify.payload.uid;
+      } else {
+        const googleVerify = await verifyGoogleIdToken(token);
+        if (googleVerify.valid && googleVerify.payload) {
+          userEmail = googleVerify.payload.email;
+          userUid = googleVerify.payload.googleSub;
+        }
+      }
+    }
+    if (!userEmail && req.body?.email) {
+      userEmail = String(req.body.email).toLowerCase().trim();
+    }
+    if (!userUid && req.body?.uid) {
+      userUid = String(req.body.uid).trim();
+    }
+    if (!userEmail && !userUid) {
+      return res.status(401).json({ success: false, error: "AUTH_REQUIRED", message: "User authentication is required to claim trial." });
+    }
+    const cleanEmail = (userEmail || "").toLowerCase().trim();
+    const effectiveUid = userUid || cleanEmail;
+    const usersDb = loadUsersDb();
+    const existingRecord = usersDb[cleanEmail] || (effectiveUid ? usersDb[effectiveUid] : null);
+    if (existingRecord?.free_trial_claimed || existingRecord?.freeTrialClaimed) {
+      return res.status(400).json({
+        success: false,
+        error: "ALREADY_CLAIMED",
+        message: "This account has already claimed the 1-month free Pro trial. It cannot be claimed again."
+      });
+    }
+    const projectId = firebaseConfig?.projectId;
+    const databaseId = firebaseConfig?.firestoreDatabaseId || "(default)";
+    const apiKey = firebaseConfig?.apiKey;
+    if (projectId && apiKey && cleanEmail) {
+      try {
+        const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${apiKey}`;
+        const checkRes = await fetch(queryUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: "claimed_trials" }],
+              where: {
+                fieldFilter: {
+                  field: { fieldPath: "email" },
+                  op: "EQUAL",
+                  value: { stringValue: cleanEmail }
+                }
+              },
+              limit: 1
+            }
+          })
+        });
+        if (checkRes.ok) {
+          const results = await checkRes.json();
+          if (Array.isArray(results) && results[0]?.document) {
+            return res.status(400).json({
+              success: false,
+              error: "ALREADY_CLAIMED",
+              message: "1-Month Free Pro Trial has already been claimed for this email. It cannot be claimed again."
+            });
+          }
+        }
+      } catch (checkErr) {
+        console.warn("[Claim Free Pro] Firestore verification check warning:", checkErr);
+      }
+    }
+    const now = /* @__PURE__ */ new Date();
+    const renewsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1e3).toISOString();
+    const receiptNumber = `PRO-CLAIM-${Date.now().toString(36).substring(3, 7).toUpperCase()}`;
+    if (cleanEmail) {
+      if (!usersDb[cleanEmail]) {
+        usersDb[cleanEmail] = { email: cleanEmail, uid: effectiveUid };
+      }
+      usersDb[cleanEmail].free_trial_claimed = true;
+      usersDb[cleanEmail].free_trial_claimed_at = now.toISOString();
+      usersDb[cleanEmail].plan = "pro";
+      usersDb[cleanEmail].plan_tier = "pro";
+      usersDb[cleanEmail].plan_renews_at = renewsAt;
+      usersDb[cleanEmail].claim_receipt_no = receiptNumber;
+      saveUsersDb(usersDb);
+    }
+    if (projectId && apiKey) {
+      try {
+        const claimDocId = `claim_${cleanEmail.replace(/[^a-zA-Z0-9]/g, "_")}`;
+        const claimDocUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/claimed_trials/${claimDocId}?key=${apiKey}`;
+        fetch(claimDocUrl, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fields: {
+              email: { stringValue: cleanEmail },
+              uid: { stringValue: effectiveUid },
+              receiptNumber: { stringValue: receiptNumber },
+              claimedAt: { stringValue: now.toISOString() },
+              renewsAt: { stringValue: renewsAt }
+            }
+          })
+        }).catch(() => {
+        });
+        if (effectiveUid) {
+          const userDocUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${effectiveUid}?key=${apiKey}`;
+          fetch(userDocUrl, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fields: {
+                plan: { stringValue: "pro" },
+                plan_tier: { stringValue: "pro" },
+                plan_status: { stringValue: "active" },
+                free_trial_claimed: { booleanValue: true },
+                free_trial_claimed_at: { stringValue: now.toISOString() },
+                plan_renews_at: { stringValue: renewsAt },
+                claim_receipt_no: { stringValue: receiptNumber },
+                updated_at: { stringValue: now.toISOString() }
+              }
+            })
+          }).catch(() => {
+          });
+        }
+      } catch (fsWriteErr) {
+        console.warn("[Claim Free Pro] Firestore write warning:", fsWriteErr);
+      }
+    }
+    return res.json({
+      success: true,
+      receiptNumber,
+      planRenewsAt: renewsAt,
+      message: "1-Month Free Pro Plan claimed successfully!"
+    });
+  } catch (err) {
+    console.error("[Claim Free Pro] Unexpected error:", err);
+    return res.status(500).json({ success: false, error: "SERVER_ERROR", message: "Internal error processing trial claim." });
+  }
 });
 app.post("/api/auth/check-user", (req, res) => {
   const { email } = req.body;

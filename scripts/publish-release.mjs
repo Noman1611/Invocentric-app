@@ -8,18 +8,17 @@ dotenv.config();
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.40';
+const TAG = 'v1.0.41';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.40 - In-App Google Login Popup & Seamless Cloud Sync';
-const RELEASE_NOTES = `## InvoCentric v1.0.40 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.41 - Desktop Startup Hardening, Trial Claim Engine & Fast POS Navigation';
+const RELEASE_NOTES = `## InvoCentric v1.0.41 Release Notes
 
-### What's New:
-- **In-App Google Login Popup Modal:** Sign in with Google directly inside the app with zero external browser redirection or screen flashing.
-- **In-Place Account Selection & Authorization:** Select your Google ID, verify server tokens, and connect seamlessly from the popup.
-- **Auto Dashboard Transition:** Smooth, direct navigation to the billing dashboard upon successful connection.
-- **Cloud Database Self-Healing & Auto-Sync:** Android & Web apps automatically connect to online databases with real-time heartbeat and reconnect listeners.
-- **Lifetime Free Tier Guarantee:** Permanent removal of expired trial lockout screens in favor of standard free forever plan.
-- **Legacy User Data Migration:** Automatic reconciliation of records across older user IDs.
+### What's New in v1.0.41:
+- **Desktop Windows App Startup Hardening:** Fixed Windows startup and instance locking; added reliable local HTTP server with automatic fallback, zero icon path errors in asar package, and automatic window restore and focus on launch.
+- **1-Month Free Pro Trial Engine:** Strict once-in-a-lifetime free Pro trial claiming with Firestore claimed_trials record, instant activation, and receipt generation.
+- **Quick POS Direct Access:** Promoted Quick POS to top-level navigation directly under Dashboard for instant cashier access.
+- **Brand & Vector SVG Assets:** Added official branding identity, color system, and production SVG codes in BRANDING.md.
+- **Multiplatform Production Binaries:** Updated Windows setup installer (\`InvoCentric-Setup.exe\`) and Android production APK (\`InvoCentric.apk\`).
 `;
 
 const ASSETS = [

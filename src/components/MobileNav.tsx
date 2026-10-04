@@ -18,6 +18,7 @@ import {
   Database,
   Book,
   QrCode,
+  Barcode,
   ScanLine,
   Sparkles,
   Lock,
@@ -56,14 +57,13 @@ export default function MobileNav() {
   ];
 
   const menuItems = [
-    { name: appMode === 'freelancer' ? 'Services' : 'Items', path: '/items', icon: Package },
-    { name: 'Payments', path: '/payments', icon: CreditCard },
+    { name: appMode === 'freelancer' ? 'Services' : 'Products & Stock', path: '/items', icon: Package },
     { name: appMode === 'freelancer' ? 'Software & Tools' : 'Purchases', path: '/purchases', icon: Database },
-    { name: 'Expenses', path: '/expenses', icon: TrendingDown },
+    { name: 'Payments', path: '/payments', icon: CreditCard },
     { name: 'Daily Book', path: '/dailybook', icon: Book },
+    { name: 'Expenses', path: '/expenses', icon: TrendingDown },
     { name: 'Reports', path: '/reports', icon: BarChart3 },
-    { name: 'Barcode Generator', path: '/barcode-generator', icon: QrCode },
-    { name: 'QR Generator', path: '/qr-generator', icon: QrCode },
+    { name: 'Barcode Generator', path: '/barcode-generator', icon: Barcode },
     { name: 'Plans & Pricing', path: '/pricing', icon: Sparkles },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];

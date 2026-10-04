@@ -99,8 +99,9 @@ if (!gotTheLock) {
 }
 
 app.on('second-instance', () => {
-  if (mainWindow) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
     if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
     mainWindow.focus();
   }
 });
@@ -167,29 +168,52 @@ function startLocalServer(distDir) {
       });
     });
 
-    server.listen(0, '127.0.0.1', () => {
-      const port = server.address().port;
-      localHttpServer = server;
-      console.log(`[Local Server] Serving offline app on http://127.0.0.1:${port}`);
-      resolve(port);
+    server.on('error', (err) => {
+      console.warn('[Local Server] Error starting HTTP server, falling back to direct load:', err?.message || err);
+      resolve(null);
     });
+
+    try {
+      server.listen(0, '127.0.0.1', () => {
+        const port = server.address().port;
+        localHttpServer = server;
+        console.log(`[Local Server] Serving offline app on http://127.0.0.1:${port}`);
+        resolve(port);
+      });
+    } catch (listenErr) {
+      console.warn('[Local Server] Exception listening on port:', listenErr);
+      resolve(null);
+    }
   });
 }
 
 function createWindow() {
+  let iconPath = path.join(__dirname, '../dist/favicon.ico');
+  if (!fs.existsSync(iconPath)) {
+    iconPath = path.join(__dirname, '../public/favicon.ico');
+  }
+
   mainWindow = new BrowserWindow({
     width: 1360,
     height: 860,
     minWidth: 1024,
     minHeight: 680,
     title: 'InvoCentric — GST Billing & Accounting Software',
-    icon: path.join(__dirname, '../public/favicon.ico'),
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
     backgroundColor: '#ffffff',
+    show: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false
+    }
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
     }
   });
 
@@ -203,14 +227,22 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173').catch(async () => {
       try {
         const port = await startLocalServer(distDir);
-        mainWindow.loadURL(`http://127.0.0.1:${port}/?source=app`);
+        if (port) {
+          mainWindow.loadURL(`http://127.0.0.1:${port}/?source=app`);
+        } else {
+          mainWindow.loadFile(path.join(distDir, 'index.html'));
+        }
       } catch (err) {
         mainWindow.loadFile(path.join(distDir, 'index.html'));
       }
     });
   } else {
     startLocalServer(distDir).then((port) => {
-      mainWindow.loadURL(`http://127.0.0.1:${port}/?source=app`);
+      if (port) {
+        mainWindow.loadURL(`http://127.0.0.1:${port}/?source=app`);
+      } else {
+        mainWindow.loadFile(path.join(distDir, 'index.html'));
+      }
     }).catch(() => {
       mainWindow.loadFile(path.join(distDir, 'index.html'));
     });
@@ -380,11 +412,12 @@ ipcMain.handle('list-local-files', async () => {
 // Dedicated Daily Backup Handlers in specific folder
 ipcMain.handle('save-daily-backup', async (event, filename, content) => {
   try {
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
-    }
     const safeFilename = path.basename(filename);
     const targetPath = path.join(backupDir, safeFilename);
+    const dirOfTarget = path.dirname(targetPath);
+    if (!fs.existsSync(dirOfTarget)) {
+      fs.mkdirSync(dirOfTarget, { recursive: true });
+    }
     fs.writeFileSync(targetPath, typeof content === 'string' ? content : JSON.stringify(content, null, 2), 'utf8');
     return { success: true, path: targetPath };
   } catch (err) {

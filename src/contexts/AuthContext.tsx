@@ -122,8 +122,14 @@ export const evaluatePlanValidity = (
   const rawTier = (profile?.plan_tier || profile?.plan || 'free') as 'free' | 'pro';
   const renewsAt = profile?.plan_renews_at || profile?.planRenewsAt || null;
   const billingCycle = profile?.billing_cycle || profile?.billingCycle || null;
-  const freeTrialClaimed = !!(profile?.free_trial_claimed || profile?.freeTrialClaimed);
-  const freeTrialClaimedAt = profile?.free_trial_claimed_at || profile?.freeTrialClaimedAt || null;
+  const emailKey = (userEmail || profile?.email || '').toLowerCase().trim();
+  const uidKey = (profile?.uid || profile?.id || '').trim();
+  const localClaimed = (typeof window !== 'undefined') && Boolean(
+    (uidKey && localStorage.getItem(`invocentric_claimed_trial_${uidKey}`) === 'true') ||
+    (emailKey && localStorage.getItem(`invocentric_claimed_trial_${emailKey}`) === 'true')
+  );
+  const freeTrialClaimed = Boolean(profile?.free_trial_claimed || profile?.freeTrialClaimed || localClaimed || profile?.subscription_type === 'claim');
+  const freeTrialClaimedAt = profile?.free_trial_claimed_at || profile?.freeTrialClaimedAt || (freeTrialClaimed ? (typeof window !== 'undefined' ? localStorage.getItem(`invocentric_claimed_trial_at_${uidKey || emailKey}`) : null) : null);
 
   if (rawTier === 'pro' || profile?.subscription_status === 'active') {
     if (renewsAt) {
@@ -862,8 +868,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: isOwnerEmail ? 'owner' : 'user',
         billing_cycle: cached?.billing_cycle || null,
         plan_renews_at: cached?.plan_renews_at || null,
-        free_trial_claimed: cached?.free_trial_claimed || false,
-        free_trial_claimed_at: cached?.free_trial_claimed_at || null,
+        free_trial_claimed: Boolean(
+          cached?.free_trial_claimed ||
+          (typeof window !== 'undefined' && (
+            localStorage.getItem(`invocentric_claimed_trial_${firebaseUser.uid}`) === 'true' ||
+            (firebaseUser.email && localStorage.getItem(`invocentric_claimed_trial_${firebaseUser.email.toLowerCase().trim()}`) === 'true')
+          ))
+        ),
+        free_trial_claimed_at: cached?.free_trial_claimed_at || (typeof window !== 'undefined' ? localStorage.getItem(`invocentric_claimed_trial_at_${firebaseUser.uid}`) : null),
         is_offline_mode: false,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
@@ -1255,6 +1267,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPlanRenewsAt(renewsAtISO);
       setFreeTrialClaimed(true);
       setFreeTrialClaimedAt(new Date().toISOString());
+
+      try {
+        localStorage.setItem(`invocentric_claimed_trial_${user.uid}`, 'true');
+        if (user.email) {
+          localStorage.setItem(`invocentric_claimed_trial_${user.email.toLowerCase().trim()}`, 'true');
+        }
+        localStorage.setItem(`invocentric_claimed_trial_at_${user.uid}`, new Date().toISOString());
+      } catch (_) {}
 
       // 2. Update Firestore user document
       if (navigator.onLine) {
@@ -1773,7 +1793,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           };
 
-          // 1. High-frequency Server API Polling
+          // 1. High-frequency Server API Polling (super-fast 400ms interval)
           const pollTimer = setInterval(async () => {
             if (resolved) return;
             try {
@@ -1785,7 +1805,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
               }
             } catch (netErr) {}
-          }, 1200);
+          }, 400);
           cleanupFns.push(() => clearInterval(pollTimer));
 
           // 2. Firestore real-time session listener
@@ -1877,7 +1897,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (resolved || resumeCheckCount > 8) {
                 clearInterval(rapidInterval);
               }
-            }, 600);
+            }, 300);
           };
 
           window.addEventListener('app-resumed', onAppResumed);
@@ -1903,35 +1923,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("Popup login success:", result?.user?.email);
 
         if (result?.user) {
-          onProgress?.('token_received');
-          try {
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            const idToken = credential?.idToken || (await result.user.getIdToken());
-
-            onProgress?.('verifying_server');
-            // Phase 2: Send Token to Server for verification, user DB check & JWT session creation
-            const serverRes = await fetch(apiUrl('/api/auth/google-login'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ idToken, clientUid: result.user.uid })
-            });
-
-            if (serverRes.ok) {
-              const serverData = await serverRes.json();
-              if (serverData?.token) {
-                localStorage.setItem('invocentric_jwt_token', serverData.token);
-                localStorage.setItem('invocentric_last_uid', result.user.uid);
-                if (result.user.email) {
-                  localStorage.setItem('invocentric_last_email', result.user.email);
-                }
-                migrateLegacyUserData(result.user.uid, result.user.email);
-                onProgress?.('session_created');
-              }
-            }
-          } catch (sErr) {
-            console.warn("Server-side session sync notice:", sErr);
+          // Immediately authorize user session without blocking on external server
+          localStorage.setItem('invocentric_auth_active', 'true');
+          localStorage.setItem('invocentric_last_uid', result.user.uid);
+          if (result.user.email) {
+            localStorage.setItem('invocentric_last_email', result.user.email);
           }
+          localStorage.setItem('invocentric_session_user', JSON.stringify({
+            uid: result.user.uid,
+            email: result.user.email || null,
+            displayName: result.user.displayName || null,
+            photoURL: result.user.photoURL || null,
+            savedAt: Date.now()
+          }));
           onProgress?.('access_granted');
+
+          // Asynchronous background server sync
+          (async () => {
+            try {
+              const credential = GoogleAuthProvider.credentialFromResult(result);
+              const idToken = credential?.idToken || (await result.user.getIdToken());
+              const serverRes = await fetch(apiUrl('/api/auth/google-login'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken, clientUid: result.user.uid })
+              });
+              if (serverRes.ok) {
+                const serverData = await serverRes.json();
+                if (serverData?.token) {
+                  localStorage.setItem('invocentric_jwt_token', serverData.token);
+                  migrateLegacyUserData(result.user.uid, result.user.email);
+                }
+              }
+            } catch (bgErr) {
+              console.warn("Background server login sync notice:", bgErr);
+            }
+          })();
         }
       } catch (popupError: any) {
         console.warn("Popup login failed:", popupError);

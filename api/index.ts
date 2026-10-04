@@ -1422,6 +1422,168 @@ app.post("/api/auth/verify-session", (req, res) => {
   });
 });
 
+// --- CLAIM 1-MONTH FREE PRO TRIAL (Strict Once-in-a-Lifetime Guarantee) ---
+app.post("/api/subscription/claim-free-pro", async (req, res) => {
+  try {
+    let userEmail: string | null = null;
+    let userUid: string | null = null;
+
+    // Verify token if provided in Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.slice(7).trim();
+      const sessionVerify = verifySessionJwt(token);
+      if (sessionVerify.valid && sessionVerify.payload) {
+        userEmail = sessionVerify.payload.email;
+        userUid = sessionVerify.payload.uid;
+      } else {
+        const googleVerify = await verifyGoogleIdToken(token);
+        if (googleVerify.valid && googleVerify.payload) {
+          userEmail = googleVerify.payload.email;
+          userUid = googleVerify.payload.googleSub;
+        }
+      }
+    }
+
+    if (!userEmail && req.body?.email) {
+      userEmail = String(req.body.email).toLowerCase().trim();
+    }
+    if (!userUid && req.body?.uid) {
+      userUid = String(req.body.uid).trim();
+    }
+
+    if (!userEmail && !userUid) {
+      return res.status(401).json({ success: false, error: "AUTH_REQUIRED", message: "User authentication is required to claim trial." });
+    }
+
+    const cleanEmail = (userEmail || "").toLowerCase().trim();
+    const effectiveUid = userUid || cleanEmail;
+
+    // 1. Check local users database file
+    const usersDb = loadUsersDb();
+    const existingRecord = usersDb[cleanEmail] || (effectiveUid ? usersDb[effectiveUid] : null);
+
+    if (existingRecord?.free_trial_claimed || existingRecord?.freeTrialClaimed) {
+      return res.status(400).json({
+        success: false,
+        error: "ALREADY_CLAIMED",
+        message: "This account has already claimed the 1-month free Pro trial. It cannot be claimed again."
+      });
+    }
+
+    // 2. Check Firestore claimed_trials collection
+    const projectId = firebaseConfig?.projectId;
+    const databaseId = firebaseConfig?.firestoreDatabaseId || "(default)";
+    const apiKey = firebaseConfig?.apiKey;
+
+    if (projectId && apiKey && cleanEmail) {
+      try {
+        const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${apiKey}`;
+        const checkRes = await fetch(queryUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: "claimed_trials" }],
+              where: {
+                fieldFilter: {
+                  field: { fieldPath: "email" },
+                  op: "EQUAL",
+                  value: { stringValue: cleanEmail }
+                }
+              },
+              limit: 1
+            }
+          })
+        });
+        if (checkRes.ok) {
+          const results = await checkRes.json();
+          if (Array.isArray(results) && results[0]?.document) {
+            return res.status(400).json({
+              success: false,
+              error: "ALREADY_CLAIMED",
+              message: "1-Month Free Pro Trial has already been claimed for this email. It cannot be claimed again."
+            });
+          }
+        }
+      } catch (checkErr) {
+        console.warn("[Claim Free Pro] Firestore verification check warning:", checkErr);
+      }
+    }
+
+    // Record the claim in usersDb
+    const now = new Date();
+    const renewsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const receiptNumber = `PRO-CLAIM-${Date.now().toString(36).substring(3, 7).toUpperCase()}`;
+
+    if (cleanEmail) {
+      if (!usersDb[cleanEmail]) {
+        usersDb[cleanEmail] = { email: cleanEmail, uid: effectiveUid };
+      }
+      usersDb[cleanEmail].free_trial_claimed = true;
+      usersDb[cleanEmail].free_trial_claimed_at = now.toISOString();
+      usersDb[cleanEmail].plan = 'pro';
+      usersDb[cleanEmail].plan_tier = 'pro';
+      usersDb[cleanEmail].plan_renews_at = renewsAt;
+      usersDb[cleanEmail].claim_receipt_no = receiptNumber;
+      saveUsersDb(usersDb);
+    }
+
+    // Persist in Firestore claimed_trials and update user document
+    if (projectId && apiKey) {
+      try {
+        const claimDocId = `claim_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const claimDocUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/claimed_trials/${claimDocId}?key=${apiKey}`;
+        fetch(claimDocUrl, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fields: {
+              email: { stringValue: cleanEmail },
+              uid: { stringValue: effectiveUid },
+              receiptNumber: { stringValue: receiptNumber },
+              claimedAt: { stringValue: now.toISOString() },
+              renewsAt: { stringValue: renewsAt }
+            }
+          })
+        }).catch(() => {});
+
+        if (effectiveUid) {
+          const userDocUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${effectiveUid}?key=${apiKey}`;
+          fetch(userDocUrl, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fields: {
+                plan: { stringValue: "pro" },
+                plan_tier: { stringValue: "pro" },
+                plan_status: { stringValue: "active" },
+                free_trial_claimed: { booleanValue: true },
+                free_trial_claimed_at: { stringValue: now.toISOString() },
+                plan_renews_at: { stringValue: renewsAt },
+                claim_receipt_no: { stringValue: receiptNumber },
+                updated_at: { stringValue: now.toISOString() }
+              }
+            })
+          }).catch(() => {});
+        }
+      } catch (fsWriteErr) {
+        console.warn("[Claim Free Pro] Firestore write warning:", fsWriteErr);
+      }
+    }
+
+    return res.json({
+      success: true,
+      receiptNumber,
+      planRenewsAt: renewsAt,
+      message: "1-Month Free Pro Plan claimed successfully!"
+    });
+  } catch (err: any) {
+    console.error("[Claim Free Pro] Unexpected error:", err);
+    return res.status(500).json({ success: false, error: "SERVER_ERROR", message: "Internal error processing trial claim." });
+  }
+});
+
 app.post("/api/auth/check-user", (req, res) => {
   const { email } = req.body;
   if (!email || typeof email !== "string" || email.length > 100) return res.status(400).json({ error: "Email required" });

@@ -285,9 +285,12 @@ export default function LoginPage() {
     setHandshakeCompleted(true);
     setLoading(false);
 
+    const effectiveIdToken = credentialIdToken || firebaseToken || '';
+    const effectiveAccessToken = accessToken || '';
+
     // 3. Deep link and Android Intent back to Android app
-    const intentUrl = `intent://auth?session=${activeSid}&status=authenticated&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}#Intent;scheme=invocentric;package=com.invocentric.app;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
-    const schemeUrl = `invocentric://auth?session=${activeSid}&status=authenticated&idToken=${encodeURIComponent(idToken || '')}&accessToken=${encodeURIComponent(accessToken || '')}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}`;
+    const intentUrl = `intent://auth?session=${activeSid}&status=authenticated&idToken=${encodeURIComponent(effectiveIdToken)}&accessToken=${encodeURIComponent(effectiveAccessToken)}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}#Intent;scheme=invocentric;package=com.invocentric.app;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+    const schemeUrl = `invocentric://auth?session=${activeSid}&status=authenticated&idToken=${encodeURIComponent(effectiveIdToken)}&accessToken=${encodeURIComponent(effectiveAccessToken)}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}`;
 
     try {
       window.location.assign(intentUrl);
