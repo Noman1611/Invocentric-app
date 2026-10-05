@@ -99,15 +99,15 @@ export function openInBrowser(url: string) {
   }
 }
 
-export function formatCurrency(amount: number | null | undefined, currency: string = 'USD') {
+export function formatCurrency(amount: number | null | undefined, currency: string = 'INR') {
   const safeAmount = typeof amount === 'number' ? amount : 0;
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: currency,
     }).format(safeAmount);
   } catch (e) {
-    return `${currency} ${safeAmount.toFixed(2)}`;
+    return `₹${safeAmount.toFixed(2)}`;
   }
 }
 

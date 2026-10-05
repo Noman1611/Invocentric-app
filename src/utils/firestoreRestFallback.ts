@@ -182,7 +182,7 @@ export async function syncAllUserDataFromFirestore(
   if (!userId) return { success: false, counts: {} };
 
   console.log(`[Firestore REST] Starting full real data sync for user ${userId} (${userEmail || 'unknown'})...`);
-  const collections = ['invoices', 'customers', 'items', 'daily_book', 'quotations', 'expenses', 'purchases'];
+  const collections = ['invoices', 'customers', 'items', 'payments', 'daily_book', 'quotations', 'expenses', 'purchases', 'notifications'];
   const counts: Record<string, number> = {};
 
   for (const col of collections) {
@@ -190,7 +190,20 @@ export async function syncAllUserDataFromFirestore(
       const items = await fetchCollectionRest(col, userId, userEmail, idToken);
       if (Array.isArray(items) && items.length > 0) {
         counts[col] = items.length;
-        setSecureStorage(`offline_${col}_${userId}`, items);
+        // Merge with existing local cache to avoid overwriting offline-added items
+        const existingKey = `offline_${col}_${userId}`;
+        const existing = getSecureStorage(existingKey, []);
+        const existingIds = new Set((existing as any[]).map((i: any) => i.id));
+        const merged = [...items];
+        // Keep any local-only items that Firestore doesn't know about yet
+        for (const localItem of (existing as any[])) {
+          if (!existingIds.has(localItem.id) || localItem._sync_status === 'saved_locally') {
+            if (!merged.find((m: any) => m.id === localItem.id)) {
+              merged.push(localItem);
+            }
+          }
+        }
+        setSecureStorage(existingKey, merged);
         window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: col } }));
         window.dispatchEvent(new CustomEvent(`${col}_updated`, { detail: { collection: col } }));
       }
