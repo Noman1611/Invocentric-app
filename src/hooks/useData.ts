@@ -7,7 +7,6 @@ import {
   collection, 
   query, 
   where, 
-  orderBy, 
   onSnapshot,
   doc,
   updateDoc,
@@ -15,6 +14,18 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+
+function getCandidateUids(user: { uid: string; email?: string | null }): string[] {
+  const cleanEmail = (user.email || '').trim().toLowerCase();
+  const uids = new Set<string>();
+  if (user.uid) uids.add(user.uid);
+  if (cleanEmail) {
+    uids.add('user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+    uids.add('google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+  }
+  return Array.from(uids);
+}
+
 function mergeOfflineQueue(data: any[], collectionName: string, userId: string) {
   const upserts = getSecureStorage(`offline_upserts_${userId}`, []);
   const collectionUpserts = upserts.filter((u: any) => u.collection === collectionName).map((u: any) => u.item);
@@ -171,11 +182,10 @@ export function useInvoices() {
       };
     }
 
-    const q = query(
-      collection(db, 'invoices'),
-      where('user_id', '==', user.uid),
-      orderBy('created_at', 'desc')
-    );
+    const candidateUids = getCandidateUids(user);
+    const q = candidateUids.length > 1
+      ? query(collection(db, 'invoices'), where('user_id', 'in', candidateUids))
+      : query(collection(db, 'invoices'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => {
@@ -187,6 +197,7 @@ export function useInvoices() {
         if (d.last_reminded_at?.toDate) d.last_reminded_at = d.last_reminded_at.toDate().toISOString();
         return { id: doc.id, ...d };
       });
+      data.sort((a, b) => new Date(b.created_at || b.date || 0).getTime() - new Date(a.created_at || a.date || 0).getTime());
       const finalData = mergeOfflineQueue(data, "invoices", user.uid); 
       setInvoices(finalData);
       setSecureStorage(`offline_invoices_${user.uid}`, finalData);
@@ -270,11 +281,10 @@ export function useCustomers() {
       };
     }
 
-    const q = query(
-      collection(db, 'customers'),
-      where('user_id', '==', user.uid),
-      orderBy('name', 'asc')
-    );
+    const candidateUids = getCandidateUids(user);
+    const q = candidateUids.length > 1
+      ? query(collection(db, 'customers'), where('user_id', 'in', candidateUids))
+      : query(collection(db, 'customers'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => {
@@ -284,6 +294,7 @@ export function useCustomers() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
+      data.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       const finalData = mergeOfflineQueue(data, "customers", user.uid); 
       setCustomers(finalData);
       setSecureStorage(`offline_customers_${user.uid}`, finalData);
@@ -367,11 +378,10 @@ export function useItems() {
       };
     }
 
-    const q = query(
-      collection(db, 'items'),
-      where('user_id', '==', user.uid),
-      orderBy('name', 'asc')
-    );
+    const candidateUids = getCandidateUids(user);
+    const q = candidateUids.length > 1
+      ? query(collection(db, 'items'), where('user_id', 'in', candidateUids))
+      : query(collection(db, 'items'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => {
@@ -381,6 +391,7 @@ export function useItems() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
+      data.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       const finalData = mergeOfflineQueue(data, "items", user.uid); 
       setItems(finalData);
       setSecureStorage(`offline_items_${user.uid}`, finalData);
@@ -468,11 +479,10 @@ export function usePayments(customerId?: string) {
       };
     }
 
-    let q = query(
-      collection(db, 'payments'),
-      where('user_id', '==', user.uid),
-      orderBy('date', 'desc')
-    );
+    const candidateUids = getCandidateUids(user);
+    let q = candidateUids.length > 1
+      ? query(collection(db, 'payments'), where('user_id', 'in', candidateUids))
+      : query(collection(db, 'payments'), where('user_id', '==', user.uid));
 
     if (customerId) {
       q = query(q, where('customer_id', '==', customerId));
@@ -486,6 +496,7 @@ export function usePayments(customerId?: string) {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
+      data.sort((a: any, b: any) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
       const finalData = mergeOfflineQueue(data, "payments", user.uid); 
       setPayments(finalData);
       if (!customerId) {
@@ -499,6 +510,7 @@ export function usePayments(customerId?: string) {
         console.error("Error fetching payments (handled):", err);
       }
       loadLocal();
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
     });
 
     return () => {
@@ -567,11 +579,10 @@ export function useExpenses() {
       };
     }
 
-    const q = query(
-      collection(db, 'expenses'),
-      where('user_id', '==', user.uid),
-      orderBy('date', 'desc')
-    );
+    const candidateUids = getCandidateUids(user);
+    const q = candidateUids.length > 1
+      ? query(collection(db, 'expenses'), where('user_id', 'in', candidateUids))
+      : query(collection(db, 'expenses'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => {
@@ -581,6 +592,7 @@ export function useExpenses() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
+      data.sort((a, b) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
       const finalData = mergeOfflineQueue(data, "expenses", user.uid); 
       setExpenses(finalData);
       setSecureStorage(`offline_expenses_${user.uid}`, finalData);
@@ -592,6 +604,7 @@ export function useExpenses() {
         console.error("Error fetching expenses (handled):", err);
       }
       loadLocal();
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
     });
 
     return () => {
@@ -660,11 +673,10 @@ export function usePurchases() {
       };
     }
 
-    const q = query(
-      collection(db, 'purchases'),
-      where('user_id', '==', user.uid),
-      orderBy('date', 'desc')
-    );
+    const candidateUids = getCandidateUids(user);
+    const q = candidateUids.length > 1
+      ? query(collection(db, 'purchases'), where('user_id', 'in', candidateUids))
+      : query(collection(db, 'purchases'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => {
@@ -674,6 +686,7 @@ export function usePurchases() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
+      data.sort((a, b) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
       const finalData = mergeOfflineQueue(data, "purchases", user.uid); 
       setPurchases(finalData);
       setSecureStorage(`offline_purchases_${user.uid}`, finalData);
@@ -685,6 +698,7 @@ export function usePurchases() {
         console.error("Error fetching purchases (handled):", err);
       }
       loadLocal();
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
     });
 
     return () => {
@@ -843,11 +857,10 @@ export function useNotifications() {
       return () => window.removeEventListener('storage', handleStorage);
     }
 
-    const q = query(
-      collection(db, 'notifications'),
-      where('user_id', '==', user.uid),
-      orderBy('created_at', 'desc')
-    );
+    const candidateUids = getCandidateUids(user);
+    const q = candidateUids.length > 1
+      ? query(collection(db, 'notifications'), where('user_id', 'in', candidateUids))
+      : query(collection(db, 'notifications'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => {
@@ -855,6 +868,7 @@ export function useNotifications() {
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
         return { id: doc.id, ...d };
       });
+      data.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
       const finalData = mergeOfflineQueue(data, "notifications", user.uid);
       setNotifications(finalData);
       setSecureStorage(`offline_notifications_${user.uid}`, finalData);
@@ -870,6 +884,7 @@ export function useNotifications() {
       const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
       setNotifications(uniqueLocal.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()));
       setLoading(false);
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
     });
 
     return () => unsubscribe();
@@ -945,10 +960,10 @@ export function useRecycleBin() {
       };
     }
 
-    const q = query(
-      collection(db, 'recycle_bin'),
-      where('user_id', '==', user.uid)
-    );
+    const candidateUids = getCandidateUids(user);
+    const q = candidateUids.length > 1
+      ? query(collection(db, 'recycle_bin'), where('user_id', 'in', candidateUids))
+      : query(collection(db, 'recycle_bin'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(
       q,
@@ -1023,10 +1038,10 @@ export function useTemplates() {
       };
     }
 
-    const q = query(
-      collection(db, 'templates'),
-      where('user_id', '==', user.uid)
-    );
+    const candidateUids = getCandidateUids(user);
+    const q = candidateUids.length > 1
+      ? query(collection(db, 'templates'), where('user_id', 'in', candidateUids))
+      : query(collection(db, 'templates'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => {

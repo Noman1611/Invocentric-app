@@ -1,5 +1,6 @@
 import firebaseConfig from '../../firebase-applet-config.json';
 import { setSecureStorage, getSecureStorage } from './cryptoUtils';
+import { auth } from '../lib/firebase';
 
 /**
  * Universal Firestore REST Client & Real Data Fallback
@@ -10,6 +11,25 @@ import { setSecureStorage, getSecureStorage } from './cryptoUtils';
  * ensuring that 100% of real invoices, customers, items, and settings
  * are hydrated into local offline storage immediately upon login.
  */
+
+async function getEffectiveToken(idToken?: string | null): Promise<string | null> {
+  if (idToken) return idToken;
+  try {
+    if (auth.currentUser) {
+      const freshToken = await auth.currentUser.getIdToken(false);
+      if (freshToken) {
+        if (typeof window !== 'undefined') localStorage.setItem('invocentric_id_token', freshToken);
+        return freshToken;
+      }
+    }
+  } catch (err) {
+    console.warn('[Firestore REST] Could not get fresh token from auth.currentUser:', err);
+  }
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('invocentric_id_token');
+  }
+  return null;
+}
 
 function parseFirestoreValue(val: any): any {
   if (!val || typeof val !== 'object') return val;
@@ -68,9 +88,15 @@ export async function fetchCollectionRest(
     return [];
   }
 
-  const token = idToken || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : null);
+  const token = await getEffectiveToken(idToken);
   const cleanEmail = (userEmail || '').trim().toLowerCase();
   const isAdmin = cleanEmail === 'nomanshaikh1999@gmail.com';
+
+  const candidateUids = Array.from(new Set([
+    userId,
+    cleanEmail ? 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : null,
+    cleanEmail ? 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : null,
+  ].filter(Boolean))) as string[];
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
@@ -86,15 +112,25 @@ export async function fetchCollectionRest(
     from: [{ collectionId: collectionName }]
   };
 
-  // If not admin, filter by user_id
-  if (!isAdmin && userId) {
-    structuredQuery.where = {
-      fieldFilter: {
-        field: { fieldPath: 'user_id' },
-        op: 'EQUAL',
-        value: { stringValue: userId }
-      }
-    };
+  // If not admin, filter by user_id using candidate UIDs
+  if (!isAdmin && candidateUids.length > 0) {
+    if (candidateUids.length === 1) {
+      structuredQuery.where = {
+        fieldFilter: {
+          field: { fieldPath: 'user_id' },
+          op: 'EQUAL',
+          value: { stringValue: candidateUids[0] }
+        }
+      };
+    } else {
+      structuredQuery.where = {
+        fieldFilter: {
+          field: { fieldPath: 'user_id' },
+          op: 'IN',
+          value: { arrayValue: { values: candidateUids.map(u => ({ stringValue: u })) } }
+        }
+      };
+    }
   }
 
   try {
@@ -107,7 +143,7 @@ export async function fetchCollectionRest(
     if (!res.ok) {
       // If structuredQuery failed with 403 or error, try direct collection listing endpoint
       console.warn(`[Firestore REST] Query for ${collectionName} returned status ${res.status}. Trying list endpoint...`);
-      return await fallbackListCollection(collectionName, userId, token, isAdmin);
+      return await fallbackListCollection(collectionName, candidateUids, token, isAdmin);
     }
 
     const data = await res.json();
@@ -118,8 +154,7 @@ export async function fetchCollectionRest(
       if (entry.document) {
         const parsed = parseFirestoreRestDoc(entry.document);
         if (parsed) {
-          // Double-check user_id filter if not admin
-          if (isAdmin || parsed.user_id === userId || !parsed.user_id) {
+          if (isAdmin || candidateUids.includes(parsed.user_id) || !parsed.user_id) {
             items.push(parsed);
           }
         }
@@ -136,7 +171,7 @@ export async function fetchCollectionRest(
 
 async function fallbackListCollection(
   collectionName: string,
-  userId: string,
+  candidateUids: string[],
   token?: string | null,
   isAdmin: boolean = false
 ): Promise<any[]> {
@@ -149,7 +184,7 @@ async function fallbackListCollection(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const listUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/${collectionName}?pageSize=100&key=${apiKey}`;
+  const listUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/${collectionName}?pageSize=200&key=${apiKey}`;
   try {
     const res = await fetch(listUrl, { headers });
     if (!res.ok) return [];
@@ -159,7 +194,7 @@ async function fallbackListCollection(
     for (const doc of documents) {
       const parsed = parseFirestoreRestDoc(doc);
       if (parsed) {
-        if (isAdmin || parsed.user_id === userId) {
+        if (isAdmin || candidateUids.includes(parsed.user_id) || !parsed.user_id) {
           items.push(parsed);
         }
       }
@@ -181,23 +216,24 @@ export async function syncAllUserDataFromFirestore(
 ): Promise<{ success: boolean; counts: Record<string, number> }> {
   if (!userId) return { success: false, counts: {} };
 
+  const effectiveToken = await getEffectiveToken(idToken);
   console.log(`[Firestore REST] Starting full real data sync for user ${userId} (${userEmail || 'unknown'})...`);
   const collections = ['invoices', 'customers', 'items', 'payments', 'daily_book', 'quotations', 'expenses', 'purchases', 'notifications'];
   const counts: Record<string, number> = {};
 
   for (const col of collections) {
     try {
-      const items = await fetchCollectionRest(col, userId, userEmail, idToken);
+      const items = await fetchCollectionRest(col, userId, userEmail, effectiveToken);
       if (Array.isArray(items) && items.length > 0) {
         counts[col] = items.length;
         // Merge with existing local cache to avoid overwriting offline-added items
         const existingKey = `offline_${col}_${userId}`;
         const existing = getSecureStorage(existingKey, []);
-        const existingIds = new Set((existing as any[]).map((i: any) => i.id));
+        const remoteIds = new Set(items.map((i: any) => i.id));
         const merged = [...items];
         // Keep any local-only items that Firestore doesn't know about yet
         for (const localItem of (existing as any[])) {
-          if (!existingIds.has(localItem.id) || localItem._sync_status === 'saved_locally') {
+          if (!remoteIds.has(localItem.id) || localItem._sync_status === 'saved_locally') {
             if (!merged.find((m: any) => m.id === localItem.id)) {
               merged.push(localItem);
             }
@@ -217,10 +253,9 @@ export async function syncAllUserDataFromFirestore(
     const projectId = firebaseConfig.projectId;
     const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
     const apiKey = firebaseConfig.apiKey;
-    const token = idToken || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_id_token') : null);
 
     const headers: Record<string, string> = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (effectiveToken) headers['Authorization'] = `Bearer ${effectiveToken}`;
 
     const userDocUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${userId}?key=${apiKey}`;
     const userRes = await fetch(userDocUrl, { headers });

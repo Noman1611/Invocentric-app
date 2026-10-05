@@ -737,6 +737,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const refreshUserData = async () => {
+    if (user?.uid) {
+      dbService.syncOfflineData(user.uid).catch(() => {});
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+    }
     if (!auth.currentUser) return;
     await handleUserChange(auth.currentUser);
   };
@@ -1075,10 +1079,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Run legacy data migration to ensure previous invoices/items/customers are merged into active UID
         migrateLegacyUserData(firebaseUser.uid, firebaseUser.email);
 
-        // Ensure real cloud data is actively hydrated if local cache is empty
+        // Ensure real cloud data is actively hydrated with fresh auth token
         try {
-          const cachedInvoices = getSecureStorage(`offline_invoices_${firebaseUser.uid}`, []);
-          if (!cachedInvoices || cachedInvoices.length === 0) {
+          if (typeof (firebaseUser as any).getIdToken === 'function') {
+            (firebaseUser as any).getIdToken().then((tok: string) => {
+              if (tok) localStorage.setItem('invocentric_id_token', tok);
+              syncAllUserDataFromFirestore(firebaseUser.uid, firebaseUser.email, tok).catch(() => {});
+            }).catch(() => {
+              syncAllUserDataFromFirestore(firebaseUser.uid, firebaseUser.email).catch(() => {});
+            });
+          } else {
             syncAllUserDataFromFirestore(firebaseUser.uid, firebaseUser.email).catch(() => {});
           }
         } catch (_) {}

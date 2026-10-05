@@ -32,11 +32,13 @@ import {
   Share2,
   Zap,
   ShoppingBag,
-  FileCheck
+  FileCheck,
+  RefreshCw
 } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { useInvoices, useCustomers, useItems, useRecycleBin } from '../hooks/useData';
 import { dbService } from '../services/dbService';
+import { syncAllUserDataFromFirestore } from '../utils/firestoreRestFallback';
 import RecycleBinModal from '../components/RecycleBinModal';
 import { format, subDays, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 import { parseDateSafe } from '../utils/dateUtils';
@@ -59,6 +61,28 @@ export default function DashboardPage() {
   useAutoReminders();
 
   const [timeFilter, setTimeFilter] = useState('This Year');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  const handleManualSync = async () => {
+    if (!user?.uid || isSyncing) return;
+    setIsSyncing(true);
+    setSyncFeedback('Syncing...');
+    try {
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        await dbService.syncOfflineData(user.uid);
+        await syncAllUserDataFromFirestore(user.uid, user.email);
+      }
+      setSyncFeedback('Cloud Synced!');
+      setTimeout(() => setSyncFeedback(null), 3000);
+    } catch (e) {
+      console.warn('Manual sync note:', e);
+      setSyncFeedback('Local cache ready');
+      setTimeout(() => setSyncFeedback(null), 3000);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -261,9 +285,15 @@ export default function DashboardPage() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
                 </div>
-                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                  Online • Cloud Sync Active
-                </p>
+                <button
+                  onClick={handleManualSync}
+                  disabled={isSyncing}
+                  className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 uppercase tracking-wider transition-colors active:scale-95 text-left"
+                  title="Tap to sync with Cloud"
+                >
+                  <span>{syncFeedback || (isSyncing ? "Syncing..." : "Online • Cloud Sync Active")}</span>
+                  <RefreshCw size={10} className={cn("shrink-0", isSyncing && "animate-spin text-emerald-600")} />
+                </button>
               </div>
             </div>
 
@@ -625,6 +655,17 @@ export default function DashboardPage() {
             <Calendar size={15} className="text-slate-500" />
             <span>{format(new Date(), 'EEEE, MMMM d, yyyy')}</span>
           </div>
+
+          {/* Cloud Sync Button */}
+          <button 
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="flex items-center justify-center gap-2 bg-white hover:bg-emerald-50/80 border border-slate-200/60 hover:border-emerald-300 rounded-xl px-4 py-2.5 text-xs sm:text-[13px] font-semibold text-slate-700 hover:text-emerald-700 transition-all cursor-pointer shadow-xs active:scale-95"
+            title="Sync all database records with Firestore Cloud"
+          >
+            <RefreshCw size={15} className={cn("text-emerald-600", isSyncing && "animate-spin")} />
+            <span>{syncFeedback || (isSyncing ? "Syncing Cloud..." : "Cloud Sync")}</span>
+          </button>
 
           {/* Daily Export Button */}
           <button 

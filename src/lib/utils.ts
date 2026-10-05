@@ -101,10 +101,13 @@ export function openInBrowser(url: string) {
 
 export function formatCurrency(amount: number | null | undefined, currency: string = 'INR') {
   const safeAmount = typeof amount === 'number' ? amount : 0;
+  // Fallback to INR if currency is USD, falsy, or empty to ensure rupee symbol across all devices
+  const targetCurrency = (!currency || currency === 'USD') ? 'INR' : currency;
   try {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: currency,
+      currency: targetCurrency,
+      maximumFractionDigits: 2,
     }).format(safeAmount);
   } catch (e) {
     return `₹${safeAmount.toFixed(2)}`;

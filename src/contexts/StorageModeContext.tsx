@@ -34,7 +34,8 @@ export function StorageModeProvider({ children }: { children: React.ReactNode })
     }
     const saved = localStorage.getItem('invocentric_storage_mode') as StorageMode;
     if (saved) return saved;
-    return 'local_pc';
+    // Default to cloud sync so that user data seamlessly syncs across software, web, and Android
+    return 'cloud';
   });
 
   const [lastBackupDate, setLastBackupDate] = useState<string | null>(() => {
