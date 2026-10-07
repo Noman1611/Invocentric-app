@@ -270,7 +270,7 @@ export default function GstCalculatorPage() {
                   className={cn(
                     "p-3 rounded-xl border text-left transition-all cursor-pointer",
                     taxType === 'inter'
-                      ? "border-blue-500 bg-blue-50/50 text-blue-900"
+                      ? "border-emerald-500 bg-emerald-50/50 text-emerald-900"
                       : "border-slate-200 bg-slate-50 text-slate-600"
                   )}
                 >
@@ -316,7 +316,7 @@ export default function GstCalculatorPage() {
                 ) : (
                   <div className="flex justify-between items-center text-slate-400 text-xs">
                     <span>Integrated Tax (IGST - {gstRate}%):</span>
-                    <span className="font-semibold text-blue-400 tabular-nums">₹{result.igst.toLocaleString('en-IN')}</span>
+                    <span className="font-semibold text-teal-400 tabular-nums">₹{result.igst.toLocaleString('en-IN')}</span>
                   </div>
                 )}
 

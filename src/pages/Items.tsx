@@ -751,7 +751,7 @@ export default function ItemsPage() {
               <div className="text-3xl font-black text-slate-900">
                 {items.reduce((acc, i) => acc + (Number(i.stock) || 0), 0)}
               </div>
-              <p className="text-xs text-blue-600 font-semibold">Units across all locations</p>
+              <p className="text-xs text-emerald-700 font-semibold">Units across all locations</p>
             </div>
             <div className="card-base p-6 bg-white border border-slate-100 shadow-sm space-y-2">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Low Stock Items</span>
@@ -765,7 +765,7 @@ export default function ItemsPage() {
               <div className="text-3xl font-black text-slate-900">
                 {new Set(items.map(i => i.category).filter(Boolean)).size}
               </div>
-              <p className="text-xs text-purple-600 font-semibold">Product groupings</p>
+              <p className="text-xs text-amber-700 font-semibold">Product groupings</p>
             </div>
           </div>
 
@@ -1326,7 +1326,7 @@ export default function ItemsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/barcode-generator')}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
             title="Open Barcode Studio & Label Generator"
           >
             <Barcode size={15} />
@@ -1536,7 +1536,7 @@ export default function ItemsPage() {
                   })()}
                   {item.warranty_period && <div className="truncate"><span className="font-bold text-emerald-700">Warranty:</span> {item.warranty_period}</div>}
                   {(item.serialNumber || (item.serials && item.serials.length > 0)) && (
-                    <div className="truncate font-mono text-[9px] text-blue-700">
+                    <div className="truncate font-mono text-[9px] text-emerald-800">
                       <span className="font-bold">IMEI/SN:</span> {item.serialNumber || item.serials?.join(', ')}
                     </div>
                   )}

@@ -408,7 +408,7 @@ export default function InvoicesPage() {
                     )}
                     <Link 
                       to={`/invoices/edit/${invoice.id}`}
-                      className="p-2 text-blue-600 hover:text-blue-700 bg-blue-50 active:scale-95 rounded-xl transition-all"
+                      className="p-2 text-emerald-700 hover:text-emerald-800 bg-emerald-50 active:scale-95 rounded-xl transition-all"
                       title="Edit Invoice"
                     >
                       <Edit3 size={16} />
@@ -548,7 +548,7 @@ export default function InvoicesPage() {
                       )}
                       <Link 
                         to={`/invoices/edit/${invoice.id}`}
-                        className="p-2 text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all"
+                        className="p-2 text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-all"
                         title="Edit Invoice"
                       >
                         <Edit3 size={16} />

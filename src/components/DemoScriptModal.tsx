@@ -124,7 +124,7 @@ export default function DemoScriptModal({ isOpen, onClose }: DemoScriptModalProp
       id: 'purchases',
       stage: 'STEP 6',
       title: 'Purchases (Supplier Bill Entries)',
-      icon: <ShoppingCart className="text-purple-600" size={20} />,
+      icon: <ShoppingCart className="text-amber-600" size={20} />,
       route: '/purchases',
       purpose: 'Log wholesale purchases from suppliers to increase inventory counts and monitor raw material costs.',
       howItWorks: [

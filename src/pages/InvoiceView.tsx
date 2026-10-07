@@ -451,8 +451,8 @@ export default function InvoiceViewPage() {
   const rawTpl: string = invoice?.invoice_template || sellerInfo?.invoice_template || 'template_01';
   // Map templates: support the 5 sequential templates and legacy fallbacks
   const legacyMap: Record<string, string> = {
-    'template_01': 'template_01', // Template 01 - Blue Bordered + IGST Columns (A4)
-    'template_02': 'template_02', // Template 02 - Blue Line Top + IGST Columns (A4)
+    'template_01': 'template_01', // Template 01 - Emerald Bordered + IGST Columns (A4)
+    'template_02': 'template_02', // Template 02 - Forest Line Top + IGST Columns (A4)
     'template_03': 'template_03', // Template 03 - Supplier B2B (Dedicated Serial / Batch Column)
     'template_04': 'template_04', // Template 04 - POS Receipt Thermal (3-Inch / 80mm Roll)
     'template_05': 'template_05', // Template 05 - POS Receipt Thermal (2-Inch / 58mm Roll)
@@ -1016,7 +1016,7 @@ export default function InvoiceViewPage() {
 
   // Template 01 (and default) Page Renderer
   const renderTemplate01Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
-    const blue='#2f6fb0', dark='#1c4a75', lb='#eaf2fb', b=`1px solid ${blue}`;
+    const primaryEmerald='#0d5c4b', dark='#094034', lb='#f0fdf4', b=`1px solid ${primaryEmerald}`;
     return (
       <div className="flex flex-col h-full" style={{ height: '100%', minHeight: 0, boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12, color:'#1a1a1a' }}>
         {/* Top Header & Details Section */}
@@ -1264,7 +1264,7 @@ export default function InvoiceViewPage() {
               </div>
             )}
 
-            {renderSocialStrip(blue, lb)}
+            {renderSocialStrip(primaryEmerald, lb)}
 
             {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
               <div style={{border:b,borderTop:'none',fontSize: isA5 ? 8 : 9.5,padding:'2px 5px',textAlign:'center',background:lb}}>
@@ -1279,13 +1279,13 @@ export default function InvoiceViewPage() {
 
   // Template 03 Page Renderer
   const renderTemplate03Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
-    const blue='#1a73c7', lb='#e9f2fb', b=`1px solid ${blue}`;
+    const primaryForest='#166534', lb='#f0fdf4', b=`1px solid ${primaryForest}`;
     return (
       <div className="flex flex-col h-full" style={{ height: '100%', minHeight: 0, boxSizing: 'border-box', fontFamily:'Arial,Helvetica,sans-serif', fontSize: isA5 ? 9 : 12 }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {(!useLetterhead || !letterheadHideHeader) ? (
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3}}>
-              <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:blue, textTransform:'uppercase'}}>{docTitle}</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}{co.drug_license ? ` | <b>DL:</b> ${co.drug_license}` : ''}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',borderBottom:`2px solid ${primaryForest}`,paddingBottom:3,marginBottom:3}}>
+              <div><div style={{fontSize: isA5 ? 13 : 19,fontWeight:'bold',color:primaryForest, textTransform:'uppercase'}}>{docTitle}</div><div style={{fontSize: isA5 ? 11.5 : 16,fontWeight:'bold',margin:'1px 0'}}>{co.name}</div><div><b>GSTIN</b> {co.gstin}{co.drug_license ? ` | <b>DL:</b> ${co.drug_license}` : ''}</div>{showSec.seller_address && <div style={{fontSize: isA5 ? 8.5 : 11,lineHeight:1.2}} dangerouslySetInnerHTML={{__html:co.address.replace(/\n/g,'<br>')}}/>}{co.phone&&<div><b>Phone:</b> {co.phone}</div>}</div>
               <div style={{textAlign:'right'}}><div style={{fontSize:8.5,fontWeight:'bold'}}>{docSubtitle}</div>{co.logo&&<img src={co.logo} alt="logo" style={{width: isA5 ? 32 : 52,height: isA5 ? 32 : 52}}/>}<div style={{fontSize:8.5,color:'#666',marginTop:1}}>Page {pageIdx + 1} of {totalPages}</div></div>
             </div>
           ) : (
@@ -1293,7 +1293,7 @@ export default function InvoiceViewPage() {
               <div style={{fontSize:8.5,color:'#666'}}>Page {pageIdx + 1} of {totalPages}</div>
             </div>
           )}
-          <div style={{display:'grid',gridTemplateColumns:'1.2fr 1.2fr 1fr',gap:5,borderBottom:`2px solid ${blue}`,paddingBottom:3,marginBottom:3,fontSize: isA5 ? 8.5 : 10.5}}>
+          <div style={{display:'grid',gridTemplateColumns:'1.2fr 1.2fr 1fr',gap:5,borderBottom:`2px solid ${primaryForest}`,paddingBottom:3,marginBottom:3,fontSize: isA5 ? 8.5 : 10.5}}>
             <div><b style={{display:'block',marginBottom:0.5}}>Customer Details:</b><div style={{fontWeight:'bold'}}>{bu.name}</div><div>{bu.address}</div>{showSec.customer_gstin && <div><b>GSTIN:</b> {bu.gstin}</div>}{bu.drug_license && <div><b>Drug Lic (DL):</b> {bu.drug_license}</div>}<div><b>State:</b> {bu.state}</div></div>
             <div><b style={{display:'block',marginBottom:0.5}}>Shipping address:</b><div style={{fontWeight:'bold'}}>{sh.name}</div><div>{sh.address}</div><div><b>State:</b> {sh.state}</div></div>
             <div>{[
@@ -1308,16 +1308,16 @@ export default function InvoiceViewPage() {
           <table style={{width:'100%',flex: 1,borderCollapse:'collapse',borderLeft:b,borderRight:b,borderBottom:b,fontSize: isA5 ? 8.5 : 10.5}}>
             <thead>
               <tr>
-                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left', width: 30}}>Sr.No.</th>
-                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Name of Product / Service</th>
-                {colVis.size && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Size</th>}
-                {colVis.hsn && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>HSN/SAC</th>}
-                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Qty</th>
-                {colVis.mrp && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>MRP</th>}
-                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Rate</th>
-                {colVis.discount && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Disc%</th>}
-                {colVis.gstPercent && <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>GST%</th>}
-                <th style={{background:blue,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Taxable Value</th>
+                <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left', width: 30}}>Sr.No.</th>
+                <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Name of Product / Service</th>
+                {colVis.size && <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Size</th>}
+                {colVis.hsn && <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>HSN/SAC</th>}
+                <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Qty</th>
+                {colVis.mrp && <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>MRP</th>}
+                <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Rate</th>
+                {colVis.discount && <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Disc%</th>}
+                {colVis.gstPercent && <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>GST%</th>}
+                <th style={{background:primaryForest,color:'#fff',padding: isA5 ? '2px 3px' : '4px 6px',textAlign:'left'}}>Taxable Value</th>
               </tr>
             </thead>
             <tbody>
@@ -1428,16 +1428,16 @@ export default function InvoiceViewPage() {
               </div>
             )}
 
-            {renderSocialStrip(blue, '#ffffff')}
+            {renderSocialStrip(primaryForest, '#ffffff')}
 
             {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
-              <div style={{borderTop:`1px solid ${blue}`, fontSize: isA5 ? 7.5 : 9.5, padding:'2px 4px', textAlign:'center', marginTop: 3, color: '#334155'}}>
+              <div style={{borderTop:`1px solid ${primaryForest}`, fontSize: isA5 ? 7.5 : 9.5, padding:'2px 4px', textAlign:'center', marginTop: 3, color: '#334155'}}>
                 {invoice.notes || sellerInfo?.footer_notes}
               </div>
             )}
           </div>
         ) : (
-          <div style={{textAlign:'right',fontSize:9,fontWeight:'bold',padding:3,color:blue,borderTop:`1px solid ${blue}`,marginTop:'auto'}}>
+          <div style={{textAlign:'right',fontSize:9,fontWeight:'bold',padding:3,color:primaryForest,borderTop:`1px solid ${primaryForest}`,marginTop:'auto'}}>
             Continued on Next Page →
           </div>
         )}
@@ -1998,7 +1998,7 @@ export default function InvoiceViewPage() {
     );
   };
 
-  // Template 06 (Nexus Enterprise Pro A4 / Blue Grid Template matching PDF)
+  // Template 06 (Nexus Enterprise Pro A4 / Grid Template matching PDF)
   const renderTemplate06Page = (pageItems: any[], pageIdx: number, isLastPage: boolean, startIndex: number) => {
     const brandBlue = '#1a3673';
     const grossSubtotal = itemRows.reduce((a: number, i: any) => a + (i.qty * i.price), 0);
@@ -2522,7 +2522,7 @@ export default function InvoiceViewPage() {
             {/* Action Buttons: Edit, WhatsApp Share, PDF, Print (ALWAYS VISIBLE) */}
             <button 
               onClick={() => navigate(`/invoices/edit/${invoice.id}`)} 
-              className="inline-flex items-center justify-center gap-1 h-8 px-2 sm:px-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs transition-colors cursor-pointer active:scale-95"
+              className="inline-flex items-center justify-center gap-1 h-8 px-2 sm:px-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs transition-colors cursor-pointer active:scale-95"
               title="Edit Invoice"
             >
               <Edit3 size={14} />

@@ -1884,7 +1884,7 @@ export default function AdminPage() {
           >
             <Sliders size={15} />
             <span>Plans Control</span>
-            <span className="ml-1 px-2 py-0.5 text-[10px] font-black bg-purple-100 text-purple-800 rounded-full">
+            <span className="ml-1 px-2 py-0.5 text-[10px] font-black bg-amber-100 text-amber-800 rounded-full">
               SaaS
             </span>
           </button>
@@ -1934,22 +1934,22 @@ export default function AdminPage() {
             <div className="space-y-1">
               <p className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
                 <span>Platform GTV</span>
-                <span className="text-[10px] px-1.5 py-0.2 bg-blue-100 text-blue-800 rounded font-black">BILLS</span>
+                <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded font-black">BILLS</span>
               </p>
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">
                 {formatCurrency(saasFinancials.totalGtv)}
               </h3>
               <p className="text-[11px] font-bold text-slate-500">
-                Avg Bill: <span className="text-blue-600 font-black">{formatCurrency(saasFinancials.avgInvoiceValue)}</span>
+                Avg Bill: <span className="text-emerald-700 font-black">{formatCurrency(saasFinancials.avgInvoiceValue)}</span>
               </p>
             </div>
-            <div className="w-10 h-10 bg-blue-50 text-blue-700 rounded-full flex items-center justify-center shadow-inner border border-blue-100">
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center shadow-inner border border-emerald-100">
               <Receipt size={18} />
             </div>
           </div>
           
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50/50">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700">
               <FileText size={12} />
               <span>{statsSummary.totalInvoices.toLocaleString()} Invoices generated</span>
             </div>
@@ -2000,16 +2000,16 @@ export default function AdminPage() {
                 {statsSummary.totalBusinesses}
               </h3>
               <p className="text-[11px] font-bold text-slate-500">
-                Pro Ratio: <span className="text-purple-600 font-black">{saasFinancials.plansDistribution.paidProPct}%</span>
+                Pro Ratio: <span className="text-amber-700 font-black">{saasFinancials.plansDistribution.paidProPct}%</span>
               </p>
             </div>
-            <div className="w-10 h-10 bg-purple-50 text-purple-700 rounded-full flex items-center justify-center shadow-inner border border-purple-100">
+            <div className="w-10 h-10 bg-amber-50 text-amber-800 rounded-full flex items-center justify-center shadow-inner border border-amber-100">
               <Building size={18} />
             </div>
           </div>
           
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50/50">
-            <div className="flex items-center gap-1 text-[11px] font-black text-purple-700">
+            <div className="flex items-center gap-1 text-[11px] font-black text-amber-800">
               <Gift size={12} />
               <span>{saasFinancials.plansDistribution.claimedTrialCount} Trial Claims</span>
             </div>
@@ -2044,7 +2044,7 @@ export default function AdminPage() {
             title={`Paid Pro: ${saasFinancials.plansDistribution.paidProCount} (${saasFinancials.plansDistribution.paidProPct}%)`}
           />
           <div 
-            className="bg-purple-500 h-full transition-all duration-500" 
+            className="bg-amber-500 h-full transition-all duration-500" 
             style={{ width: `${Math.max(1, Number(saasFinancials.plansDistribution.trialPct))}%` }} 
             title={`Trial / Promo: ${saasFinancials.plansDistribution.claimedTrialCount} (${saasFinancials.plansDistribution.trialPct}%)`}
           />
@@ -2078,19 +2078,19 @@ export default function AdminPage() {
 
           <button
             onClick={() => { setActiveTab('users'); setPlanFilter('claimed_pro'); }}
-            className="p-3.5 rounded-2xl bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200/80 text-left transition-all cursor-pointer group shadow-xs active:scale-[0.99]"
+            className="p-3.5 rounded-2xl bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200/80 text-left transition-all cursor-pointer group shadow-xs active:scale-[0.99]"
             title="Click to view Promo Trial users in registry"
           >
-            <div className="flex items-center justify-between text-xs font-bold text-purple-800 mb-1">
+            <div className="flex items-center justify-between text-xs font-bold text-amber-800 mb-1">
               <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
                 Promo Trial Pro
               </span>
-              <span className="text-purple-600 group-hover:translate-x-0.5 transition-transform text-xs font-black">Filter ➔</span>
+              <span className="text-amber-700 group-hover:translate-x-0.5 transition-transform text-xs font-black">Filter ➔</span>
             </div>
             <p className="text-xl font-black text-slate-900 tracking-tight">
               {saasFinancials.plansDistribution.claimedTrialCount}{' '}
-              <span className="text-xs font-bold text-purple-700">({saasFinancials.plansDistribution.trialPct}%)</span>
+              <span className="text-xs font-bold text-amber-800">({saasFinancials.plansDistribution.trialPct}%)</span>
             </p>
             <p className="text-[10px] text-slate-500 font-semibold mt-0.5">1-Year Free Pro Trial Promo Claims</p>
           </button>
@@ -2512,10 +2512,10 @@ export default function AdminPage() {
               onClick={() => setAuditFilter('claimed')}
               className={cn(
                 "px-3 py-1.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all border-none cursor-pointer flex items-center gap-1",
-                auditFilter === 'claimed' ? "bg-white text-purple-800 shadow-xs" : "text-slate-500 hover:text-slate-800 bg-transparent"
+                auditFilter === 'claimed' ? "bg-white text-amber-800 shadow-xs" : "text-slate-500 hover:text-slate-800 bg-transparent"
               )}
             >
-              <Gift size={12} className="text-purple-600" />
+              <Gift size={12} className="text-amber-700" />
               <span>Claimed ({processedSubscriptions.filter(s => s.type === 'claim').length})</span>
             </button>
           </div>
@@ -2553,8 +2553,8 @@ export default function AdminPage() {
                     </td>
                     <td className="py-3.5 text-xs">
                       {req.type === 'claim' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-1 shadow-2xs">
-                          <Gift size={10} className="text-purple-600" />
+                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1 shadow-2xs">
+                          <Gift size={10} className="text-amber-700" />
                           <span>Claimed (Free Trial)</span>
                         </span>
                       ) : (
@@ -2566,7 +2566,7 @@ export default function AdminPage() {
                     </td>
                     <td className="py-3.5 text-xs">
                       {req.type === 'claim' ? (
-                        <div className="font-mono font-bold text-purple-700 bg-purple-50/80 border border-purple-200/80 px-2 py-0.5 rounded-lg w-fit text-[11px] flex items-center gap-1">
+                        <div className="font-mono font-bold text-amber-800 bg-amber-50/80 border border-amber-200/80 px-2 py-0.5 rounded-lg w-fit text-[11px] flex items-center gap-1">
                           <span>{req.receipt_number || req.upi_id_ref || 'PRO-CLAIM'}</span>
                         </div>
                       ) : (
@@ -2580,7 +2580,7 @@ export default function AdminPage() {
                     </td>
                     <td className="py-3.5 text-xs">
                       {req.type === 'claim' ? (
-                        <span className="font-black text-purple-700 bg-purple-50 px-2 py-0.5 rounded-lg border border-purple-100 text-xs">
+                        <span className="font-black text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-100 text-xs">
                           ₹0 (100% Promo)
                         </span>
                       ) : (
@@ -2808,12 +2808,12 @@ export default function AdminPage() {
                             <span className="font-bold text-slate-400 uppercase tracking-tight text-[9px]">Plan</span>
                             {u.free_trial_claimed || u.subscription_type === 'claim' ? (
                               <div className="flex flex-col items-end gap-0.5">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
-                                  <Gift size={10} className="text-purple-600" />
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                                  <Gift size={10} className="text-amber-700" />
                                   <span>Claimed (Free Trial)</span>
                                 </span>
                                 {u.claim_receipt_no && (
-                                  <span className="text-[8px] font-mono text-purple-700 font-bold" title={u.claim_receipt_no}>
+                                  <span className="text-[8px] font-mono text-amber-800 font-bold" title={u.claim_receipt_no}>
                                     Rcpt: {u.claim_receipt_no}
                                   </span>
                                 )}
@@ -2973,12 +2973,12 @@ export default function AdminPage() {
                           <td className="py-3.5">
                             {u.free_trial_claimed || u.subscription_type === 'claim' ? (
                               <div className="inline-flex flex-col items-start gap-0.5">
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 border border-purple-200">
-                                  <Gift size={10} className="text-purple-600" />
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                                  <Gift size={10} className="text-amber-700" />
                                   <span>Claimed (Free Trial)</span>
                                 </span>
                                 {u.claim_receipt_no && (
-                                  <span className="text-[8px] font-mono text-purple-700 font-bold ml-1">
+                                  <span className="text-[8px] font-mono text-amber-800 font-bold ml-1">
                                     {u.claim_receipt_no}
                                   </span>
                                 )}
@@ -3638,7 +3638,7 @@ export default function AdminPage() {
                           <span>Auto-Synced</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-200">
+                        <span className="inline-flex items-center gap-1 text-[9.5px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200">
                           <span>👤 Manual</span>
                         </span>
                       )}
@@ -3651,7 +3651,7 @@ export default function AdminPage() {
                           Reminder
                         </span>
                       ) : log.email_type === 'Test Reminder' ? (
-                        <span className="text-[9.5px] font-black uppercase tracking-wider bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full border border-purple-150">
+                        <span className="text-[9.5px] font-black uppercase tracking-wider bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-100">
                           Test Template
                         </span>
                       ) : (
@@ -3752,7 +3752,7 @@ export default function AdminPage() {
           <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="p-2 rounded-xl bg-purple-50 text-purple-700">
+                <span className="p-2 rounded-xl bg-amber-50 text-amber-800">
                   <Sliders size={20} />
                 </span>
                 <div>
@@ -3856,13 +3856,13 @@ export default function AdminPage() {
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
                       Annual Plan • 2 Months Free
                     </span>
                     <h3 className="text-xl font-black text-slate-900 mt-2">InvoCentric Pro (Annual)</h3>
                     <p className="text-xs text-slate-500 font-medium">Billed every 365 days with instant discount</p>
                   </div>
-                  <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold">
                     ₹
                   </div>
                 </div>
@@ -3877,7 +3877,7 @@ export default function AdminPage() {
                       type="number"
                       value={plansConfig.yearlyPrice}
                       onChange={(e) => setPlansConfig(prev => ({ ...prev, yearlyPrice: Math.max(0, parseInt(e.target.value) || 0) }))}
-                      className="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 outline-none focus:border-purple-600"
+                      className="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 outline-none focus:border-emerald-600"
                       placeholder="1999"
                     />
                   </div>
@@ -3887,7 +3887,7 @@ export default function AdminPage() {
                   <p className="text-xs font-bold text-slate-700">Annual Savings:</p>
                   <div className="flex items-center justify-between text-xs text-slate-500">
                     <span>Customer Discount vs Monthly:</span>
-                    <strong className="text-purple-700 font-black">
+                    <strong className="text-amber-800 font-black">
                       Save ₹{Math.max(0, (plansConfig.monthlyPrice * 12) - plansConfig.yearlyPrice)} / year
                     </strong>
                   </div>
@@ -3898,8 +3898,8 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="p-3 bg-purple-50/50 rounded-2xl border border-purple-100/80 text-[11px] text-purple-800 font-semibold flex items-center gap-2">
-                <Sparkles size={14} className="text-purple-600 shrink-0" />
+              <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-100/80 text-[11px] text-amber-800 font-semibold flex items-center gap-2">
+                <Sparkles size={14} className="text-amber-700 shrink-0" />
                 <span>Highest retention plan — provides 365 uninterrupted days of Pro features.</span>
               </div>
             </div>
@@ -3951,12 +3951,12 @@ export default function AdminPage() {
                 <p className="text-[11px] text-slate-500 mt-0.5">Maximum claims allowed before automatic cutoff</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100">
-                <span className="text-[10px] font-black uppercase text-purple-700 tracking-wider">Claimed So Far</span>
-                <p className="text-lg font-black text-purple-900 mt-1">
+              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-100">
+                <span className="text-[10px] font-black uppercase text-amber-800 tracking-wider">Claimed So Far</span>
+                <p className="text-lg font-black text-amber-900 mt-1">
                   {saasFinancials.plansDistribution.claimedTrialCount} Accounts
                 </p>
-                <p className="text-[11px] text-purple-700 mt-0.5">Verified promotional certificates generated</p>
+                <p className="text-[11px] text-amber-800 mt-0.5">Verified promotional certificates generated</p>
               </div>
 
               <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100">
@@ -4012,7 +4012,7 @@ export default function AdminPage() {
                       )}>
                         Status: {selectedUserDetails.status}
                       </span>
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
                         {selectedUserDetails.plan === 'pro' ? 'PRO' : 'FREE'}
                       </span>
                     </div>
@@ -4067,7 +4067,7 @@ export default function AdminPage() {
                       plan: prev.plan === 'pro' ? 'free' : 'pro'
                     }) : null);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0"
                 >
                   <CreditCard size={14} />
                   <span>Toggle Plan</span>
@@ -4105,12 +4105,12 @@ export default function AdminPage() {
                 {/* 2. Usage & Volume */}
                 <div className="space-y-3">
                   <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                    <Activity size={13} className="text-blue-600" />
+                    <Activity size={13} className="text-emerald-700" />
                     <span>Activity & SaaS Volume</span>
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-blue-50/50 p-3.5 rounded-2xl border border-blue-100">
-                      <span className="text-[10px] text-blue-700 font-black uppercase">Invoices Created</span>
+                    <div className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100">
+                      <span className="text-[10px] text-emerald-700 font-black uppercase">Invoices Created</span>
                       <p className="text-lg font-black text-slate-900 mt-1">{selectedUserDetails.invoiceCount} Bills</p>
                     </div>
                     <div className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100">
@@ -4123,13 +4123,13 @@ export default function AdminPage() {
                 {/* 3. Subscription & Expiry */}
                 <div className="space-y-3">
                   <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                    <CreditCard size={13} className="text-purple-600" />
+                    <CreditCard size={13} className="text-amber-700" />
                     <span>Subscription Details</span>
                   </h4>
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2.5">
                     <div className="flex justify-between">
                       <span className="text-slate-500 font-semibold">Current Tier:</span>
-                      <span className="font-black text-purple-700 uppercase">{selectedUserDetails.plan === 'pro' ? 'Pro Plan' : 'Free Forever'}</span>
+                      <span className="font-black text-amber-800 uppercase">{selectedUserDetails.plan === 'pro' ? 'Pro Plan' : 'Free Forever'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500 font-semibold">Billing Cycle:</span>
@@ -4138,7 +4138,7 @@ export default function AdminPage() {
                     {selectedUserDetails.claim_receipt_no && (
                       <div className="flex justify-between">
                         <span className="text-slate-500 font-semibold">Claim Receipt:</span>
-                        <strong className="font-mono text-purple-700">{selectedUserDetails.claim_receipt_no}</strong>
+                        <strong className="font-mono text-amber-800">{selectedUserDetails.claim_receipt_no}</strong>
                       </div>
                     )}
                     <div className="flex justify-between">

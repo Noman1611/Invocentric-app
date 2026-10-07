@@ -103,7 +103,7 @@ export default function RecycleBinModal({ isOpen, onClose }: RecycleBinModalProp
       case 'expenses':
         return <Wallet className="w-5 h-5 text-rose-600" />;
       case 'purchases':
-        return <Receipt className="w-5 h-5 text-purple-600" />;
+        return <Receipt className="w-5 h-5 text-amber-600" />;
       default:
         return <FileText className="w-5 h-5 text-slate-600" />;
     }

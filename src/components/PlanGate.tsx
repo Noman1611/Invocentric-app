@@ -106,9 +106,9 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full bg-neutral-50 rounded-[2.5rem] p-10 text-center border border-neutral-100 shadow-2xl shadow-blue-900/5"
+          className="max-w-md w-full bg-neutral-50 rounded-[2.5rem] p-10 text-center border border-neutral-100 shadow-2xl shadow-emerald-950/5"
         >
-          <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-600/20">
+          <div className="w-20 h-20 bg-[#166534] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-900/20">
             <RefreshCw className={checking ? "animate-spin text-white" : "text-white"} size={40} />
           </div>
           <h2 className="text-2xl font-black text-neutral-900 uppercase tracking-tight mb-2">Weekly Verification</h2>

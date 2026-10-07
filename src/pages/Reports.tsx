@@ -915,8 +915,8 @@ export default function Reports() {
             value: overallStats.activeCustomers,
             subLabel: "Active accounts linked",
             icon: Users,
-            color: "text-blue-600",
-            bg: "bg-blue-50",
+            color: "text-emerald-700",
+            bg: "bg-emerald-50",
             isMoney: false,
           },
         ].map((stat, i) => (

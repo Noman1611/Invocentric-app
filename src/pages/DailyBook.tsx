@@ -620,7 +620,7 @@ export default function DailyBook() {
       >
         <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm hover:shadow-md transition duration-200">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <FileText size={24} />
             </div>
             <div>
@@ -787,7 +787,7 @@ export default function DailyBook() {
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                         tx.type === 'PAYMENT_IN' ? 'bg-green-100 text-green-800' :
-                        tx.type === 'SALE' ? 'bg-blue-100 text-blue-800' :
+                        tx.type === 'SALE' ? 'bg-emerald-100 text-emerald-800' :
                         tx.type === 'PURCHASE' ? 'bg-orange-100 text-orange-800' :
                         'bg-rose-100 text-rose-800'
                       }`}>
@@ -838,7 +838,7 @@ export default function DailyBook() {
                       <td className="p-3 border-r border-slate-200">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                           tx.type === 'PAYMENT_IN' ? 'bg-green-100 text-green-800' :
-                          tx.type === 'SALE' ? 'bg-blue-100 text-blue-800' :
+                          tx.type === 'SALE' ? 'bg-emerald-100 text-emerald-800' :
                           tx.type === 'PURCHASE' ? 'bg-orange-100 text-orange-800' :
                           'bg-rose-100 text-rose-800'
                         }`}>

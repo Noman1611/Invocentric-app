@@ -75,7 +75,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 print:hidden">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-blue-100 text-blue-700 rounded-xl">
+              <div className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
                 <Barcode size={20} />
               </div>
               <div>
@@ -87,7 +87,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
               <button
                 type="button"
                 onClick={handleOpenStudio}
-                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <span>Barcode Studio</span>
                 <ExternalLink size={13} />
@@ -112,7 +112,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
                 <select
                   value={selectedItemId}
                   onChange={(e) => setSelectedItemId(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-600"
                 >
                   {items.map(item => (
                     <option key={item.id} value={item.id}>
@@ -132,7 +132,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
                     onClick={() => handleSelectPreset('a4_24')}
                     className={cn(
                       "flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer",
-                      presetKey === 'a4_24' ? "bg-blue-50 border-blue-600 text-blue-700 font-bold shadow-xs" : "bg-white border-slate-200 text-slate-600"
+                      presetKey === 'a4_24' ? "bg-emerald-50 border-[#166534] text-[#166534] font-bold shadow-xs" : "bg-white border-slate-200 text-slate-600"
                     )}
                   >
                     <Grid size={16} className="mb-1" />
@@ -143,7 +143,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
                     onClick={() => handleSelectPreset('a4_65')}
                     className={cn(
                       "flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer",
-                      presetKey === 'a4_65' ? "bg-blue-50 border-blue-600 text-blue-700 font-bold shadow-xs" : "bg-white border-slate-200 text-slate-600"
+                      presetKey === 'a4_65' ? "bg-emerald-50 border-[#166534] text-[#166534] font-bold shadow-xs" : "bg-white border-slate-200 text-slate-600"
                     )}
                   >
                     <Layers size={16} className="mb-1" />
@@ -154,7 +154,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
                     onClick={() => handleSelectPreset('thermal_50x25')}
                     className={cn(
                       "flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer",
-                      presetKey === 'thermal_50x25' ? "bg-blue-50 border-blue-600 text-blue-700 font-bold shadow-xs" : "bg-white border-slate-200 text-slate-600"
+                      presetKey === 'thermal_50x25' ? "bg-emerald-50 border-[#166534] text-[#166534] font-bold shadow-xs" : "bg-white border-slate-200 text-slate-600"
                     )}
                   >
                     <Tag size={16} className="mb-1" />
@@ -196,7 +196,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
                     type="checkbox"
                     checked={showBusinessName}
                     onChange={(e) => setShowBusinessName(e.target.checked)}
-                    className="rounded text-blue-600"
+                    className="rounded text-emerald-700"
                   />
                   <span>Show Store Name</span>
                 </label>
@@ -205,7 +205,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
                     type="checkbox"
                     checked={showPrice}
                     onChange={(e) => setShowPrice(e.target.checked)}
-                    className="rounded text-blue-600"
+                    className="rounded text-emerald-700"
                   />
                   <span>Show Sale Price (₹{activeItem?.price || 0})</span>
                 </label>
@@ -214,7 +214,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
                     type="checkbox"
                     checked={showMrp}
                     onChange={(e) => setShowMrp(e.target.checked)}
-                    className="rounded text-blue-600"
+                    className="rounded text-emerald-700"
                   />
                   <span>Show MRP (₹{activeItem?.mrp || activeItem?.price || 0})</span>
                 </label>
@@ -312,7 +312,7 @@ export function BarcodeLabelModal({ isOpen, onClose, items }: BarcodeLabelModalP
             </button>
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#166534] hover:bg-[#14532d] text-white font-bold rounded-xl text-xs shadow-md shadow-emerald-700/20 transition-all cursor-pointer"
             >
               <Printer size={15} />
               <span>Print Sticker Sheet</span>

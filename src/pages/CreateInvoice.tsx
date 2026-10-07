@@ -1889,15 +1889,15 @@ export default function CreateInvoicePage() {
 
           {/* Services & Subscription Recurring Billing Panel */}
           {isServicesMode && (
-            <div className="bg-gradient-to-r from-blue-50/70 to-indigo-50/70 p-3 sm:p-4 rounded-2xl border border-blue-200 shadow-xs space-y-3">
+            <div className="bg-gradient-to-r from-emerald-50/70 to-teal-50/70 p-3 sm:p-4 rounded-2xl border border-emerald-200 shadow-xs space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-lg bg-[#166534] text-white flex items-center justify-center font-bold text-xs">
                     ₹
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-blue-950">Subscription &amp; Recurring Billing</h4>
-                    <p className="text-[10px] text-blue-700/80">Automated cycle tracking, billing frequency &amp; recurring renewal dates</p>
+                    <h4 className="text-xs font-bold text-slate-900">Subscription &amp; Recurring Billing</h4>
+                    <p className="text-[10px] text-emerald-700/80">Automated cycle tracking, billing frequency &amp; recurring renewal dates</p>
                   </div>
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -1917,16 +1917,16 @@ export default function CreateInvoicePage() {
                         next_renewal_date: enabled && !p.next_renewal_date ? nextMonth.toISOString().split('T')[0] : p.next_renewal_date,
                       }));
                     }}
-                    className="w-4 h-4 text-blue-600 rounded border-blue-300 focus:ring-blue-500"
+                    className="w-4 h-4 text-emerald-700 rounded border-emerald-300 focus:ring-emerald-500"
                   />
-                  <span className="text-xs font-bold text-blue-900">Enable Recurring</span>
+                  <span className="text-xs font-bold text-slate-900">Enable Recurring</span>
                 </label>
               </div>
 
               {formData.is_recurring && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-blue-100">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-emerald-100">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1 block">Frequency</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1 block">Frequency</label>
                     <select
                       value={formData.recurring_frequency}
                       onChange={(e) => {
@@ -1945,7 +1945,7 @@ export default function CreateInvoicePage() {
                           next_renewal_date: next.toISOString().split('T')[0]
                         }));
                       }}
-                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-blue-200 rounded-lg text-slate-800"
+                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-emerald-200 rounded-lg text-slate-800"
                     >
                       <option value="weekly">Weekly</option>
                       <option value="monthly">Monthly</option>
@@ -1954,30 +1954,30 @@ export default function CreateInvoicePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1 block">Period Start</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1 block">Period Start</label>
                     <input
                       type="date"
                       value={formData.service_period_start}
                       onChange={(e) => setFormData(p => ({ ...p, service_period_start: e.target.value }))}
-                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-blue-200 rounded-lg text-slate-800"
+                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-emerald-200 rounded-lg text-slate-800"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1 block">Period End</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1 block">Period End</label>
                     <input
                       type="date"
                       value={formData.service_period_end}
                       onChange={(e) => setFormData(p => ({ ...p, service_period_end: e.target.value }))}
-                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-blue-200 rounded-lg text-slate-800"
+                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-emerald-200 rounded-lg text-slate-800"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-blue-800 mb-1 block">Next Renewal</label>
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1 block">Next Renewal</label>
                     <input
                       type="date"
                       value={formData.next_renewal_date}
                       onChange={(e) => setFormData(p => ({ ...p, next_renewal_date: e.target.value }))}
-                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-blue-200 rounded-lg text-slate-800"
+                      className="w-full text-xs py-1.5 px-2 font-semibold bg-white border border-emerald-200 rounded-lg text-slate-800"
                     />
                   </div>
                 </div>
@@ -2012,7 +2012,7 @@ export default function CreateInvoicePage() {
                     className={cn(
                       "px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                       formData.price_tier === 'wholesale'
-                        ? "bg-blue-600 text-white shadow-xs"
+                        ? "bg-[#166534] text-white shadow-xs"
                         : "text-slate-500 hover:text-slate-900"
                     )}
                   >
@@ -2203,7 +2203,7 @@ export default function CreateInvoicePage() {
                                         </span>
                                       )}
                                       {invItem.category && (
-                                        <span className="bg-blue-50 px-1.5 py-0.5 rounded text-blue-600 font-medium">
+                                        <span className="bg-emerald-50 px-1.5 py-0.5 rounded text-emerald-700 font-medium">
                                           {invItem.category}
                                         </span>
                                       )}
@@ -2542,13 +2542,13 @@ export default function CreateInvoicePage() {
                           </div>
                         )}
                         {(isHardwareMode || (item as any).tare_weight > 0) && (
-                          <div className="grid grid-cols-2 gap-2 bg-blue-50/50 p-2 rounded-xl border border-blue-100">
+                          <div className="grid grid-cols-2 gap-2 bg-emerald-50/50 p-2 rounded-xl border border-emerald-100">
                             <div>
-                              <label className="text-[9px] font-bold text-blue-800 uppercase block mb-0.5">Tare Weight</label>
+                              <label className="text-[9px] font-bold text-emerald-800 uppercase block mb-0.5">Tare Weight</label>
                               <input
                                 type="number"
                                 step="0.001"
-                                className="w-full text-[11px] px-2 py-1 bg-white border border-blue-200 rounded-lg text-center"
+                                className="w-full text-[11px] px-2 py-1 bg-white border border-emerald-200 rounded-lg text-center"
                                 placeholder="0.000"
                                 value={(item as any).tare_weight || ''}
                                 onChange={(e) => {
@@ -2564,11 +2564,11 @@ export default function CreateInvoicePage() {
                               />
                             </div>
                             <div>
-                              <label className="text-[9px] font-bold text-blue-800 uppercase block mb-0.5">Gross Weight</label>
+                              <label className="text-[9px] font-bold text-emerald-800 uppercase block mb-0.5">Gross Weight</label>
                               <input
                                 type="number"
                                 step="0.001"
-                                className="w-full text-[11px] px-2 py-1 bg-white border border-blue-200 rounded-lg text-center"
+                                className="w-full text-[11px] px-2 py-1 bg-white border border-emerald-200 rounded-lg text-center"
                                 placeholder="0.000"
                                 value={(item as any).gross_weight || ''}
                                 onChange={(e) => {
@@ -2695,7 +2695,7 @@ export default function CreateInvoicePage() {
                                         </span>
                                       )}
                                       {invItem.category && (
-                                        <span className="bg-blue-50 px-1.5 py-0.5 rounded text-blue-600 font-medium">
+                                        <span className="bg-emerald-50 px-1.5 py-0.5 rounded text-emerald-700 font-medium">
                                           {invItem.category}
                                         </span>
                                       )}
@@ -3099,7 +3099,7 @@ export default function CreateInvoicePage() {
                     {isHardwareMode && (
                       <div className="w-full md:w-36 flex items-end gap-1">
                         <div className="w-1/2">
-                          <label className="label block text-[9px] text-blue-700">Tare Wt</label>
+                          <label className="label block text-[9px] text-emerald-700">Tare Wt</label>
                           <input
                             type="number"
                             step="0.001"
@@ -3119,7 +3119,7 @@ export default function CreateInvoicePage() {
                           />
                         </div>
                         <div className="w-1/2">
-                          <label className="label block text-[9px] text-blue-700">Gross Wt</label>
+                          <label className="label block text-[9px] text-emerald-700">Gross Wt</label>
                           <input
                             type="number"
                             step="0.001"
@@ -3241,7 +3241,7 @@ export default function CreateInvoicePage() {
                           <button
                             type="button"
                             onClick={() => updateItem(index, 'price', lastPrice)}
-                            className="mt-1 text-[9px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded border border-blue-200 block text-right ml-auto transition-colors cursor-pointer"
+                            className="mt-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 block text-right ml-auto transition-colors cursor-pointer"
                             title="Click to apply last selling price to this customer"
                           >
                             Last: ₹{lastPrice} (Apply)
@@ -3291,7 +3291,7 @@ export default function CreateInvoicePage() {
                   <span className="truncate">
                     Template: {
                       formData.invoice_template === 'template_06' ? 'InvoCentric Template 06 (Nexus Enterprise)' :
-                      formData.invoice_template === 'template_02' ? 'InvoCentric Template 02 (Blue Line)' :
+                      formData.invoice_template === 'template_02' ? 'InvoCentric Template 02 (Forest Line)' :
                       formData.invoice_template === 'template_03' ? 'InvoCentric Template 03 (B2B Serial)' :
                       formData.invoice_template === 'template_04' ? 'InvoCentric Template 04 (POS 3")' :
                       formData.invoice_template === 'template_05' ? 'InvoCentric Template 05 (POS 2")' :
@@ -3314,8 +3314,8 @@ export default function CreateInvoicePage() {
                       value={formData.invoice_template === 'tally_prime_gst' ? 'template_01' : (formData.invoice_template || 'template_01')}
                       onChange={(e) => setFormData(p => ({ ...p, invoice_template: e.target.value }))}
                     >
-                      <option value="template_01">InvoCentric Template 01 — Blue Bordered + IGST (A4)</option>
-                      <option value="template_02">InvoCentric Template 02 — Blue Line Top + IGST (A4)</option>
+                      <option value="template_01">InvoCentric Template 01 — Emerald Bordered + IGST (A4)</option>
+                      <option value="template_02">InvoCentric Template 02 — Forest Line Top + IGST (A4)</option>
                       <option value="template_03">InvoCentric Template 03 — Supplier B2B (Serial/Batch)</option>
                       <option value="template_06">InvoCentric Template 06 — Nexus Enterprise Pro (A4)</option>
                       <option value="template_04">InvoCentric Template 04 — POS Thermal (3-Inch / 80mm)</option>
@@ -3455,10 +3455,10 @@ export default function CreateInvoicePage() {
                   />
                 </div>
                 <div>
-                  <label className="text-[9px] font-bold uppercase text-blue-600 block mb-0.5">Delivery / Shipping (+)</label>
+                  <label className="text-[9px] font-bold uppercase text-emerald-700 block mb-0.5">Delivery / Shipping (+)</label>
                   <input
                     type="number"
-                    className="input-field text-xs py-1 px-2 font-bold text-blue-700"
+                    className="input-field text-xs py-1 px-2 font-bold text-emerald-800"
                     value={formData.shipping_charges || ''}
                     placeholder="0"
                     onChange={(e) => {

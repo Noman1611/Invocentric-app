@@ -334,7 +334,7 @@ export function UniversalAccountingExportDashboard({
 
         <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">IGST Component</span>
-          <span className="text-base font-black text-blue-700">
+          <span className="text-base font-black text-emerald-800">
             {formatCurrency(aggregates.totalIgst, 'INR')}
           </span>
           <span className="text-[10px] text-slate-400 block mt-0.5">Inter-State GST</span>
@@ -418,7 +418,7 @@ export function UniversalAccountingExportDashboard({
                         <span className={cn(
                           "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
                           row.VoucherType === 'Sales' && "bg-green-100 text-green-800",
-                          row.VoucherType === 'Purchase' && "bg-blue-100 text-blue-800",
+                          row.VoucherType === 'Purchase' && "bg-emerald-100 text-emerald-800",
                           row.VoucherType === 'Receipt' && "bg-teal-100 text-teal-800",
                           row.VoucherType === 'Expense' && "bg-amber-100 text-amber-800",
                           row.VoucherType === 'Payment' && "bg-rose-100 text-rose-800"

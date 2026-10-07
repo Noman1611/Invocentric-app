@@ -674,8 +674,8 @@ export default function SetupWizard({
                     {[
                       { hex: '#166534', name: 'Brand Green' },
                       { hex: '#16a34a', name: 'Emerald' },
-                      { hex: '#2563EB', name: 'Blue' },
-                      { hex: '#7C3AED', name: 'Purple' },
+                      { hex: '#166534', name: 'Forest Green' },
+                      { hex: '#0f766e', name: 'Teal' },
                       { hex: '#D97706', name: 'Amber' },
                       { hex: '#0F172A', name: 'Dark Slate' }
                     ].map((color) => (

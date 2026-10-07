@@ -140,7 +140,7 @@ export default function BarcodeGenerator() {
     },
     {
       id: 'demo-2',
-      name: 'Cotton T-Shirt Blue (M)',
+      name: 'Cotton T-Shirt Navy (M)',
       code: 'INV8920192',
       barcodeType: 'CODE128',
       price: 599,
@@ -428,7 +428,7 @@ export default function BarcodeGenerator() {
   const handleDownloadSampleTemplate = () => {
     const sampleData = [
       {
-        'Item Name': 'Premium Cotton T-Shirt (Blue, M)',
+        'Item Name': 'Premium Cotton T-Shirt (Navy, M)',
         'Item Code': '8901234567890',
         'MRP': 799,
         'Selling Price': 599,

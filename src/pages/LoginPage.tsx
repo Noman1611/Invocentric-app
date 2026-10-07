@@ -1176,18 +1176,18 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
                     e.preventDefault();
                     openInBrowser("mailto:support@invocentric.in?subject=InvoCentric%20Login%20Support%20Request");
                   }}
-                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-blue-50 active:scale-[0.98] border border-slate-100 hover:border-blue-200 rounded-xl transition-all cursor-pointer group"
+                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-emerald-50 active:scale-[0.98] border border-slate-100 hover:border-emerald-200 rounded-xl transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 group-hover:bg-[#166534] group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
                       <ExternalLink size={16} />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">Email Support</p>
+                      <p className="text-xs font-semibold text-slate-900 group-hover:text-[#166534] transition-colors">Email Support</p>
                       <p className="text-xs text-slate-500">support@invocentric.in</p>
                     </div>
                   </div>
-                  <ExternalLink size={14} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                  <ExternalLink size={14} className="text-slate-400 group-hover:text-[#166534] transition-colors" />
                 </a>
               </div>
 
@@ -1214,7 +1214,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative"
             >
-              <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-amber-400 to-emerald-500" />
+              <div className="h-1.5 w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-green-600" />
 
               <div className="p-6 pb-4 flex items-center justify-between border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -1240,7 +1240,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
               </div>
 
               <div className="p-6 text-center flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full border-3 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+                <div className="w-12 h-12 rounded-full border-3 border-slate-200 border-t-emerald-600 animate-spin mb-4" />
                 <h4 className="text-base font-bold text-slate-900 mb-1">Authenticating with Google...</h4>
                 <p className="text-xs text-slate-500 max-w-xs mb-4">
                   Please select your Google account in the popup window.

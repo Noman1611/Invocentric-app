@@ -876,7 +876,7 @@ export default function UpdateCatalogEntryModal({
 
                 {/* Wholesale Price ₹ (B2B) */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-blue-700">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-emerald-800">
                     Wholesale Price (₹)
                   </label>
                   <input
@@ -885,7 +885,7 @@ export default function UpdateCatalogEntryModal({
                     placeholder="0.00"
                     value={formData.wholesalePrice}
                     onChange={(e) => setFormData({ ...formData, wholesalePrice: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm font-bold rounded-xl border border-blue-200 bg-blue-50/40 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all tabular-nums"
+                    className="w-full px-3 py-2.5 text-sm font-bold rounded-xl border border-emerald-200 bg-emerald-50/40 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all tabular-nums"
                   />
                 </div>
 

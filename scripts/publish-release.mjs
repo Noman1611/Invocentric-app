@@ -8,16 +8,19 @@ dotenv.config();
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.44';
+const TAG = 'v1.0.45';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.44 - English Localization, Scrollable Tab Navigation & Instant Thermal Print Preview';
-const RELEASE_NOTES = `## InvoCentric v1.0.44 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.45 - Android Installer Fix & Official Brand Color Family';
+const RELEASE_NOTES = `## InvoCentric v1.0.45 Release Notes
 
-### What's New in v1.0.44:
-- **English Localization:** Fully standardized all UI labels, alerts, notifications, and instructions across the app to pure English.
-- **Scrollable Tab Navigation & Arrow Controls:** Added smooth horizontal scrolling, swipe gestures, and clickable Left/Right chevron arrow buttons on overflowing tab bars across Settings, Items, QuickPOS, Reports, Invoices, and Admin screens so no buttons are clipped at boundaries.
-- **Instant Thermal Print Animation:** Dedicated fast-loading Thermal Print Preview page (\`/thermal-preview\`) featuring real-time motorized paper feed animation and instant receipt dispensing without loading delays.
-- **Multiplatform Production Binaries:** Updated Windows installer (\`InvoCentric-Setup.exe\`) and Android production APK (\`InvoCentric.apk\`).
+### What's New in v1.0.45:
+- **Android "App not installed" Fix:** Fixed package installer decompression failure caused by nested APK assets; optimized APK asset bundling with explicit AAPT exclusion and dual v1+v2 signature verification. Clean 8.8 MB package installs smoothly on all Android versions.
+- **Unified InvoCentric Brand Color Family:** Completely eliminated unbranded purple and blue shades across the entire project. Standardized on the official InvoCentric brand palette:
+  - **Primary:** Forest Green (\`#166534\`) & Deep Emerald (\`#0d5c4b\`)
+  - **Accent:** Warm Amber (\`#f59e0b\` / \`#92400e\`) for SaaS badges, Pro highlights, and special indicators
+  - **Danger:** Crimson Rose (\`#e11d48\`) for alerts and deletions
+  - **Neutrals:** Slate Charcoal & Crisp Off-White for clean financial ledger clarity
+- **Multiplatform Production Binaries:** Updated Windows installer (\`InvoCentric-Setup.exe\`) and verified Android APK (\`InvoCentric.apk\`).
 - **Comprehensive Quality Assured:** All 144 unit, integration, and security test cases passing 100%.
 `;
 

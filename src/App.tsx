@@ -1000,7 +1000,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                           } else if (cat === 'inventory' || txt.includes('product') || txt.includes('stock') || txt.includes('inventory')) {
                             icon = <Package size={14} className="text-amber-500" />;
                           } else if (cat === 'customers' || txt.includes('customer')) {
-                            icon = <Users size={14} className="text-blue-500" />;
+                            icon = <Users size={14} className="text-emerald-700" />;
                           } else if (cat === 'expenses' || txt.includes('expense') || txt.includes('purchase')) {
                             icon = <TrendingDown size={14} className="text-rose-500" />;
                           } else if (cat === 'settings' || txt.includes('profile') || txt.includes('settings')) {

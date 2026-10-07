@@ -35,7 +35,7 @@ export function StorageModeSelector({ className }: { className?: string }) {
             </h2>
             <span className={cn(
               "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
-              isLocalPc ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-800"
+              isLocalPc ? "bg-emerald-100 text-emerald-800" : "bg-emerald-100 text-[#0d5c4b]"
             )}>
               {isLocalPc ? '100% Local PC Mode' : 'Cloud Sync Mode'}
             </span>
@@ -55,7 +55,7 @@ export function StorageModeSelector({ className }: { className?: string }) {
             onClick={() => setStorageMode(isLocalPc ? 'cloud' : 'local_pc')}
             className={cn(
               "relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-              isLocalPc ? "bg-[#166534]" : "bg-blue-600"
+              isLocalPc ? "bg-[#166534]" : "bg-emerald-600"
             )}
             role="switch"
             aria-checked={isLocalPc}
@@ -111,20 +111,20 @@ export function StorageModeSelector({ className }: { className?: string }) {
           className={cn(
             "cursor-pointer p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-start gap-4",
             !isLocalPc
-              ? "border-blue-600 bg-blue-50/40 shadow-sm"
+              ? "border-[#166534] bg-emerald-50/40 shadow-sm"
               : "border-slate-200 hover:border-slate-300 bg-white"
           )}
         >
           <div className={cn(
             "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
-            !isLocalPc ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"
+            !isLocalPc ? "bg-[#166534] text-white" : "bg-slate-100 text-slate-600"
           )}>
             <Cloud size={22} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900">Cloud Sync Edition</h3>
-              {!isLocalPc && <CheckCircle2 size={16} className="text-blue-600" />}
+              {!isLocalPc && <CheckCircle2 size={16} className="text-emerald-600" />}
             </div>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
               Realtime sync across phone and computer. Access your account and bills from anywhere with secure cloud backup.

@@ -153,8 +153,8 @@ export default function DashboardPage() {
         value: invoices.length,
         change: invoices.length > 0 ? '+ 50% vs last month' : '0% vs last month',
         isPositive: true,
-        color: 'text-blue-600',
-        bg: 'bg-blue-50',
+        color: 'text-emerald-700',
+        bg: 'bg-emerald-50',
         iconClass: FileText,
       },
       {
@@ -162,8 +162,8 @@ export default function DashboardPage() {
         value: customers.length,
         change: customers.length > 0 ? '+ 33.3% vs last month' : '0% vs last month',
         isPositive: true,
-        color: 'text-purple-600',
-        bg: 'bg-purple-50',
+        color: 'text-amber-700',
+        bg: 'bg-amber-50',
         iconClass: Users,
       }
     ];
@@ -216,7 +216,7 @@ export default function DashboardPage() {
         title: `Invoice ${invNum} ${inv.status === 'paid' ? 'paid' : 'created'}`,
         subtitle: `for ${inv.customer_name || 'Customer'}`,
         time: inv.created_at ? format(parseDateSafe(inv.created_at), 'hh:mm a') : '10:30 AM',
-        color: inv.status === 'paid' ? 'bg-green-500' : 'bg-blue-500'
+        color: inv.status === 'paid' ? 'bg-emerald-500' : 'bg-slate-500'
       });
     });
 
@@ -226,7 +226,7 @@ export default function DashboardPage() {
         title: 'New customer added',
         subtitle: c.name || 'Customer',
         time: c.created_at ? format(parseDateSafe(c.created_at), 'hh:mm a') : '10:20 AM',
-        color: 'bg-purple-500'
+        color: 'bg-amber-500'
       });
     });
 
@@ -332,7 +332,7 @@ export default function DashboardPage() {
                 className={cn(
                   "text-[10px] font-black uppercase px-2 py-1 rounded-md border transition-all active:scale-95",
                   isOwner
-                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                    ? "bg-amber-50 text-amber-700 border-amber-200"
                     : (planTier === 'pro' || isTrialActive)
                     ? "bg-amber-50 text-amber-700 border-amber-200"
                     : "bg-slate-100 text-slate-700 border-slate-200"
@@ -492,13 +492,13 @@ export default function DashboardPage() {
               className="bg-white hover:bg-slate-50 border border-slate-200/90 rounded-2xl p-3 flex flex-col justify-between shadow-xs active:scale-95 transition-all group"
             >
               <div className="flex items-center justify-between mb-2">
-                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
                   <ShoppingBag size={15} />
                 </div>
-                <ArrowRight size={13} className="text-slate-400 group-hover:text-blue-700 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight size={13} className="text-slate-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
               </div>
               <div>
-                <p className="text-xs font-black text-slate-900 group-hover:text-blue-700 flex items-center gap-1">
+                <p className="text-xs font-black text-slate-900 group-hover:text-emerald-700 flex items-center gap-1">
                   Purchases ➔
                 </p>
                 <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Bills & Inward</p>
@@ -540,7 +540,7 @@ export default function DashboardPage() {
               to="/dailybook"
               className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-extrabold shrink-0 shadow-xs active:scale-95 transition-transform"
             >
-              <Wallet size={16} className="text-blue-600" />
+              <Wallet size={16} className="text-emerald-700" />
               <span>₹ Cash Book</span>
             </Link>
 
@@ -549,7 +549,7 @@ export default function DashboardPage() {
               to="/customers"
               className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-extrabold shrink-0 shadow-xs active:scale-95 transition-transform"
             >
-              <Users size={16} className="text-purple-600" />
+              <Users size={16} className="text-amber-700" />
               <span>Customers</span>
             </Link>
 
@@ -757,9 +757,9 @@ export default function DashboardPage() {
 
           <Link
             to="/purchases"
-            className="flex items-center gap-2 bg-white hover:bg-blue-50/60 border border-slate-200/80 hover:border-blue-300 rounded-xl px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-xs active:scale-95 transition-all group"
+            className="flex items-center gap-2 bg-white hover:bg-emerald-50/60 border border-slate-200/80 hover:border-emerald-300 rounded-xl px-3.5 py-1.5 text-xs font-black text-slate-800 shadow-xs active:scale-95 transition-all group"
           >
-            <ShoppingBag size={14} className="text-blue-600" />
+            <ShoppingBag size={14} className="text-emerald-700" />
             <span>Purchases ➔</span>
           </Link>
         </div>
@@ -991,11 +991,11 @@ export default function DashboardPage() {
           {/* Quick Indicator Sub-Cards (Grid matching screenshot) */}
           <div className="grid grid-cols-2 gap-4">
              <Link to="/customers" className="bg-white border border-slate-200/60 rounded-2xl p-4   group">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center mb-3 border border-blue-100">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 border border-emerald-100">
                   <Users size={15} />
                 </div>
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Customers</h4>
-                <p className="text-2xl font-black text-slate-900 leading-none mb-1 group-hover:text-blue-600 ">
+                <p className="text-2xl font-black text-slate-900 leading-none mb-1 group-hover:text-emerald-700 ">
                   {customers.length}
                 </p>
                 <span className="text-[10px] text-emerald-600 font-bold mt-1 inline-block">
@@ -1004,11 +1004,11 @@ export default function DashboardPage() {
              </Link>
 
              <Link to="/invoices" className="bg-white border border-slate-200/60 rounded-2xl p-4   group">
-                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center mb-3 border border-purple-100">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 border border-amber-100">
                   <Clock size={15} />
                 </div>
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Overdue</h4>
-                <p className="text-2xl font-black text-slate-900 leading-none mb-1 group-hover:text-purple-600 ">
+                <p className="text-2xl font-black text-slate-900 leading-none mb-1 group-hover:text-amber-700 ">
                   {overdueInvoicesCount}
                 </p>
                 <span className={cn(
@@ -1080,7 +1080,7 @@ export default function DashboardPage() {
                             "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider",
                             inv.status === 'paid' 
                               ? "bg-green-50 text-green-700 border border-green-100" 
-                              : "bg-blue-50 text-blue-700 border border-blue-100"
+                              : "bg-emerald-50 text-emerald-700 border border-emerald-100"
                           )}>
                             {inv.status}
                           </span>

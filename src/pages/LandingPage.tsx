@@ -655,7 +655,7 @@ export default function LandingPage() {
                 {
                   title: "Wholesale & Distribution Traders",
                   desc: "Manage high-volume purchase records, credit summaries, bulk tax invoices, and B2B GST compliance.",
-                  icon: <TrendingUp className="text-blue-600" size={24} />,
+                  icon: <TrendingUp className="text-emerald-700" size={24} />,
                   badge: "Bulk Trade"
                 },
                 {
@@ -667,7 +667,7 @@ export default function LandingPage() {
                 {
                   title: "Garment & Footwear Stores",
                   desc: "Organize items with color, size, and category tags with thermal receipt and barcode label printing.",
-                  icon: <Package className="text-purple-600" size={24} />,
+                  icon: <Package className="text-amber-600" size={24} />,
                   badge: "Apparel Ready"
                 },
                 {
@@ -727,7 +727,7 @@ export default function LandingPage() {
               </div>
 
               <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-6">
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-6">
                   <Printer size={24} />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Thermal Printing</h3>
@@ -735,7 +735,7 @@ export default function LandingPage() {
               </div>
 
               <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-                <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-6">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mb-6">
                   <Package size={24} />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Smart Inventory</h3>
@@ -851,7 +851,7 @@ export default function LandingPage() {
          <section id="how-it-works" className="py-24 bg-slate-50 border-b border-gray-200/60 relative overflow-hidden">
            {/* Subtle background graphics */}
            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-green-500/5 rounded-full blur-[120px] pointer-events-none" />
-           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
+           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
  
            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12 relative z-10">
              <div className="text-center max-w-3xl mx-auto mb-20">
@@ -868,7 +868,7 @@ export default function LandingPage() {
  
              {/* Desktop Connective Line */}
              <div className="relative">
-               <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-blue-500/20 -translate-y-1/2 hidden lg:block z-0" />
+               <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-gradient-to-r from-green-500/20 via-teal-500/20 to-emerald-500/20 -translate-y-1/2 hidden lg:block z-0" />
  
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 relative z-10">
                  {/* Step 1 */}
@@ -983,15 +983,15 @@ export default function LandingPage() {
                    viewport={{ once: true }}
                    className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group relative"
                  >
-                   <div className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-blue-500 text-white font-black text-sm flex items-center justify-center shadow-md">
+                   <div className="absolute -top-4 left-6 w-8 h-8 rounded-full bg-emerald-600 text-white font-black text-sm flex items-center justify-center shadow-md">
                      5
                    </div>
                    <div>
-                     <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                     <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
                        <TrendingUp size={24} />
                      </div>
                      <h3 className="text-lg font-bold text-gray-900 mb-2">5. Ledger & Reports</h3>
-                     <h4 className="text-xs font-semibold text-blue-600 mb-3">Credit Ledger & Balances</h4>
+                     <h4 className="text-xs font-semibold text-emerald-700 mb-3">Credit Ledger & Balances</h4>
                      <p className="text-gray-700 text-xs leading-relaxed">
                        Log customer credits and payments, issue automatic digital reminders, track daily cashflow, and export monthly GSTR tax reports.
                      </p>
@@ -1649,7 +1649,7 @@ export default function LandingPage() {
                 </div>
                 <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
                   Latest Growth Guides for <br className="hidden md:block"/>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-blue-600">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-700 to-teal-700">
                     Indian Small Business Owners
                   </span>
                 </h2>
@@ -1826,7 +1826,7 @@ export default function LandingPage() {
               {/* Android Card */}
               <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm hover:shadow-xl hover:border-emerald-300 transition-all flex flex-col justify-between">
                 <div>
-                  <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mb-6">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-6">
                     <Smartphone size={28} />
                   </div>
                   <h3 className="text-xl font-black text-gray-900 mb-2">Android Mobile App</h3>
@@ -2155,18 +2155,18 @@ export default function LandingPage() {
                   href="https://invocentric.in"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between p-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] rounded-2xl border border-slate-800 hover:border-blue-500/50 text-white transition-all cursor-pointer group shadow-sm"
+                  className="flex items-center justify-between p-4 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] rounded-2xl border border-slate-800 hover:border-emerald-500/50 text-white transition-all cursor-pointer group shadow-sm"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-800 group-hover:bg-blue-600 rounded-xl flex items-center justify-center text-blue-400 group-hover:text-white transition-all shadow-sm">
+                    <div className="w-10 h-10 bg-slate-800 group-hover:bg-emerald-600 rounded-xl flex items-center justify-center text-emerald-400 group-hover:text-white transition-all shadow-sm">
                       <Globe size={20} />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">Website</p>
+                      <p className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">Website</p>
                       <p className="text-[11px] text-slate-300 font-medium">www.invocentric.in</p>
                     </div>
                   </div>
-                  <ExternalLink size={16} className="text-slate-500 group-hover:text-blue-400 transition-colors" />
+                  <ExternalLink size={16} className="text-slate-500 group-hover:text-emerald-400 transition-colors" />
                 </a>
               </div>
 
@@ -2303,7 +2303,7 @@ export default function LandingPage() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsTallyOpen(false)} className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-md bg-white rounded-[32px] overflow-hidden shadow-2xl p-8 border border-gray-100 text-center">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <FileText size={24} />
               </div>
               <h3 className="text-2xl font-black text-gray-900 mb-1">Standard XML Ledger Converter</h3>
