@@ -1099,18 +1099,6 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
             </Link>.
           </div>
         </motion.div>
-
-        {/* Under-Card Terms notice as seen in screenshot */}
-        <div className="mt-5 text-center text-xs text-slate-500 leading-relaxed">
-          By proceeding, you agree to InvoCentric's<br />
-          <Link to="/terms#terms" className="text-slate-800 hover:underline font-medium">
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link to="/terms#privacy" className="text-slate-800 hover:underline font-medium">
-            Privacy Policy
-          </Link>.
-        </div>
       </div>
 
     </div>
