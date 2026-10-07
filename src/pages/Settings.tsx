@@ -49,6 +49,7 @@ import {
   Monitor
 } from 'lucide-react';
 import { updateService, AppUpdateState } from '../services/updateService';
+import { ScrollableTabBar } from '../components/ScrollableTabBar';
 import { whatsappDesktopService } from '../services/whatsappDesktopService';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
@@ -282,7 +283,7 @@ export default function SettingsPage() {
 
   const handleStartWhatsAppPairing = async () => {
     if (!whatsappDesktopService.isSupported()) {
-      alert("WhatsApp background automation sirf InvoCentric Desktop Software (Windows PC) me available hai.");
+      alert("WhatsApp background automation is exclusively available in the InvoCentric Desktop Software (Windows PC).");
       return;
     }
     setWaLoading(true);
@@ -311,7 +312,7 @@ export default function SettingsPage() {
 
   const handleSendTestWhatsApp = async () => {
     if (!whatsappDesktopService.isSupported()) {
-      alert("WhatsApp background automation sirf InvoCentric Desktop Software (Windows PC) me available hai.");
+      alert("WhatsApp background automation is exclusively available in the InvoCentric Desktop Software (Windows PC).");
       return;
     }
     if (!waTestPhone.trim()) {
@@ -1053,7 +1054,7 @@ export default function SettingsPage() {
       icon: MessageCircle, 
       desc: isDesktopSupported 
         ? 'PC background auto-send, QR pairing & status' 
-        : 'Desktop software me use hoga (Windows PC Required)',
+        : 'Requires InvoCentric Windows Desktop Software',
       badge: !isDesktopSupported ? 'Desktop Only' : undefined
     },
     { 
@@ -1233,8 +1234,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Desktop Horizontal Category Tabs Bar (Matches Image 1) */}
-          <div className="hidden md:flex items-center gap-2 mt-5 overflow-x-auto pb-2 no-scrollbar">
+          {/* Desktop Horizontal Category Tabs Bar (with swipe/scroll & arrow buttons) */}
+          <ScrollableTabBar containerClassName="hidden md:flex mt-5" className="gap-2 pb-2">
             {CATEGORIES.map(cat => {
               const IconComp = cat.icon;
               const isActive = activeTab === cat.id;
@@ -1263,7 +1264,7 @@ export default function SettingsPage() {
                 </button>
               );
             })}
-          </div>
+          </ScrollableTabBar>
         </header>
 
         {/* ========================================================================= */}
@@ -2432,17 +2433,17 @@ export default function SettingsPage() {
                           <div className="space-y-1.5 flex-1">
                             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                               <h4 className="text-base sm:text-lg font-black text-slate-900">
-                                WhatsApp Background Automation Sirf Desktop Software Me Use Hoga
+                                WhatsApp Background Automation Requires Desktop Software
                               </h4>
                               <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-full bg-amber-100 text-amber-800 border border-amber-300">
                                 Windows PC / Laptop Required
                               </span>
                             </div>
                             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                              WhatsApp Background Automation engine ko run karne ke liye <strong>InvoCentric Desktop Software (Windows PC / Laptop)</strong> ki zaroorat hoti hai. Yeh headless local engine sirf computer par quietly run hota hai taaki bina kisi API charges ke invoices direct deliver ho sakein.
+                              Running the WhatsApp Background Automation engine requires the <strong>InvoCentric Desktop Software (Windows PC / Laptop)</strong>. This headless local engine operates quietly on your computer to deliver invoices directly without any external API fees.
                             </p>
                             <p className="text-xs text-amber-800 font-semibold bg-amber-50 border border-amber-200/80 px-3 py-2 rounded-xl mt-2">
-                              ⚠️ Mobile App ya Web Browser par background automated WhatsApp sending block hai. Is feature ko use karne ke liye kripya InvoCentric Desktop App use karein.
+                              ⚠️ Background automated WhatsApp delivery is not supported in mobile apps or standard web browsers. Please use the InvoCentric Desktop App for this feature.
                             </p>
                           </div>
                         </div>
@@ -2489,7 +2490,7 @@ export default function SettingsPage() {
                         {/* Action CTA */}
                         <div className="pt-3 border-t border-amber-200/60 flex flex-col sm:flex-row items-center justify-between gap-3">
                           <p className="text-xs text-slate-600 font-medium">
-                            Agar aapko full WhatsApp Background Automation chalana hai, to Desktop Software use karein:
+                            To use full WhatsApp Background Automation, please install and run the Desktop Software:
                           </p>
                           <Link
                             to="/download"

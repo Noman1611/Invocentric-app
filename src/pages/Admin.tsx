@@ -69,6 +69,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetchCollectionRest } from '../utils/firestoreRestFallback';
 import { apiUrl } from '../utils/apiConfig';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { ScrollableTabBar } from '../components/ScrollableTabBar';
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -1802,13 +1803,13 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* TABS SUB-NAVIGATION BAR (Extremely PC & Smartphone Friendly) */}
-      <div className="flex border-b border-slate-100 overflow-x-auto no-scrollbar scroll-smooth">
+      {/* TABS SUB-NAVIGATION BAR (with swipe/scroll & arrow buttons) */}
+      <ScrollableTabBar containerClassName="border-b border-slate-100" className="scroll-smooth">
         <div className="flex space-x-1 p-1 bg-slate-50 rounded-2xl border border-slate-100 w-full md:w-auto min-w-max">
           <button
             onClick={() => setActiveTab('overview')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer",
+              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
               activeTab === 'overview'
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-900 bg-transparent"
@@ -1821,7 +1822,7 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('users')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer",
+              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
               activeTab === 'users'
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-900 bg-transparent"
@@ -1837,7 +1838,7 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('approvals')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer relative",
+              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer relative shrink-0",
               activeTab === 'approvals'
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-900 bg-transparent"
@@ -1859,7 +1860,7 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('emails')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer",
+              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
               activeTab === 'emails'
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-900 bg-transparent"
@@ -1875,7 +1876,7 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('plans')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer",
+              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
               activeTab === 'plans'
                 ? "bg-white text-slate-900 shadow-sm"
                 : "text-slate-500 hover:text-slate-900 bg-transparent"
@@ -1888,7 +1889,7 @@ export default function AdminPage() {
             </span>
           </button>
         </div>
-      </div>
+      </ScrollableTabBar>
 
       {activeTab === 'overview' && (
         <>
@@ -4027,8 +4028,8 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Action Buttons Toolbar */}
-              <div className="p-4 bg-white border-b border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
+              {/* Action Buttons Toolbar (with swipe/scroll & arrow buttons) */}
+              <ScrollableTabBar containerClassName="p-4 bg-white border-b border-slate-100" className="gap-2">
                 <button
                   onClick={() => {
                     const u = selectedUserDetails;
@@ -4071,7 +4072,7 @@ export default function AdminPage() {
                   <CreditCard size={14} />
                   <span>Toggle Plan</span>
                 </button>
-              </div>
+              </ScrollableTabBar>
 
               {/* Drawer Content Body */}
               <div className="p-6 space-y-6 text-xs">

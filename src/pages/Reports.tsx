@@ -44,6 +44,7 @@ import {
 import { formatCurrency, cn, getWhatsAppShareUrl, isMobile, openInBrowser } from "../lib/utils";
 import { WhatsAppShareModal } from "../components/WhatsAppShareModal";
 import { WhatsAppIcon } from "../components/WhatsAppIcon";
+import { ScrollableTabBar } from "../components/ScrollableTabBar";
 import {
   format,
   startOfMonth,
@@ -1193,12 +1194,12 @@ export default function Reports() {
               />
             </div>
 
-            {/* Tab toggles */}
-            <div className="flex bg-neutral-100 p-1 rounded-xl">
+            {/* Tab toggles (with swipe/scroll & arrow buttons) */}
+            <ScrollableTabBar containerClassName="bg-neutral-100 p-1 rounded-xl max-w-full overflow-hidden" className="gap-1">
               <button
                 onClick={() => setActiveTab("invoices")}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                  "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shrink-0",
                   activeTab === "invoices"
                     ? "bg-white text-neutral-900 shadow-sm"
                     : "text-neutral-400 hover:text-neutral-700",
@@ -1209,7 +1210,7 @@ export default function Reports() {
               <button
                 onClick={() => setActiveTab("payments")}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                  "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer shrink-0",
                   activeTab === "payments"
                     ? "bg-white text-neutral-900 shadow-sm"
                     : "text-neutral-400 hover:text-neutral-700",
@@ -1220,7 +1221,7 @@ export default function Reports() {
               <button
                 onClick={() => setActiveTab("ageing")}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5",
+                  "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5 shrink-0",
                   activeTab === "ageing"
                     ? "bg-white text-emerald-800 shadow-sm"
                     : "text-neutral-400 hover:text-neutral-700",
@@ -1233,7 +1234,7 @@ export default function Reports() {
                   </span>
                 )}
               </button>
-            </div>
+            </ScrollableTabBar>
           </div>
         </div>
 
@@ -1521,8 +1522,8 @@ export default function Reports() {
                 </div>
               </div>
 
-              {/* Bucket Filter Pills */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {/* Bucket Filter Pills (with swipe/scroll & arrow buttons) */}
+              <ScrollableTabBar className="gap-2 pb-1">
                 {[
                   { key: 'all', label: 'All Unpaid', count: ageingReport.allBuckets.length },
                   { key: '30', label: '1 - 30 Days', count: ageingReport.bucket0to30.length },
@@ -1544,7 +1545,7 @@ export default function Reports() {
                     {b.label} ({b.count})
                   </button>
                 ))}
-              </div>
+              </ScrollableTabBar>
 
               {/* Overdue Invoices List */}
               {(() => {

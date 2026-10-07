@@ -17,6 +17,7 @@ import {
 import { BarcodeCanvas } from '../components/BarcodeCanvas';
 import { formatCurrency, cn } from '../lib/utils';
 import * as XLSX from 'xlsx';
+import { ScrollableTabBar } from '../components/ScrollableTabBar';
 import { 
   Barcode, 
   Layers, 
@@ -695,7 +696,7 @@ export default function BarcodeGenerator() {
       ───────────────────────────────────────────────────────────── */}
       <section className="bg-white border-b border-slate-200/80 px-4 sm:px-8 py-3 print:hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <nav className="flex items-center gap-2 sm:gap-4 overflow-x-auto py-1">
+          <ScrollableTabBar containerClassName="flex-1 mr-4 min-w-0" className="gap-2 sm:gap-4 py-1">
             {[
               { num: 1 as WizardStep, title: 'Item Selection & Queue', desc: 'Single, bulk & inventory' },
               { num: 2 as WizardStep, title: 'Barcode Design & Fields', desc: 'Layout & dynamic attributes' },
@@ -710,7 +711,7 @@ export default function BarcodeGenerator() {
                   type="button"
                   onClick={() => setCurrentStep(step.num)}
                   className={cn(
-                    "flex items-center gap-3 px-3.5 py-2 rounded-xl text-left transition-all cursor-pointer whitespace-nowrap",
+                    "flex items-center gap-3 px-3.5 py-2 rounded-xl text-left transition-all cursor-pointer whitespace-nowrap shrink-0",
                     isActive 
                       ? "bg-emerald-50/80 border border-emerald-200 text-[#166534]" 
                       : isPast
@@ -735,7 +736,7 @@ export default function BarcodeGenerator() {
                 </button>
               );
             })}
-          </nav>
+          </ScrollableTabBar>
 
           {/* Stepper Controls */}
           <div className="flex items-center gap-2 shrink-0">

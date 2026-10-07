@@ -568,7 +568,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
             }}
             className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 hover:bg-black text-white font-semibold text-sm rounded-xl shadow-lg transition-all active:scale-[0.98] mb-4 cursor-pointer"
           >
-            <span>Open InvoCentric App (ऐप में वापस जाएँ)</span>
+            <span>Open InvoCentric App (Return to App)</span>
           </a>
         </motion.div>
       </div>

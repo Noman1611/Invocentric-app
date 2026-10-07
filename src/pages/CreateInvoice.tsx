@@ -3947,7 +3947,7 @@ export default function CreateInvoicePage() {
                         Phone Scanner Connected!
                       </h3>
                       <p className="text-[11px] text-slate-300 font-bold max-w-[270px] leading-normal mb-4">
-                        Aapka phone successfully connect ho chuka hai! Point your phone camera at any barcode to automatically scan and enter items.
+                        Your phone is successfully connected! Point your phone camera at any barcode to automatically scan and enter items.
                       </p>
                     </div>
                   ) : (

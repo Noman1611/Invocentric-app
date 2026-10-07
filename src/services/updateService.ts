@@ -264,7 +264,7 @@ class UniversalUpdateService {
           try {
             (window as any).AndroidAppUpdater.showUpdateNotification(
               `InvoCentric Update Available (v${latestVer}) 🚀`,
-              `Naya update v${latestVer} taiyar hai! Tap karke turant install karein.`,
+              `New update v${latestVer} is ready! Tap to install now.`,
               apkAsset,
               latestVer
             );

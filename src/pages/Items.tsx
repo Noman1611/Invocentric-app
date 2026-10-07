@@ -24,6 +24,7 @@ import { initializeUsbScanner, registerScanListener, registerStatusListener, get
 import { QRCodeSVG } from 'qrcode.react';
 import { ScannerHelpGuide } from '../components/ScannerHelpGuide';
 import { extractInvoiceFromImage, ExtractedInvoice } from '../services/aiService';
+import { ScrollableTabBar } from '../components/ScrollableTabBar';
 
 interface Item {
   id: string;
@@ -702,8 +703,8 @@ export default function ItemsPage() {
         </div>
       </div>
 
-      {/* Inventory Navigation Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-100 no-scrollbar">
+      {/* Inventory Navigation Tabs (with swipe/scroll & arrow buttons) */}
+      <ScrollableTabBar containerClassName="border-b border-slate-100" className="gap-2 pb-2">
         {[
           { id: 'products', name: 'Products', icon: Package },
           { id: 'overview', name: 'Stock Overview', icon: BarChart3 },
@@ -723,7 +724,7 @@ export default function ItemsPage() {
               key={tab.id}
               onClick={() => setSearchParams(tab.id === 'products' ? {} : { tab: tab.id })}
               className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0",
+                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer",
                 isActive
                   ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/10"
                   : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
@@ -734,7 +735,7 @@ export default function ItemsPage() {
             </button>
           );
         })}
-      </div>
+      </ScrollableTabBar>
 
       {/* Tab Views Content */}
       {currentTab === 'overview' && (
@@ -2091,7 +2092,7 @@ export default function ItemsPage() {
                           Phone Scanner Connected!
                         </h3>
                         <p className="text-[11px] text-slate-500 font-bold max-w-[270px] leading-normal mb-4">
-                          Aapka phone successfully connect ho chuka hai! Point your phone camera at any barcode to automatically scan and enter items.
+                          Your phone is successfully connected! Point your phone camera at any barcode to automatically scan and enter items.
                         </p>
                       </div>
                     ) : (

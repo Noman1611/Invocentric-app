@@ -2769,7 +2769,7 @@ function generateInactivityEmailTemplate(input = "Business Partner", isPreview =
         <!-- PREVIEW ANIMATION LINK -->
         <tr>
           <td align="center" style="padding-bottom:14px;">
-            <a href="https://invocentric.in/api/preview/inactivity-email" target="_blank" style="display:inline-block; background-color:#ffffff; color:#0d5c4b; text-decoration:none; font-size:11.5px; font-weight:600; padding:6px 16px; border-radius:20px; border:1px solid #b9d4ca; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+            <a href="https://invocentric.in/thermal-preview" target="_blank" style="display:inline-block; background-color:#ffffff; color:#0d5c4b; text-decoration:none; font-size:11.5px; font-weight:600; padding:6px 16px; border-radius:20px; border:1px solid #b9d4ca; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
               \u26A1 View Live Thermal Print Animation \u2197
             </a>
           </td>

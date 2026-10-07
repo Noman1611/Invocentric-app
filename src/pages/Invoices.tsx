@@ -12,6 +12,7 @@ import { format, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { parseDateSafe } from '../utils/dateUtils';
 import { sendEmail, emailTemplates } from '../services/emailService';
 import { formatInvoicesForExcel, exportInvoicesAsMultiSheet } from '../services/excelService';
+import { ScrollableTabBar } from '../components/ScrollableTabBar';
 
 export default function InvoicesPage() {
   const navigate = useNavigate();
@@ -214,8 +215,8 @@ export default function InvoicesPage() {
           </button>
         </div>
 
-        {/* Stitch Quick Status Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {/* Stitch Quick Status Filter Tabs (with swipe/scroll & arrow buttons) */}
+        <ScrollableTabBar className="gap-2 pb-1">
           {[
             { id: 'all', label: `All (${invoices.length})` },
             { id: 'paid', label: `Paid (${invoices.filter(i => i.status === 'paid').length})` },
@@ -235,7 +236,7 @@ export default function InvoicesPage() {
               {tab.label}
             </button>
           ))}
-        </div>
+        </ScrollableTabBar>
 
         <AnimatePresence>
           {showFilters && (

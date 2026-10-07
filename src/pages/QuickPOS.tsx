@@ -43,6 +43,7 @@ import { ScannerHelpGuide } from '../components/ScannerHelpGuide';
 import { initializeUsbScanner, registerScanListener, registerStatusListener } from '../utils/usbScanner';
 import { QRCodeSVG } from 'qrcode.react';
 import { toWords } from 'number-to-words';
+import { ScrollableTabBar } from '../components/ScrollableTabBar';
 
 const generateSequentialInvoiceNumber = (allInvoices: any[], prefixOverride?: string) => {
   const prefix = (prefixOverride || 'INV').trim().toUpperCase() || 'INV';
@@ -824,15 +825,15 @@ export default function QuickPOSPage() {
             )}
           </AnimatePresence>
 
-          {/* Category Filter Pills */}
-          <div className="px-3 py-2 bg-white border-b border-slate-200 overflow-x-auto no-scrollbar flex items-center gap-1.5 shrink-0 scroll-smooth">
+          {/* Category Filter Pills (with swipe/scroll & arrow buttons) */}
+          <ScrollableTabBar containerClassName="bg-white border-b border-slate-200 px-2 py-1.5" className="gap-1.5">
             {categories.map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
                 className={cn(
-                  "px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border",
+                  "px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border shrink-0",
                   selectedCategory === cat
                     ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
                     : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
@@ -841,7 +842,7 @@ export default function QuickPOSPage() {
                 {cat}
               </button>
             ))}
-          </div>
+          </ScrollableTabBar>
 
           {/* Product Cards Grid */}
           <div className="flex-1 p-3 overflow-y-auto">

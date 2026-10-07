@@ -50,6 +50,7 @@ const GstCalculatorPage = lazy(() => import('./pages/GstCalculatorPage'));
 const DownloadPage = lazy(() => import('./pages/DownloadPage'));
 const AccountingExportPage = lazy(() => import('./pages/AccountingExportPage'));
 const HeroPreviewPage = lazy(() => import('./components/HeroPreviewPage'));
+const ThermalPreviewPage = lazy(() => import('./pages/ThermalPreviewPage'));
 
 function PageLoader() {
   return (
@@ -1887,6 +1888,8 @@ function ImpersonationBanner() {
               <Route path="/calculator" element={<GstCalculatorPage />} />
               <Route path="/gst-calc" element={<GstCalculatorPage />} />
               <Route path="/hero-preview" element={<HeroPreviewPage />} />
+              <Route path="/thermal-preview" element={<ThermalPreviewPage />} />
+              <Route path="/api/preview/inactivity-email" element={<ThermalPreviewPage />} />
               
               {/* Private Routes */}
               <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />

@@ -50,6 +50,7 @@ import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, AreaChart, A
 import { exportInvoicesAsMultiSheet } from '../services/excelService';
 import { IS_TEST_BUILD } from '../config/appChannel';
 import { getStoredUserProfile } from '../utils/settingsStorage';
+import { ScrollableTabBar } from '../components/ScrollableTabBar';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -505,8 +506,8 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          {/* Quick Action Horizontal Action Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth">
+          {/* Quick Action Horizontal Action Pills (with swipe/scroll & arrow buttons) */}
+          <ScrollableTabBar className="gap-2 pb-1.5 scroll-smooth">
             {/* Primary Action: Quick POS Sale */}
             <Link
               to="/pos"
@@ -560,7 +561,7 @@ export default function DashboardPage() {
               <RotateCcw size={16} className="text-emerald-600" />
               <span>Recycle Bin ({recycleBinItems.length})</span>
             </button>
-          </div>
+          </ScrollableTabBar>
         </div>
 
         {/* Mobile Mini Sales Trend Chart */}

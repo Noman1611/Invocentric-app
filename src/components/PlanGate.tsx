@@ -113,7 +113,7 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
           </div>
           <h2 className="text-2xl font-black text-neutral-900 uppercase tracking-tight mb-2">Weekly Verification</h2>
           <p className="text-neutral-500 font-bold uppercase tracking-widest text-[10px] mb-8 leading-relaxed">
-            Har Monday ko aapka plan verify karne ke liye 1 baar online aana zaroori hai.
+            Please connect to the internet once every Monday to verify your active plan status.
           </p>
 
           <button

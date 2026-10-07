@@ -8,17 +8,17 @@ dotenv.config();
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.43';
+const TAG = 'v1.0.44';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.43 - Impersonation Banner, Login & Signup UI, App Updater & Security Enhancements';
-const RELEASE_NOTES = `## InvoCentric v1.0.43 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.44 - English Localization, Scrollable Tab Navigation & Instant Thermal Print Preview';
+const RELEASE_NOTES = `## InvoCentric v1.0.44 Release Notes
 
-### What's New in v1.0.43:
-- **Admin User Impersonation:** Secure user impersonation banner with instant return-to-admin controls.
-- **Enhanced Authentication & Dedicated Signup:** Seamless login and register experiences with direct Google Sign-in and email workflows.
-- **App Update Notification & Restart Actions:** Clean desktop and mobile update state management.
+### What's New in v1.0.44:
+- **English Localization:** Fully standardized all UI labels, alerts, notifications, and instructions across the app to pure English.
+- **Scrollable Tab Navigation & Arrow Controls:** Added smooth horizontal scrolling, swipe gestures, and clickable Left/Right chevron arrow buttons on overflowing tab bars across Settings, Items, QuickPOS, Reports, Invoices, and Admin screens so no buttons are clipped at boundaries.
+- **Instant Thermal Print Animation:** Dedicated fast-loading Thermal Print Preview page (\`/thermal-preview\`) featuring real-time motorized paper feed animation and instant receipt dispensing without loading delays.
 - **Multiplatform Production Binaries:** Updated Windows installer (\`InvoCentric-Setup.exe\`) and Android production APK (\`InvoCentric.apk\`).
-- **Comprehensive Quality Assured:** 144 unit, integration, stress, and security test cases passing 100%.
+- **Comprehensive Quality Assured:** All 144 unit, integration, and security test cases passing 100%.
 `;
 
 const ASSETS = [
