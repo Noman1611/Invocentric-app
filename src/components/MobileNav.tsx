@@ -22,17 +22,22 @@ import {
   ScanLine,
   Sparkles,
   Lock,
-  Layout as LayoutIcon
+  Layout as LayoutIcon,
+  RotateCcw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import { useRecycleBin } from '../hooks/useData';
+import RecycleBinModal from './RecycleBinModal';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function MobileNav() {
   const { isAdmin, user, logout, appMode, isPro, triggerUpgradeModal } = useAuth();
+  const { recycleBinItems } = useRecycleBin();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [recycleBinOpen, setRecycleBinOpen] = useState(false);
   
   const isHardcodedAdmin = user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
   const showAdmin = isAdmin || isHardcodedAdmin;
@@ -240,6 +245,23 @@ export default function MobileNav() {
                   );
                 })}
 
+                {/* Recycle Bin & Data Protection */}
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setRecycleBinOpen(true);
+                  }}
+                  className="flex items-center justify-between w-full p-4 rounded-2xl transition-all text-neutral-600 hover:bg-neutral-50 active:bg-neutral-50"
+                >
+                  <div className="flex items-center gap-4">
+                    <RotateCcw size={22} className="text-emerald-600" />
+                    <span className="text-[15px] font-medium">Recycle Bin</span>
+                  </div>
+                  <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {recycleBinItems.length} items
+                  </span>
+                </button>
+
                 {showAdmin && (
                   <>
                     <div className="h-px my-4 mx-2 bg-neutral-100" />
@@ -277,6 +299,11 @@ export default function MobileNav() {
           </>
         )}
       </AnimatePresence>
+
+      <RecycleBinModal
+        isOpen={recycleBinOpen}
+        onClose={() => setRecycleBinOpen(false)}
+      />
     </>
   );
 }

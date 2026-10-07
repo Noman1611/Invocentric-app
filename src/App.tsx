@@ -18,6 +18,7 @@ import AutoBackup from './components/AutoBackup';
 import DataBackupRecoveryModal from './components/DataBackupRecoveryModal';
 import MigrationModal from './components/MigrationModal';
 import { cn } from './lib/utils';
+import { apiUrl } from './utils/apiConfig';
 
 // Lazy load pages for performance (code splitting)
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -234,14 +235,16 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
       if (targetUserId) {
         // 2. Upgrade the User in Firestore (unlock Pro)
         const userRef = doc(db, 'users', targetUserId);
+        const isYearly = (req.billing_cycle || '').toLowerCase() === 'yearly';
         await setDoc(userRef, {
           plan: 'pro',
           plan_tier: 'pro',
           plan_status: 'active',
+          billing_cycle: isYearly ? 'yearly' : 'monthly',
           subscription_pending: false,
           subscription_status: 'active',
           subscription_request_ref: null,
-          plan_renews_at: req.billing_cycle === 'yearly' 
+          plan_renews_at: isYearly
             ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
             : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date().toISOString()
@@ -283,7 +286,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
       try {
         if (auth.currentUser) {
           const token = await auth.currentUser.getIdToken();
-          await fetch('/api/subscription/approve-receipt', {
+          await fetch(apiUrl('/api/subscription/approve-receipt'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1808,6 +1811,37 @@ export default function App() {
   );
   const AppRouter = isDesktopApp ? HashRouter : BrowserRouter;
 
+function ImpersonationBanner() {
+  const { isImpersonating, impersonatedUser, stopImpersonation } = useAuth();
+  const navigate = useNavigate();
+
+  if (!isImpersonating) return null;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[9999999] bg-gradient-to-r from-amber-500 via-amber-600 to-orange-600 text-slate-950 font-bold px-4 py-2 flex items-center justify-between text-xs shadow-xl backdrop-blur-md border-b border-amber-400/40 select-none print:hidden">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-950 animate-ping shrink-0" />
+        <span className="truncate">
+          🔒 <strong>Impersonation Active:</strong> Viewing app as{' '}
+          <span className="underline decoration-slate-900 font-extrabold">{impersonatedUser?.name || impersonatedUser?.business || impersonatedUser?.email}</span>{' '}
+          ({impersonatedUser?.email})
+        </span>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => {
+            stopImpersonation();
+            navigate('/admin?tab=users');
+          }}
+          className="bg-slate-950 hover:bg-slate-900 text-amber-400 hover:text-amber-300 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+        >
+          Exit & Return to Admin
+        </button>
+      </div>
+    </div>
+  );
+}
+
   return (
     <StorageModeProvider>
       <AuthProvider>
@@ -1816,6 +1850,7 @@ export default function App() {
         )}
         <AppRouter>
           <AndroidBackHandler />
+          <ImpersonationBanner />
           <AppUpdateBanner />
           <GlobalShortcutsManager />
           <MigrationModal />
@@ -1827,6 +1862,7 @@ export default function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<LoginPage defaultMode="signup" />} />
               <Route path="/" element={<HomeRoute />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/blog" element={<BlogPage />} />

@@ -1,5 +1,6 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import { getStoredUserProfile, saveStoredUserProfile, sanitizeFirestorePayload, sanitizeUserProfile, DEFAULT_PROFILE_DATA, UserProfileData } from '../utils/settingsStorage';
+import { apiUrl } from '../utils/apiConfig';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Save, 
@@ -44,7 +45,8 @@ import {
   MessageCircle,
   Copy,
   Send,
-  QrCode
+  QrCode,
+  Monitor
 } from 'lucide-react';
 import { updateService, AppUpdateState } from '../services/updateService';
 import { whatsappDesktopService } from '../services/whatsappDesktopService';
@@ -254,6 +256,7 @@ export default function SettingsPage() {
   const [waTestPhone, setWaTestPhone] = useState<string>('');
   const [waTestMessage, setWaTestMessage] = useState<string>('Hello! This is an automated test message from InvoCentric.');
   const [waTestResult, setWaTestResult] = useState<{ success: boolean; msg: string } | null>(null);
+  const isDesktopSupported = whatsappDesktopService.isSupported();
 
   useEffect(() => {
     if (!whatsappDesktopService.isSupported()) return;
@@ -278,6 +281,10 @@ export default function SettingsPage() {
   }, []);
 
   const handleStartWhatsAppPairing = async () => {
+    if (!whatsappDesktopService.isSupported()) {
+      alert("WhatsApp background automation sirf InvoCentric Desktop Software (Windows PC) me available hai.");
+      return;
+    }
     setWaLoading(true);
     try {
       await whatsappDesktopService.startSession();
@@ -303,6 +310,10 @@ export default function SettingsPage() {
   };
 
   const handleSendTestWhatsApp = async () => {
+    if (!whatsappDesktopService.isSupported()) {
+      alert("WhatsApp background automation sirf InvoCentric Desktop Software (Windows PC) me available hai.");
+      return;
+    }
     if (!waTestPhone.trim()) {
       alert("Please enter a valid phone number");
       return;
@@ -432,7 +443,7 @@ export default function SettingsPage() {
         const token = await user.getIdToken();
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const response = await fetch(`/api/subscription/receipt-download/${receiptId}`, {
+      const response = await fetch(apiUrl(`/api/subscription/receipt-download/${receiptId}`), {
         headers
       });
       if (!response.ok) throw new Error("Receipt download failed");
@@ -1038,9 +1049,12 @@ export default function SettingsPage() {
     { 
       id: 'whatsapp', 
       label: 'WhatsApp Automation', 
-      mobileTitle: 'WhatsApp Settings',
+      mobileTitle: 'WhatsApp Automation',
       icon: MessageCircle, 
-      desc: 'PC background auto-send, QR pairing & Android share' 
+      desc: isDesktopSupported 
+        ? 'PC background auto-send, QR pairing & status' 
+        : 'Desktop software me use hoga (Windows PC Required)',
+      badge: !isDesktopSupported ? 'Desktop Only' : undefined
     },
     { 
       id: 'system', 
@@ -1126,9 +1140,16 @@ export default function SettingsPage() {
                     <IconComponent size={20} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">
-                      {cat.mobileTitle}
-                    </h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-bold text-slate-900 group-hover:text-emerald-800 transition-colors">
+                        {cat.mobileTitle}
+                      </h3>
+                      {(cat as any).badge && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                          {(cat as any).badge}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500 line-clamp-1 mt-0.5 font-medium">
                       {cat.desc}
                     </p>
@@ -1231,6 +1252,14 @@ export default function SettingsPage() {
                 >
                   <IconComp size={15} className={isActive ? "text-white" : "text-slate-500"} />
                   <span>{cat.label}</span>
+                  {(cat as any).badge && (
+                    <span className={cn(
+                      "text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight",
+                      isActive ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800 border border-amber-200"
+                    )}>
+                      {(cat as any).badge}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -2393,101 +2422,181 @@ export default function SettingsPage() {
                       </span>
                     </div>
 
-                    {/* Desktop WhatsApp Background Engine */}
-                    <div className="p-5 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                            <span>Desktop Background WhatsApp Engine</span>
-                            <span className={cn(
-                              "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider",
-                              waStatus === 'connected' ? "bg-emerald-100 text-emerald-800" :
-                              waStatus === 'waiting_qr' ? "bg-amber-100 text-amber-800" : "bg-slate-200 text-slate-700"
-                            )}>
-                              {waStatus === 'connected' ? '● Connected & Ready' :
-                               waStatus === 'waiting_qr' ? '● Waiting for QR Scan' :
-                               waStatus === 'initializing' ? '● Starting...' : 'Not Connected'}
-                            </span>
-                          </h4>
-                          <p className="text-[11px] text-slate-500">
-                            Runs quietly on your PC. Invoices and payment reminders send in 1 click without opening WhatsApp.
-                          </p>
-                        </div>
-
-                        {waStatus === 'connected' ? (
-                          <button
-                            type="button"
-                            onClick={handleDisconnectWhatsApp}
-                            disabled={waLoading}
-                            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-                          >
-                            Disconnect
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleStartWhatsAppPairing}
-                            disabled={waLoading}
-                            className="px-4 py-2 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
-                          >
-                            <QrCode size={14} />
-                            <span>{waLoading ? 'Loading...' : 'Pair WhatsApp (QR)'}</span>
-                          </button>
-                        )}
-                      </div>
-
-                      {/* QR Display Card if waiting for scan */}
-                      {waQrData && waStatus !== 'connected' && (
-                        <div className="p-5 bg-white rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center text-center space-y-3">
-                          <p className="text-xs font-bold text-slate-900">
-                            Scan with your phone to link your WhatsApp:
-                          </p>
-                          <img src={waQrData} alt="WhatsApp QR Code" className="w-52 h-52 rounded-xl border border-slate-100 p-2 shadow-sm bg-white" />
-                          <div className="text-[11px] text-slate-500 space-y-1">
-                            <p>1. Open <strong>WhatsApp</strong> on your mobile phone</p>
-                            <p>2. Tap <strong>Settings</strong> or <strong>3 dots</strong> &gt; <strong>Linked Devices</strong></p>
-                            <p>3. Tap <strong>Link a Device</strong> and point your camera here</p>
+                    {!isDesktopSupported ? (
+                      /* 🚫 BLOCKED ON MOBILE / WEB APP: Must use Desktop Software */
+                      <div className="p-6 sm:p-7 bg-gradient-to-br from-amber-50/60 via-slate-50 to-emerald-50/20 rounded-2xl border-2 border-dashed border-amber-200 text-center sm:text-left space-y-5">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-amber-100/90 text-amber-800 border border-amber-300 flex items-center justify-center shrink-0 shadow-xs">
+                            <Monitor size={30} />
                           </div>
-                        </div>
-                      )}
-
-                      {/* Test Message Box if Connected */}
-                      {waStatus === 'connected' && (
-                        <div className="mt-4 pt-4 border-t border-slate-200/80 space-y-3">
-                          <h5 className="text-xs font-bold text-slate-800">Send Test Background Message:</h5>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <input 
-                              type="tel" 
-                              placeholder="Customer Phone (e.g. 9876543210)"
-                              value={waTestPhone}
-                              onChange={(e) => setWaTestPhone(e.target.value)}
-                              className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-emerald-500"
-                            />
-                            <input 
-                              type="text" 
-                              placeholder="Test message..."
-                              value={waTestMessage}
-                              onChange={(e) => setWaTestMessage(e.target.value)}
-                              className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-emerald-500"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleSendTestWhatsApp}
-                            disabled={waLoading}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                          >
-                            <Send size={13} />
-                            <span>{waLoading ? 'Dispatching...' : 'Send Test WhatsApp'}</span>
-                          </button>
-                          {waTestResult && (
-                            <p className={cn("text-xs font-bold", waTestResult.success ? "text-emerald-700" : "text-rose-600")}>
-                              {waTestResult.msg}
+                          <div className="space-y-1.5 flex-1">
+                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                              <h4 className="text-base sm:text-lg font-black text-slate-900">
+                                WhatsApp Background Automation Sirf Desktop Software Me Use Hoga
+                              </h4>
+                              <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                Windows PC / Laptop Required
+                              </span>
+                            </div>
+                            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                              WhatsApp Background Automation engine ko run karne ke liye <strong>InvoCentric Desktop Software (Windows PC / Laptop)</strong> ki zaroorat hoti hai. Yeh headless local engine sirf computer par quietly run hota hai taaki bina kisi API charges ke invoices direct deliver ho sakein.
                             </p>
+                            <p className="text-xs text-amber-800 font-semibold bg-amber-50 border border-amber-200/80 px-3 py-2 rounded-xl mt-2">
+                              ⚠️ Mobile App ya Web Browser par background automated WhatsApp sending block hai. Is feature ko use karne ke liye kripya InvoCentric Desktop App use karein.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Feature Capabilities Comparison Card */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                          <div className="p-4 bg-white rounded-xl border border-slate-200 text-left space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                              <Monitor size={16} className="text-emerald-600" />
+                              <span>Desktop Software (PC / Laptop)</span>
+                            </div>
+                            <ul className="text-[11px] text-slate-600 space-y-1">
+                              <li className="flex items-center gap-1.5">
+                                <span className="text-emerald-600 font-bold">✓</span> 1-Click Silent Background Auto-Send
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <span className="text-emerald-600 font-bold">✓</span> QR Code Device Pairing
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <span className="text-emerald-600 font-bold">✓</span> ₹0 Cloud Fee / 100% Free
+                              </li>
+                            </ul>
+                          </div>
+
+                          <div className="p-4 bg-white rounded-xl border border-slate-200 text-left space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+                              <Smartphone size={16} className="text-emerald-600" />
+                              <span>Mobile App (Android / Web)</span>
+                            </div>
+                            <ul className="text-[11px] text-slate-600 space-y-1">
+                              <li className="flex items-center gap-1.5">
+                                <span className="text-emerald-600 font-bold">✓</span> 1-Tap Native WhatsApp Share Active
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <span className="text-emerald-600 font-bold">✓</span> Pre-attached PDF with Invoice Details
+                              </li>
+                              <li className="flex items-center gap-1.5">
+                                <span className="text-amber-600 font-bold">✕</span> Background Silent Automation Blocked
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Action CTA */}
+                        <div className="pt-3 border-t border-amber-200/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <p className="text-xs text-slate-600 font-medium">
+                            Agar aapko full WhatsApp Background Automation chalana hai, to Desktop Software use karein:
+                          </p>
+                          <Link
+                            to="/download"
+                            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 active:scale-95 transition-all shrink-0 cursor-pointer"
+                          >
+                            <Download size={14} />
+                            <span>Download Desktop Software</span>
+                          </Link>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Desktop WhatsApp Background Engine */
+                      <div className="p-5 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                              <span>Desktop Background WhatsApp Engine</span>
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider",
+                                waStatus === 'connected' ? "bg-emerald-100 text-emerald-800" :
+                                waStatus === 'waiting_qr' ? "bg-amber-100 text-amber-800" : "bg-slate-200 text-slate-700"
+                              )}>
+                                {waStatus === 'connected' ? '● Connected & Ready' :
+                                 waStatus === 'waiting_qr' ? '● Waiting for QR Scan' :
+                                 waStatus === 'initializing' ? '● Starting...' : 'Not Connected'}
+                              </span>
+                            </h4>
+                            <p className="text-[11px] text-slate-500">
+                              Runs quietly on your PC. Invoices and payment reminders send in 1 click without opening WhatsApp.
+                            </p>
+                          </div>
+
+                          {waStatus === 'connected' ? (
+                            <button
+                              type="button"
+                              onClick={handleDisconnectWhatsApp}
+                              disabled={waLoading}
+                              className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                            >
+                              Disconnect
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleStartWhatsAppPairing}
+                              disabled={waLoading}
+                              className="px-4 py-2 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <QrCode size={14} />
+                              <span>{waLoading ? 'Loading...' : 'Pair WhatsApp (QR)'}</span>
+                            </button>
                           )}
                         </div>
-                      )}
-                    </div>
+
+                        {/* QR Display Card if waiting for scan */}
+                        {waQrData && waStatus !== 'connected' && (
+                          <div className="p-5 bg-white rounded-2xl border border-emerald-200 shadow-sm flex flex-col items-center text-center space-y-3">
+                            <p className="text-xs font-bold text-slate-900">
+                              Scan with your phone to link your WhatsApp:
+                            </p>
+                            <img src={waQrData} alt="WhatsApp QR Code" className="w-52 h-52 rounded-xl border border-slate-100 p-2 shadow-sm bg-white" />
+                            <div className="text-[11px] text-slate-500 space-y-1">
+                              <p>1. Open <strong>WhatsApp</strong> on your mobile phone</p>
+                              <p>2. Tap <strong>Settings</strong> or <strong>3 dots</strong> &gt; <strong>Linked Devices</strong></p>
+                              <p>3. Tap <strong>Link a Device</strong> and point your camera here</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Test Message Box if Connected */}
+                        {waStatus === 'connected' && (
+                          <div className="mt-4 pt-4 border-t border-slate-200/80 space-y-3">
+                            <h5 className="text-xs font-bold text-slate-800">Send Test Background Message:</h5>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <input 
+                                type="tel" 
+                                placeholder="Customer Phone (e.g. 9876543210)"
+                                value={waTestPhone}
+                                onChange={(e) => setWaTestPhone(e.target.value)}
+                                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                              />
+                              <input 
+                                type="text" 
+                                placeholder="Test message..."
+                                value={waTestMessage}
+                                onChange={(e) => setWaTestMessage(e.target.value)}
+                                className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleSendTestWhatsApp}
+                              disabled={waLoading}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              <Send size={13} />
+                              <span>{waLoading ? 'Dispatching...' : 'Send Test WhatsApp'}</span>
+                            </button>
+                            {waTestResult && (
+                              <p className={cn("text-xs font-bold", waTestResult.success ? "text-emerald-700" : "text-rose-600")}>
+                                {waTestResult.msg}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </section>
 
                   {/* Card 2: Android App Integration */}

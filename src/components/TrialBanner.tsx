@@ -20,8 +20,20 @@ export function TrialBanner() {
   const [claimReceiptNo, setClaimReceiptNo] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
 
-  // If user is owner, no trial banner needed
-  if (isOwner) {
+  const dynamicPromoDays = React.useMemo(() => {
+    try {
+      const cached = localStorage.getItem('invocentric_admin_plans_config');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.promoFreeTrialActive === false) return 0;
+        return Number(parsed?.promoDays) || 30;
+      }
+    } catch {}
+    return 30;
+  }, []);
+
+  // If user is owner or promo trial is disabled, no trial banner needed
+  if (isOwner || dynamicPromoDays === 0) {
     return null;
   }
 
@@ -68,7 +80,7 @@ export function TrialBanner() {
   }
 
   // State 2: User has NOT claimed the 1-Month Free Pro offer yet -> Show "Claim Now" button!
-  if (!freeTrialClaimed && planTier !== 'pro') {
+  if (!freeTrialClaimed && planTier !== 'pro' && !isTrialExpired) {
     return (
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white px-2.5 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between shadow-md print:hidden">
         <div className="flex items-center gap-2 sm:gap-2.5 max-w-full overflow-hidden">
@@ -80,8 +92,8 @@ export function TrialBanner() {
               <span className="bg-white text-[#166534] font-extrabold text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wider mr-1.5 shadow-xs">
                 Special Offer
               </span>
-              <span className="font-extrabold">1 Month Free Pro Plan:</span>{' '}
-              <span className="text-emerald-100">Claim your 30-day Pro access with AI billing, unlimited invoices & reports!</span>
+              <span className="font-extrabold">{dynamicPromoDays === 365 ? '1 Year Free Pro Plan:' : `${dynamicPromoDays} Days Free Pro Plan:`}</span>{' '}
+              <span className="text-emerald-100">Claim your {dynamicPromoDays === 365 ? '1-year' : `${dynamicPromoDays}-day`} Pro access with AI billing, unlimited invoices & reports!</span>
             </p>
             {claimError && (
               <p className="text-[10px] text-rose-200 font-medium mt-0.5">{claimError}</p>
@@ -140,21 +152,23 @@ export function TrialBanner() {
     );
   }
 
-  // State 4: Trial expired
+  // State 4: Plan or Trial expired
   if (isTrialExpired) {
     return (
       <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 text-white px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between shadow-xs print:hidden">
         <div className="flex items-center gap-2 sm:gap-2.5">
           <Clock size={15} className="text-emerald-300 shrink-0" />
           <p className="text-[11px] sm:text-xs font-bold">
-            Your 1-month free trial has expired. Activate a Pro plan to keep all premium accounting features.
+            {freeTrialClaimed 
+              ? 'Your 1-month free trial has expired. Activate a Pro plan to keep all premium accounting features.'
+              : 'Your Pro plan subscription has expired. Renew your plan to unlock all premium accounting features.'}
           </p>
         </div>
         <Link
           to="/pricing"
           className="px-3.5 py-1 bg-white text-rose-700 hover:bg-rose-50 rounded-lg text-[11px] font-black uppercase tracking-wider shadow-sm transition-all hover:scale-105 shrink-0 ml-2"
         >
-          Choose Plan
+          {freeTrialClaimed ? 'Choose Plan' : 'Renew Plan'}
         </Link>
       </div>
     );

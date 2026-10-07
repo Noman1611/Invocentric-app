@@ -8,20 +8,17 @@ dotenv.config();
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.42';
+const TAG = 'v1.0.43';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.42 - Restored Original UI/UX & Enhanced Quick Actions (Invoices, Quotations, Purchases)';
-const RELEASE_NOTES = `## InvoCentric v1.0.42 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.43 - Impersonation Banner, Login & Signup UI, App Updater & Security Enhancements';
+const RELEASE_NOTES = `## InvoCentric v1.0.43 Release Notes
 
-### What's New in v1.0.42:
-- **Restored Pure InvoCentric UI/UX:** Completely reverted to the classic, high-performance, clutter-free InvoCentric design system.
-- **Enhanced Quick Actions:** Added 1-tap direct navigation cards for:
-  - **Invoices ➔** (\`/invoices\`) - View, search, and manage all sales tax invoices
-  - **Quotations ➔** (\`/quotations\`) - Generate and manage customer quotations and estimates
-  - **Purchases ➔** (\`/purchases\`) - Record vendor purchase bills, inwards, and expense vouchers
-- **100% Interactive Cards & Zero Demo Mockups:** All dashboard KPI cards (Sales Revenue, Collections Received, Customer Due, Low Stock) are fully interactive with direct error-free routing to live data views.
-- **Test Channel Decommissioned:** Internal experimental test channel purged; all production builds now ship with hardened stability.
+### What's New in v1.0.43:
+- **Admin User Impersonation:** Secure user impersonation banner with instant return-to-admin controls.
+- **Enhanced Authentication & Dedicated Signup:** Seamless login and register experiences with direct Google Sign-in and email workflows.
+- **App Update Notification & Restart Actions:** Clean desktop and mobile update state management.
 - **Multiplatform Production Binaries:** Updated Windows installer (\`InvoCentric-Setup.exe\`) and Android production APK (\`InvoCentric.apk\`).
+- **Comprehensive Quality Assured:** 144 unit, integration, stress, and security test cases passing 100%.
 `;
 
 const ASSETS = [

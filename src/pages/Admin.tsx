@@ -43,7 +43,11 @@ import {
   CheckCircle2,
   Settings,
   Gift,
-  CreditCard
+  CreditCard,
+  Sliders,
+  ShieldCheck,
+  Layers,
+  Receipt
 } from 'lucide-react';
 import { db, auth, OperationType, handleFirestoreError } from '../lib/firebase';
 import { dbService } from '../services/dbService';
@@ -58,12 +62,13 @@ import {
   where,
   getDocs 
 } from 'firebase/firestore';
-import { cn } from '../lib/utils';
-import { format, formatDistanceToNow } from 'date-fns';
+import { cn, formatCurrency } from '../lib/utils';
+import { format, formatDistanceToNow, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchCollectionRest } from '../utils/firestoreRestFallback';
-import { Navigate, useLocation } from 'react-router-dom';
+import { apiUrl } from '../utils/apiConfig';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -132,7 +137,8 @@ const getUserInvoiceCount = (userId: string, userEmail?: string, invoices: any[]
 };
 
 export default function AdminPage() {
-  const { user, isAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading, startImpersonation } = useAuth();
+  const navigate = useNavigate();
   
   // Make sure Noman Shaikh is always treated as an admin
   const isHardcodedAdmin = user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
@@ -195,7 +201,7 @@ export default function AdminPage() {
     try {
       if (auth.currentUser) {
         const token = await auth.currentUser.getIdToken();
-        const res = await fetch('/api/admin/smtp-status', {
+        const res = await fetch(apiUrl('/api/admin/smtp-status'), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -225,7 +231,7 @@ export default function AdminPage() {
     try {
       if (auth.currentUser) {
         const token = await auth.currentUser.getIdToken();
-        const res = await fetch('/api/admin/test-smtp-connection', {
+        const res = await fetch(apiUrl('/api/admin/test-smtp-connection'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -258,7 +264,7 @@ export default function AdminPage() {
     try {
       if (auth.currentUser) {
         const token = await auth.currentUser.getIdToken();
-        const res = await fetch('/api/admin/save-smtp-config', {
+        const res = await fetch(apiUrl('/api/admin/save-smtp-config'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -320,10 +326,10 @@ export default function AdminPage() {
   const [usersLayoutMode, setUsersLayoutMode] = useState<'grid' | 'table'>('grid');
   
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'approvals' | 'emails'>(() => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'approvals' | 'emails' | 'plans'>(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam === 'approvals' || tabParam === 'users' || tabParam === 'emails' || tabParam === 'overview') {
+    if (tabParam === 'approvals' || tabParam === 'users' || tabParam === 'emails' || tabParam === 'overview' || tabParam === 'plans') {
       return tabParam as any;
     }
     return 'overview';
@@ -332,10 +338,78 @@ export default function AdminPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam === 'approvals' || tabParam === 'users' || tabParam === 'emails' || tabParam === 'overview') {
+    if (tabParam === 'approvals' || tabParam === 'users' || tabParam === 'emails' || tabParam === 'overview' || tabParam === 'plans') {
       setActiveTab(tabParam as any);
     }
   }, [location.search]);
+
+  // User Profile Side-Drawer state (Deliverable 2)
+  const [selectedUserDetails, setSelectedUserDetails] = useState<UserItem | null>(null);
+
+  // Dynamic Plans Configuration State (Deliverable 3)
+  const [plansConfig, setPlansConfig] = useState<{
+    monthlyPrice: number;
+    yearlyPrice: number;
+    promoClaimEnabled: boolean;
+    promoQuota: number;
+    features: string[];
+  }>(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('invocentric_admin_plans_config') : null;
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return {
+      monthlyPrice: 199,
+      yearlyPrice: 1999,
+      promoClaimEnabled: true,
+      promoQuota: 1000,
+      features: [
+        'Unlimited GST & Non-GST Invoicing',
+        'Direct SBI UPI QR Code On Every Bill',
+        'Real-time Cloud Sync & Multi-Device Access',
+        'Custom Business Logo & Digital Signature',
+        'Thermal Bill Printing & 1-Tap WhatsApp Share',
+        'Automated Customer Inactivity Reminders'
+      ]
+    };
+  });
+  const [savingPlans, setSavingPlans] = useState(false);
+
+  // Listen to Firestore system_config/subscription_plans
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'system_config', 'subscription_plans'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setPlansConfig(prev => ({
+          ...prev,
+          monthlyPrice: data.monthlyPrice ?? prev.monthlyPrice,
+          yearlyPrice: data.yearlyPrice ?? prev.yearlyPrice,
+          promoClaimEnabled: data.promoClaimEnabled ?? prev.promoClaimEnabled,
+          promoQuota: data.promoQuota ?? prev.promoQuota,
+          features: data.features ?? prev.features
+        }));
+      }
+    }, (err) => console.warn("Plan config listener warning:", err));
+    return () => unsub();
+  }, []);
+
+  const handleSavePlanConfig = async () => {
+    setSavingPlans(true);
+    try {
+      localStorage.setItem('invocentric_admin_plans_config', JSON.stringify(plansConfig));
+      const configDoc = doc(db, 'system_config', 'subscription_plans');
+      await setDoc(configDoc, {
+        ...plansConfig,
+        updated_at: new Date().toISOString()
+      }, { merge: true });
+      triggerToast("Subscription plans configuration updated successfully!");
+    } catch (e: any) {
+      console.warn("Could not save to Firestore, saved locally:", e);
+      triggerToast("Saved plan configuration locally.");
+    } finally {
+      setSavingPlans(false);
+    }
+  };
 
   // Toast confirmation feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -540,6 +614,70 @@ export default function AdminPage() {
       totalBusinesses
     };
   }, [dbInvoices, dbUsers]);
+
+  // SaaS & Platform Financials & Metrics Calculation (Deliverable 1)
+  const saasFinancials = useMemo(() => {
+    const approvedRequests = subscriptionRequests.filter(r => r.status === 'approved' && Number(r.amount) > 0);
+    const totalRevenue = approvedRequests.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+    const activeProUsers = dbUsers.filter(u => u.plan === 'pro' && !u.free_trial_claimed);
+    const monthlyProCount = activeProUsers.filter(u => (u.billing_cycle || '').toLowerCase() !== 'yearly').length;
+    const yearlyProCount = activeProUsers.filter(u => (u.billing_cycle || '').toLowerCase() === 'yearly').length;
+
+    const mrr = Math.round((monthlyProCount * (plansConfig?.monthlyPrice || 199)) + (yearlyProCount * ((plansConfig?.yearlyPrice || 1999) / 12)));
+
+    const totalGtv = dbInvoices.reduce((sum, inv) => {
+      const val = Number(inv.total) || Number(inv.amount) || 0;
+      return sum + val;
+    }, 0);
+    const avgInvoiceValue = dbInvoices.length > 0 ? Math.round(totalGtv / dbInvoices.length) : 0;
+
+    const now = new Date();
+    const currentMonthStart = startOfMonth(now);
+    const lastMonthStart = startOfMonth(subDays(currentMonthStart, 15));
+    const lastMonthEnd = endOfMonth(lastMonthStart);
+
+    const thisMonthRevenue = approvedRequests.filter(r => {
+      const d = parseDateSafe(r.approved_at || r.created_at);
+      return d >= currentMonthStart;
+    }).reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+    const lastMonthRevenue = approvedRequests.filter(r => {
+      const d = parseDateSafe(r.approved_at || r.created_at);
+      return d >= lastMonthStart && d <= lastMonthEnd;
+    }).reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+
+    const revenueGrowthPct = lastMonthRevenue > 0 
+      ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100) 
+      : (thisMonthRevenue > 0 ? 100 : 0);
+
+    const totalUsers = dbUsers.length;
+    const paidProCount = activeProUsers.length;
+    const claimedTrialCount = dbUsers.filter(u => Boolean(u.free_trial_claimed) || u.plan_status === 'trial').length;
+    const freeCount = Math.max(0, totalUsers - paidProCount - claimedTrialCount);
+
+    const paidProPct = totalUsers > 0 ? ((paidProCount / totalUsers) * 100).toFixed(1) : '0';
+    const trialPct = totalUsers > 0 ? ((claimedTrialCount / totalUsers) * 100).toFixed(1) : '0';
+    const freePct = totalUsers > 0 ? ((freeCount / totalUsers) * 100).toFixed(1) : '0';
+
+    return {
+      totalRevenue,
+      mrr,
+      revenueGrowthPct,
+      thisMonthRevenue,
+      totalGtv,
+      avgInvoiceValue,
+      plansDistribution: {
+        paidProCount,
+        paidProPct,
+        claimedTrialCount,
+        trialPct,
+        freeCount,
+        freePct,
+        totalUsers
+      }
+    };
+  }, [subscriptionRequests, dbUsers, dbInvoices, plansConfig]);
 
   // Doughnut slices based on statuses of our current user list
   const userStatusDistribution = useMemo(() => {
@@ -808,9 +946,9 @@ export default function AdminPage() {
           subscription_pending: false,
           subscription_status: 'active',
           subscription_request_ref: null,
-          plan_renews_at: billingCycle === 'monthly' 
-            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-            : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          plan_renews_at: (billingCycle || '').toLowerCase() === 'yearly' 
+            ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           updated_at: new Date().toISOString()
         }, { merge: true });
 
@@ -850,7 +988,7 @@ export default function AdminPage() {
       try {
         if (auth.currentUser) {
           const token = await auth.currentUser.getIdToken();
-          const notifyRes = await fetch('/api/subscription/approve-receipt', {
+          const notifyRes = await fetch(apiUrl('/api/subscription/approve-receipt'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1025,7 +1163,7 @@ export default function AdminPage() {
         };
       });
 
-      const res = await fetch('/api/admin/check-inactivity', {
+      const res = await fetch(apiUrl('/api/admin/check-inactivity'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1090,7 +1228,7 @@ export default function AdminPage() {
           lastLoginFormatted = parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
         }
 
-        const res = await fetch('/api/admin/send-user-reminder', {
+        const res = await fetch(apiUrl('/api/admin/send-user-reminder'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1150,7 +1288,7 @@ export default function AdminPage() {
           };
         });
 
-        const res = await fetch('/api/admin/check-inactivity', {
+        const res = await fetch(apiUrl('/api/admin/check-inactivity'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1218,7 +1356,7 @@ export default function AdminPage() {
           customerCount: matchedUser?.customers_count !== undefined ? String(matchedUser.customers_count) : "0"
         };
 
-        const res = await fetch('/api/admin/send-test-reminder', {
+        const res = await fetch(apiUrl('/api/admin/send-test-reminder'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1733,22 +1871,104 @@ export default function AdminPage() {
               {emailLogs.length}
             </span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('plans')}
+            className={cn(
+              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer",
+              activeTab === 'plans'
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-900 bg-transparent"
+            )}
+          >
+            <Sliders size={15} />
+            <span>Plans Control</span>
+            <span className="ml-1 px-2 py-0.5 text-[10px] font-black bg-purple-100 text-purple-800 rounded-full">
+              SaaS
+            </span>
+          </button>
         </div>
       </div>
 
       {activeTab === 'overview' && (
         <>
-          {/* METRICS STATS BOARD GRID (Counts only - no amounts) */}
+          {/* SaaS FINANCIAL & PLATFORM OVERVIEW GRID (Deliverable 1) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         
-        {/* Metric 1: Total Users */}
-        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-40">
+        {/* Metric 1: Total Revenue & MRR */}
+        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-44">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Total Registered Users</p>
+              <p className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <span>Total Revenue</span>
+                <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded font-black">PRO</span>
+              </p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                {formatCurrency(saasFinancials.totalRevenue)}
+              </h3>
+              <p className="text-[11px] font-bold text-slate-500">
+                MRR: <span className="text-emerald-600 font-black">{formatCurrency(saasFinancials.mrr)}/mo</span>
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shadow-inner border border-emerald-100">
+              <CreditCard size={18} />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50/50">
+            <div className={cn("flex items-center gap-1 text-[11px] font-black", saasFinancials.revenueGrowthPct >= 0 ? "text-emerald-600" : "text-rose-500")}>
+              {saasFinancials.revenueGrowthPct >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+              <span>{Math.abs(saasFinancials.revenueGrowthPct)}%</span>
+              <span className="text-slate-400 font-bold ml-0.5">growth vs last mo</span>
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">
+              {saasFinancials.plansDistribution.paidProCount} Paid subs
+            </span>
+          </div>
+        </div>
+
+        {/* Metric 2: Platform GTV (Gross Transaction Value) */}
+        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-44">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <span>Platform GTV</span>
+                <span className="text-[10px] px-1.5 py-0.2 bg-blue-100 text-blue-800 rounded font-black">BILLS</span>
+              </p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                {formatCurrency(saasFinancials.totalGtv)}
+              </h3>
+              <p className="text-[11px] font-bold text-slate-500">
+                Avg Bill: <span className="text-blue-600 font-black">{formatCurrency(saasFinancials.avgInvoiceValue)}</span>
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-blue-50 text-blue-700 rounded-full flex items-center justify-center shadow-inner border border-blue-100">
+              <Receipt size={18} />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50/50">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600">
+              <FileText size={12} />
+              <span>{statsSummary.totalInvoices.toLocaleString()} Invoices generated</span>
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">
+              Cumulative
+            </span>
+          </div>
+        </div>
+
+        {/* Metric 3: Total Users & Active Today */}
+        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-44">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Registered Users</p>
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">
                 {statsSummary.totalUsers.toLocaleString()}
               </h3>
+              <p className="text-[11px] font-bold text-slate-500">
+                Active Today: <span className="text-emerald-600 font-black">{activeTodayCount}</span>
+              </p>
             </div>
             <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center shadow-inner border border-emerald-100">
               <Users size={18} />
@@ -1756,117 +1976,143 @@ export default function AdminPage() {
           </div>
           
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50/50">
-            <div className={cn("flex items-center gap-1 text-[11px] font-black", trends.users >= 0 ? "text-emerald-600" : "text-rose-500")}>
-              {trends.users >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-              <span>{Math.abs(trends.users).toFixed(1)}%</span>
-              <span className="text-slate-400 font-bold ml-0.5">vs last week</span>
-            </div>
-            {/* Sparkline Miniature representation */}
-            <div className="w-16 h-8 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={sparklineUsers}>
-                  <Area type="monotone" dataKey="pv" stroke="#00B074" fill="#00B074" fillOpacity={0.1} strokeWidth={1.5} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 2: Total Invoices Created */}
-        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-40">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Total Invoices Created</p>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
-                {statsSummary.totalInvoices.toLocaleString()}
-              </h3>
-            </div>
-            <div className="w-10 h-10 bg-green-50 text-green-700 rounded-full flex items-center justify-center shadow-inner border border-green-100">
-              <FileText size={18} />
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50/50">
-            <div className={cn("flex items-center gap-1 text-[11px] font-black", trends.invoices >= 0 ? "text-emerald-600" : "text-rose-500")}>
-              {trends.invoices >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-              <span>{Math.abs(trends.invoices).toFixed(1)}%</span>
-              <span className="text-slate-400 font-bold ml-0.5">vs last week</span>
-            </div>
-            {/* Sparkline Miniature representation */}
-            <div className="w-16 h-8 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={sparklineInvoices}>
-                  <Area type="monotone" dataKey="pv" stroke="#0D9488" fill="#0D9488" fillOpacity={0.1} strokeWidth={1.5} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 3: Active Users Today */}
-        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-40">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Active Users Today</p>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <span>{activeTodayCount}</span>
-                <span className="text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  {activeNowCount} Online
-                </span>
-              </h3>
-            </div>
-            <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center shadow-inner">
-              <Activity size={18} />
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50/50">
             <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Real-time Active</span>
+              <span>{activeNowCount} Online Now</span>
             </div>
-            {/* Sparkline Miniature representation */}
-            <div className="w-16 h-8 shrink-0">
+            <div className="w-14 h-6 shrink-0">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={sparklineActiveToday}>
-                  <Area type="monotone" dataKey="pv" stroke="#00B074" fill="#00B074" fillOpacity={0.1} strokeWidth={1.5} />
+                <AreaChart data={sparklineUsers}>
+                  <Area type="monotone" dataKey="pv" stroke="#00B074" fill="#00B074" fillOpacity={0.15} strokeWidth={1.5} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        {/* Metric 4: Total Businesses */}
-        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-40">
+        {/* Metric 4: Registered Businesses & Plan Conversion */}
+        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all h-44">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Registered Businesses</p>
+              <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Stores & Businesses</p>
               <h3 className="text-2xl font-black text-slate-900 tracking-tight">
                 {statsSummary.totalBusinesses}
               </h3>
+              <p className="text-[11px] font-bold text-slate-500">
+                Pro Ratio: <span className="text-purple-600 font-black">{saasFinancials.plansDistribution.paidProPct}%</span>
+              </p>
             </div>
-            <div className="w-10 h-10 bg-slate-100 text-slate-700 rounded-full flex items-center justify-center shadow-inner">
+            <div className="w-10 h-10 bg-purple-50 text-purple-700 rounded-full flex items-center justify-center shadow-inner border border-purple-100">
               <Building size={18} />
             </div>
           </div>
           
           <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-50/50">
-            <div className={cn("flex items-center gap-1 text-[11px] font-black", trends.businesses >= 0 ? "text-emerald-600" : "text-rose-500")}>
-              {trends.businesses >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-              <span>{Math.abs(trends.businesses).toFixed(1)}%</span>
-              <span className="text-slate-400 font-bold ml-0.5">vs last week</span>
+            <div className="flex items-center gap-1 text-[11px] font-black text-purple-700">
+              <Gift size={12} />
+              <span>{saasFinancials.plansDistribution.claimedTrialCount} Trial Claims</span>
             </div>
-            {/* Sparkline Miniature representation */}
-            <div className="w-16 h-8 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={sparklineBusinesses}>
-                  <Area type="monotone" dataKey="pv" stroke="#00B074" fill="#00B074" fillOpacity={0.1} strokeWidth={1.5} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">
+              {activeBusinessesCount} Active
+            </span>
           </div>
         </div>
 
+      </div>
+
+      {/* User Plans Distribution Widget (Deliverable 1) */}
+      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-50">
+          <div>
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <PieIcon size={16} className="text-emerald-600" />
+              <span>User Subscription Plans Distribution</span>
+            </h3>
+            <p className="text-xs text-slate-400 font-medium">Real-time breakdown of Free, Promotional Trial, and Paid Pro users across the platform</p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+            <span>Total: <strong className="text-slate-900">{saasFinancials.plansDistribution.totalUsers}</strong> Users</span>
+          </div>
+        </div>
+
+        {/* Visual Segmented Distribution Bar */}
+        <div className="h-3.5 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+          <div 
+            className="bg-emerald-500 h-full transition-all duration-500" 
+            style={{ width: `${Math.max(1, Number(saasFinancials.plansDistribution.paidProPct))}%` }} 
+            title={`Paid Pro: ${saasFinancials.plansDistribution.paidProCount} (${saasFinancials.plansDistribution.paidProPct}%)`}
+          />
+          <div 
+            className="bg-purple-500 h-full transition-all duration-500" 
+            style={{ width: `${Math.max(1, Number(saasFinancials.plansDistribution.trialPct))}%` }} 
+            title={`Trial / Promo: ${saasFinancials.plansDistribution.claimedTrialCount} (${saasFinancials.plansDistribution.trialPct}%)`}
+          />
+          <div 
+            className="bg-slate-400 h-full transition-all duration-500" 
+            style={{ width: `${Math.max(1, Number(saasFinancials.plansDistribution.freePct))}%` }} 
+            title={`Free: ${saasFinancials.plansDistribution.freeCount} (${saasFinancials.plansDistribution.freePct}%)`}
+          />
+        </div>
+
+        {/* 3 Detail Interactive Metric Pills */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <button
+            onClick={() => { setActiveTab('users'); setPlanFilter('paid_pro'); }}
+            className="p-3.5 rounded-2xl bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200/80 text-left transition-all cursor-pointer group shadow-xs active:scale-[0.99]"
+            title="Click to view Paid Pro users in registry"
+          >
+            <div className="flex items-center justify-between text-xs font-bold text-emerald-800 mb-1">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                Paid Pro Users
+              </span>
+              <span className="text-emerald-600 group-hover:translate-x-0.5 transition-transform text-xs font-black">Filter ➔</span>
+            </div>
+            <p className="text-xl font-black text-slate-900 tracking-tight">
+              {saasFinancials.plansDistribution.paidProCount}{' '}
+              <span className="text-xs font-bold text-emerald-700">({saasFinancials.plansDistribution.paidProPct}%)</span>
+            </p>
+            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Verified UPI Subscriptions</p>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('users'); setPlanFilter('claimed_pro'); }}
+            className="p-3.5 rounded-2xl bg-purple-50/70 hover:bg-purple-100/70 border border-purple-200/80 text-left transition-all cursor-pointer group shadow-xs active:scale-[0.99]"
+            title="Click to view Promo Trial users in registry"
+          >
+            <div className="flex items-center justify-between text-xs font-bold text-purple-800 mb-1">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
+                Promo Trial Pro
+              </span>
+              <span className="text-purple-600 group-hover:translate-x-0.5 transition-transform text-xs font-black">Filter ➔</span>
+            </div>
+            <p className="text-xl font-black text-slate-900 tracking-tight">
+              {saasFinancials.plansDistribution.claimedTrialCount}{' '}
+              <span className="text-xs font-bold text-purple-700">({saasFinancials.plansDistribution.trialPct}%)</span>
+            </p>
+            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">1-Year Free Pro Trial Promo Claims</p>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('users'); setPlanFilter('free'); }}
+            className="p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/80 text-left transition-all cursor-pointer group shadow-xs active:scale-[0.99]"
+            title="Click to view Free Plan users in registry"
+          >
+            <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0" />
+                Free Plan Users
+              </span>
+              <span className="text-slate-400 group-hover:translate-x-0.5 transition-transform text-xs font-black">Filter ➔</span>
+            </div>
+            <p className="text-xl font-black text-slate-900 tracking-tight">
+              {saasFinancials.plansDistribution.freeCount}{' '}
+              <span className="text-xs font-bold text-slate-600">({saasFinancials.plansDistribution.freePct}%)</span>
+            </p>
+            <p className="text-[10px] text-slate-500 font-semibold mt-0.5">Standard Free Forever Tier</p>
+          </button>
+        </div>
       </div>
 
       {/* CHARTS CONTAINER SECTION: INVOICE VOLUME STREAM + USER DEMOGRAPHICS */}
@@ -2603,6 +2849,28 @@ export default function AdminPage() {
                         
                         <div className="flex items-center gap-1.5">
                           <button
+                            onClick={() => setSelectedUserDetails(u)}
+                            className="flex items-center gap-1 px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                            title="View Business Details"
+                          >
+                            <Building2 size={11} />
+                            <span>Details</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(`Login and view app as ${u.name || u.email}?`)) {
+                                startImpersonation(u);
+                                navigate('/dashboard');
+                              }
+                            }}
+                            className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer"
+                            title="Impersonate / View as User"
+                          >
+                            <Eye size={11} />
+                            <span>Login</span>
+                          </button>
+                          <button
                             onClick={() => handleSendIndividualReminder(u)}
                             disabled={sendingReminderUserId === u.id}
                             className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-[9px] font-black uppercase transition-all cursor-pointer disabled:opacity-50"
@@ -2765,6 +3033,26 @@ export default function AdminPage() {
                           {/* Action buttons */}
                           <td className="py-3.5 text-center">
                             <div className="flex justify-center items-center gap-1">
+                              <button
+                                onClick={() => setSelectedUserDetails(u)}
+                                className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition-colors border-none bg-transparent cursor-pointer"
+                                title="View Business Details"
+                              >
+                                <Building2 size={13} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm(`Login and view app as ${u.name || u.email}?`)) {
+                                    startImpersonation(u);
+                                    navigate('/dashboard');
+                                  }
+                                }}
+                                className="p-1.5 hover:bg-amber-100 text-amber-700 hover:text-amber-900 rounded-lg transition-colors border-none bg-transparent cursor-pointer"
+                                title="Login as User / Impersonate"
+                              >
+                                <Eye size={13} />
+                              </button>
                               <button
                                 onClick={() => handleSendIndividualReminder(u)}
                                 disabled={sendingReminderUserId === u.id}
@@ -3454,6 +3742,429 @@ export default function AdminPage() {
         </div>
 
       </div>
+      )}
+
+      {/* PLANS & SAAS SUBSCRIPTION CONTROL TAB (Deliverable 3) */}
+      {activeTab === 'plans' && (
+        <div className="space-y-6 animate-fadeIn pb-12">
+          {/* Header Bar */}
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-purple-50 text-purple-700">
+                  <Sliders size={20} />
+                </span>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">Subscription Plans & SaaS Control</h2>
+                  <p className="text-xs text-slate-500 font-medium">Manage Pro plan pricing, promotional 1-Year trial limits, and feature entitlements.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setPlansConfig({
+                    monthlyPrice: 199,
+                    yearlyPrice: 1999,
+                    promoClaimEnabled: true,
+                    promoQuota: 1000,
+                    features: [
+                      'Unlimited GST & Non-GST Invoicing',
+                      'Direct SBI UPI QR Code On Every Bill',
+                      'Real-time Cloud Sync & Multi-Device Access',
+                      'Custom Business Logo & Digital Signature',
+                      'Thermal Bill Printing & 1-Tap WhatsApp Share',
+                      'Automated Customer Inactivity Reminders'
+                    ]
+                  });
+                  triggerToast("Reset plan configurations to defaults.");
+                }}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all cursor-pointer"
+              >
+                Reset Defaults
+              </button>
+
+              <button
+                onClick={handleSavePlanConfig}
+                disabled={savingPlans}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#00B074] hover:bg-[#009e68] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                {savingPlans ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                <span>{savingPlans ? "Saving..." : "Save Plan Changes"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Grid: 2 Pricing Cards (Monthly vs Yearly) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Monthly Pro Plan */}
+            <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                      Standard Monthly
+                    </span>
+                    <h3 className="text-xl font-black text-slate-900 mt-2">InvoCentric Pro (Monthly)</h3>
+                    <p className="text-xs text-slate-500 font-medium">Billed every 30 days via UPI payment verification</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                    ₹
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1.5">
+                    Plan Price (INR ₹)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
+                    <input
+                      type="number"
+                      value={plansConfig.monthlyPrice}
+                      onChange={(e) => setPlansConfig(prev => ({ ...prev, monthlyPrice: Math.max(0, parseInt(e.target.value) || 0) }))}
+                      className="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 outline-none focus:border-[#00B074]"
+                      placeholder="199"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                  <p className="text-xs font-bold text-slate-700">Live Telemetry:</p>
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>Active Monthly Subscribers:</span>
+                    <strong className="text-slate-900">{saasFinancials.plansDistribution.paidProCount} users</strong>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>Monthly Revenue Runrate:</span>
+                    <strong className="text-emerald-600 font-black">{formatCurrency(saasFinancials.mrr)}/mo</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/80 text-[11px] text-emerald-800 font-semibold flex items-center gap-2">
+                <CheckCircle size={14} className="text-emerald-600 shrink-0" />
+                <span>Full access to barcode POS, GST billing, and real-time cloud backup.</span>
+              </div>
+            </div>
+
+            {/* Yearly Pro Plan */}
+            <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">
+                      Annual Plan • 2 Months Free
+                    </span>
+                    <h3 className="text-xl font-black text-slate-900 mt-2">InvoCentric Pro (Annual)</h3>
+                    <p className="text-xs text-slate-500 font-medium">Billed every 365 days with instant discount</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold">
+                    ₹
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider block mb-1.5">
+                    Plan Price (INR ₹)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
+                    <input
+                      type="number"
+                      value={plansConfig.yearlyPrice}
+                      onChange={(e) => setPlansConfig(prev => ({ ...prev, yearlyPrice: Math.max(0, parseInt(e.target.value) || 0) }))}
+                      className="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-black text-slate-900 outline-none focus:border-purple-600"
+                      placeholder="1999"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                  <p className="text-xs font-bold text-slate-700">Annual Savings:</p>
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>Customer Discount vs Monthly:</span>
+                    <strong className="text-purple-700 font-black">
+                      Save ₹{Math.max(0, (plansConfig.monthlyPrice * 12) - plansConfig.yearlyPrice)} / year
+                    </strong>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>Effective Monthly Rate:</span>
+                    <strong className="text-slate-900">₹{Math.round(plansConfig.yearlyPrice / 12)} / month</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-purple-50/50 rounded-2xl border border-purple-100/80 text-[11px] text-purple-800 font-semibold flex items-center gap-2">
+                <Sparkles size={14} className="text-purple-600 shrink-0" />
+                <span>Highest retention plan — provides 365 uninterrupted days of Pro features.</span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Promotional Free Trial Campaign Management Card */}
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+                  <Gift size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Promotional 1-Year Free Pro Campaign</h3>
+                  <p className="text-xs text-slate-500 font-medium">Control whether users can claim free promotional Pro subscriptions from the pricing screen</p>
+                </div>
+              </div>
+
+              {/* Master Campaign Toggle Switch */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-slate-600">
+                  Campaign Status: <strong className={plansConfig.promoClaimEnabled ? "text-emerald-600" : "text-slate-400"}>{plansConfig.promoClaimEnabled ? "ACTIVE (ON)" : "DISABLED (OFF)"}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPlansConfig(prev => ({ ...prev, promoClaimEnabled: !prev.promoClaimEnabled }))}
+                  className={cn(
+                    "relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                    plansConfig.promoClaimEnabled ? "bg-emerald-600" : "bg-slate-300"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      plansConfig.promoClaimEnabled ? "translate-x-6" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Promotional Quota Cap</span>
+                <p className="text-lg font-black text-slate-900 mt-1">
+                  {plansConfig.promoQuota} Store Accounts
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Maximum claims allowed before automatic cutoff</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100">
+                <span className="text-[10px] font-black uppercase text-purple-700 tracking-wider">Claimed So Far</span>
+                <p className="text-lg font-black text-purple-900 mt-1">
+                  {saasFinancials.plansDistribution.claimedTrialCount} Accounts
+                </p>
+                <p className="text-[11px] text-purple-700 mt-0.5">Verified promotional certificates generated</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-100">
+                <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider">Remaining Quota</span>
+                <p className="text-lg font-black text-emerald-900 mt-1">
+                  {Math.max(0, plansConfig.promoQuota - saasFinancials.plansDistribution.claimedTrialCount)} Slots Left
+                </p>
+                <p className="text-[11px] text-emerald-700 mt-0.5">Available for new onboarding merchants</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Included Features Entitlement Manager */}
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <ShieldCheck size={16} className="text-emerald-600" />
+              <span>Included Pro Plan Feature Entitlements</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+              {plansConfig.features.map((feature, idx) => (
+                <div key={idx} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs font-bold text-slate-800">
+                  <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                  <span>{feature}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BUSINESS DETAILS SIDE-DRAWER / MODAL (Deliverable 2) */}
+      {selectedUserDetails && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99999] flex justify-end animate-fadeIn">
+          <div className="bg-white w-full max-w-lg h-full shadow-2xl overflow-y-auto flex flex-col justify-between border-l border-slate-100 animate-slideInRight">
+            
+            {/* Drawer Top Header */}
+            <div>
+              <div className="p-6 border-b border-slate-100 bg-slate-50/60 flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-black text-lg shadow-sm shrink-0">
+                    {selectedUserDetails.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+                      {selectedUserDetails.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">{selectedUserDetails.email}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider",
+                        selectedUserDetails.status === 'Active' ? "bg-emerald-100 text-emerald-800" :
+                        selectedUserDetails.status === 'Inactive' ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"
+                      )}>
+                        Status: {selectedUserDetails.status}
+                      </span>
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                        {selectedUserDetails.plan === 'pro' ? 'PRO' : 'FREE'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedUserDetails(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors cursor-pointer border-none bg-transparent"
+                  title="Close Drawer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Action Buttons Toolbar */}
+              <div className="p-4 bg-white border-b border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
+                <button
+                  onClick={() => {
+                    const u = selectedUserDetails;
+                    if (window.confirm(`Login and view app as ${u.name || u.email}?`)) {
+                      startImpersonation(u);
+                      setSelectedUserDetails(null);
+                      navigate('/dashboard');
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-transform active:scale-95 cursor-pointer shrink-0"
+                >
+                  <Eye size={14} />
+                  <span>Impersonate User</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    await handleToggleStatus(selectedUserDetails.id, selectedUserDetails.status);
+                    setSelectedUserDetails(prev => prev ? ({
+                      ...prev,
+                      status: prev.status === 'Active' ? 'Inactive' : 'Active'
+                    }) : null);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0"
+                >
+                  <Ban size={14} className={selectedUserDetails.status === 'Active' ? "text-rose-600" : "text-emerald-600"} />
+                  <span>{selectedUserDetails.status === 'Active' ? "Suspend Account" : "Activate Account"}</span>
+                </button>
+
+                <button
+                  onClick={async () => {
+                    await handleTogglePlan(selectedUserDetails.id, selectedUserDetails.plan || 'free');
+                    setSelectedUserDetails(prev => prev ? ({
+                      ...prev,
+                      plan: prev.plan === 'pro' ? 'free' : 'pro'
+                    }) : null);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shrink-0"
+                >
+                  <CreditCard size={14} />
+                  <span>Toggle Plan</span>
+                </button>
+              </div>
+
+              {/* Drawer Content Body */}
+              <div className="p-6 space-y-6 text-xs">
+                {/* 1. Business Profile */}
+                <div className="space-y-3">
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <Building2 size={13} className="text-emerald-600" />
+                    <span>Business Profile</span>
+                  </h4>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2.5">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 font-semibold">Business Name:</span>
+                      <strong className="text-slate-900">{selectedUserDetails.business || 'N/A'}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 font-semibold">GSTIN:</span>
+                      <strong className="font-mono text-slate-800">{(selectedUserDetails as any).gstin || 'Unregistered / None'}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 font-semibold">Phone:</span>
+                      <strong className="text-slate-900">{(selectedUserDetails as any).phone || (selectedUserDetails as any).business_phone || 'N/A'}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 font-semibold">Address / City:</span>
+                      <span className="text-right text-slate-700 max-w-[200px] truncate">{(selectedUserDetails as any).address || (selectedUserDetails as any).city || 'India'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Usage & Volume */}
+                <div className="space-y-3">
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <Activity size={13} className="text-blue-600" />
+                    <span>Activity & SaaS Volume</span>
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-blue-50/50 p-3.5 rounded-2xl border border-blue-100">
+                      <span className="text-[10px] text-blue-700 font-black uppercase">Invoices Created</span>
+                      <p className="text-lg font-black text-slate-900 mt-1">{selectedUserDetails.invoiceCount} Bills</p>
+                    </div>
+                    <div className="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-100">
+                      <span className="text-[10px] text-emerald-700 font-black uppercase">Catalog Items</span>
+                      <p className="text-lg font-black text-slate-900 mt-1">{(selectedUserDetails as any).items_count || 0} Products</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Subscription & Expiry */}
+                <div className="space-y-3">
+                  <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                    <CreditCard size={13} className="text-purple-600" />
+                    <span>Subscription Details</span>
+                  </h4>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2.5">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 font-semibold">Current Tier:</span>
+                      <span className="font-black text-purple-700 uppercase">{selectedUserDetails.plan === 'pro' ? 'Pro Plan' : 'Free Forever'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 font-semibold">Billing Cycle:</span>
+                      <strong className="text-slate-800 capitalize">{selectedUserDetails.billing_cycle || 'Monthly'}</strong>
+                    </div>
+                    {selectedUserDetails.claim_receipt_no && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500 font-semibold">Claim Receipt:</span>
+                        <strong className="font-mono text-purple-700">{selectedUserDetails.claim_receipt_no}</strong>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 font-semibold">Account Created:</span>
+                      <span className="text-slate-700">{format(selectedUserDetails.created_at ? new Date(selectedUserDetails.created_at) : new Date(), 'dd MMM yyyy')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 font-semibold">Last Active:</span>
+                      <span className="text-slate-700">{formatDistanceToNow(selectedUserDetails.lastActiveDate, { addSuffix: true })}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Bottom Close */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+              <button
+                onClick={() => setSelectedUserDetails(null)}
+                className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-black uppercase transition-colors cursor-pointer"
+              >
+                Close Drawer
+              </button>
+            </div>
+
+          </div>
+        </div>
       )}
 
       {/* MODAL 2: VIEW ALL CHRONOLOGICAL OPERATIONS LOG */}

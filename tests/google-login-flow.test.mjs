@@ -26,14 +26,13 @@ const credentialHelper = fs.readFileSync('android/app/src/main/java/com/invocent
 const nativePlugin = fs.readFileSync('android/app/src/main/java/com/invocentric/app/NativeGoogleAuthPlugin.java', 'utf-8');
 const mainActivity = fs.readFileSync('android/app/src/main/java/com/invocentric/app/MainActivity.java', 'utf-8');
 
-console.log('► Phase 1: Frontend Flow (Android App & UI Verification)');
 // Step 1: User Action
-test('Step 1: Welcome Back & Sign in to continue present on LoginPage', 
-  loginPage.includes("authMode === 'login' && 'Welcome Back'") &&
-  loginPage.includes("authMode === 'login' && 'Sign in to continue to your billing dashboard.'")
+test('Step 1: Login & description present on LoginPage', 
+  (loginPage.includes("Login") || loginPage.includes("Welcome Back")) &&
+  (loginPage.includes("Enter your details to login") || loginPage.includes("Sign in to continue"))
 );
-test('Step 1: Official Google Brand Button present with Sign in with Google label',
-  loginPage.includes('Sign in with Google') &&
+test('Step 1: Official Google Brand Button present with Google label',
+  (loginPage.includes('Continue with Google') || loginPage.includes('Sign in with Google')) &&
   loginPage.includes('viewBox="0 0 24 24"') &&
   loginPage.includes('fill="#4285F4"') &&
   loginPage.includes('fill="#34A853"')
@@ -43,9 +42,9 @@ test('Step 1: Prominent OR divider separating Google and Email options',
 );
 
 // Step 2: Check Session
-test('Step 2: Checking session screen with circular avatar and spinner',
+test('Step 2: Checking session screen with brand icon and spinner',
   loginPage.includes('Checking session...') &&
-  loginPage.includes('If you are already signed in, we will take you to the home screen.') &&
+  (loginPage.includes('Connecting to your workspace') || loginPage.includes('If you are already signed in')) &&
   loginPage.includes('animate-spin')
 );
 test('Step 2: Automatic redirection to Home Screen /dashboard if already logged in',

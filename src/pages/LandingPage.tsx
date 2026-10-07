@@ -324,10 +324,6 @@ export default function LandingPage() {
                <a href="#showcase" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Showcase</a>
                <a href="#pricing" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
                <a href="#calculator" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">GST Tools</a>
-               <button onClick={() => navigate('/download')} className="text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full border border-slate-200/80 transition-all cursor-pointer flex items-center gap-1.5">
-                 <Download size={13} className="text-slate-600" />
-                 Download App
-               </button>
                <button onClick={() => navigate('/blog')} className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200/60 hover:bg-emerald-100 transition-all cursor-pointer flex items-center gap-1.5">
                  <BookOpen size={13} className="text-emerald-700" />
                  Blogs
@@ -336,18 +332,10 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              <button
-                onClick={() => navigate('/download')}
-                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-full transition-all cursor-pointer shadow-2xs active:scale-95 whitespace-nowrap"
-              >
-                <Download size={13} className="text-slate-600" />
-                <span>Download App</span>
-              </button>
-
               {user ? (
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="px-5 py-2 bg-slate-950 text-white text-xs sm:text-sm font-bold rounded-full hover:bg-slate-800 transition-all active:scale-95 shadow-md shadow-slate-950/15 whitespace-nowrap cursor-pointer"
+                  className="px-4 sm:px-5 py-2 bg-slate-950 text-white text-xs sm:text-sm font-bold rounded-full hover:bg-slate-800 transition-all active:scale-95 shadow-md shadow-slate-950/15 whitespace-nowrap cursor-pointer"
                 >
                   Dashboard
                 </button>
@@ -361,7 +349,7 @@ export default function LandingPage() {
                   </button>
                   <button
                     onClick={() => navigate('/login')}
-                    className="px-5 py-2 bg-slate-950 hover:bg-slate-850 text-white text-xs sm:text-sm font-bold rounded-full transition-all active:scale-95 shadow-md shadow-slate-950/20 whitespace-nowrap cursor-pointer"
+                    className="px-4 sm:px-5 py-2 bg-slate-950 hover:bg-slate-850 text-white text-xs sm:text-sm font-bold rounded-full transition-all active:scale-95 shadow-md shadow-slate-950/20 whitespace-nowrap cursor-pointer"
                   >
                     Get Started Free
                   </button>
@@ -374,27 +362,27 @@ export default function LandingPage() {
 
       <main className="relative z-10">
         {/* Apple Minimalist Hero Section with Contained Fluid Ambient Animation */}
-        <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-24 overflow-hidden text-center">
+        <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-24 overflow-hidden text-center max-w-full">
           {/* Dedicated Apple-Style Hero Ambient Background Animation */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
             {/* Subtle Apple Dot Grid in Hero */}
             <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:28px_28px]" />
 
             {/* Apple Fluid Animated Aurora Orbs — GPU CSS animations, no JS overhead */}
-            <div className="aurora-orb-1 absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] md:w-[850px] h-[350px] md:h-[500px] rounded-full bg-gradient-to-br from-emerald-200/40 via-teal-100/35 to-transparent blur-[120px]" />
-            <div className="aurora-orb-2 absolute top-1/4 -left-20 w-[450px] h-[450px] rounded-full bg-gradient-to-tr from-sky-200/30 via-indigo-100/20 to-transparent blur-[110px]" />
-            <div className="aurora-orb-3 absolute top-1/3 -right-20 w-[450px] h-[450px] rounded-full bg-gradient-to-bl from-teal-200/30 via-emerald-100/30 to-transparent blur-[110px]" />
+            <div className="aurora-orb-1 absolute -top-24 left-1/2 -translate-x-1/2 w-[320px] sm:w-[600px] md:w-[850px] h-[250px] sm:h-[350px] md:h-[500px] rounded-full bg-gradient-to-br from-emerald-200/40 via-teal-100/35 to-transparent blur-[80px] sm:blur-[120px]" />
+            <div className="aurora-orb-2 absolute top-1/4 -left-10 sm:-left-20 w-[260px] sm:w-[450px] h-[260px] sm:h-[450px] rounded-full bg-gradient-to-tr from-sky-200/30 via-indigo-100/20 to-transparent blur-[80px] sm:blur-[110px]" />
+            <div className="aurora-orb-3 absolute top-1/3 -right-10 sm:-right-20 w-[260px] sm:w-[450px] h-[260px] sm:h-[450px] rounded-full bg-gradient-to-bl from-teal-200/30 via-emerald-100/30 to-transparent blur-[80px] sm:blur-[110px]" />
           </div>
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 overflow-hidden sm:overflow-visible">
             
             {/* Top Pill Offer — CSS fade-up, no framer-motion */}
             <div 
               onClick={() => navigate('/download')}
-              className="hero-fade-up-1 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold mb-6 hover:bg-slate-200/70 transition-colors cursor-pointer"
+              className="hero-fade-up-1 inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[11px] sm:text-xs font-semibold mb-6 hover:bg-slate-200/70 transition-colors cursor-pointer max-w-[95%] sm:max-w-none mx-auto text-left"
             >
-              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              <span>New: Full Offline PC App &amp; Mobile Camera Barcode Scanner</span>
-              <ChevronRight size={13} className="text-slate-400" />
+              <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse shrink-0"></span>
+              <span className="truncate">New: Full Offline PC App &amp; Mobile Camera Barcode Scanner</span>
+              <ChevronRight size={13} className="text-slate-400 shrink-0" />
             </div>
 
             {/* Large Bold Apple Typography */}
@@ -452,10 +440,10 @@ export default function LandingPage() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, delay: 0.4 }}
-              className="relative max-w-6xl mx-auto mt-6"
+              className="relative max-w-6xl mx-auto mt-6 px-1 sm:px-0 overflow-hidden sm:overflow-visible"
             >
               {/* Ambient Multi-Colored Aura Behind Mockups */}
-              <div className="absolute -inset-10 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-amber-500/15 rounded-[60px] blur-3xl -z-10 opacity-75" />
+              <div className="absolute inset-0 sm:-inset-10 bg-gradient-to-r from-emerald-500/20 via-teal-500/15 to-amber-500/15 rounded-[36px] sm:rounded-[60px] blur-2xl sm:blur-3xl -z-10 opacity-75" />
 
               {/* Central Laptop Showcase */}
               <div className="relative mx-auto flex justify-center">
@@ -477,9 +465,9 @@ export default function LandingPage() {
                   />
                 </a>
 
-                {/* Floating Left: 3D Smartphone Mobile Scanner Mockup - Bold, Extra Large & Prominently Overlapping Laptop Screen */}
+                {/* Floating Left: 3D Smartphone Mobile Scanner Mockup */}
                 <motion.div
-                  className="absolute bottom-0 sm:bottom-4 md:bottom-10 lg:bottom-14 -left-4 sm:-left-2 md:left-2 lg:left-6 z-30 w-[45%] max-w-[240px] sm:max-w-[325px] md:max-w-[405px] lg:max-w-[460px]"
+                  className="absolute bottom-0 sm:bottom-4 md:bottom-10 lg:bottom-14 left-0 sm:-left-2 md:left-2 lg:left-6 z-30 w-[44%] max-w-[240px] sm:max-w-[325px] md:max-w-[405px] lg:max-w-[460px]"
                   animate={{ y: [0, 8, 0] }}
                   transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
                 >
@@ -499,16 +487,16 @@ export default function LandingPage() {
                         className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.40)] rounded-3xl group-hover:scale-[1.02] transition-transform duration-300"
                       />
                     </a>
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-3.5 py-1 rounded-full text-[10px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md pointer-events-none">
-                      <Smartphone size={14} className="text-emerald-600" />
-                      <span>Mobile POS &amp; Barcode Scanner</span>
+                    <div className="absolute -top-3 sm:-top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-2.5 py-0.5 sm:px-3.5 sm:py-1 rounded-full text-[9px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md pointer-events-none">
+                      <Smartphone size={13} className="text-emerald-600 shrink-0" />
+                      <span>Mobile POS &amp; Scanner</span>
                     </div>
                   </div>
                 </motion.div>
 
-                {/* Floating Right: Real Thermal Printer Mockup - Bold, Extra Large & Prominently Overlapping Laptop Screen */}
+                {/* Floating Right: Real Thermal Printer Mockup */}
                 <motion.div
-                  className="absolute bottom-0 sm:bottom-4 md:bottom-8 lg:bottom-12 -right-6 sm:-right-4 md:-right-2 lg:right-2 z-30 w-[43%] max-w-[230px] sm:max-w-[310px] md:max-w-[385px] lg:max-w-[435px]"
+                  className="absolute bottom-0 sm:bottom-4 md:bottom-8 lg:bottom-12 right-0 sm:-right-4 md:-right-2 lg:right-2 z-30 w-[42%] max-w-[230px] sm:max-w-[310px] md:max-w-[385px] lg:max-w-[435px]"
                   animate={{ y: [0, -8, 0] }}
                   transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
                 >
@@ -528,9 +516,9 @@ export default function LandingPage() {
                         className="relative w-full h-auto drop-shadow-[0_32px_65px_rgba(0,0,0,0.36)] rounded-2xl group-hover:scale-[1.02] transition-transform duration-300"
                       />
                     </a>
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-3.5 py-1 rounded-full text-[10px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md pointer-events-none">
-                      <Printer size={14} className="text-teal-600" />
-                      <span>2" / 3" High-Speed Thermal</span>
+                    <div className="absolute -top-3 sm:-top-3.5 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 text-slate-800 px-2.5 py-0.5 sm:px-3.5 sm:py-1 rounded-full text-[9px] sm:text-[11px] md:text-xs font-bold tracking-tight shadow-lg whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md pointer-events-none">
+                      <Printer size={13} className="text-teal-600 shrink-0" />
+                      <span>Thermal POS Printer</span>
                     </div>
                   </div>
                 </motion.div>

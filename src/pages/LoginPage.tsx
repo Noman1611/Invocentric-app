@@ -1,164 +1,90 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
 import { motion, AnimatePresence } from 'motion/react';
-import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from 'firebase/auth';
+import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   AlertCircle, 
-  Mail, 
-  Lock, 
   Eye, 
   EyeOff, 
-  ArrowLeft, 
-  ShieldCheck, 
-  Globe, 
   HelpCircle,
   CheckCircle2,
-  Sparkles,
   ExternalLink,
   Clock,
   X,
-  UserCheck,
-  KeyRound,
-  Server,
-  Smartphone
+  ShieldCheck,
+  Sparkles
 } from 'lucide-react';
 import { WhatsAppIcon } from '../components/WhatsAppIcon';
-import { openInBrowser } from '../lib/utils';
+import { openInBrowser, cn } from '../lib/utils';
 import { apiUrl } from '../utils/apiConfig';
 
-const InvoiceMockup = () => {
+// Official Google SVG Icon
+const GoogleIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  </svg>
+);
+
+// InvoCentric Official Brand Header Badge
+const InvoCentricBrandBadge = () => (
+  <div className="flex justify-center mb-5">
+    <Logo size={52} className="shadow-xs hover:scale-105 transition-transform" />
+  </div>
+);
+
+// Left Side Hero Section - Exactly matches user reference image
+const AuthHeroOfferShowcase = () => {
   return (
-    <div className="relative w-full h-full rounded-[36px] overflow-hidden p-8 md:p-12 flex flex-col justify-center items-center bg-[#1A4B4B] text-white shadow-inner">
-      {/* Decorative ambient glowing background circles */}
-      <motion.div 
-        animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.25, 0.15] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 right-0 w-80 h-80 bg-emerald-400 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" 
-      />
-      <motion.div 
-        animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        className="absolute bottom-0 left-0 w-96 h-96 bg-teal-300 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" 
-      />
-
-      {/* Floating Badge 1: Top Right */}
-      <motion.div
-        animate={{ y: [0, -14, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-8 right-8 md:top-14 md:right-14 z-20 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 px-4 border border-white/20 shadow-2xl hidden md:flex items-center gap-3"
-      >
-        <div className="w-9 h-9 bg-emerald-500/30 border border-emerald-400/40 rounded-xl flex items-center justify-center text-emerald-300">
-          <CheckCircle2 size={18} />
-        </div>
-        <div>
-          <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest leading-none mb-1">New Entry</p>
-          <p className="text-sm font-bold text-white tracking-tight">+₹24,500.00</p>
-        </div>
-      </motion.div>
-
-      {/* Floating Badge 2: Bottom Left */}
-      <motion.div
-        animate={{ y: [0, 14, 0] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
-        className="absolute bottom-10 left-8 md:bottom-16 md:left-12 z-20 bg-white/10 backdrop-blur-md rounded-2xl p-3.5 px-4 border border-white/20 shadow-2xl hidden md:flex items-center gap-3"
-      >
-        <div className="w-9 h-9 bg-teal-500/30 border border-teal-400/40 rounded-xl flex items-center justify-center text-teal-300">
-          <motion.div 
-            animate={{ rotate: 360 }}
-            transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-          >
-            <Sparkles size={18} />
-          </motion.div>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold text-teal-200 uppercase tracking-widest leading-none mb-1">Cloud Sync</p>
-          <p className="text-sm font-bold text-white tracking-tight">Realtime Active</p>
-        </div>
-      </motion.div>
-
-      {/* Main Invoice Card with 3D entry */}
-      <motion.div
-        initial={{ opacity: 0, y: 35, rotateX: 8 }}
-        animate={{ opacity: 1, y: 0, rotateX: 0 }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-sm rounded-3xl shadow-2xl p-6 md:p-8 bg-white text-slate-900 border border-white/40"
-      >
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <Logo size={46} className="mb-2" />
-            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">Invoice #INV-2026-001</p>
-          </div>
-          <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Paid
+    <div className="w-full flex flex-col justify-center select-none pr-0 lg:pr-8 xl:pr-12">
+      {/* Brand Logo & Name */}
+      <div className="flex items-center gap-3 mb-10 lg:mb-14">
+        <Link to="/" className="inline-flex items-center gap-3 hover:opacity-90 transition-opacity">
+          <Logo size={42} />
+          <span className="font-extrabold text-2xl sm:text-3xl text-[#0d3b31] tracking-tight">
+            InvoCentric
           </span>
-        </div>
+        </Link>
+      </div>
 
-        {/* Customer Info */}
-        <div className="mb-5 pb-4 border-b border-slate-100">
-          <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Billed To</p>
-          <p className="font-bold text-slate-900 text-sm">Enterprise Retailer Pvt Ltd</p>
-          <p className="text-xs text-slate-500 font-mono">GSTIN: 27AABCV1234F1Z5</p>
-        </div>
+      {/* Main Headline */}
+      <h1 className="text-3xl sm:text-4xl lg:text-[44px] xl:text-[48px] font-extrabold text-slate-900 tracking-tight leading-[1.18] mb-5">
+        You’re <span className="text-[#0d3b31]">2 clicks</span> away from<br />
+        smarter GST billing &amp;<br />
+        effortless growth.
+      </h1>
 
-        {/* Line Items */}
-        <div className="space-y-3 mb-6">
-          <div className="flex justify-between items-center text-xs pb-3 border-b border-slate-50">
-            <div>
-              <p className="font-bold text-slate-900">GST Billing & POS Terminal</p>
-              <p className="text-[11px] text-slate-400">Annual License (1 Node)</p>
-            </div>
-            <p className="font-bold text-slate-900">₹4,999.00</p>
-          </div>
-          <div className="flex justify-between items-center text-xs pb-3 border-b border-slate-50">
-            <div>
-              <p className="font-bold text-slate-900">Automated WhatsApp Reminders</p>
-              <p className="text-[11px] text-slate-400">Included Addon</p>
-            </div>
-            <p className="font-bold text-emerald-700">Free</p>
-          </div>
-        </div>
+      {/* Subtitle */}
+      <p className="text-base sm:text-lg text-slate-600 font-normal leading-relaxed max-w-lg mb-8">
+        Free up business hours while increasing daily profit, cashflow &amp; 100% tax compliance.
+      </p>
 
-        {/* Total Section */}
-        <div className="rounded-2xl p-4 flex justify-between items-center bg-slate-50 border border-slate-100">
-          <div>
-            <p className="text-xs font-bold text-slate-600">Total Net Amount</p>
-            <p className="text-[10px] text-slate-400">Incl. 18% GST</p>
-          </div>
-          <p className="text-xl font-extrabold text-slate-950">₹5,898.82</p>
+      {/* Two Action Pills / Badges - Exact match from image */}
+      <div className="flex flex-wrap items-center gap-3.5">
+        <div className="px-5 py-2.5 rounded-xl bg-[#0d3b31] text-white text-sm font-semibold shadow-xs transition-all select-none cursor-default">
+          1-Month free trial Claim
         </div>
-
-        {/* Footer info / Signature */}
-        <div className="mt-5 pt-3 border-t border-dashed border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
-          <span className="flex items-center gap-1.5 text-emerald-700 font-semibold">
-            <CheckCircle2 size={13} /> Verified Digital Receipt
-          </span>
-          <span className="font-mono text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-600">AUTH#9842</span>
-        </div>
-      </motion.div>
-
-      {/* Floating Trust Metrics */}
-      <div className="mt-8 flex items-center gap-6 text-xs text-white/80 font-medium">
-        <div className="flex items-center gap-2">
-          <ShieldCheck size={16} className="text-emerald-300" />
-          <span>256-bit SSL Encrypted</span>
-        </div>
-        <div className="w-1 h-1 bg-white/30 rounded-full" />
-        <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-emerald-300" />
-          <span>GST Ready & Compliant</span>
+        <div className="px-5 py-2.5 rounded-xl bg-white border border-[#0d3b31] text-[#0d3b31] text-sm font-semibold shadow-xs transition-all select-none cursor-default">
+          No credit card needed
         </div>
       </div>
     </div>
   );
 };
 
-export default function LoginPage() {
+interface LoginPageProps {
+  defaultMode?: 'login' | 'signup' | 'forgot';
+}
+
+export default function LoginPage({ defaultMode }: LoginPageProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { 
     signInWithGoogle, 
     loginWithPassword,
@@ -168,26 +94,48 @@ export default function LoginPage() {
     loading: authLoading
   } = useAuth();
   
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const urlMode = searchParams.get('mode') as 'login' | 'signup' | 'forgot' | null;
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>(urlMode || defaultMode || 'login');
+  
+  useEffect(() => {
+    if (urlMode) {
+      setAuthMode(urlMode);
+    } else if (defaultMode) {
+      setAuthMode(defaultMode);
+    }
+  }, [urlMode, defaultMode]);
+
   const [googleModalOpen, setGoogleModalOpen] = useState(false);
   const [googleAuthStep, setGoogleAuthStep] = useState<'idle' | 'selecting' | 'authorizing' | 'connected' | 'error'>('idle');
   const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
   
   // Form states
+  const [fullName, setFullName] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
-  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
+
+  // OTP 6-Digit input boxes state
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [otpSent, setOtpSent] = useState(false);
   const [otpToken, setOtpToken] = useState<string | null>(null);
-  const [devOtpNotice, setDevOtpNotice] = useState<string | null>(null);
-  
+  const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [handshakeCompleted, setHandshakeCompleted] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+
+  // Focus the first OTP box when entering OTP mode
+  useEffect(() => {
+    if (otpSent) {
+      setTimeout(() => {
+        otpInputsRef.current[0]?.focus();
+      }, 100);
+    }
+  }, [otpSent]);
 
   useEffect(() => {
     if (cooldownSeconds <= 0) return;
@@ -197,7 +145,6 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [cooldownSeconds]);
 
-  const searchParams = new URLSearchParams(window.location.search);
   const urlMobileAuth = searchParams.get('mobile_auth') === '1';
   const urlSessionId = searchParams.get('session');
 
@@ -214,13 +161,6 @@ export default function LoginPage() {
 
   const isMobileAuth = urlMobileAuth || storedMobileAuth;
   const mobileSessionId = urlSessionId || storedSessionId;
-
-  const isNativeAndroid = typeof window !== 'undefined' && Boolean(
-    (window as any).AndroidAppUpdater || 
-    (window as any).Capacitor?.isNativePlatform?.() ||
-    window.location.protocol === 'capacitor:' ||
-    (/android/i.test(navigator.userAgent) && (window as any).Capacitor)
-  );
 
   // Transmit authenticated user credentials to Android APK via server API, Firestore, and deep link
   const transmitHandshake = async (
@@ -255,7 +195,6 @@ export default function LoginPage() {
       photoURL: authenticatedUser.photoURL || ''
     };
 
-    // 1. Post to Server-side session API (always allowed, cross-instance serverless)
     try {
       await fetch(apiUrl('/api/auth/mobile-session'), {
         method: 'POST',
@@ -266,7 +205,6 @@ export default function LoginPage() {
       console.warn("Server API session post notice:", apiErr);
     }
 
-    // 2. Auxiliary Firestore write (safely caught)
     try {
       const sessionRef = doc(db, 'app_auth_sessions', activeSid);
       await setDoc(sessionRef, {
@@ -288,7 +226,6 @@ export default function LoginPage() {
     const effectiveIdToken = credentialIdToken || firebaseToken || '';
     const effectiveAccessToken = accessToken || '';
 
-    // 3. Deep link and Android Intent back to Android app
     const intentUrl = `intent://auth?session=${activeSid}&status=authenticated&idToken=${encodeURIComponent(effectiveIdToken)}&accessToken=${encodeURIComponent(effectiveAccessToken)}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}#Intent;scheme=invocentric;package=com.invocentric.app;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
     const schemeUrl = `invocentric://auth?session=${activeSid}&status=authenticated&idToken=${encodeURIComponent(effectiveIdToken)}&accessToken=${encodeURIComponent(effectiveAccessToken)}&uid=${encodeURIComponent(authenticatedUser.uid)}&email=${encodeURIComponent(authenticatedUser.email || '')}&displayName=${encodeURIComponent(authenticatedUser.displayName || '')}`;
 
@@ -307,7 +244,6 @@ export default function LoginPage() {
 
     let isCancelled = false;
 
-    // 1. Check if user just returned from Google Redirect
     getRedirectResult(auth).then(async (result) => {
       if (isCancelled) return;
       if (result?.user) {
@@ -318,7 +254,6 @@ export default function LoginPage() {
       console.warn("Mobile auth redirect handling:", err);
     });
 
-    // 2. Listen to auth state changes (e.g. if redirect resolved or user is already authenticated)
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       if (isCancelled || !u || handshakeCompleted) return;
       setTimeout(async () => {
@@ -472,33 +407,16 @@ export default function LoginPage() {
       return;
     }
 
-    if (authMode === 'signup') {
-      if (!passwordInput || passwordInput.length < 6) {
-        setError("Password must be at least 6 characters long.");
-        return;
-      }
-      if (!/[a-z]/.test(passwordInput)) {
-        setError("Password must contain at least one lowercase letter (a-z).");
-        return;
-      }
-      if (!/[A-Z]/.test(passwordInput)) {
-        setError("Password must contain at least one uppercase letter (A-Z).");
-        return;
-      }
-      if (!/[^a-zA-Z0-9]/.test(passwordInput)) {
-        setError("Password must contain at least one special character (e.g. @, #, !, $).");
-        return;
-      }
-      if (passwordInput !== confirmPasswordInput) {
-        setError("Passwords do not match. Please re-enter.");
-        return;
-      }
+    if (!passwordInput) {
+      const generatedPass = `Inv@${Math.floor(100000 + Math.random() * 900000)}#Aa`;
+      setPasswordInput(generatedPass);
     }
 
     setLoading(true);
     setError(null);
-    setDevOtpNotice(null);
     setOtpToken(null);
+    setOtpDigits(['', '', '', '', '', '']);
+
     try {
       const res = await fetch(apiUrl('/api/auth/send-email-otp'), {
         method: 'POST',
@@ -517,9 +435,6 @@ export default function LoginPage() {
       if (data.otpToken) {
         setOtpToken(data.otpToken);
       }
-      if (data.devOtp) {
-        setDevOtpNotice(`Test Verification Code: ${data.devOtp}`);
-      }
     } catch (err: any) {
       if (err.message && (err.message.includes('Too many requests') || err.message.toLowerCase().includes('wait'))) {
         setCooldownSeconds(prev => (prev > 0 ? prev : 60));
@@ -530,17 +445,63 @@ export default function LoginPage() {
     }
   };
 
+  // Handle 6-digit OTP individual input boxes
+  const handleOtpDigitChange = (index: number, val: string) => {
+    const digit = val.replace(/\D/g, '').slice(-1);
+    const newDigits = [...otpDigits];
+    newDigits[index] = digit;
+    setOtpDigits(newDigits);
+
+    if (digit && index < 5) {
+      otpInputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!otpDigits[index] && index > 0) {
+        otpInputsRef.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      otpInputsRef.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      otpInputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = pasted[i] || '';
+    }
+    setOtpDigits(newDigits);
+    const nextIdx = Math.min(pasted.length, 5);
+    otpInputsRef.current[nextIdx]?.focus();
+  };
+
   const handleCompleteSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cooldownSeconds > 0) return;
-    if (!otpCode || otpCode.length !== 6) {
+    const code = otpDigits.join('');
+    if (!code || code.length !== 6) {
       setError("Please enter the complete 6-digit verification code.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      await registerWithPasswordAndOtp(emailInput, passwordInput, otpCode, otpToken || undefined);
+      await registerWithPasswordAndOtp(emailInput, passwordInput, code, otpToken || undefined);
+      
+      if (fullName.trim() && auth.currentUser) {
+        try {
+          await updateProfile(auth.currentUser, { displayName: fullName.trim() });
+          const userDoc = doc(db, 'users', auth.currentUser.uid);
+          await setDoc(userDoc, { name: fullName.trim(), displayName: fullName.trim() }, { merge: true });
+        } catch (_) {}
+      }
     } catch (err: any) {
       if (err.message && (err.message.includes('Too many requests') || err.message.toLowerCase().includes('wait'))) {
         setCooldownSeconds(prev => (prev > 0 ? prev : 60));
@@ -551,87 +512,52 @@ export default function LoginPage() {
     }
   };
 
-  const [resetEmailSent, setResetEmailSent] = useState(false);
-
-  const handleCompleteReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (cooldownSeconds > 0) return;
-    if (!otpCode || otpCode.length !== 6) {
-      setError("Please enter the complete 6-digit verification code.");
-      return;
-    }
-    if (!passwordInput || passwordInput.length < 6) {
-      setError("New password must be at least 6 characters long.");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      await resetPasswordWithOtp(emailInput, passwordInput, otpCode, otpToken || undefined);
-      // If user already exists in Firebase, a password reset link was sent to their email
-      setResetEmailSent(true);
-    } catch (err: any) {
-      if (err.message && (err.message.includes('Too many requests') || err.message.toLowerCase().includes('wait'))) {
-        setCooldownSeconds(prev => (prev > 0 ? prev : 60));
-      }
-      setError(err.message || "Password reset failed. Please check the verification code.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 2: Check Session (Phase 1 Frontend Flow)
-  // Display clean session validation screen matching the architecture diagram
+  // Auth loading state
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-900 font-sans">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#f8fafc] text-slate-900 font-sans"
+        style={{
+          backgroundImage: 'linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="w-full max-w-sm bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-slate-200/80 text-center flex flex-col items-center"
+          className="w-full max-w-[380px] bg-white rounded-3xl p-8 shadow-xl border border-slate-200/80 text-center flex flex-col items-center"
         >
-          {/* Circular User Avatar Outline from Diagram */}
-          <div className="w-20 h-20 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 mb-6 relative">
-            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <div className="absolute -inset-1.5 rounded-full border-2 border-blue-200/50 animate-ping pointer-events-none opacity-30" />
-          </div>
-
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Checking session...</h2>
-          <p className="text-xs text-slate-500 max-w-xs mb-8 leading-relaxed">
-            If you are already signed in, we will take you to the home screen.
+          <InvoCentricBrandBadge />
+          <h2 className="text-xl font-bold text-slate-900 mb-1">Checking session...</h2>
+          <p className="text-xs text-slate-500 max-w-xs mb-6">
+            Connecting to your workspace.
           </p>
-
-          <div className="relative w-8 h-8">
-            <div className="w-8 h-8 border-3 border-blue-100 rounded-full" />
-            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin absolute top-0 left-0" />
-          </div>
+          <div className="w-8 h-8 border-3 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
         </motion.div>
       </div>
     );
   }
 
-  // Handle Chrome Mobile Handshake Success Screen (Web Chrome)
+  // Handle Chrome Mobile Handshake Success Screen (Web Chrome to APK)
   if (isMobileAuth && mobileSessionId && handshakeCompleted) {
     const intentUrl = `intent://auth?session=${mobileSessionId}&status=authenticated#Intent;scheme=invocentric;package=com.invocentric.app;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
     const schemeUrl = `invocentric://auth?session=${mobileSessionId}&status=authenticated`;
 
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-900 font-sans">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#f8fafc] text-slate-900 font-sans"
+        style={{
+          backgroundImage: 'linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-slate-200 text-center"
         >
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 size={36} />
-          </div>
+          <InvoCentricBrandBadge />
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Login Successful!</h2>
           <p className="text-sm text-slate-600 mb-6">
-            Your login has been sent to the InvoCentric app. Tap below to switch back to the app.
+            Your login has been confirmed. Tap below to switch back to the InvoCentric app.
           </p>
           <a
             href={intentUrl}
@@ -640,590 +566,568 @@ export default function LoginPage() {
                 try { window.location.href = schemeUrl; } catch (_) {}
               }, 300);
             }}
-            className="w-full h-14 flex items-center justify-center gap-2 bg-[#0F645D] hover:bg-[#0c524c] text-white font-bold text-base rounded-2xl shadow-xl transition-all active:scale-[0.98] mb-4 cursor-pointer"
+            className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 hover:bg-black text-white font-semibold text-sm rounded-xl shadow-lg transition-all active:scale-[0.98] mb-4 cursor-pointer"
           >
             <span>Open InvoCentric App (ऐप में वापस जाएँ)</span>
           </a>
-          <p className="text-xs text-slate-400">
-            You can also switch to InvoCentric directly from your recent apps.
-          </p>
         </motion.div>
       </div>
     );
   }
 
-  // Step 2: Check Session (Optional but recommended)
-  // If user is already logged in, redirect directly to Home Screen (/dashboard)
+  // Already logged in redirect
   if (!isMobileAuth && user) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Handle already logged in in Chrome with mobile_auth=1
+  // Mobile Browser Handshake Sign-in
   if (isMobileAuth && mobileSessionId && user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-900 font-sans">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-slate-200 text-center"
-        >
-          <Logo size={54} className="mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 mb-1">Connect to InvoCentric App</h2>
-          <p className="text-xs text-slate-500 mb-6">
-            You are currently signed in as <strong className="text-slate-800">{user.email}</strong>. Tap below to send this login to your app.
-          </p>
-          <button
-            onClick={handleAuthorizeApp}
-            disabled={loading}
-            className="w-full h-12 flex items-center justify-center gap-2 bg-[#0F645D] hover:bg-[#0c524c] text-white font-semibold rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 mb-3"
-          >
-            {loading ? "Connecting..." : "Authorize App Login with Google"}
-          </button>
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full h-10 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all"
-          >
-            Switch Google Account
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // Handle Mobile Browser Handshake Sign-in (when not logged in yet)
-  if (isMobileAuth && mobileSessionId && !handshakeCompleted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 text-slate-900 font-sans">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#f8fafc] text-slate-900 font-sans"
+        style={{
+          backgroundImage: 'linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-sm bg-white rounded-3xl p-8 shadow-xl border border-slate-200 text-center"
         >
-          <Logo size={56} className="mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 mb-1">Sign in to InvoCentric</h2>
+          <InvoCentricBrandBadge />
+          <h2 className="text-xl font-bold text-slate-900 mb-1">Connect to InvoCentric App</h2>
           <p className="text-xs text-slate-500 mb-6">
-            Sign in with Google to connect your account to the InvoCentric app.
+            Signed in as <strong className="text-slate-800">{user.email}</strong>. Tap below to send this login to your app.
           </p>
-
-          {error && (
-            <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs text-left flex items-start gap-2">
-              <AlertCircle size={15} className="shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
           <button
-            onClick={handleGoogleLogin}
+            onClick={handleAuthorizeApp}
             disabled={loading}
-            className="w-full h-12 flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl font-medium text-sm text-slate-700 shadow-sm transition-all active:scale-[0.98] disabled:opacity-50 mb-3"
+            className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 hover:bg-black text-white font-semibold rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 mb-3 cursor-pointer"
           >
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-[#0F645D] border-t-transparent rounded-full animate-spin" />
-                <span>Opening Google Sign-In...</span>
-              </div>
-            ) : (
-              <>
-                <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                <span className="font-semibold text-slate-800">Continue with Google</span>
-              </>
-            )}
+            {loading ? "Connecting..." : "Authorize App Login"}
           </button>
-
-          <p className="text-[11px] text-slate-400 mt-4">
-            Once signed in, you'll be automatically redirected back into the InvoCentric app.
-          </p>
         </motion.div>
       </div>
     );
   }
 
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   return (
-    <div className="min-h-screen flex font-sans bg-slate-50 text-slate-900">
-      {/* Left Column: Visual Showcase (Desktop) */}
-      <div className="hidden lg:flex lg:w-1/2 p-6 lg:p-10">
-        <InvoiceMockup />
+    <div 
+      className="min-h-screen w-full flex flex-col justify-center items-center p-4 sm:p-6 md:p-10 font-sans bg-[#f8fafc] text-slate-900 relative selection:bg-emerald-600 selection:text-white overflow-x-hidden"
+      style={{
+        backgroundImage: `
+          linear-gradient(to right, rgba(226, 232, 240, 0.5) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(226, 232, 240, 0.5) 1px, transparent 1px)
+        `,
+        backgroundSize: '40px 40px'
+      }}
+    >
+      {/* Ambient Animated Floating Background Orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <motion.div
+          animate={{
+            x: [0, 35, -25, 0],
+            y: [0, -30, 20, 0],
+            scale: [1, 1.08, 0.96, 1],
+          }}
+          transition={{
+            duration: 16,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute -top-32 -left-24 w-[540px] h-[540px] bg-gradient-to-br from-emerald-100/60 via-teal-100/35 to-transparent rounded-full blur-3xl opacity-75"
+        />
+        <motion.div
+          animate={{
+            x: [0, -40, 25, 0],
+            y: [0, 30, -25, 0],
+            scale: [1, 1.1, 0.94, 1],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute -bottom-32 -right-24 w-[580px] h-[580px] bg-gradient-to-tl from-emerald-100/50 via-teal-100/30 to-transparent rounded-full blur-3xl opacity-70"
+        />
+        <motion.div
+          animate={{
+            x: [0, 25, -20, 0],
+            y: [0, -20, 25, 0],
+          }}
+          transition={{
+            duration: 14,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-emerald-50/50 rounded-full blur-3xl opacity-60"
+        />
       </div>
 
-      {/* Right Column: Authentication Card */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12 lg:p-16">
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white rounded-2xl p-8 md:p-10 border border-slate-200/80 shadow-sm"
-        >
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-5">
-              <Link to="/" className="inline-block focus:outline-none">
-                <Logo size={50} />
-              </Link>
+      <div className="w-full max-w-6xl mx-auto flex flex-col items-center relative z-10">
+        {/* Mobile View: Brand Logo */}
+        <div className="lg:hidden mb-6 flex items-center justify-center gap-2.5">
+          <Link to="/" className="inline-flex items-center gap-2.5 hover:opacity-85 transition-opacity">
+            <Logo size={36} />
+            <span className="font-extrabold text-xl text-[#0d3b31] tracking-tight">InvoCentric</span>
+          </Link>
+        </div>
 
-              {authMode === 'forgot' ? (
-                <button
-                  type="button"
-                  onClick={() => { setAuthMode('login'); setOtpSent(false); setError(null); }}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-                >
-                  <ArrowLeft size={14} /> Back to Sign In
-                </button>
-              ) : (
-                <div className="inline-flex p-1 bg-slate-100 rounded-lg text-xs font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode('login'); setOtpSent(false); setError(null); }}
-                    className={`px-3 py-1.5 rounded-md transition-all ${
-                      authMode === 'login' 
-                        ? 'bg-white text-slate-900 shadow-sm' 
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode('signup'); setOtpSent(false); setError(null); }}
-                    className={`px-3 py-1.5 rounded-md transition-all ${
-                      authMode === 'signup' 
-                        ? 'bg-white text-slate-900 shadow-sm' 
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Create Account
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <h1 className="text-2xl font-bold text-slate-950 tracking-tight">
-              {authMode === 'login' && 'Welcome Back'}
-              {authMode === 'signup' && 'Create your account'}
-              {authMode === 'forgot' && 'Reset your password'}
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {authMode === 'login' && 'Sign in to continue to your billing dashboard.'}
-              {authMode === 'signup' && 'Set up your business profile and start generating GST invoices.'}
-              {authMode === 'forgot' && 'Enter your registered email to receive a password reset code.'}
-            </p>
+        <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center justify-center">
+          {/* LEFT SIDE: Hero Section (Desktop) */}
+          <div className="hidden lg:flex lg:col-span-7 flex-col justify-center">
+            <AuthHeroOfferShowcase />
           </div>
 
-          {/* Step 1: User Action - Sign in with Google Button */}
-          {authMode !== 'forgot' && (
-            <div className="mb-6">
-              <button
-                onClick={handleGoogleLogin}
-                disabled={loading}
-                type="button"
-                className="w-full h-12 px-4 flex items-center justify-center gap-3 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl font-semibold text-sm text-slate-800 transition-all shadow-sm hover:shadow active:scale-[0.99] disabled:opacity-60 cursor-pointer"
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-slate-600 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                  </svg>
-                )}
-                <span>{loading ? "Connecting..." : "Sign in with Google"}</span>
-              </button>
+          {/* RIGHT SIDE: MAIN AUTHENTICATION CARD */}
+          <div className="w-full lg:col-span-5 flex flex-col items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="w-full max-w-[400px] bg-white rounded-[26px] p-7 sm:p-9 border border-slate-200/90 shadow-xl shadow-slate-200/60 relative overflow-hidden"
+            >
+              {/* Top InvoCentric Official Brand Badge */}
+              <InvoCentricBrandBadge />
 
-              {loading && (
-                <div className="mt-2 text-center">
-                  <button
-                    type="button"
-                    onClick={() => { setLoading(false); setError(null); }}
-                    className="text-xs text-slate-500 hover:text-slate-800 underline cursor-pointer"
+          {/* SCREEN 1: CREATE AN ACCOUNT (Sign Up) */}
+          {authMode === 'signup' && !otpSent && (
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight text-center mb-1">
+                Create an account
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 text-center mb-6">
+                Please enter your details to create an account.
+              </p>
+
+              {/* Error Message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2"
                   >
-                    Cancel and try again
-                  </button>
-                </div>
-              )}
-
-              <div className="relative my-6 text-center">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200" />
-                </div>
-                <span className="relative px-3 bg-white text-xs font-bold uppercase tracking-wider text-slate-400">
-                  OR
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Error Message */}
-          <AnimatePresence mode="wait">
-            {error && (
-              <motion.div 
-                key={error}
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="mb-5 p-3.5 rounded-xl border bg-rose-50 border-rose-200/80 text-rose-700 flex flex-col gap-1.5 text-xs font-medium"
-              >
-                <div className="flex items-start gap-2.5">
-                  <AlertCircle size={16} className="shrink-0 mt-0.5 text-rose-600" />
-                  <p className="leading-relaxed">
-                    {cooldownSeconds > 0 
-                      ? `Too many requests. Please wait ${cooldownSeconds}s before trying again.` 
-                      : error}
-                  </p>
-                </div>
-                {cooldownSeconds > 0 && (
-                  <div className="flex items-center gap-2 text-rose-800 font-semibold text-xs ml-6">
-                    <Clock size={14} className="animate-spin text-rose-600" />
-                    <span>Time remaining: <span className="font-mono text-xs font-bold text-rose-950 bg-rose-200/70 px-2 py-0.5 rounded-full">{cooldownSeconds}s</span></span>
-                  </div>
+                    <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-600" />
+                    <span>{error}</span>
+                  </motion.div>
                 )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </AnimatePresence>
 
-          {/* Dev OTP helper */}
-          {devOtpNotice && (
-            <div className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
-              <CheckCircle2 size={15} className="shrink-0 text-emerald-600" />
-              <span>{devOtpNotice}</span>
-            </div>
-          )}
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                {/* Full Name Field */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name</label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your full name"
+                    required
+                    className="w-full h-11 px-3.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all font-medium"
+                  />
+                </div>
 
-          {/* FORM 1: SIGN IN */}
-          {authMode === 'login' && (
-            <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Email Address</label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                    <Mail size={16} />
-                  </span>
+                {/* Email Field */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Email</label>
                   <input
                     type="email"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full h-11 pl-10 pr-3.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
+                    placeholder="Enter your Email"
                     required
+                    className="w-full h-11 px-3.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all font-medium"
                   />
                 </div>
+
+                {/* Primary Button */}
+                <button
+                  type="submit"
+                  disabled={loading || cooldownSeconds > 0}
+                  className="w-full h-11 mt-1 bg-[#181C24] hover:bg-black text-white text-sm font-semibold rounded-xl shadow-sm transition-all active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : cooldownSeconds > 0 ? (
+                    <span>Please wait ({cooldownSeconds}s)</span>
+                  ) : (
+                    <span>Send email code</span>
+                  )}
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="relative my-5 text-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200/80" />
+                </div>
+                <span className="relative px-3 bg-white text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  OR
+                </span>
               </div>
 
+              {/* Social Google Button */}
               <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-xs font-semibold text-slate-700">Password</label>
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode('forgot'); setError(null); }}
-                    className="text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                    <Lock size={16} />
-                  </span>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full h-11 pl-10 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  className="w-full h-11 px-4 flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition-all active:scale-[0.99] cursor-pointer"
+                >
+                  <GoogleIcon className="w-4 h-4" />
+                  <span>Continue with Google</span>
+                </button>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading || cooldownSeconds > 0}
-                className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : cooldownSeconds > 0 ? (
-                  <span className="flex items-center gap-2">
-                    <Clock size={15} className="animate-spin text-slate-300" />
-                    Please wait ({cooldownSeconds}s)
-                  </span>
-                ) : (
-                  <span>Sign In to Dashboard</span>
-                )}
-              </button>
-            </form>
-          )}
-
-          {/* FORM 2: SIGN UP */}
-          {authMode === 'signup' && (
-            <div className="space-y-4">
-              {!otpSent ? (
-                <form onSubmit={handleSendOtp} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Business Email Address</label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Mail size={16} />
-                      </span>
-                      <input
-                        type="email"
-                        value={emailInput}
-                        onChange={(e) => setEmailInput(e.target.value)}
-                        placeholder="name@company.com"
-                        className="w-full h-11 pl-10 pr-3.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Set Password</label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Lock size={16} />
-                      </span>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={passwordInput}
-                        onChange={(e) => setPasswordInput(e.target.value)}
-                        placeholder="e.g. MyPass@123"
-                        className="w-full h-11 pl-10 pr-10 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-                      {[
-                        { label: '6+ chars', ok: passwordInput.length >= 6 },
-                        { label: 'Uppercase', ok: /[A-Z]/.test(passwordInput) },
-                        { label: 'Lowercase', ok: /[a-z]/.test(passwordInput) },
-                        { label: 'Special char', ok: /[^a-zA-Z0-9]/.test(passwordInput) },
-                      ].map(({ label, ok }) => (
-                        <span
-                          key={label}
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-colors ${
-                            ok
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-slate-100 text-slate-400'
-                          }`}
-                        >
-                          {ok ? '✓' : '○'} {label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Confirm Password</label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Lock size={16} />
-                      </span>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={confirmPasswordInput}
-                        onChange={(e) => setConfirmPasswordInput(e.target.value)}
-                        placeholder="Re-enter password"
-                        className="w-full h-11 pl-10 pr-3.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading || cooldownSeconds > 0}
-                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : cooldownSeconds > 0 ? (
-                      <span className="flex items-center gap-2">
-                        <Clock size={15} className="animate-spin text-slate-300" />
-                        Please wait ({cooldownSeconds}s)
-                      </span>
-                    ) : (
-                      <span>Send Verification Code</span>
-                    )}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleCompleteSignup} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Enter 6-Digit Email Code</label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={otpCode}
-                      onChange={(e) => setOtpCode(e.target.value)}
-                      placeholder="123456"
-                      className="w-full h-12 text-center tracking-[0.6em] text-lg font-bold bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all font-mono"
-                      required
-                    />
-                    <p className="text-[11px] text-slate-500 text-center mt-2">Verification code sent to <span className="font-semibold text-slate-800">{emailInput}</span></p>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading || cooldownSeconds > 0}
-                    className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : cooldownSeconds > 0 ? (
-                      <span className="flex items-center gap-2">
-                        <Clock size={15} className="animate-spin text-white/80" />
-                        Please wait ({cooldownSeconds}s)
-                      </span>
-                    ) : (
-                      <span>Verify & Create Account</span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setOtpSent(false)}
-                    className="w-full text-xs font-medium text-slate-500 hover:text-slate-900 text-center py-1 cursor-pointer"
-                  >
-                    Edit Email / Resend Code
-                  </button>
-                </form>
-              )}
+              {/* Footer Switch */}
+              <div className="mt-6 text-center text-xs text-slate-500">
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('login'); setError(null); }}
+                  className="font-semibold text-slate-900 underline hover:text-black cursor-pointer ml-1"
+                >
+                  Sign in
+                </button>
+              </div>
             </div>
           )}
 
-          {/* FORM 3: FORGOT PASSWORD */}
+          {/* SCREEN 2: CHECK YOUR EMAIL (OTP Verification) */}
+          {authMode === 'signup' && otpSent && (
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight text-center mb-1">
+                Check your email
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 text-center mb-6">
+                Enter the code sent to <br />
+                <span className="font-semibold text-slate-900">{emailInput}</span>
+              </p>
+
+              {/* Error Message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2"
+                  >
+                    <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-600" />
+                    <span>{error}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <form onSubmit={handleCompleteSignup} className="space-y-5">
+                {/* 6 Individual Digit Boxes */}
+                <div className="flex justify-between items-center gap-2 sm:gap-2.5">
+                  {otpDigits.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(el) => { otpInputsRef.current[index] = el; }}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpDigitChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      onPaste={handleOtpPaste}
+                      className="w-11 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold font-mono bg-white border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all shadow-2xs"
+                      autoFocus={index === 0}
+                    />
+                  ))}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || otpDigits.join('').length !== 6}
+                  className="w-full h-11 bg-[#181C24] hover:bg-black text-white text-sm font-semibold rounded-xl shadow-sm transition-all active:scale-[0.99] disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span>Verify & Create Account</span>
+                  )}
+                </button>
+              </form>
+
+              {/* Spam notice & actions */}
+              <div className="mt-5 text-center space-y-2">
+                <p className="text-xs text-slate-400">
+                  Can't find the email? Check your spam folder.
+                </p>
+
+                <div className="flex items-center justify-center gap-3 text-xs pt-1">
+                  {cooldownSeconds > 0 ? (
+                    <span className="text-slate-400">
+                      Resend code in {cooldownSeconds}s
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      className="font-semibold text-slate-800 hover:text-black underline cursor-pointer"
+                    >
+                      Resend code
+                    </button>
+                  )}
+                  <span className="text-slate-300">•</span>
+                  <button
+                    type="button"
+                    onClick={() => { setOtpSent(false); setError(null); }}
+                    className="text-slate-500 hover:text-slate-900 cursor-pointer"
+                  >
+                    Change email
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SCREEN 3: LOGIN */}
+          {authMode === 'login' && (
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight text-center mb-1">
+                Login
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 text-center mb-6">
+                Enter your details to login.
+              </p>
+
+              {/* Error Message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2"
+                  >
+                    <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-600" />
+                    <span>{error}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <form onSubmit={handlePasswordLogin} className="space-y-4">
+                {/* Email Field */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="Enter your Email"
+                    required
+                    className="w-full h-11 px-3.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all font-medium"
+                  />
+                </div>
+
+                {/* Password Field */}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700">Password</label>
+                    <button
+                      type="button"
+                      onClick={() => { setAuthMode('forgot'); setError(null); }}
+                      className="text-xs text-slate-500 hover:text-slate-900 hover:underline cursor-pointer"
+                    >
+                      Forgot?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      placeholder="Enter your password"
+                      required
+                      className="w-full h-11 pl-3.5 pr-10 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all font-medium"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Primary Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-11 mt-1 bg-[#181C24] hover:bg-black text-white text-sm font-semibold rounded-xl shadow-sm transition-all active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span>Login</span>
+                  )}
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="relative my-5 text-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200/80" />
+                </div>
+                <span className="relative px-3 bg-white text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  OR
+                </span>
+              </div>
+
+              {/* Social Google Button */}
+              <div>
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  className="w-full h-11 px-4 flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition-all active:scale-[0.99] cursor-pointer"
+                >
+                  <GoogleIcon className="w-4 h-4" />
+                  <span>Continue with Google</span>
+                </button>
+              </div>
+
+              {/* Footer Switch */}
+              <div className="mt-6 text-center text-xs text-slate-500">
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('signup'); setOtpSent(false); setError(null); }}
+                  className="font-semibold text-slate-900 underline hover:text-black cursor-pointer ml-1"
+                >
+                  Sign up
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* SCREEN 4: FORGOT PASSWORD */}
           {authMode === 'forgot' && (
-            <div className="space-y-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight text-center mb-1">
+                Reset your password
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 text-center mb-6">
+                Enter your email to receive a password reset link.
+              </p>
+
+              {/* Error Message */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2"
+                  >
+                    <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-600" />
+                    <span>{error}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {!resetEmailSent ? (
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Registered Email Address</label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Mail size={16} />
-                      </span>
-                      <input
-                        type="email"
-                        value={emailInput}
-                        onChange={(e) => setEmailInput(e.target.value)}
-                        placeholder="name@company.com"
-                        className="w-full h-11 pl-10 pr-3.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all"
-                        required
-                      />
-                    </div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">Registered Email</label>
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="Enter your Email"
+                      required
+                      className="w-full h-11 px-3.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900/10 transition-all font-medium"
+                    />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading || cooldownSeconds > 0}
-                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:cursor-not-allowed"
+                    className="w-full h-11 bg-[#181C24] hover:bg-black text-white text-sm font-semibold rounded-xl shadow-sm transition-all active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : cooldownSeconds > 0 ? (
-                      <span className="flex items-center gap-2">
-                        <Clock size={15} className="animate-spin text-slate-300" />
-                        Please wait ({cooldownSeconds}s)
-                      </span>
                     ) : (
-                      <span>Send Password Reset Link</span>
+                      <span>Send reset link</span>
                     )}
                   </button>
                 </form>
               ) : (
-                <div className="text-center space-y-4 py-2">
-                  <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto shadow-xs">
-                    <CheckCircle2 size={30} className="text-emerald-600" />
+                <div className="text-center space-y-3 py-2">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                    <CheckCircle2 size={26} />
                   </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-extrabold text-slate-900 text-lg">Check your Mail Box!</h3>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      A password reset email has been sent to <span className="font-bold text-slate-900">{emailInput}</span>.
-                    </p>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      Please open your email mailbox, click the link inside to set your new password, and then return here to log in.
-                    </p>
-                  </div>
-
-                  {/* SPAM FOLDER ALERT BOX */}
-                  <div className="p-3.5 bg-amber-50 border border-amber-200/90 rounded-xl text-left text-xs text-amber-900 space-y-1.5 shadow-2xs">
-                    <div className="font-bold flex items-center gap-1.5 text-amber-900">
-                      <AlertCircle size={16} className="shrink-0 text-amber-600" />
-                      <span>Check Spam / Junk Folder</span>
-                    </div>
-                    <p className="leading-relaxed text-amber-850 pl-5 text-[11.5px]">
-                      If the email is not in your Inbox within 1-2 minutes, <strong>please check your Spam / Junk folder</strong>. Open the email and click <em>"Not Spam"</em> to access the password reset link.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode('login'); setResetEmailSent(false); setError(null); }}
-                    className="w-full h-11 bg-slate-900 hover:bg-slate-950 text-white text-sm font-semibold rounded-xl transition-all shadow-sm cursor-pointer mt-2"
-                  >
-                    Back to Sign In
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setResetEmailSent(false)}
-                    className="w-full text-xs font-medium text-slate-500 hover:text-slate-900 text-center py-1 cursor-pointer"
-                  >
-                    Didn't receive email? Try again
-                  </button>
+                  <h3 className="font-bold text-slate-900 text-base">Check your inbox</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    We've emailed a password reset link to <strong className="text-slate-800">{emailInput}</strong>.
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Be sure to check your spam or junk folder if you don't see it within a minute.
+                  </p>
                 </div>
               )}
+
+              <div className="mt-6 text-center text-xs">
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('login'); setResetEmailSent(false); setError(null); }}
+                  className="font-semibold text-slate-900 underline hover:text-black cursor-pointer"
+                >
+                  Back to Login
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Footer Terms */}
-          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-            <p className="text-xs text-slate-500">
-              By proceeding, you agree to InvoCentric's{' '}
-              <Link to="/terms" className="font-semibold text-slate-800 hover:underline">Terms of Service</Link>{' '}
-              and{' '}
-              <Link to="/terms" className="font-semibold text-slate-800 hover:underline">Privacy Policy</Link>.
-            </p>
+          {/* Terms of Service & Privacy Policy Notice inside the card */}
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center text-xs text-slate-500 leading-relaxed">
+            By proceeding, you agree to InvoCentric's{' '}
+            <Link to="/terms#terms" className="font-semibold text-slate-900 hover:underline">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link to="/terms#privacy" className="font-semibold text-slate-900 hover:underline">
+              Privacy Policy
+            </Link>.
           </div>
         </motion.div>
+
+        {/* Under-Card Terms notice as seen in screenshot */}
+        <div className="mt-5 text-center text-xs text-slate-500 leading-relaxed">
+          By proceeding, you agree to InvoCentric's<br />
+          <Link to="/terms#terms" className="text-slate-800 hover:underline font-medium">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link to="/terms#privacy" className="text-slate-800 hover:underline font-medium">
+            Privacy Policy
+          </Link>.
+        </div>
       </div>
 
+    </div>
+  </div>
+
       {/* Floating Support Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-40">
         <button
           onClick={() => setIsSupportOpen(true)}
-          className="h-11 px-4 bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 rounded-full shadow-lg flex items-center gap-2 text-xs font-semibold transition-all hover:scale-105 active:scale-95"
+          className="h-10 px-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-full shadow-md flex items-center gap-2 text-xs font-semibold transition-all hover:scale-105 active:scale-95 cursor-pointer"
         >
-          <HelpCircle size={16} className="text-emerald-600" />
+          <HelpCircle size={15} className="text-emerald-600" />
           <span>Need Help?</span>
         </button>
       </div>
 
-      {/* Official Support Modal */}
+      {/* Support Modal */}
       <AnimatePresence>
         {isSupportOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -1238,7 +1142,7 @@ export default function LoginPage() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative w-full max-w-sm bg-white rounded-2xl p-6 border border-slate-200 shadow-xl"
+              className="relative w-full max-w-sm bg-white rounded-3xl p-6 border border-slate-200 shadow-xl"
             >
               <button 
                 type="button"
@@ -1250,7 +1154,7 @@ export default function LoginPage() {
               </button>
 
               <div className="text-center mb-5">
-                <Logo size={52} className="mx-auto mb-3" />
+                <InvoCentricBrandBadge />
                 <h3 className="text-lg font-bold text-slate-900">InvoCentric Support</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Need help accessing your business account?</p>
               </div>
@@ -1264,7 +1168,7 @@ export default function LoginPage() {
                     e.preventDefault();
                     openInBrowser("https://wa.me/919824194869?text=Hello%20InvoCentric%20Support,%20I%20need%20help%20with%20my%20account");
                   }}
-                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-emerald-50 active:scale-[0.98] border border-slate-100 hover:border-emerald-200 rounded-xl transition-all cursor-pointer group shadow-2xs"
+                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-emerald-50 active:scale-[0.98] border border-slate-100 hover:border-emerald-200 rounded-xl transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
@@ -1284,11 +1188,11 @@ export default function LoginPage() {
                     e.preventDefault();
                     openInBrowser("mailto:support@invocentric.in?subject=InvoCentric%20Login%20Support%20Request");
                   }}
-                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-blue-50 active:scale-[0.98] border border-slate-100 hover:border-blue-200 rounded-xl transition-all cursor-pointer group shadow-2xs"
+                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-blue-50 active:scale-[0.98] border border-slate-100 hover:border-blue-200 rounded-xl transition-all cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
-                      <Mail size={16} />
+                      <ExternalLink size={16} />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">Email Support</p>
@@ -1296,28 +1200,6 @@ export default function LoginPage() {
                     </div>
                   </div>
                   <ExternalLink size={14} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
-                </a>
-
-                <a 
-                  href="https://invocentric.in"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    openInBrowser("https://invocentric.in");
-                  }}
-                  className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 active:scale-[0.98] border border-slate-100 hover:border-slate-300 rounded-xl transition-all cursor-pointer group shadow-2xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white flex items-center justify-center shrink-0 transition-colors">
-                      <Globe size={16} />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-900 group-hover:text-slate-900 transition-colors">Official Portal</p>
-                      <p className="text-xs text-slate-500">www.invocentric.in</p>
-                    </div>
-                  </div>
-                  <ExternalLink size={14} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
                 </a>
               </div>
 
@@ -1333,7 +1215,7 @@ export default function LoginPage() {
         )}
       </AnimatePresence>
 
-      {/* Google In-App Popup Modal / Bottom Sheet */}
+      {/* Google In-App Modal / Bottom Sheet */}
       <AnimatePresence>
         {googleModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
@@ -1344,23 +1226,16 @@ export default function LoginPage() {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative"
             >
-              {/* Top colored accent bar */}
-              <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-emerald-500 to-teal-500" />
+              <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-amber-400 to-emerald-500" />
 
-              {/* Modal Header */}
               <div className="p-6 pb-4 flex items-center justify-between border-b border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-xs">
-                    <svg viewBox="0 0 24 24" width="22" height="22" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                      <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05"/>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
+                    <GoogleIcon className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-base leading-tight">Google Sign-In</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">In-App Secure Authentication</p>
+                    <p className="text-[11px] text-slate-400 font-medium">Secure Verification</p>
                   </div>
                 </div>
                 <button
@@ -1371,197 +1246,22 @@ export default function LoginPage() {
                     setLoading(false);
                   }}
                   className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
-                  title="Cancel"
                 >
                   <X size={16} />
                 </button>
               </div>
 
-              {/* Modal Stepper Progress Bar */}
-              <div className="px-6 pt-5 pb-3">
-                <div className="flex items-center justify-between mb-2">
-                  {/* Step 1 */}
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                      googleAuthStep === 'selecting' 
-                        ? 'bg-blue-600 text-white ring-4 ring-blue-100' 
-                        : googleAuthStep === 'authorizing' || googleAuthStep === 'connected'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      {googleAuthStep === 'authorizing' || googleAuthStep === 'connected' ? '✓' : '1'}
-                    </div>
-                    <span className={`text-xs font-semibold ${
-                      googleAuthStep === 'selecting' ? 'text-blue-600 font-bold' : 'text-slate-600'
-                    }`}>
-                      Select ID
-                    </span>
-                  </div>
-
-                  <div className={`h-0.5 flex-1 mx-2 transition-all ${
-                    googleAuthStep === 'authorizing' || googleAuthStep === 'connected' ? 'bg-emerald-500' : 'bg-slate-200'
-                  }`} />
-
-                  {/* Step 2 */}
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                      googleAuthStep === 'authorizing' 
-                        ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 animate-pulse' 
-                        : googleAuthStep === 'connected'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      {googleAuthStep === 'connected' ? '✓' : '2'}
-                    </div>
-                    <span className={`text-xs font-semibold ${
-                      googleAuthStep === 'authorizing' ? 'text-emerald-700 font-bold' : 'text-slate-600'
-                    }`}>
-                      Authorize
-                    </span>
-                  </div>
-
-                  <div className={`h-0.5 flex-1 mx-2 transition-all ${
-                    googleAuthStep === 'connected' ? 'bg-emerald-500' : 'bg-slate-200'
-                  }`} />
-
-                  {/* Step 3 */}
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                      googleAuthStep === 'connected' 
-                        ? 'bg-emerald-600 text-white ring-4 ring-emerald-100' 
-                        : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      3
-                    </div>
-                    <span className={`text-xs font-semibold ${
-                      googleAuthStep === 'connected' ? 'text-emerald-700 font-bold' : 'text-slate-600'
-                    }`}>
-                      Connected
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Body with Animated Status */}
-              <div className="p-6 pt-3 pb-8 text-center flex flex-col items-center">
-                {googleAuthStep === 'selecting' && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center"
-                  >
-                    <div className="relative w-20 h-20 rounded-full bg-blue-50 border-2 border-blue-200 flex items-center justify-center mb-4">
-                      <svg viewBox="0 0 24 24" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                      </svg>
-                      <div className="absolute -inset-2 rounded-full border-2 border-blue-400 animate-ping opacity-25 pointer-events-none" />
-                    </div>
-                    <h4 className="text-lg font-bold text-slate-900 mb-1">
-                      Select Your Google Account
-                    </h4>
-                    <p className="text-xs text-slate-500 max-w-xs mb-5">
-                      बिना स्क्रीन बदले अपना Google ID चुनें। आपका खाता तुरंत प्रमाणित होकर कनेक्ट हो जाएगा।
-                    </p>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold">
-                      <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                      <span>Waiting for account selection...</span>
-                    </div>
-                  </motion.div>
+              <div className="p-6 text-center flex flex-col items-center">
+                <div className="w-12 h-12 rounded-full border-3 border-slate-200 border-t-blue-600 animate-spin mb-4" />
+                <h4 className="text-base font-bold text-slate-900 mb-1">Authenticating with Google...</h4>
+                <p className="text-xs text-slate-500 max-w-xs mb-4">
+                  Please select your Google account in the popup window.
+                </p>
+                {googleAuthError && (
+                  <p className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                    {googleAuthError}
+                  </p>
                 )}
-
-                {googleAuthStep === 'authorizing' && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center"
-                  >
-                    <div className="relative w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center text-emerald-700 mb-4">
-                      <ShieldCheck size={42} className="animate-pulse" />
-                      <div className="absolute -inset-2 rounded-full border-2 border-emerald-400 animate-ping opacity-25 pointer-events-none" />
-                    </div>
-                    <h4 className="text-lg font-bold text-slate-900 mb-1">
-                      Authorizing & Connecting...
-                    </h4>
-                    <p className="text-xs text-slate-500 max-w-xs mb-5">
-                      Google ID सत्यापित हो रहा है और आपका इनवॉयस डेटा सर्वर से सुरक्षित सिंक हो रहा है...
-                    </p>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-800 text-xs font-semibold">
-                      <div className="w-3.5 h-3.5 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin" />
-                      <span>Connecting to InvoCentic server...</span>
-                    </div>
-                  </motion.div>
-                )}
-
-                {googleAuthStep === 'connected' && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center"
-                  >
-                    <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4 shadow-inner">
-                      <CheckCircle2 size={46} className="text-emerald-700" />
-                    </div>
-                    <h4 className="text-xl font-bold text-slate-900 mb-1">
-                      Connected Successfully!
-                    </h4>
-                    <p className="text-xs text-slate-500 max-w-xs mb-5">
-                      खाता प्रमाणित हो गया है। डैशबोर्ड खुल रहा है...
-                    </p>
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-bold shadow-md">
-                      <Sparkles size={14} className="animate-spin" />
-                      <span>Opening Dashboard...</span>
-                    </div>
-                  </motion.div>
-                )}
-
-                {googleAuthStep === 'error' && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center w-full"
-                  >
-                    <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
-                      <AlertCircle size={36} />
-                    </div>
-                    <h4 className="text-base font-bold text-slate-900 mb-1">
-                      Sign-In Notice
-                    </h4>
-                    <p className="text-xs text-rose-600 max-w-xs mb-5 bg-rose-50 p-3 rounded-xl border border-rose-100">
-                      {googleAuthError || "Unable to complete Google Sign-In. Please try again."}
-                    </p>
-                    <div className="flex gap-2 w-full">
-                      <button
-                        type="button"
-                        onClick={handleGoogleLogin}
-                        className="flex-1 h-11 bg-slate-900 hover:bg-slate-950 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
-                      >
-                        Try Again
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setGoogleModalOpen(false);
-                          setGoogleAuthStep('idle');
-                          setLoading(false);
-                        }}
-                        className="px-4 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </div>
-
-              {/* Modal Footer Note */}
-              <div className="bg-slate-50 px-6 py-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                <span className="flex items-center gap-1.5 font-medium text-slate-500">
-                  <ShieldCheck size={13} className="text-emerald-700" /> 256-bit SSL Protected
-                </span>
-                <span className="font-semibold text-emerald-800">InvoCentic Secure Auth</span>
               </div>
             </motion.div>
           </div>
@@ -1570,4 +1270,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

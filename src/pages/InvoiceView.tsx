@@ -982,10 +982,22 @@ export default function InvoiceViewPage() {
   };
   const termsText = (invoice.terms || sellerInfo?.default_terms || '').split('\n').filter(Boolean);
   const isQuotation = invoice?.bill_type === 'QUOTATION' || invoice?.bill_type === 'ESTIMATE' || invoice?.status === 'quotation';
+  const hasGstInItems = itemRows.some((r: any) => (r.gstPct > 0 || r.gstAmt > 0));
+  const isGstEnabled = colVis.gstPercent === true || (colVis.gstPercent !== false && hasGstInItems);
+
   const defaultTitle = isQuotation 
     ? 'QUOTATION' 
-    : (invoice?.bill_type === 'BILL OF SUPPLY' ? 'BILL OF SUPPLY' : (invoice?.bill_type === 'CASH BILL' ? 'CASH BILL' : 'TAX INVOICE'));
-  const docTitle = invoice?.invoice_title || defaultTitle;
+    : (invoice?.bill_type === 'BILL OF SUPPLY' ? 'BILL OF SUPPLY' : (invoice?.bill_type === 'CASH BILL' ? 'CASH BILL' : (isGstEnabled ? 'TAX INVOICE' : 'INVOICE')));
+
+  let docTitle = invoice?.invoice_title || defaultTitle;
+  // If GST is disabled, title must only be 'INVOICE' (not 'TAX INVOICE' or 'TEXT INVOICE') unless explicit quotation / bill of supply / cash bill
+  if (!isGstEnabled && !isQuotation && invoice?.bill_type !== 'BILL OF SUPPLY' && invoice?.bill_type !== 'CASH BILL') {
+    if (docTitle === 'TAX INVOICE' || docTitle === 'Tax Invoice' || docTitle === 'TEXT INVOICE' || docTitle === 'Text Invoice' || !invoice?.invoice_title) {
+      docTitle = 'INVOICE';
+    }
+  } else if (isGstEnabled && !isQuotation && (!invoice?.invoice_title || docTitle === 'INVOICE' || docTitle === 'Invoice')) {
+    docTitle = 'TAX INVOICE';
+  }
   const docSubtitle = invoice?.copy_subtitle !== undefined ? invoice.copy_subtitle : (isQuotation ? '' : 'ORIGINAL FOR RECIPIENT');
 
   // Dynamic column calculations
@@ -1486,7 +1498,7 @@ export default function InvoiceViewPage() {
           </div>
         )}
         <div style={{ fontWeight: 700, fontSize: headerTitleSize, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '3px' }}>
-          {co.name || 'TAX INVOICE'}
+          {co.name || docTitle}
         </div>
         {showSec.seller_address && co.address && (
           <div style={{ fontSize: baseFontSize, marginBottom: '1px' }}>
@@ -2454,8 +2466,8 @@ export default function InvoiceViewPage() {
                   </button>
                 </div>
 
-                {/* Mobile & Desktop Fit/Zoom Controls */}
-                <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 shrink-0">
+                {/* Desktop Zoom Controls (Hidden on mobile where floating zoom pill handles it) */}
+                <div className="hidden md:flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 shrink-0">
                   <button
                     type="button"
                     onClick={handleZoomOut}
@@ -2492,7 +2504,7 @@ export default function InvoiceViewPage() {
               <button
                 onClick={() => setShowLetterheadSlider(!showLetterheadSlider)}
                 className={cn(
-                  "inline-flex items-center justify-center gap-1 h-8 px-2 sm:px-2.5 font-bold rounded-xl text-xs transition-colors cursor-pointer active:scale-95 border",
+                  "hidden sm:inline-flex items-center justify-center gap-1 h-8 px-2 sm:px-2.5 font-bold rounded-xl text-xs transition-colors cursor-pointer active:scale-95 border shrink-0",
                   useLetterhead
                     ? "bg-green-50 hover:bg-green-100 text-emerald-800 border-green-300 shadow-xs"
                     : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
@@ -2977,44 +2989,83 @@ export default function InvoiceViewPage() {
         @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
         @media print {
           @page {
-            size: ${isPOS ? 'auto' : (isA5 ? 'A5 landscape' : 'A4 portrait')};
-            margin: 0mm;
+            size: ${isPOS ? 'auto' : (isA5 ? 'A5 landscape' : 'A4 portrait')} !important;
+            margin: 0mm !important;
           }
           *, *:before, *:after { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          html, body { width: 100% !important; height: auto !important; overflow: hidden !important; margin: 0 !important; padding: 0 !important; background: #ffffff !important; }
+          html, body { 
+            width: 100% !important; 
+            height: auto !important; 
+            overflow: visible !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: #ffffff !important; 
+          }
           body * { visibility: hidden !important; }
-          header, nav, aside, footer, button { display: none !important; }
+          header, nav, aside, footer, button, .mobile-zoom-pill, [role="dialog"], .print\\:hidden { display: none !important; }
           #invoice-document-canvas, #invoice-document-canvas * { visibility: visible !important; }
           #invoice-document-canvas {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
+            position: static !important;
+            top: auto !important;
+            left: auto !important;
+            right: auto !important;
             width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
             margin: 0 auto !important;
             padding: 0 !important;
             display: flex !important;
-            justify-content: center !important;
-            align-items: flex-start !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            align-items: center !important;
             background: #ffffff !important;
+            transform: none !important;
           }
-          .pos-thermal-receipt {
-            margin: 1cm auto !important;
-            border: 1px solid #000000 !important;
-            padding: 1cm !important;
-            box-sizing: border-box !important;
-            display: block !important;
+          #invoice-document-canvas > div {
+            width: ${isPOS ? 'auto' : '210mm'} !important;
+            min-width: ${isPOS ? 'auto' : '210mm'} !important;
+            max-width: ${isPOS ? 'auto' : '210mm'} !important;
+            height: auto !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            transform: none !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          #invoice-document-canvas > div > div {
+            width: 100% !important;
+            height: auto !important;
+            transform: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .invoice-page-sheet {
+            width: ${isPOS ? 'auto' : '210mm'} !important;
+            min-width: ${isPOS ? 'auto' : '210mm'} !important;
+            max-width: ${isPOS ? 'auto' : '210mm'} !important;
+            height: ${isPOS ? 'auto' : (isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : 'auto'))} !important;
+            min-height: ${isPOS ? 'auto' : (isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : 'auto'))} !important;
+            max-height: ${isPOS ? 'auto' : (isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : 'none'))} !important;
+            margin: 0 auto !important;
             box-shadow: none !important;
+            transform: none !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             position: relative !important;
             overflow: hidden !important;
+            box-sizing: border-box !important;
           }
           .invoice-page-sheet:last-child {
             page-break-after: avoid !important;
             break-after: avoid !important;
+          }
+          .pos-thermal-receipt {
+            margin: 0 auto !important;
+            border: none !important;
+            padding: 2mm !important;
+            box-sizing: border-box !important;
+            display: block !important;
+            transform: none !important;
           }
         }
       `}</style>

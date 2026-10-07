@@ -188,7 +188,7 @@ export function useInvoices() {
       : query(collection(db, 'invoices'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => {
+      const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
         if (d.updated_at?.toDate) d.updated_at = d.updated_at.toDate().toISOString();
@@ -287,7 +287,7 @@ export function useCustomers() {
       : query(collection(db, 'customers'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => {
+      const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
         if (d.updated_at?.toDate) d.updated_at = d.updated_at.toDate().toISOString();
@@ -384,7 +384,7 @@ export function useItems() {
       : query(collection(db, 'items'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => {
+      const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
         if (d.updated_at?.toDate) d.updated_at = d.updated_at.toDate().toISOString();
@@ -585,7 +585,7 @@ export function useExpenses() {
       : query(collection(db, 'expenses'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => {
+      const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
         if (d.updated_at?.toDate) d.updated_at = d.updated_at.toDate().toISOString();
@@ -679,7 +679,7 @@ export function usePurchases() {
       : query(collection(db, 'purchases'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => {
+      const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
         if (d.updated_at?.toDate) d.updated_at = d.updated_at.toDate().toISOString();
@@ -863,7 +863,7 @@ export function useNotifications() {
       : query(collection(db, 'notifications'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => {
+      const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
         return { id: doc.id, ...d };

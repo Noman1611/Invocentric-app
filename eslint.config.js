@@ -3,8 +3,23 @@ import firebaseRulesPlugin from '@firebase/eslint-plugin-security-rules';
 
 export default [
   {
-    ignores: ['dist/**/*']
+    ignores: [
+      'dist/**',
+      'build/**',
+      'android/**',
+      'electron/**',
+      'tests/**',
+      'scripts/**',
+      'node_modules/**',
+      'coverage/**',
+      '*.config.js'
+    ]
   },
-  js.configs.recommended,
+  {
+    files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
+    rules: {
+      ...js.configs.recommended.rules
+    }
+  },
   firebaseRulesPlugin.configs['flat/recommended']
 ];

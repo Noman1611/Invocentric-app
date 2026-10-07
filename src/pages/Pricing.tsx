@@ -24,8 +24,9 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { dbService } from '../services/dbService';
-import { doc, updateDoc, setDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, collection, query, where, getDocs, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { apiUrl } from '../utils/apiConfig';
 
 export default function PricingPage() {
   const { 
@@ -56,8 +57,36 @@ export default function PricingPage() {
   const [claimTrialError, setClaimTrialError] = useState('');
   const [claimTrialSuccess, setClaimTrialSuccess] = useState<string | null>(null);
 
-  const monthlyPrice = 199;
-  const yearlyPrice = 1999;
+  const [dynamicPlans, setDynamicPlans] = useState(() => {
+    try {
+      const cached = localStorage.getItem('invocentric_admin_plans_config');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return {
+      monthlyPrice: 199,
+      yearlyPrice: 1999,
+      promoFreeTrialActive: true,
+      promoDays: 365
+    };
+  });
+
+  React.useEffect(() => {
+    if (!db || isOfflineMode) return;
+    const unsub = onSnapshot(doc(db, 'system_config', 'subscription_plans'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setDynamicPlans((prev: any) => ({ ...prev, ...data }));
+        localStorage.setItem('invocentric_admin_plans_config', JSON.stringify(data));
+      }
+    }, (err) => {
+      console.warn("Could not load dynamic plan config:", err);
+    });
+    return () => unsub();
+  }, [isOfflineMode]);
+
+  const monthlyPrice = Number(dynamicPlans?.monthlyPrice) || 199;
+  const yearlyPrice = Number(dynamicPlans?.yearlyPrice) || 1999;
+  const promoActive = dynamicPlans?.promoFreeTrialActive !== false;
   const currentPrice = billingCycle === 'monthly' ? monthlyPrice : yearlyPrice;
 
   const handleClaimOffer = async () => {
@@ -213,7 +242,7 @@ export default function PricingPage() {
           // Send notification alert to backend for WhatsApp / SMS / Email dispatcher
           try {
             const token = await user.getIdToken();
-            await fetch('/api/subscription/notify-pending', {
+            await fetch(apiUrl('/api/subscription/notify-pending'), {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -404,8 +433,8 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* Special 1-Month Free Pro Offer Card */}
-      {!freeTrialClaimed && planTier !== 'pro' && !isOwner && (
+      {/* Special Free Pro Offer Card (Controlled by Admin Panel) */}
+      {!freeTrialClaimed && planTier !== 'pro' && !isOwner && promoActive && (
         <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white rounded-3xl p-6 shadow-xl border border-emerald-400/30 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-400/20 border border-emerald-300/40 flex items-center justify-center text-emerald-200 shadow-sm shrink-0">
@@ -416,10 +445,12 @@ export default function PricingPage() {
                 <span className="bg-white text-[#166534] font-extrabold text-[10px] px-2 py-0.5 rounded-sm uppercase tracking-wider shadow-xs">
                   Special Launch Offer
                 </span>
-                <h4 className="text-base font-black text-white uppercase tracking-tight">1 Month Free Pro Plan</h4>
+                <h4 className="text-base font-black text-white uppercase tracking-tight">
+                  {dynamicPlans?.promoDays === 365 ? '1 Year Free Pro Plan' : `${dynamicPlans?.promoDays || 30} Days Free Pro Plan`}
+                </h4>
               </div>
               <p className="text-xs text-emerald-100 mt-1">
-                Activate 30 days of full Pro access instantly with zero payment! Official receipt will be emailed immediately.
+                Activate {dynamicPlans?.promoDays === 365 ? '365 days' : `${dynamicPlans?.promoDays || 30} days`} of full Pro access instantly with zero payment! Official receipt will be emailed immediately.
               </p>
               {claimTrialError && (
                 <p className="text-xs text-rose-200 font-bold mt-1">{claimTrialError}</p>

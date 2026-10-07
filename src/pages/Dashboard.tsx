@@ -43,6 +43,7 @@ import RecycleBinModal from '../components/RecycleBinModal';
 import { format, subDays, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
 import { parseDateSafe } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
+import { AppUpdateButton } from '../components/AppUpdateButton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAutoReminders } from '../hooks/useAutoReminders';
 import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, AreaChart, Area } from 'recharts';
@@ -52,7 +53,7 @@ import { getStoredUserProfile } from '../utils/settingsStorage';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { user, isOfflineMode, appMode } = useAuth();
+  const { user, isOfflineMode, appMode, planTier, isTrialActive, isOwner } = useAuth();
   const { invoices, loading: invoicesLoading } = useInvoices();
   const { customers, loading: customersLoading } = useCustomers();
   const { items: inventoryItems, loading: itemsLoading } = useItems();
@@ -267,6 +268,15 @@ export default function DashboardPage() {
       {/* 📱 MOBILE VIEW: Stitch Indian FinTech UI (< md screens)  */}
       {/* ======================================================== */}
       <div className="block md:hidden space-y-4">
+        {/* Mobile Welcome Greeting Header */}
+        <div className="px-1 pt-1">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <span>{greeting}, {user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Partner'}</span>
+            <span className="origin-bottom-right inline-block">👋</span>
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5 font-medium">Here's what's happening with your business today.</p>
+        </div>
+
         {/* Sticky-style Mobile Top Header */}
         <div className="bg-white border border-slate-200/70 rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between gap-3">
@@ -297,7 +307,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Quick Actions & Pro Badge */}
+            {/* Quick Actions & Dynamic Plan Badge */}
             <div className="flex items-center gap-1.5 shrink-0">
               <Link
                 to="/invoices"
@@ -316,10 +326,26 @@ export default function DashboardPage() {
                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
                 )}
               </Link>
-              <span className="text-[10px] font-black uppercase px-2 py-1 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
-                PRO
-              </span>
+              <Link
+                to="/pricing"
+                className={cn(
+                  "text-[10px] font-black uppercase px-2 py-1 rounded-md border transition-all active:scale-95",
+                  isOwner
+                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                    : (planTier === 'pro' || isTrialActive)
+                    ? "bg-amber-50 text-amber-700 border-amber-200"
+                    : "bg-slate-100 text-slate-700 border-slate-200"
+                )}
+                title="View Subscription Plan"
+              >
+                {isOwner ? "OWNER" : (planTier === 'pro' || isTrialActive ? "PRO" : "FREE")}
+              </Link>
             </div>
+          </div>
+
+          {/* In-App Update/Restart Notification if available */}
+          <div className="empty:hidden flex justify-center pt-2">
+            <AppUpdateButton className="w-full max-w-full justify-between" />
           </div>
         </div>
 
@@ -525,6 +551,15 @@ export default function DashboardPage() {
               <Users size={16} className="text-purple-600" />
               <span>Customers</span>
             </Link>
+
+            {/* Recycle Bin */}
+            <button
+              onClick={() => setIsRecycleBinOpen(true)}
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-extrabold shrink-0 shadow-xs active:scale-95 transition-transform cursor-pointer"
+            >
+              <RotateCcw size={16} className="text-emerald-600" />
+              <span>Recycle Bin ({recycleBinItems.length})</span>
+            </button>
           </div>
         </div>
 
@@ -646,10 +681,13 @@ export default function DashboardPage() {
           <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             {greeting}, {user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Partner'} <span className="origin-bottom-right inline-block">👋</span>
           </h1>
-          <p className="text-xs md:text-sm text-slate-500 mt-1 font-medium font-bold">Here's what's happening with your business today.</p>
+          <p className="text-xs md:text-sm text-slate-500 mt-1 font-medium">Here's what's happening with your business today.</p>
         </div>
 
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 w-full lg:w-auto">
+          {/* App Update / Restart Button (auto-shows when update available or downloaded) */}
+          <AppUpdateButton />
+
           {/* Calendar Badge */}
           <div className="col-span-2 sm:col-span-1 flex items-center justify-center sm:justify-start gap-2.5 bg-white border border-slate-200/60 rounded-xl px-4 py-2.5 text-xs sm:text-[13px] font-semibold text-slate-700">
             <Calendar size={15} className="text-slate-500" />
@@ -1123,18 +1161,20 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recycle Bin Card (At the bottom of Dashboard) */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 text-slate-900 shadow-xs hover:shadow-md transition-all relative overflow-hidden mt-6">
-        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-green-500/5 rounded-full blur-2xl pointer-events-none"></div>
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-          <div className="flex items-start gap-4">
-            <div className="p-3.5 bg-green-50 border border-green-100 rounded-2xl text-green-600 shrink-0 shadow-xs">
-              <RotateCcw size={24} />
+      </div>
+
+      {/* Recycle Bin Card (At the bottom of Dashboard - visible on both Mobile & Desktop) */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 text-slate-900 shadow-xs hover:shadow-md transition-all relative overflow-hidden">
+        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
+          <div className="flex items-start gap-3.5 sm:gap-4">
+            <div className="p-3 sm:p-3.5 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-600 shrink-0 shadow-xs">
+              <RotateCcw size={22} className="sm:w-6 sm:h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
-                <h3 className="text-base font-bold text-slate-900">Recycle Bin & Data Protection</h3>
-                <span className="px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-green-50 text-green-700 border border-green-200">
+              <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">Recycle Bin & Data Protection</h3>
+                <span className="px-2.5 py-0.5 text-[11px] sm:text-xs font-extrabold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   {recycleBinItems.length} {recycleBinItems.length === 1 ? 'item' : 'items'}
                 </span>
               </div>
@@ -1144,7 +1184,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 self-end md:self-auto w-full md:w-auto justify-end">
+          <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto w-full sm:w-auto justify-end">
             {recycleBinItems.length > 0 && (
               <button
                 onClick={async () => {
@@ -1152,21 +1192,20 @@ export default function DashboardPage() {
                     await dbService.emptyRecycleBin({ offlineMode: isOfflineMode, userId: user.uid });
                   }
                 }}
-                className="px-3.5 py-2.5 text-xs font-bold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer"
+                className="flex-1 sm:flex-initial px-3.5 py-2.5 text-xs font-bold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-all cursor-pointer text-center"
               >
                 Clear Bin
               </button>
             )}
             <button
               onClick={() => setIsRecycleBinOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-all cursor-pointer shadow-xs"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 active:scale-95 rounded-xl transition-all cursor-pointer shadow-xs text-center"
             >
-              <RotateCcw size={14} className="text-green-100" />
+              <RotateCcw size={14} className="text-emerald-100" />
               <span>Open Recycle Bin</span>
             </button>
           </div>
         </div>
-      </div>
       </div>
 
       <RecycleBinModal

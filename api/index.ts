@@ -465,272 +465,103 @@ interface OtpEmailData {
 
 function generateOtpEmailTemplate(data: OtpEmailData | string): string {
   const otp = typeof data === "string" ? data : (data?.otp || "");
-  const businessName = (typeof data === "object" && data?.businessName) ? data.businessName : "Business Partner";
+  const businessName = (typeof data === "object" && data?.businessName) ? data.businessName : "User";
+  const spacedOtp = otp.split('').join('&nbsp;&nbsp;');
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>InvoCentric — Authorization Token Slip</title>
+<title>InvoCentric — Sign in code</title>
 <style>
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
   @media only screen and (max-width: 600px) {
-    .main-table { width: 100% !important; }
-    .receipt-card { padding: 22px 16px !important; }
-    .otp-val { font-size: 28px !important; letter-spacing: 5px !important; }
-    .headline { font-size: 18px !important; }
+    .email-container {
+      width: 100% !important;
+      padding: 16px 12px !important;
+    }
+    .email-card {
+      padding: 28px 20px !important;
+      border-radius: 20px !important;
+    }
+    .otp-digits {
+      font-size: 28px !important;
+      letter-spacing: 8px !important;
+    }
   }
 </style>
 </head>
-<body style="margin:0; padding:0; background-color:#c8d3ce; font-family:'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing:antialiased;">
-
-<!-- FULL WIDTH CENTER WRAPPER -->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#c8d3ce; width:100% !important; margin:0; padding:35px 12px;">
+<body style="margin:0; padding:0; background-color:#f8fafc;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8fafc; background-image:linear-gradient(to right, rgba(226, 232, 240, 0.7) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 232, 240, 0.7) 1px, transparent 1px); background-size:36px 36px; padding:40px 16px;">
   <tr>
     <td align="center" valign="top">
-
-      <!-- MAX-WIDTH CONTAINER (520px) -->
-      <table role="presentation" class="main-table" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px; width:100%; margin:0 auto;">
-
-        <!-- PREVIEW ANIMATION LINK -->
+      <table role="presentation" class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:440px; margin:0 auto;">
         <tr>
-          <td align="center" style="padding-bottom:14px;">
-            <a href="https://invocentric.in/api/preview/inactivity-email" target="_blank" style="display:inline-block; background-color:#ffffff; color:#0d5c4b; text-decoration:none; font-size:11.5px; font-weight:600; padding:6px 16px; border-radius:20px; border:1px solid #b9d4ca; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
-              ⚡ View Live Thermal Print Animation ↗
-            </a>
-          </td>
-        </tr>
-
-        <!-- POS PRINTER MACHINE HEAD -->
-        <tr>
-          <td align="center" style="padding:0; line-height:1;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; height:46px; background-color:#1b2229; background:linear-gradient(180deg, #1b2229 0%, #29343f 70%, #151b22 100%); border-radius:12px 12px 0 0; box-shadow:0 8px 20px rgba(0,0,0,0.35);">
+          <td class="email-card" style="background-color:#ffffff; border:1px solid #e2e8f0; border-radius:28px; padding:36px 32px; box-shadow:0 12px 36px rgba(15, 23, 42, 0.06); text-align:left;">
+            
+            <!-- InvoCentric Brand Icon -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
               <tr>
-                <td width="36" align="center" style="padding-left:16px;">
-                  <div style="width:10px; height:10px; border-radius:50%; background-color:#2ecc71; box-shadow:0 0 8px #2ecc71; display:inline-block;"></div>
-                </td>
-                <td align="center" style="padding:0 12px;">
-                  <div style="height:8px; background-color:#090c0e; border-radius:4px; border-bottom:1px solid rgba(255,255,255,0.15); width:100%; max-width:380px;"></div>
-                </td>
-                <td width="36" style="padding-right:16px;">&nbsp;</td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- THERMAL PAPER RECEIPT SLIP -->
-        <tr>
-          <td align="center" style="padding:0;">
-            <div class="feed-container">
-              <div class="receipt-wrap" id="receiptWrap">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:#ffffff; box-shadow:0 14px 32px rgba(0,0,0,0.16); border-left:1px solid #dcdcdc; border-right:1px solid #dcdcdc; border-bottom:3px dashed #b9d4ca;">
-              <tr>
-                <td class="receipt-card" style="padding:32px 28px 24px; text-align:left;">
-
-                  <!-- LOGO & BRAND -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
-                    <tr>
-                      <td width="42" valign="middle">
-                        <svg viewBox="0 0 500 500" width="38" height="38" xmlns="http://www.w3.org/2000/svg">
-                          <g fill="#0d5c4b">
-                            <path d="M432.7,268c-17.2-4.9-35.1,5.1-39.9,22.3c-0.1,0.3-0.1,0.4-0.2,0.7c-11.4,39.7-37.9,72-74.4,90.9
-                              c-35.2,18.3-75.5,21.7-113.4,9.7c-37.8-12-68.8-38-87-73.3c-18.3-35.2-21.7-75.5-9.7-113.4s38-68.8,73.3-87
-                              c36.6-19.1,80-21.8,118.9-7.9c16.8,6.1,35.3-2.6,41.4-19.4c6.1-16.8-2.6-35.3-19.4-41.4c-55.8-20.1-118.1-16-170.7,11.3
-                              c-50.6,26.3-88,70.6-105.2,125c-0.5,1.9-1.2,3.9-1.8,5.8c-15.1,52.6-9.6,108.1,15.7,156.9c54.2,104.5,183.2,145.4,287.7,91.3
-                              C400,412.6,438.9,365,455,308.8c0.1-0.3,0.2-0.5,0.2-0.7C460,290.8,449.9,272.9,432.7,268z"/>
-                            <ellipse cx="420.6" cy="149.9" rx="43.1" ry="43.1"/>
-                            <path d="M324.8,191l-95.1,86.8l-31.8-35.6c-12.7-15.1-35.2-16.9-50.2-4.3c-15.1,12.7-16.9,35.2-4.3,50.2l31.7,35.6
-                              c12.4,14.7,29.2,23.2,46.8,25c17.9,2,36.4-2.9,51.8-14.9l95.1-86.8c15.5-12.1,18.1-34.6,6-50
-                              C362.6,181.5,340.3,178.8,324.8,191z"/>
-                          </g>
-                        </svg>
-                      </td>
-                      <td valign="middle" style="padding-left:12px;">
-                        <div style="font-size:24px; font-weight:800; color:#0d5c4b; letter-spacing:-0.5px; line-height:1.1; margin:0;">InvoCentric</div>
-                        <div style="font-size:11px; color:#0d5c4b; margin-top:2px;">More than billing. Built for your business.</div>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <!-- DASHED DIVIDER WITH TITLE -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;">
-                    <tr>
-                      <td style="border-top:1px dashed #cccccc; font-size:1px; line-height:1px;">&nbsp;</td>
-                      <td width="160" align="center" style="padding:0 8px; font-size:10.5px; font-weight:bold; letter-spacing:2px; color:#444444; white-space:nowrap;">SECURITY AUTH SLIP</td>
-                      <td style="border-top:1px dashed #cccccc; font-size:1px; line-height:1px;">&nbsp;</td>
-                    </tr>
-                  </table>
-
-                  <!-- HEADLINE -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">
-                    <tr>
-                      <td width="28" valign="top" style="padding-top:2px;">
-                        <svg viewBox="0 0 24 24" fill="#0d5c4b" width="24" height="24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-                      </td>
-                      <td valign="top" style="padding-left:8px;">
-                        <div class="headline" style="font-size:21px; font-weight:700; color:#0d5c4b; line-height:1.25; margin:0;">Verification Code</div>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <p style="font-size:14px; color:#222222; line-height:1.6; margin:0 0 10px;">Hi <strong>${businessName}</strong>,</p>
-                  <p style="font-size:13.5px; color:#444444; line-height:1.55; margin:0 0 16px;">
-                    A secure authentication request was initiated for your InvoCentric account. Use the one-time verification code below to proceed:
-                  </p>
-
-                  <!-- ACTIVITY BOX: EMAIL SAFE 2-COLUMN TABLE -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e3f1ec; border-radius:8px; margin:16px 0 20px;">
-                    <tr>
-                      <td width="49%" valign="middle" style="padding:14px 16px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                          <tr>
-                            <td valign="middle" style="padding-right:10px;">
-                              <svg viewBox="0 0 24 24" fill="#0d5c4b" width="18" height="18"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h2v2h-2zm0-10h2v8h-2z"/></svg>
-                            </td>
-                            <td valign="middle">
-                              <div style="font-size:10.5px; color:#555555; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Action</div>
-                              <div style="font-size:14px; color:#0d5c4b; font-weight:bold;">Login / Register</div>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                      <td width="2%" align="center" valign="middle" style="padding:10px 0;">
-                        <div style="width:1px; height:34px; background-color:#b9d4ca;"></div>
-                      </td>
-                      <td width="49%" valign="middle" style="padding:14px 16px;">
-                        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                          <tr>
-                            <td valign="middle" style="padding-right:10px;">
-                              <svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-                            </td>
-                            <td valign="middle">
-                              <div style="font-size:10.5px; color:#555555; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;">Session Validity</div>
-                              <div style="font-size:14px; color:#0d5c4b; font-weight:bold;">10 Minutes</div>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <!-- OTP VOUCHER BOX -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e3f1ec; border:2px dashed #0d5c4b; border-radius:10px; margin:20px 0;">
-                    <tr>
-                      <td align="center" style="padding:22px 16px;">
-                        <div style="font-size:11px; font-weight:700; color:#0d5c4b; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;">★ ONE-TIME PASSWORD ★</div>
-                        <div class="otp-val" style="font-family:'Space Mono', 'Courier New', Courier, monospace; font-size:36px; font-weight:700; letter-spacing:8px; color:#0d5c4b; margin:6px 0 10px 8px;">${otp}</div>
-                        <div style="display:inline-block; font-size:10.5px; color:#ffffff; font-weight:600; background-color:#0d5c4b; padding:3px 14px; border-radius:12px;">DO NOT SHARE THIS CODE</div>
-                      </td>
-                    </tr>
-                  </table>
-
-                  <!-- ACCESS PROTOCOL SUMMARY -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px; margin-bottom:6px;">
-                    <tr>
-                      <td align="left" style="font-size:12px; font-weight:bold; letter-spacing:1px; color:#111111;">PORTAL ACCESS PROTOCOL</td>
-                      <td align="right" style="font-size:10px; font-weight:bold; letter-spacing:1px; color:#0d5c4b;">VERIFIED</td>
-                    </tr>
-                  </table>
-                  <div style="border-top:1px dashed #cccccc; margin-bottom:8px;"></div>
-
-                  <!-- ROW 1 -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #f0f0f0;">
-                    <tr>
-                      <td width="28" valign="middle" style="padding:10px 0;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="1.8" width="20" height="20"><path d="M6 2h9l3 3v17H6z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
-                      </td>
-                      <td valign="middle" style="padding:10px 8px;">
-                        <div style="font-size:13px; font-weight:bold; color:#111111;">Invoicing &amp; Billing Data</div>
-                        <div style="font-size:11px; color:#666666;">Secure End-to-End Encryption</div>
-                      </td>
-                      <td align="right" valign="middle" style="padding:10px 0; font-size:12px; font-weight:bold; color:#0d5c4b;">
-                        LOCKED
-                      </td>
-                    </tr>
-                  </table>
-
-                  <!-- ROW 2 -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #f0f0f0;">
-                    <tr>
-                      <td width="28" valign="middle" style="padding:10px 0;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#0d5c4b" stroke-width="1.8" width="20" height="20"><path d="M12 2 3 6.5 12 11l9-4.5z"/><path d="M3 6.5v11L12 22l9-4.5v-11"/><path d="M12 11v11"/></svg>
-                      </td>
-                      <td valign="middle" style="padding:10px 8px;">
-                        <div style="font-size:13px; font-weight:bold; color:#111111;">Inventory &amp; Warehouses</div>
-                        <div style="font-size:11px; color:#666666;">Multi-Store Access Protection</div>
-                      </td>
-                      <td align="right" valign="middle" style="padding:10px 0; font-size:12px; font-weight:bold; color:#0d5c4b;">
-                        PROTECTED
-                      </td>
-                    </tr>
-                  </table>
-
-                  <!-- CTA BUTTON -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 10px;">
-                    <tr>
-                      <td align="center">
-                        <a href="https://invocentric.in/" target="_blank" style="display:inline-block; background-color:#0d5c4b; color:#ffffff !important; text-decoration:none; font-weight:bold; letter-spacing:0.8px; font-size:14px; padding:13px 34px; border-radius:8px; box-shadow:0 4px 12px rgba(13,92,75,0.25);">
-                          CONTINUE TO INVOCENTRIC &rarr;
-                        </a>
-                      </td>
-                    </tr>
-                  </table>
-                  <p style="font-size:11px; color:#777777; text-align:center; margin:4px 0 18px;">
-                    If you did not initiate this request, please ignore this email or contact support.
-                  </p>
-
-                  <div style="border-top:1px dashed #cccccc; margin-bottom:14px;"></div>
-
-                  <!-- BARCODE & FOOTER -->
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                    <tr>
-                      <td align="center">
-                        <svg viewBox="0 0 300 36" width="210" height="26" style="display:block; margin:0 auto 10px;">
-                          <g fill="#222222">
-                            <rect x="0" y="0" width="2" height="36"/><rect x="5" y="0" width="1" height="36"/><rect x="9" y="0" width="3" height="36"/><rect x="15" y="0" width="1" height="36"/><rect x="19" y="0" width="2" height="36"/><rect x="24" y="0" width="1" height="36"/><rect x="28" y="0" width="1" height="36"/><rect x="32" y="0" width="3" height="36"/><rect x="38" y="0" width="1" height="36"/><rect x="42" y="0" width="2" height="36"/><rect x="47" y="0" width="1" height="36"/><rect x="51" y="0" width="1" height="36"/><rect x="55" y="0" width="3" height="36"/><rect x="61" y="0" width="1" height="36"/><rect x="65" y="0" width="2" height="36"/><rect x="70" y="0" width="1" height="36"/><rect x="74" y="0" width="3" height="36"/><rect x="80" y="0" width="1" height="36"/><rect x="84" y="0" width="1" height="36"/><rect x="88" y="0" width="2" height="36"/><rect x="93" y="0" width="1" height="36"/><rect x="97" y="0" width="3" height="36"/><rect x="103" y="0" width="1" height="36"/><rect x="107" y="0" width="2" height="36"/><rect x="112" y="0" width="1" height="36"/><rect x="116" y="0" width="1" height="36"/><rect x="120" y="0" width="3" height="36"/><rect x="126" y="0" width="2" height="36"/><rect x="131" y="0" width="1" height="36"/><rect x="135" y="0" width="1" height="36"/><rect x="139" y="0" width="3" height="36"/><rect x="145" y="0" width="1" height="36"/><rect x="149" y="0" width="2" height="36"/><rect x="154" y="0" width="1" height="36"/><rect x="158" y="0" width="1" height="36"/><rect x="162" y="0" width="3" height="36"/><rect x="168" y="0" width="2" height="36"/><rect x="173" y="0" width="1" height="36"/><rect x="177" y="0" width="3" height="36"/><rect x="183" y="0" width="1" height="36"/><rect x="187" y="0" width="1" height="36"/><rect x="191" y="0" width="2" height="36"/><rect x="196" y="0" width="1" height="36"/><rect x="200" y="0" width="3" height="36"/><rect x="206" y="0" width="1" height="36"/><rect x="210" y="0" width="2" height="36"/><rect x="215" y="0" width="1" height="36"/><rect x="219" y="0" width="1" height="36"/><rect x="223" y="0" width="3" height="36"/><rect x="229" y="0" width="2" height="36"/><rect x="234" y="0" width="1" height="36"/><rect x="238" y="0" width="1" height="36"/><rect x="242" y="0" width="3" height="36"/><rect x="248" y="0" width="1" height="36"/><rect x="252" y="0" width="2" height="36"/><rect x="257" y="0" width="1" height="36"/><rect x="261" y="0" width="3" height="36"/><rect x="267" y="0" width="1" height="36"/><rect x="271" y="0" width="1" height="36"/><rect x="275" y="0" width="2" height="36"/><rect x="280" y="0" width="1" height="36"/><rect x="284" y="0" width="3" height="36"/><rect x="290" y="0" width="1" height="36"/><rect x="294" y="0" width="2" height="36"/>
-                          </g>
-                        </svg>
-                        <div style="font-size:10px; letter-spacing:1px; color:#555555; text-transform:uppercase; margin-bottom:2px;">SECURE ENTERPRISE AUTHENTICATION</div>
-                        <div style="font-size:11.5px; font-weight:bold; color:#0d5c4b;">More than billing. Built for your business.</div>
-                      </td>
-                    </tr>
-                  </table>
-
+                <td style="width:48px; height:48px; background-color:#0F645D; border-radius:50%; text-align:center; vertical-align:middle; box-shadow:0 4px 12px rgba(15, 100, 93, 0.2);">
+                  <!-- Official InvoCentric Logo Mark -->
+                  <svg viewBox="0 0 500 500" width="34" height="34" style="display:inline-block; vertical-align:middle;" xmlns="http://www.w3.org/2000/svg">
+                    <g fill="#FFFFFF">
+                      <path d="M432.7,268c-17.2-4.9-35.1,5.1-39.9,22.3c-0.1,0.3-0.1,0.4-0.2,0.7c-11.4,39.7-37.9,72-74.4,90.9c-35.2,18.3-75.5,21.7-113.4,9.7c-37.8-12-68.8-38-87-73.3c-18.3-35.2-21.7-75.5-9.7-113.4s38-68.8,73.3-87c36.6-19.1,80-21.8,118.9-7.9c16.8,6.1,35.3-2.6,41.4-19.4c6.1-16.8-2.6-35.3-19.4-41.4c-55.8-20.1-118.1-16-170.7,11.3c-50.6,26.3-88,70.6-105.2,125c-0.5,1.9-1.2,3.9-1.8,5.8c-15.1,52.6-9.6,108.1,15.7,156.9c54.2,104.5,183.2,145.4,287.7,91.3C400,412.6,438.9,365,455,308.8c0.1-0.3,0.2-0.5,0.2-0.7C460,290.8,449.9,272.9,432.7,268z"/>
+                      <ellipse cx="420.6" cy="149.9" rx="43.1" ry="43.1"/>
+                      <path d="M324.8,191l-95.1,86.8l-31.8-35.6c-12.7-15.1-35.2-16.9-50.2-4.3c-15.1,12.7-16.9,35.2-4.3,50.2l31.7,35.6c12.4,14.7,29.2,23.2,46.8,25c17.9,2,36.4-2.9,51.8-14.9l95.1-86.8c15.5-12.1,18.1-34.6,6-50C362.6,181.5,340.3,178.8,324.8,191z"/>
+                    </g>
+                  </svg>
                 </td>
               </tr>
             </table>
-              </div>
-            </div>
+
+            <!-- Heading -->
+            <h1 style="font-size:22px; font-weight:700; color:#0f172a; margin:0 0 10px; letter-spacing:-0.4px;">Sign in to app</h1>
+
+            <!-- Subheading description -->
+            <p style="font-size:14px; color:#475569; margin:0 0 24px; line-height:1.55;">
+              You requested to sign in to <strong style="color:#0f172a;">InvoCentric</strong>. Your one-time code is:
+            </p>
+
+            <!-- OTP Code Box -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; margin:0 0 24px;">
+              <tr>
+                <td style="padding:18px 22px; vertical-align:middle;">
+                  <span class="otp-digits" style="font-family:'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; font-size:32px; font-weight:700; color:#0f172a; letter-spacing:10px;">${spacedOtp}</span>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Expiry & Security Notice -->
+            <p style="font-size:13.5px; font-weight:600; color:#1e293b; margin:0 0 8px;">
+              This code expires in 10 minutes.
+            </p>
+            <p style="font-size:12.5px; color:#64748b; line-height:1.6; margin:0 0 20px;">
+              If you didn't request to sign in to InvoCentric, you can safely ignore this email. Someone else might have typed your email address by mistake.
+            </p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #f1f5f9; padding-top:18px; margin-top:8px;">
+              <tr>
+                <td style="font-size:11.5px; color:#94a3b8; line-height:1.5;">
+                  <strong style="color:#64748b;">InvoCentric</strong> &bull; Free GST Billing Software &amp; Inventory Management<br>
+                  <a href="https://invocentric.in" target="_blank" style="color:#0F645D; text-decoration:none; font-weight:600;">invocentric.in</a>
+                </td>
+              </tr>
+            </table>
+
           </td>
         </tr>
-
       </table>
-
     </td>
   </tr>
 </table>
-
-<script>
-function reprint() {
-  const wrap = document.getElementById('receiptWrap');
-  const led = document.getElementById('led');
-  if (!wrap) return;
-  wrap.style.animation = 'none';
-  if (led) {
-    led.style.animation = 'none';
-    led.style.backgroundColor = '#e74c3c';
-    led.style.boxShadow = '0 0 10px #e74c3c';
-  }
-  void wrap.offsetWidth;
-  wrap.style.animation = 'thermalPrint 3.2s cubic-bezier(0.25, 1, 0.4, 1) forwards';
-  if (led) {
-    led.style.animation = 'ledBlink 0.35s infinite alternate ease-in-out';
-    led.style.backgroundColor = '#2ecc71';
-    led.style.boxShadow = '0 0 10px #2ecc71';
-  }
-}
-</script>
-
 </body>
 </html>`;
 }
@@ -910,11 +741,15 @@ const mobileAuthSessions = new Map<string, {
   status: 'pending' | 'authenticated';
   idToken?: string | null;
   accessToken?: string | null;
+  googleIdToken?: string | null;
+  googleAccessToken?: string | null;
+  firebaseIdToken?: string | null;
   uid?: string;
   email?: string;
   displayName?: string;
   photoURL?: string;
   expires: number;
+  [key: string]: any;
 }>();
 
 app.post("/api/auth/mobile-session", async (req, res) => {
@@ -998,7 +833,7 @@ app.get("/api/auth/mobile-session", async (req, res) => {
         const docData = await fsRes.json();
         const parsed = parseFirestoreDocument(docData);
         if (parsed && (!parsed.expires || Number(parsed.expires) >= Date.now())) {
-          mobileAuthSessions.set(sessionId, { ...parsed, expires: Number(parsed.expires) || Date.now() + 600000 });
+          mobileAuthSessions.set(sessionId, { status: parsed.status || 'authenticated', ...parsed, expires: Number(parsed.expires) || Date.now() + 600000 });
           return res.json(parsed);
         }
       }
@@ -1410,168 +1245,6 @@ app.post("/api/auth/verify-session", (req, res) => {
     valid: true,
     user: result.payload
   });
-});
-
-// --- CLAIM 1-MONTH FREE PRO TRIAL (Strict Once-in-a-Lifetime Guarantee) ---
-app.post("/api/subscription/claim-free-pro", async (req, res) => {
-  try {
-    let userEmail: string | null = null;
-    let userUid: string | null = null;
-
-    // Verify token if provided in Authorization header
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.slice(7).trim();
-      const sessionVerify = verifySessionJwt(token);
-      if (sessionVerify.valid && sessionVerify.payload) {
-        userEmail = sessionVerify.payload.email;
-        userUid = sessionVerify.payload.uid;
-      } else {
-        const googleVerify = await verifyGoogleIdToken(token);
-        if (googleVerify.valid && googleVerify.payload) {
-          userEmail = googleVerify.payload.email;
-          userUid = googleVerify.payload.googleSub;
-        }
-      }
-    }
-
-    if (!userEmail && req.body?.email) {
-      userEmail = String(req.body.email).toLowerCase().trim();
-    }
-    if (!userUid && req.body?.uid) {
-      userUid = String(req.body.uid).trim();
-    }
-
-    if (!userEmail && !userUid) {
-      return res.status(401).json({ success: false, error: "AUTH_REQUIRED", message: "User authentication is required to claim trial." });
-    }
-
-    const cleanEmail = (userEmail || "").toLowerCase().trim();
-    const effectiveUid = userUid || cleanEmail;
-
-    // 1. Check local users database file
-    const usersDb = loadUsersDb();
-    const existingRecord = usersDb[cleanEmail] || (effectiveUid ? usersDb[effectiveUid] : null);
-
-    if (existingRecord?.free_trial_claimed || existingRecord?.freeTrialClaimed) {
-      return res.status(400).json({
-        success: false,
-        error: "ALREADY_CLAIMED",
-        message: "This account has already claimed the 1-month free Pro trial. It cannot be claimed again."
-      });
-    }
-
-    // 2. Check Firestore claimed_trials collection
-    const projectId = firebaseConfig?.projectId;
-    const databaseId = firebaseConfig?.firestoreDatabaseId || "(default)";
-    const apiKey = firebaseConfig?.apiKey;
-
-    if (projectId && apiKey && cleanEmail) {
-      try {
-        const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${apiKey}`;
-        const checkRes = await fetch(queryUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            structuredQuery: {
-              from: [{ collectionId: "claimed_trials" }],
-              where: {
-                fieldFilter: {
-                  field: { fieldPath: "email" },
-                  op: "EQUAL",
-                  value: { stringValue: cleanEmail }
-                }
-              },
-              limit: 1
-            }
-          })
-        });
-        if (checkRes.ok) {
-          const results = await checkRes.json();
-          if (Array.isArray(results) && results[0]?.document) {
-            return res.status(400).json({
-              success: false,
-              error: "ALREADY_CLAIMED",
-              message: "1-Month Free Pro Trial has already been claimed for this email. It cannot be claimed again."
-            });
-          }
-        }
-      } catch (checkErr) {
-        console.warn("[Claim Free Pro] Firestore verification check warning:", checkErr);
-      }
-    }
-
-    // Record the claim in usersDb
-    const now = new Date();
-    const renewsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
-    const receiptNumber = `PRO-CLAIM-${Date.now().toString(36).substring(3, 7).toUpperCase()}`;
-
-    if (cleanEmail) {
-      if (!usersDb[cleanEmail]) {
-        usersDb[cleanEmail] = { email: cleanEmail, uid: effectiveUid };
-      }
-      usersDb[cleanEmail].free_trial_claimed = true;
-      usersDb[cleanEmail].free_trial_claimed_at = now.toISOString();
-      usersDb[cleanEmail].plan = 'pro';
-      usersDb[cleanEmail].plan_tier = 'pro';
-      usersDb[cleanEmail].plan_renews_at = renewsAt;
-      usersDb[cleanEmail].claim_receipt_no = receiptNumber;
-      saveUsersDb(usersDb);
-    }
-
-    // Persist in Firestore claimed_trials and update user document
-    if (projectId && apiKey) {
-      try {
-        const claimDocId = `claim_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        const claimDocUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/claimed_trials/${claimDocId}?key=${apiKey}`;
-        fetch(claimDocUrl, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            fields: {
-              email: { stringValue: cleanEmail },
-              uid: { stringValue: effectiveUid },
-              receiptNumber: { stringValue: receiptNumber },
-              claimedAt: { stringValue: now.toISOString() },
-              renewsAt: { stringValue: renewsAt }
-            }
-          })
-        }).catch(() => {});
-
-        if (effectiveUid) {
-          const userDocUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${effectiveUid}?key=${apiKey}`;
-          fetch(userDocUrl, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              fields: {
-                plan: { stringValue: "pro" },
-                plan_tier: { stringValue: "pro" },
-                plan_status: { stringValue: "active" },
-                free_trial_claimed: { booleanValue: true },
-                free_trial_claimed_at: { stringValue: now.toISOString() },
-                plan_renews_at: { stringValue: renewsAt },
-                claim_receipt_no: { stringValue: receiptNumber },
-                updated_at: { stringValue: now.toISOString() }
-              }
-            })
-          }).catch(() => {});
-        }
-      } catch (fsWriteErr) {
-        console.warn("[Claim Free Pro] Firestore write warning:", fsWriteErr);
-      }
-    }
-
-    return res.json({
-      success: true,
-      receiptNumber,
-      planRenewsAt: renewsAt,
-      message: "1-Month Free Pro Plan claimed successfully!"
-    });
-  } catch (err: any) {
-    console.error("[Claim Free Pro] Unexpected error:", err);
-    return res.status(500).json({ success: false, error: "SERVER_ERROR", message: "Internal error processing trial claim." });
-  }
 });
 
 app.post("/api/auth/check-user", (req, res) => {
@@ -2803,6 +2476,16 @@ app.post("/api/subscription/claim-free-pro", checkAuth, async (req, res) => {
   }
 
   try {
+    const cleanEmail = (userEmail || "").toLowerCase().trim();
+    const usersDb = loadUsersDb();
+    const existingRecord = usersDb[cleanEmail] || (userId ? usersDb[userId] : null);
+    if ((existingRecord as any)?.free_trial_claimed || (existingRecord as any)?.freeTrialClaimed) {
+      return res.status(400).json({ 
+        error: "ALREADY_CLAIMED", 
+        message: "You have already claimed your 1-Month Free Pro Plan." 
+      });
+    }
+
     // 1. Fetch user doc to ensure they haven't already claimed the offer
     const userDoc = await fetchUserDoc(userId, idToken);
     const alreadyClaimed = userDoc?.fields?.free_trial_claimed?.booleanValue === true;
@@ -3058,6 +2741,20 @@ app.post("/api/subscription/claim-free-pro", checkAuth, async (req, res) => {
       },
       body: JSON.stringify(userUpdatePayload)
     }).catch(err => console.error("Failed to update user profile to Pro in Firestore REST:", err));
+
+    if (cleanEmail) {
+      if (!usersDb[cleanEmail]) {
+        usersDb[cleanEmail] = { email: cleanEmail, uid: userId };
+      }
+      const userRec = usersDb[cleanEmail] as any;
+      userRec.free_trial_claimed = true;
+      userRec.free_trial_claimed_at = now.toISOString();
+      userRec.plan = 'pro';
+      userRec.plan_tier = 'pro';
+      userRec.plan_renews_at = renewsAtISO;
+      userRec.claim_receipt_no = receiptNo;
+      saveUsersDb(usersDb);
+    }
 
     // 6. Send PDF Email Attachment to Customer via dispatchEmail
     const receiptEmailResult = await dispatchEmail({

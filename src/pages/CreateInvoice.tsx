@@ -55,7 +55,7 @@ interface InvoiceItem {
 import { dbService, findLinkedPayments } from '../services/dbService';
 
 const BILL_TYPE_TITLES: Record<string, string> = {
-  'INVOICE': 'TAX INVOICE',
+  'INVOICE': 'INVOICE',
   'BILL OF SUPPLY': 'BILL OF SUPPLY',
   'CASH BILL': 'CASH BILL',
   'QUOTATION': 'QUOTATION',
@@ -1461,7 +1461,9 @@ export default function CreateInvoicePage() {
         upi_id: sellerProfileSnapshot?.upi_id || '',
         seller_info: sellerProfileSnapshot || null,
         invoice_template: formData.invoice_template || 'template_01',
-        invoice_title: formData.invoice_title || 'TAX INVOICE',
+        invoice_title: (!isGstEnabled && (formData.invoice_title === 'TAX INVOICE' || formData.invoice_title === 'Tax Invoice' || formData.invoice_title === 'TEXT INVOICE' || !formData.invoice_title))
+          ? 'INVOICE'
+          : (formData.invoice_title || (isGstEnabled ? 'TAX INVOICE' : 'INVOICE')),
         copy_subtitle: formData.copy_subtitle || 'ORIGINAL FOR RECIPIENT',
         terms_text: formData.terms_text || formData.notes || '',
         declaration_text: formData.declaration_text || '',
@@ -2030,13 +2032,25 @@ export default function CreateInvoicePage() {
                     <button
                       key={col.key}
                       type="button"
-                      onClick={() => setFormData(prev => ({
-                        ...prev,
-                        columnVisibility: {
-                          ...prev.columnVisibility,
-                          [col.key]: !prev.columnVisibility[col.key as keyof typeof prev.columnVisibility]
+                      onClick={() => setFormData(prev => {
+                        const nextVal = !prev.columnVisibility[col.key as keyof typeof prev.columnVisibility];
+                        let nextTitle = prev.invoice_title;
+                        if (col.key === 'gstPercent') {
+                          if (nextVal) {
+                            if (!nextTitle || nextTitle === 'INVOICE' || nextTitle === 'Invoice') nextTitle = 'TAX INVOICE';
+                          } else {
+                            if (!nextTitle || nextTitle === 'TAX INVOICE' || nextTitle === 'Tax Invoice' || nextTitle === 'TEXT INVOICE' || nextTitle === 'Text Invoice') nextTitle = 'INVOICE';
+                          }
                         }
-                      }))}
+                        return {
+                          ...prev,
+                          columnVisibility: {
+                            ...prev.columnVisibility,
+                            [col.key]: nextVal
+                          },
+                          invoice_title: nextTitle
+                        };
+                      })}
                       className={cn(
                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all border cursor-pointer",
                         formData.columnVisibility[col.key as keyof typeof formData.columnVisibility]
@@ -3314,9 +3328,9 @@ export default function CreateInvoicePage() {
                       <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Custom Title</label>
                       <input
                         type="text"
-                        className="input-field text-xs py-1"
-                        placeholder="TAX INVOICE"
-                        value={formData.invoice_title || 'TAX INVOICE'}
+                        className="input-field text-xs py-1 uppercase"
+                        placeholder={formData.columnVisibility.gstPercent ? "TAX INVOICE" : "INVOICE"}
+                        value={formData.invoice_title || (formData.columnVisibility.gstPercent ? 'TAX INVOICE' : 'INVOICE')}
                         onChange={(e) => setFormData(p => ({ ...p, invoice_title: e.target.value }))}
                       />
                     </div>

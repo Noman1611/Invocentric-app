@@ -2,7 +2,7 @@ import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
 import { getStoredUserProfile, saveStoredUserProfile, mergeProfileData, sanitizeFirestorePayload, clearGlobalProfileBackup, sanitizeUserProfile } from '../utils/settingsStorage';
 import { apiUrl } from '../utils/apiConfig';
 import { syncAllUserDataFromFirestore } from '../utils/firestoreRestFallback';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { auth, db } from '../lib/firebase';
 import { OperationType, handleFirestoreError } from '../lib/firebase';
 import { dbService } from '../services/dbService';
@@ -88,6 +88,10 @@ interface AuthContextType {
   freeTrialClaimed: boolean;
   freeTrialClaimedAt: string | null;
   claimFreeProTrial: () => Promise<{ success: boolean; message?: string; receiptNumber?: string }>;
+  isImpersonating: boolean;
+  impersonatedUser: any | null;
+  startImpersonation: (targetUser: any) => void;
+  stopImpersonation: () => void;
 }
 
 export interface PlanEvaluationResult {
@@ -140,7 +144,7 @@ export const evaluatePlanValidity = (
           // EXPIRED! Cleanly downgrade to active free forever tier
           return {
             effectiveTier: 'free',
-            effectiveStatus: 'active',
+            effectiveStatus: 'expired',
             isExpired: true,
             daysRemaining: 0,
             renewsAt,
@@ -173,7 +177,7 @@ export const evaluatePlanValidity = (
         // Free Trial Expired -> Active Free Forever Plan
         return {
           effectiveTier: 'free',
-          effectiveStatus: 'active',
+          effectiveStatus: 'expired',
           isExpired: true,
           daysRemaining: 0,
           renewsAt: new Date(expiryTime).toISOString(),
@@ -424,6 +428,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return localStorage.getItem('is_offline_mode') === 'true';
   });
   const [isBrowserOffline, setIsBrowserOffline] = useState(!navigator.onLine);
+
+  // Impersonation state (Admin safely viewing as a customer)
+  const [impersonatedUser, setImpersonatedUser] = useState<any | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const saved = sessionStorage.getItem('invocentric_impersonated_user');
+    try {
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const realAdminUserRef = useRef<User | null>(null);
+
+  const startImpersonation = useCallback((targetUser: any) => {
+    if (!targetUser) return;
+    if (!realAdminUserRef.current && user) {
+      realAdminUserRef.current = user;
+    }
+    setImpersonatedUser(targetUser);
+    sessionStorage.setItem('invocentric_impersonated_user', JSON.stringify(targetUser));
+    const targetUid = targetUser.id || targetUser.uid;
+    const synUser = createSyntheticUser({
+      uid: targetUid,
+      email: targetUser.email,
+      displayName: targetUser.name || targetUser.display_name || targetUser.business || 'User',
+      photoURL: targetUser.photo_url || null
+    });
+    setUser(synUser);
+    const planEval = evaluatePlanValidity(targetUser, targetUser.email);
+    applyPlanEvaluation(planEval, targetUid);
+  }, [user]);
+
+  const stopImpersonation = useCallback(() => {
+    sessionStorage.removeItem('invocentric_impersonated_user');
+    setImpersonatedUser(null);
+    if (realAdminUserRef.current) {
+      setUser(realAdminUserRef.current);
+      const evalAdmin = evaluatePlanValidity(null, realAdminUserRef.current.email);
+      applyPlanEvaluation(evalAdmin, realAdminUserRef.current.uid);
+    } else {
+      const initial = getInitialSessionUser();
+      setUser(initial);
+    }
+  }, []);
 
   // PC Storage States
   const [isPcDriveEnabled, setIsPcDriveEnabled] = useState<boolean>(false);
@@ -2241,7 +2289,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       unlockPcDriveFile,
       freeTrialClaimed,
       freeTrialClaimedAt,
-      claimFreeProTrial
+      claimFreeProTrial,
+      isImpersonating: Boolean(impersonatedUser),
+      impersonatedUser,
+      startImpersonation,
+      stopImpersonation
     }}>
       {children}
     </AuthContext.Provider>
