@@ -142,13 +142,18 @@ def build_clean_apk(target_apk_name, channel="production", do_web_build=True):
     shutil.copyfile(unsigned_apk, final_apk)
     os.remove(unsigned_apk)
 
+    project_keystore = os.path.join(BASE_DIR, "android", "app", "invocentric.keystore")
     cmd = [
         "java", "-jar", UBER_JAR,
         "-a", final_apk,
+        "--ks", project_keystore,
+        "--ksAlias", "androiddebugkey",
+        "--ksPass", "android",
+        "--keyPass", "android",
         "--allowResign",
         "--overwrite"
     ]
-    print(f"[Sign] Signing and aligning with uber-apk-signer: {' '.join(cmd)}")
+    print(f"[Sign] Signing and aligning with uber-apk-signer using project keystore: {' '.join(cmd)}")
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
         print(res.stderr)
