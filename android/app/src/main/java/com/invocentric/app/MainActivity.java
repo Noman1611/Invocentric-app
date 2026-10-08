@@ -218,8 +218,8 @@ public class MainActivity extends BridgeActivity {
                     try {
                         String serverClientId = null;
                         String nonce = null;
-                        boolean filterByAuthorized = true;
-                        boolean autoSelect = true;
+                        boolean filterByAuthorized = false;
+                        boolean autoSelect = false;
 
                         if (optionsJson != null && !optionsJson.trim().isEmpty()) {
                             try {
@@ -231,34 +231,45 @@ public class MainActivity extends BridgeActivity {
                             } catch (Exception ignored) {}
                         }
 
-                        CredentialManagerHelper helper = new CredentialManagerHelper(MainActivity.this);
-                        helper.signIn(serverClientId, nonce, filterByAuthorized, autoSelect, new CredentialManagerHelper.AuthCallback() {
-                            @Override
-                            public void onSuccess(CredentialManagerHelper.AuthResult result) {
-                                try {
-                                    JSONObject ret = new JSONObject();
-                                    ret.put("idToken", result.idToken);
-                                    ret.put("email", result.email);
-                                    ret.put("displayName", result.displayName);
-                                    ret.put("givenName", result.givenName);
-                                    ret.put("familyName", result.familyName);
-                                    ret.put("photoUrl", result.photoUrl);
-                                    ret.put("phoneNumber", result.phoneNumber);
-                                    ret.put("nonce", result.nonce);
-                                    dispatchAuthCallback(callbackId, ret.toString());
-                                } catch (Exception e) {
-                                    dispatchAuthError(callbackId, "EXCEPTION", e.getMessage());
-                                }
-                            }
+                        final CredentialManagerHelper helper = new CredentialManagerHelper(MainActivity.this);
+                        final String finalServerClientId = serverClientId;
+                        final String finalNonce = nonce;
+                        final boolean finalFilterByAuthorized = filterByAuthorized;
+                        final boolean finalAutoSelect = autoSelect;
 
+                        // Clear any previous credential state first so Google Account Chooser is ALWAYS displayed
+                        helper.signOut(new CredentialManagerHelper.SignOutCallback() {
                             @Override
-                            public void onCancel() {
-                                dispatchAuthError(callbackId, "USER_CANCELLED", "User cancelled Google Sign-In");
-                            }
+                            public void onComplete() {
+                                helper.signIn(finalServerClientId, finalNonce, finalFilterByAuthorized, finalAutoSelect, new CredentialManagerHelper.AuthCallback() {
+                                    @Override
+                                    public void onSuccess(CredentialManagerHelper.AuthResult result) {
+                                        try {
+                                            JSONObject ret = new JSONObject();
+                                            ret.put("idToken", result.idToken);
+                                            ret.put("email", result.email);
+                                            ret.put("displayName", result.displayName);
+                                            ret.put("givenName", result.givenName);
+                                            ret.put("familyName", result.familyName);
+                                            ret.put("photoUrl", result.photoUrl);
+                                            ret.put("phoneNumber", result.phoneNumber);
+                                            ret.put("nonce", result.nonce);
+                                            dispatchAuthCallback(callbackId, ret.toString());
+                                        } catch (Exception e) {
+                                            dispatchAuthError(callbackId, "EXCEPTION", e.getMessage());
+                                        }
+                                    }
 
-                            @Override
-                            public void onError(String code, String message) {
-                                dispatchAuthError(callbackId, code, message);
+                                    @Override
+                                    public void onCancel() {
+                                        dispatchAuthError(callbackId, "USER_CANCELLED", "User cancelled Google Sign-In");
+                                    }
+
+                                    @Override
+                                    public void onError(String code, String message) {
+                                        dispatchAuthError(callbackId, code, message);
+                                    }
+                                });
                             }
                         });
                     } catch (Exception e) {

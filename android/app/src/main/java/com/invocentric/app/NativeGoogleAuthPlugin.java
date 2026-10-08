@@ -18,42 +18,48 @@ public class NativeGoogleAuthPlugin extends Plugin {
 
     @PluginMethod
     public void signIn(final PluginCall call) {
-        String serverClientId = call.getString("serverClientId", null);
-        String customNonce = call.getString("nonce", null);
-        boolean filterByAuthorizedAccounts = call.getBoolean("filterByAuthorizedAccounts", true);
-        boolean autoSelectEnabled = call.getBoolean("autoSelectEnabled", true);
+        final String serverClientId = call.getString("serverClientId", null);
+        final String customNonce = call.getString("nonce", null);
+        final boolean filterByAuthorizedAccounts = call.getBoolean("filterByAuthorizedAccounts", false);
+        final boolean autoSelectEnabled = call.getBoolean("autoSelectEnabled", false);
 
         if (helper == null) {
             helper = new CredentialManagerHelper(getActivity());
         }
 
-        helper.signIn(serverClientId, customNonce, filterByAuthorizedAccounts, autoSelectEnabled, new CredentialManagerHelper.AuthCallback() {
+        // Clear previous credential state so account selection chooser bottom sheet always displays
+        helper.signOut(new CredentialManagerHelper.SignOutCallback() {
             @Override
-            public void onSuccess(CredentialManagerHelper.AuthResult result) {
-                JSObject ret = new JSObject();
-                ret.put("idToken", result.idToken);
-                ret.put("email", result.email);
-                ret.put("displayName", result.displayName);
-                ret.put("givenName", result.givenName);
-                ret.put("familyName", result.familyName);
-                ret.put("photoUrl", result.photoUrl);
-                ret.put("phoneNumber", result.phoneNumber);
-                ret.put("nonce", result.nonce);
-                call.resolve(ret);
-            }
+            public void onComplete() {
+                helper.signIn(serverClientId, customNonce, filterByAuthorizedAccounts, autoSelectEnabled, new CredentialManagerHelper.AuthCallback() {
+                    @Override
+                    public void onSuccess(CredentialManagerHelper.AuthResult result) {
+                        JSObject ret = new JSObject();
+                        ret.put("idToken", result.idToken);
+                        ret.put("email", result.email);
+                        ret.put("displayName", result.displayName);
+                        ret.put("givenName", result.givenName);
+                        ret.put("familyName", result.familyName);
+                        ret.put("photoUrl", result.photoUrl);
+                        ret.put("phoneNumber", result.phoneNumber);
+                        ret.put("nonce", result.nonce);
+                        call.resolve(ret);
+                    }
 
-            @Override
-            public void onCancel() {
-                JSObject data = new JSObject();
-                data.put("code", "USER_CANCELLED");
-                call.reject("User cancelled Google Sign-In", "USER_CANCELLED", data);
-            }
+                    @Override
+                    public void onCancel() {
+                        JSObject data = new JSObject();
+                        data.put("code", "USER_CANCELLED");
+                        call.reject("User cancelled Google Sign-In", "USER_CANCELLED", data);
+                    }
 
-            @Override
-            public void onError(String code, String message) {
-                JSObject data = new JSObject();
-                data.put("code", code);
-                call.reject(message, code, data);
+                    @Override
+                    public void onError(String code, String message) {
+                        JSObject data = new JSObject();
+                        data.put("code", code);
+                        call.reject(message, code, data);
+                    }
+                });
             }
         });
     }

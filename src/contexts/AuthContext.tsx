@@ -1623,9 +1623,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isNativeAndroid = typeof window !== 'undefined' && Boolean(
         (window as any).AndroidAppUpdater || 
         (window as any).AndroidGoogleAuth ||
-        (window as any).Capacitor?.isNativePlatform?.() ||
-        window.location.protocol === 'capacitor:' ||
-        (/android/i.test(navigator.userAgent) && (window as any).Capacitor)
+        (typeof (window as any).Capacitor?.isNativePlatform === 'function' && 
+         (window as any).Capacitor.isNativePlatform() && 
+         (window as any).Capacitor.getPlatform?.() === 'android') ||
+        window.location.protocol === 'capacitor:'
       );
 
       // --- NATIVE ANDROID GOOGLE SIGN-IN (Credential Manager with Seamless Chrome Handshake Fallback) ---

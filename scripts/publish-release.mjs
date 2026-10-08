@@ -8,31 +8,23 @@ dotenv.config();
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.46';
+const TAG = 'v1.0.47';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.46 - Seamless Google Login, Multi-Tenant Data Isolation & Verified Metrics';
-const RELEASE_NOTES = `## InvoCentric v1.0.46 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.47 - WebApp Google Login Isolation & APK Account Selection Chooser';
+const RELEASE_NOTES = `## InvoCentric v1.0.47 Release Notes
 
-### What's New in v1.0.46:
-- **Seamless Google Login Flow (Android, Web & Desktop):**
-  - Upgraded Android integration with native Chrome Custom Tabs (\`androidx.browser.customtabs.CustomTabsIntent\`), resolving Google OAuth2 \`403 disallowed_user_agent\` blocks and providing direct 1-tap Google account selection on smartphones.
-  - Streamlined UI/UX login modal flow into an intuitive, responsive 1-click experience across Web, Desktop, and Android.
-- **Strict Multi-Tenant Isolation & Admin Data Segregation:**
-  - Guaranteed complete isolation of Admin personal business data (\`nomanshaikh1999@gmail.com\`) from all platform merchant records across Firestore REST fallback queries and local caches.
-  - Added self-healing cache sanitation in \`useData\` and \`firestoreRestFallback\` to automatically purge alien user records from local offline storage.
-  - Refined legacy UID migration to prevent cross-account pollution.
-  - Dynamic Month-over-Month growth calculations and accurate pending payment tracking on Dashboard.
-- **Verified Platform Integrity & Genuine Admin Panel Data:**
-  - 100% genuine dynamic database metrics on Admin Panel (\`/admin\`).
-  - Realistic and authentic Gujarat merchant reviews (ratings 4.8 - 5.0 with Verified Merchant badges) on the Landing Page.
-  - Standardized business location to "Gujarat, India" across Landing Page and Terms.
-- **Multiplatform Production Binaries:**
-  - Android APK: \`InvoCentric.apk\` (Dual v1+v2 signed, 7.49 MB)
-  - Windows Desktop Setup: \`InvoCentric-Setup.exe\` (Signed NSIS installer)
-  - Auto-updater manifest: \`latest.yml\`
-- **Comprehensive Quality Assurance:**
-  - 117/117 project test cases passing (100%).
-  - 27/27 Google Login Flow verification test cases passing (100%).
+### What's New in v1.0.47:
+- **WebApp Google Login Isolation (No APK Hijacking):**
+  - Resolved issue where logging in via Google on the WebApp inside a mobile browser (Chrome/Android) erroneously triggered deep links or intent schemes that redirected into the installed APK.
+  - Refined platform detection in \`AuthContext\` so mobile web browsers are never mistakenly classified as native Android.
+  - Added strict automatic purging of stale mobile handshake session flags when accessing the WebApp normally in browsers.
+  - WebApp Google Login now stays 100% inside the browser with immediate redirect to dashboard upon successful authentication.
+- **Android APK Google Account Chooser & Selection Bottom Sheet:**
+  - Configured \`filterByAuthorizedAccounts = false\` and \`autoSelectEnabled = false\` in Credential Manager.
+  - Added proactive credential state reset (\`clearCredentialStateAsync\`) prior to sign-in requests so that Android Google Identity always displays the full Google Account Selection bottom sheet/dialog with all Gmail accounts available on the smartphone.
+  - Users can now freely switch and choose any Google account instead of being auto-logged-in with the previous account.
+- **WebApp Production Update:**
+  - Full production web build deployed and released.
 `;
 
 const ASSETS = [

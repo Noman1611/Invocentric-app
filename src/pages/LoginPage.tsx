@@ -146,19 +146,37 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
   const urlMobileAuth = searchParams.get('mobile_auth') === '1';
   const urlSessionId = searchParams.get('session');
 
-  // Persist mobile auth session across Google redirects in mobile browsers
-  if (urlMobileAuth && urlSessionId && typeof window !== 'undefined') {
+  // If user opens the WebApp normally in a browser (NO mobile_auth in URL), purge any stale mobile auth flags
+  if (!urlMobileAuth && typeof window !== 'undefined') {
     try {
-      localStorage.setItem('invocentric_mobile_auth', '1');
-      localStorage.setItem('invocentric_mobile_session', urlSessionId);
+      localStorage.removeItem('invocentric_mobile_auth');
+      localStorage.removeItem('invocentric_mobile_session');
+      sessionStorage.removeItem('invocentric_mobile_auth');
+      sessionStorage.removeItem('invocentric_mobile_session');
     } catch (_) {}
   }
 
-  const storedMobileAuth = typeof window !== 'undefined' ? localStorage.getItem('invocentric_mobile_auth') === '1' : false;
-  const storedSessionId = typeof window !== 'undefined' ? localStorage.getItem('invocentric_mobile_session') : null;
+  // Persist mobile auth session ONLY across redirects within the same browser tab when mobile_auth=1 was provided
+  if (urlMobileAuth && urlSessionId && typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem('invocentric_mobile_auth', '1');
+      sessionStorage.setItem('invocentric_mobile_session', urlSessionId);
+    } catch (_) {}
+  }
 
-  const isMobileAuth = urlMobileAuth || storedMobileAuth;
-  const mobileSessionId = urlSessionId || storedSessionId;
+  const storedMobileAuth = typeof window !== 'undefined' ? sessionStorage.getItem('invocentric_mobile_auth') === '1' : false;
+  const storedSessionId = typeof window !== 'undefined' ? sessionStorage.getItem('invocentric_mobile_session') : null;
+
+  // Strict check: Only consider mobile auth if currently in an APK handshake session
+  const isMobileAuth = (urlMobileAuth && Boolean(urlSessionId)) || (storedMobileAuth && Boolean(storedSessionId));
+  const mobileSessionId = isMobileAuth ? (urlSessionId || storedSessionId) : null;
+
+  // If user is already authenticated on web (and NOT in an APK handshake session), navigate immediately to dashboard
+  useEffect(() => {
+    if (user && !authLoading && !isMobileAuth) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, authLoading, isMobileAuth, navigate]);
 
   // Transmit authenticated user credentials to Android APK via server API, Firestore, and deep link
   const transmitHandshake = async (
@@ -214,6 +232,8 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
     }
 
     try {
+      sessionStorage.removeItem('invocentric_mobile_auth');
+      sessionStorage.removeItem('invocentric_mobile_session');
       localStorage.removeItem('invocentric_mobile_auth');
       localStorage.removeItem('invocentric_mobile_session');
     } catch (_) {}
@@ -237,8 +257,9 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
   };
 
   useEffect(() => {
-    const activeSid = mobileSessionId || (typeof window !== 'undefined' ? localStorage.getItem('invocentric_mobile_session') : null);
-    if (!activeSid) return;
+    // Only listen for handshake redirect if this is an explicit mobile APK handshake session
+    if (!isMobileAuth || !mobileSessionId) return;
+    const activeSid = mobileSessionId;
 
     let isCancelled = false;
 
@@ -265,18 +286,13 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
       isCancelled = true;
       unsubscribe();
     };
-  }, [mobileSessionId, handshakeCompleted]);
+  }, [isMobileAuth, mobileSessionId, handshakeCompleted]);
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     setError(null);
     try {
       if (isMobileAuth && mobileSessionId) {
-        try {
-          localStorage.setItem('invocentric_mobile_auth', '1');
-          localStorage.setItem('invocentric_mobile_session', mobileSessionId);
-        } catch (_) {}
-
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -303,6 +319,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
         return;
       }
 
+      // Normal WebApp Google Sign In (Stays strictly inside the WebApp browser, NEVER redirects to APK)
       await signInWithGoogle();
       navigate('/dashboard');
     } catch (err: any) {
