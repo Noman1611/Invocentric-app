@@ -88,16 +88,31 @@ function mergeOfflineQueue(data: any[], collectionName: string, userId: string) 
 }
 
 function getResilientLocalData(colName: string, userId: string, userEmail?: string | null): any[] {
+  const cleanEmail = (userEmail || '').trim().toLowerCase();
+  const candidateUids = [
+    userId,
+    cleanEmail ? 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : null,
+    cleanEmail ? 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : null,
+  ].filter(Boolean) as string[];
+
   const currentKey = `offline_${colName}_${userId}`;
   const currentData = getSecureStorage(currentKey, []);
   if (Array.isArray(currentData) && currentData.length > 0) {
-    return currentData;
+    // Sanitize any foreign records that may have been cross-polluted by older versions
+    const validData = currentData.filter((item: any) => {
+      if (!item) return false;
+      if (!item.user_id) return true;
+      return candidateUids.includes(item.user_id);
+    });
+    if (validData.length !== currentData.length) {
+      setSecureStorage(currentKey, validData);
+    }
+    return validData;
   }
 
-  if (typeof window === 'undefined' || !userEmail) return [];
-  const cleanEmail = userEmail.trim().toLowerCase();
+  if (typeof window === 'undefined' || !cleanEmail) return [];
 
-  // Search localStorage for any legacy collection key belonging to this email
+  // Search localStorage for any legacy collection key strictly belonging to this email
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith(`offline_${colName}_`)) {
@@ -105,12 +120,15 @@ function getResilientLocalData(colName: string, userId: string, userEmail?: stri
       if (otherUid && otherUid !== userId) {
         const otherProfile = getSecureStorage(`user_profile_${otherUid}`, null);
         const emailMatches = otherProfile && (otherProfile.email || '').toLowerCase() === cleanEmail;
-        const patternMatches = otherUid.includes(cleanEmail.split('@')[0]) || otherUid.startsWith('google_') || otherUid.startsWith('user_');
+        const isEmailDerivedUid = otherUid === 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') || 
+                                  otherUid === 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
 
-        if (emailMatches || patternMatches) {
+        if (emailMatches || isEmailDerivedUid) {
           const legacyList = getSecureStorage(key, []);
           if (Array.isArray(legacyList) && legacyList.length > 0) {
-            const remapped = legacyList.map((item: any) => ({ ...item, user_id: userId }));
+            const remapped = legacyList
+              .filter((item: any) => !item.user_id || item.user_id === otherUid || candidateUids.includes(item.user_id))
+              .map((item: any) => ({ ...item, user_id: userId }));
             setSecureStorage(currentKey, remapped);
             console.log(`[useData] Instantly recovered ${remapped.length} ${colName} from ${key} for user ${userId}`);
             return remapped;

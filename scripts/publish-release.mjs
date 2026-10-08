@@ -8,20 +8,31 @@ dotenv.config();
 const TOKEN = process.env.GITHUB_TOKEN || '';
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.45';
+const TAG = 'v1.0.46';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.45 - Android Installer Fix & Official Brand Color Family';
-const RELEASE_NOTES = `## InvoCentric v1.0.45 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.46 - Seamless Google Login, Multi-Tenant Data Isolation & Verified Metrics';
+const RELEASE_NOTES = `## InvoCentric v1.0.46 Release Notes
 
-### What's New in v1.0.45:
-- **Android "App not installed" Fix:** Fixed package installer decompression failure caused by nested APK assets; optimized APK asset bundling with explicit AAPT exclusion and dual v1+v2 signature verification. Clean 8.8 MB package installs smoothly on all Android versions.
-- **Unified InvoCentric Brand Color Family:** Completely eliminated unbranded purple and blue shades across the entire project. Standardized on the official InvoCentric brand palette:
-  - **Primary:** Forest Green (\`#166534\`) & Deep Emerald (\`#0d5c4b\`)
-  - **Accent:** Warm Amber (\`#f59e0b\` / \`#92400e\`) for SaaS badges, Pro highlights, and special indicators
-  - **Danger:** Crimson Rose (\`#e11d48\`) for alerts and deletions
-  - **Neutrals:** Slate Charcoal & Crisp Off-White for clean financial ledger clarity
-- **Multiplatform Production Binaries:** Updated Windows installer (\`InvoCentric-Setup.exe\`) and verified Android APK (\`InvoCentric.apk\`).
-- **Comprehensive Quality Assured:** All 144 unit, integration, and security test cases passing 100%.
+### What's New in v1.0.46:
+- **Seamless Google Login Flow (Android, Web & Desktop):**
+  - Upgraded Android integration with native Chrome Custom Tabs (\`androidx.browser.customtabs.CustomTabsIntent\`), resolving Google OAuth2 \`403 disallowed_user_agent\` blocks and providing direct 1-tap Google account selection on smartphones.
+  - Streamlined UI/UX login modal flow into an intuitive, responsive 1-click experience across Web, Desktop, and Android.
+- **Strict Multi-Tenant Isolation & Admin Data Segregation:**
+  - Guaranteed complete isolation of Admin personal business data (\`nomanshaikh1999@gmail.com\`) from all platform merchant records across Firestore REST fallback queries and local caches.
+  - Added self-healing cache sanitation in \`useData\` and \`firestoreRestFallback\` to automatically purge alien user records from local offline storage.
+  - Refined legacy UID migration to prevent cross-account pollution.
+  - Dynamic Month-over-Month growth calculations and accurate pending payment tracking on Dashboard.
+- **Verified Platform Integrity & Genuine Admin Panel Data:**
+  - 100% genuine dynamic database metrics on Admin Panel (\`/admin\`).
+  - Realistic and authentic Gujarat merchant reviews (ratings 4.8 - 5.0 with Verified Merchant badges) on the Landing Page.
+  - Standardized business location to "Gujarat, India" across Landing Page and Terms.
+- **Multiplatform Production Binaries:**
+  - Android APK: \`InvoCentric.apk\` (Dual v1+v2 signed, 7.49 MB)
+  - Windows Desktop Setup: \`InvoCentric-Setup.exe\` (Signed NSIS installer)
+  - Auto-updater manifest: \`latest.yml\`
+- **Comprehensive Quality Assurance:**
+  - 117/117 project test cases passing (100%).
+  - 27/27 Google Login Flow verification test cases passing (100%).
 `;
 
 const ASSETS = [

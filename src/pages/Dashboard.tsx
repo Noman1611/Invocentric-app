@@ -115,26 +115,65 @@ export default function DashboardPage() {
 
   const loading = invoicesLoading || customersLoading || itemsLoading;
 
+  // Helper to extract numeric amount safely from invoice
+  const getInvoiceAmount = (inv: any) => Number(inv?.total ?? inv?.amount ?? inv?.grand_total ?? 0);
+
   // Real data calculations
   const realTotalRevenue = useMemo(() => invoices
     .filter(inv => inv.status === 'paid')
-    .reduce((acc, inv) => acc + (inv.amount || 0), 0), [invoices]);
+    .reduce((acc, inv) => acc + getInvoiceAmount(inv), 0), [invoices]);
 
   const realPendingAmount = useMemo(() => invoices
-    .filter(inv => inv.status === 'sent')
-    .reduce((acc, inv) => acc + (inv.amount || 0), 0), [invoices]);
+    .filter(inv => inv.status !== 'paid' && inv.status !== 'cancelled')
+    .reduce((acc, inv) => acc + getInvoiceAmount(inv), 0), [invoices]);
 
   const overdueInvoicesCount = useMemo(() => invoices.filter(inv => inv.status === 'overdue').length, [invoices]);
   const lowStockItems = useMemo(() => inventoryItems.filter(item => (Number(item.stock) || 0) <= (Number(item.min_stock_level) || Number(item.low_stock_threshold) || 5)), [inventoryItems]);
 
-  // High-fidelity values mapping (defaults to real database data dynamically)
+  // Dynamic Month-over-Month calculation
+  const trends = useMemo(() => {
+    const now = new Date();
+    const currentMonthStart = startOfMonth(now);
+    const prevMonthStart = startOfMonth(subDays(currentMonthStart, 15));
+    const prevMonthEnd = endOfMonth(prevMonthStart);
+
+    const currentMonthInvoices = invoices.filter(inv => {
+      const d = parseDateSafe(inv.created_at);
+      return d >= currentMonthStart;
+    });
+
+    const prevMonthInvoices = invoices.filter(inv => {
+      const d = parseDateSafe(inv.created_at);
+      return d >= prevMonthStart && d <= prevMonthEnd;
+    });
+
+    const curRev = currentMonthInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + getInvoiceAmount(i), 0);
+    const prevRev = prevMonthInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + getInvoiceAmount(i), 0);
+
+    const revGrowth = prevRev > 0 
+      ? Math.round(((curRev - prevRev) / prevRev) * 100)
+      : (curRev > 0 ? 100 : 0);
+
+    const invGrowth = prevMonthInvoices.length > 0
+      ? Math.round(((currentMonthInvoices.length - prevMonthInvoices.length) / prevMonthInvoices.length) * 100)
+      : (currentMonthInvoices.length > 0 ? 100 : 0);
+
+    return {
+      revGrowthText: revGrowth === 0 && curRev === 0 ? '0% vs last month' : (revGrowth >= 0 ? `+${revGrowth}% vs last month` : `${revGrowth}% vs last month`),
+      revIsPositive: revGrowth >= 0,
+      invGrowthText: invGrowth === 0 && currentMonthInvoices.length === 0 ? '0% vs last month' : (invGrowth >= 0 ? `+${invGrowth}% vs last month` : `${invGrowth}% vs last month`),
+      invIsPositive: invGrowth >= 0
+    };
+  }, [invoices]);
+
+  // High-fidelity values mapping (strictly derived from real database data dynamically)
   const statsData = useMemo(() => {
     return [
       {
         name: 'Direct Revenue',
         value: realTotalRevenue,
-        change: invoices.length > 0 ? '+ 18.6% vs last month' : '0% vs last month',
-        isPositive: true,
+        change: trends.revGrowthText,
+        isPositive: trends.revIsPositive,
         color: 'text-green-600',
         bg: 'bg-green-50',
         icon: '₹',
@@ -142,8 +181,8 @@ export default function DashboardPage() {
       {
         name: 'Pending Payments',
         value: realPendingAmount,
-        change: '0.0% vs last month',
-        isPositive: true,
+        change: realPendingAmount > 0 ? 'Awaiting settlement' : 'All clear',
+        isPositive: realPendingAmount === 0,
         color: 'text-amber-600',
         bg: 'bg-amber-50',
         iconClass: Wallet,
@@ -151,8 +190,8 @@ export default function DashboardPage() {
       {
         name: 'Active Invoices',
         value: invoices.length,
-        change: invoices.length > 0 ? '+ 50% vs last month' : '0% vs last month',
-        isPositive: true,
+        change: trends.invGrowthText,
+        isPositive: trends.invIsPositive,
         color: 'text-emerald-700',
         bg: 'bg-emerald-50',
         iconClass: FileText,
@@ -160,17 +199,17 @@ export default function DashboardPage() {
       {
         name: appMode === 'freelancer' ? 'Total Clients' : 'Total Customers',
         value: customers.length,
-        change: customers.length > 0 ? '+ 33.3% vs last month' : '0% vs last month',
+        change: customers.length > 0 ? `${customers.length} registered` : 'No customers yet',
         isPositive: true,
         color: 'text-amber-700',
         bg: 'bg-amber-50',
         iconClass: Users,
       }
     ];
-  }, [invoices.length, customers.length, realTotalRevenue, realPendingAmount, appMode]);
+  }, [invoices.length, customers.length, realTotalRevenue, realPendingAmount, appMode, trends]);
   const metrics = statsData;
 
-  // Combined chart data (High fidelity monotone curve default, active user data if sales occur)
+  // Combined chart data based on real sales
   const chartData = useMemo(() => {
     // Pull last 6 months
     return [...Array(6)].map((_, i) => {
@@ -184,7 +223,7 @@ export default function DashboardPage() {
       });
       return {
         name: format(date, 'MMM'),
-        revenue: monthInvoices.filter(inv => inv.status === 'paid').reduce((acc, inv) => acc + (inv.amount || 0), 0),
+        revenue: monthInvoices.filter(inv => inv.status === 'paid').reduce((acc, inv) => acc + getInvoiceAmount(inv), 0),
       };
     }).reverse();
   }, [invoices]);
@@ -197,7 +236,7 @@ export default function DashboardPage() {
       customerName: inv.customer_name || inv.customer?.name || 'Customer',
       customerPhone: inv.customer?.phone || '',
       date: inv.created_at ? format(parseDateSafe(inv.created_at), 'MMM d, yyyy') : format(new Date(), 'MMM d, yyyy'),
-      amount: inv.amount || 0,
+      amount: getInvoiceAmount(inv),
       status: inv.status || 'sent',
       currency: inv.currency || 'INR',
       rawInvoice: inv

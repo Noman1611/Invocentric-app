@@ -201,7 +201,7 @@ export default function TermsPage() {
             </AnimatePresence>
 
             <div className="pt-8 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Patan, Gujarat, India</span>
+              <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Gujarat, India</span>
               <button 
                 onClick={() => navigate('/')} 
                 className="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"

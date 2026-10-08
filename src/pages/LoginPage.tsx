@@ -105,9 +105,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
     }
   }, [urlMode, defaultMode]);
 
-  const [googleModalOpen, setGoogleModalOpen] = useState(false);
-  const [googleAuthStep, setGoogleAuthStep] = useState<'idle' | 'selecting' | 'authorizing' | 'connected' | 'error'>('idle');
-  const [googleAuthError, setGoogleAuthError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   
   // Form states
   const [fullName, setFullName] = useState('');
@@ -270,10 +268,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
   }, [mobileSessionId, handshakeCompleted]);
 
   const handleGoogleLogin = async () => {
-    setGoogleModalOpen(true);
-    setGoogleAuthStep('selecting');
-    setGoogleAuthError(null);
-    setLoading(true);
+    setGoogleLoading(true);
     setError(null);
     try {
       if (isMobileAuth && mobileSessionId) {
@@ -288,44 +283,36 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
         try {
           const result = await signInWithPopup(auth, provider);
           if (result?.user) {
-            setGoogleAuthStep('authorizing');
             const credential = GoogleAuthProvider.credentialFromResult(result);
             await transmitHandshake(result.user, credential?.idToken, credential?.accessToken, mobileSessionId);
-            setGoogleAuthStep('connected');
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 600);
             return;
           }
         } catch (popupErr: any) {
-          console.warn("Popup attempt notice:", popupErr?.code);
+          if (
+            popupErr?.code === 'auth/popup-closed-by-user' ||
+            popupErr?.code === 'auth/cancelled-popup-request' ||
+            popupErr?.message?.includes('cancelled')
+          ) {
+            setGoogleLoading(false);
+            return;
+          }
+          console.warn("Popup attempt notice, falling back to redirect:", popupErr?.code);
           await signInWithRedirect(auth, provider);
           return;
         }
         return;
       }
 
-      await signInWithGoogle((step) => {
-        if (step === 'initializing' || step === 'bottom_sheet') {
-          setGoogleAuthStep('selecting');
-        } else if (step === 'token_received' || step === 'verifying_server' || step === 'session_created') {
-          setGoogleAuthStep('authorizing');
-        } else if (step === 'access_granted') {
-          setGoogleAuthStep('connected');
-        }
-      });
-      setGoogleAuthStep('connected');
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 600);
+      await signInWithGoogle();
+      navigate('/dashboard');
     } catch (err: any) {
       if (
         err?.code === 'auth/popup-closed-by-user' || 
         err?.code === 'auth/cancelled-popup-request' ||
-        err?.message?.includes('cancelled')
+        err?.message?.includes('cancelled') ||
+        err?.message?.includes('User cancelled')
       ) {
-        setGoogleModalOpen(false);
-        setGoogleAuthStep('idle');
+        setGoogleLoading(false);
         return;
       }
       console.error("Google Login Error:", err);
@@ -333,11 +320,9 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
       if (err.code === 'auth/popup-blocked') {
         message = "Login popup was blocked by your browser. Please allow popups for this site and try again.";
       }
-      setGoogleAuthStep('error');
-      setGoogleAuthError(message);
       setError(message);
     } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -580,7 +565,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Mobile Browser Handshake Sign-in
+  // Mobile Browser Handshake Sign-in (Already signed in on Chrome)
   if (isMobileAuth && mobileSessionId && user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#f8fafc] text-slate-900 font-sans"
@@ -606,6 +591,54 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
           >
             {loading ? "Connecting..." : "Authorize App Login"}
           </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Mobile Browser Handshake Sign-in (Direct 1-tap Google Sign-In for smartphone app)
+  if (isMobileAuth && mobileSessionId && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#f8fafc] text-slate-900 font-sans"
+        style={{
+          backgroundImage: 'linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px), linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px)',
+          backgroundSize: '40px 40px'
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-sm bg-white rounded-3xl p-8 shadow-xl border border-slate-200 text-center"
+        >
+          <InvoCentricBrandBadge />
+          <h2 className="text-xl font-bold text-slate-900 mb-1">Sign In to Mobile App</h2>
+          <p className="text-xs text-slate-500 mb-6">
+            Choose your Google account to log into InvoCentric automatically.
+          </p>
+
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs text-left">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className="w-full h-12 flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 shadow-sm transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer mb-4"
+          >
+            {googleLoading ? (
+              <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <GoogleIcon className="w-5 h-5" />
+            )}
+            <span>{googleLoading ? 'Connecting account...' : 'Continue with Google'}</span>
+          </button>
+
+          <p className="text-[11px] text-slate-400">
+            Secure Google Account authentication for smartphone app.
+          </p>
         </motion.div>
       </div>
     );
@@ -773,11 +806,15 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
-                  disabled={loading}
-                  className="w-full h-11 px-4 flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition-all active:scale-[0.99] cursor-pointer"
+                  disabled={loading || googleLoading}
+                  className="w-full h-11 px-4 flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition-all active:scale-[0.99] disabled:opacity-60 cursor-pointer"
                 >
-                  <GoogleIcon className="w-4 h-4" />
-                  <span>Continue with Google</span>
+                  {googleLoading ? (
+                    <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <GoogleIcon className="w-4 h-4" />
+                  )}
+                  <span>{googleLoading ? 'Signing in with Google...' : 'Continue with Google'}</span>
                 </button>
               </div>
 
@@ -987,11 +1024,15 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
-                  disabled={loading}
-                  className="w-full h-11 px-4 flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition-all active:scale-[0.99] cursor-pointer"
+                  disabled={loading || googleLoading}
+                  className="w-full h-11 px-4 flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 shadow-2xs transition-all active:scale-[0.99] disabled:opacity-60 cursor-pointer"
                 >
-                  <GoogleIcon className="w-4 h-4" />
-                  <span>Continue with Google</span>
+                  {googleLoading ? (
+                    <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <GoogleIcon className="w-4 h-4" />
+                  )}
+                  <span>{googleLoading ? 'Signing in with Google...' : 'Continue with Google'}</span>
                 </button>
               </div>
 
@@ -1203,58 +1244,6 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
         )}
       </AnimatePresence>
 
-      {/* Google In-App Modal / Bottom Sheet */}
-      <AnimatePresence>
-        {googleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 16 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden relative"
-            >
-              <div className="h-1.5 w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-green-600" />
-
-              <div className="p-6 pb-4 flex items-center justify-between border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-xs">
-                    <GoogleIcon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-base leading-tight">Google Sign-In</h3>
-                    <p className="text-[11px] text-slate-400 font-medium">Secure Verification</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setGoogleModalOpen(false);
-                    setGoogleAuthStep('idle');
-                    setLoading(false);
-                  }}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div className="p-6 text-center flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full border-3 border-slate-200 border-t-emerald-600 animate-spin mb-4" />
-                <h4 className="text-base font-bold text-slate-900 mb-1">Authenticating with Google...</h4>
-                <p className="text-xs text-slate-500 max-w-xs mb-4">
-                  Please select your Google account in the popup window.
-                </p>
-                {googleAuthError && (
-                  <p className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
-                    {googleAuthError}
-                  </p>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

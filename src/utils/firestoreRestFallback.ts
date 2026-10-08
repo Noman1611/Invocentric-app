@@ -90,13 +90,16 @@ export async function fetchCollectionRest(
 
   const token = await getEffectiveToken(idToken);
   const cleanEmail = (userEmail || '').trim().toLowerCase();
-  const isAdmin = cleanEmail === 'nomanshaikh1999@gmail.com';
 
   const candidateUids = Array.from(new Set([
     userId,
     cleanEmail ? 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : null,
     cleanEmail ? 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : null,
   ].filter(Boolean))) as string[];
+
+  // When userId is provided, strictly isolate by user's candidate UIDs.
+  // Only query across all users if userId is explicitly omitted/empty (e.g. for platform Admin overview).
+  const isGlobalFetch = !userId || userId.trim() === '';
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
@@ -112,8 +115,8 @@ export async function fetchCollectionRest(
     from: [{ collectionId: collectionName }]
   };
 
-  // If not admin, filter by user_id using candidate UIDs
-  if (!isAdmin && candidateUids.length > 0) {
+  // If scoped to a specific user, strictly filter by user_id
+  if (!isGlobalFetch && candidateUids.length > 0) {
     if (candidateUids.length === 1) {
       structuredQuery.where = {
         fieldFilter: {
@@ -143,7 +146,7 @@ export async function fetchCollectionRest(
     if (!res.ok) {
       // If structuredQuery failed with 403 or error, try direct collection listing endpoint
       console.warn(`[Firestore REST] Query for ${collectionName} returned status ${res.status}. Trying list endpoint...`);
-      return await fallbackListCollection(collectionName, candidateUids, token, isAdmin);
+      return await fallbackListCollection(collectionName, candidateUids, token, isGlobalFetch);
     }
 
     const data = await res.json();
@@ -154,7 +157,7 @@ export async function fetchCollectionRest(
       if (entry.document) {
         const parsed = parseFirestoreRestDoc(entry.document);
         if (parsed) {
-          if (isAdmin || candidateUids.includes(parsed.user_id) || !parsed.user_id) {
+          if (isGlobalFetch || candidateUids.includes(parsed.user_id) || (!parsed.user_id && candidateUids.includes(userId))) {
             items.push(parsed);
           }
         }
@@ -173,7 +176,7 @@ async function fallbackListCollection(
   collectionName: string,
   candidateUids: string[],
   token?: string | null,
-  isAdmin: boolean = false
+  isGlobalFetch: boolean = false
 ): Promise<any[]> {
   const projectId = firebaseConfig.projectId;
   const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
@@ -194,7 +197,7 @@ async function fallbackListCollection(
     for (const doc of documents) {
       const parsed = parseFirestoreRestDoc(doc);
       if (parsed) {
-        if (isAdmin || candidateUids.includes(parsed.user_id) || !parsed.user_id) {
+        if (isGlobalFetch || candidateUids.includes(parsed.user_id) || !parsed.user_id) {
           items.push(parsed);
         }
       }
@@ -217,6 +220,13 @@ export async function syncAllUserDataFromFirestore(
   if (!userId) return { success: false, counts: {} };
 
   const effectiveToken = await getEffectiveToken(idToken);
+  const cleanEmail = (userEmail || '').trim().toLowerCase();
+  const candidateUids = Array.from(new Set([
+    userId,
+    cleanEmail ? 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : null,
+    cleanEmail ? 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : null,
+  ].filter(Boolean))) as string[];
+
   console.log(`[Firestore REST] Starting full real data sync for user ${userId} (${userEmail || 'unknown'})...`);
   const collections = ['invoices', 'customers', 'items', 'payments', 'daily_book', 'quotations', 'expenses', 'purchases', 'notifications'];
   const counts: Record<string, number> = {};
@@ -224,15 +234,22 @@ export async function syncAllUserDataFromFirestore(
   for (const col of collections) {
     try {
       const items = await fetchCollectionRest(col, userId, userEmail, effectiveToken);
-      if (Array.isArray(items) && items.length > 0) {
+      const existingKey = `offline_${col}_${userId}`;
+      const existing = getSecureStorage(existingKey, []);
+
+      // Filter out any foreign records previously contaminated into this user's cache
+      const validExisting = Array.isArray(existing) ? existing.filter((item: any) => {
+        if (!item) return false;
+        if (!item.user_id) return true;
+        return candidateUids.includes(item.user_id);
+      }) : [];
+
+      if (Array.isArray(items)) {
         counts[col] = items.length;
-        // Merge with existing local cache to avoid overwriting offline-added items
-        const existingKey = `offline_${col}_${userId}`;
-        const existing = getSecureStorage(existingKey, []);
         const remoteIds = new Set(items.map((i: any) => i.id));
         const merged = [...items];
-        // Keep any local-only items that Firestore doesn't know about yet
-        for (const localItem of (existing as any[])) {
+        // Keep valid local-only items that Firestore doesn't know about yet
+        for (const localItem of validExisting) {
           if (!remoteIds.has(localItem.id) || localItem._sync_status === 'saved_locally') {
             if (!merged.find((m: any) => m.id === localItem.id)) {
               merged.push(localItem);
@@ -240,6 +257,11 @@ export async function syncAllUserDataFromFirestore(
           }
         }
         setSecureStorage(existingKey, merged);
+        window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: col } }));
+        window.dispatchEvent(new CustomEvent(`${col}_updated`, { detail: { collection: col } }));
+      } else if (validExisting.length !== (existing || []).length) {
+        // If items were purged due to cross-contamination, save the sanitized cache
+        setSecureStorage(existingKey, validExisting);
         window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: col } }));
         window.dispatchEvent(new CustomEvent(`${col}_updated`, { detail: { collection: col } }));
       }

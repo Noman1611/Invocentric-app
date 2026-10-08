@@ -1,8 +1,8 @@
-version: 1.0.45
+version: 1.0.46
 files:
   - url: InvoCentric-Setup.exe
-    sha512: zeg41ux59hzEE+AWfOi+g/p0pQhXmGAKqHVOqFUN8WulxrdEqW6RExBsNJ3hqUPvPrlHc5ROlP5Nv9MiuPRzfw==
-    size: 114769800
+    sha512: Y4e7esZ7MbTy0PCE++eEqFO4CH/9wLyFbs5desZju40WW1A0XlzWwUWXqNtXKZ2QXfT9vN9z2wIPN4YkHPgUHA==
+    size: 121719088
 path: InvoCentric-Setup.exe
-sha512: zeg41ux59hzEE+AWfOi+g/p0pQhXmGAKqHVOqFUN8WulxrdEqW6RExBsNJ3hqUPvPrlHc5ROlP5Nv9MiuPRzfw==
-releaseDate: '2026-10-07T16:05:13.747Z'
+sha512: Y4e7esZ7MbTy0PCE++eEqFO4CH/9wLyFbs5desZju40WW1A0XlzWwUWXqNtXKZ2QXfT9vN9z2wIPN4YkHPgUHA==
+releaseDate: '2026-10-08T12:45:18.681Z'

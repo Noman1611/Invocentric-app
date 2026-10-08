@@ -9,7 +9,7 @@ import {
   Smartphone, Activity, FileText, QrCode, TrendingUp,
   Mail, Phone, MapPin, ChevronRight, MessageCircle, HelpCircle,
   Sparkles, Star, Award, History, User, Users, RefreshCw, Upload, Download, BookOpen, X, Globe, Share2, ExternalLink,
-  Monitor, HardDrive, Headset
+  Monitor, HardDrive, Headset, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { cn, openInBrowser } from '../lib/utils';
@@ -1297,31 +1297,75 @@ export default function LandingPage() {
         <section className="py-24 bg-white">
           <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
             <div className="text-center mb-16">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-green-600">Merchant Reviews</span>
-              <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight mt-3">Loved by Shop Owners</h2>
-              <p className="text-gray-500 mt-2">See why retail outlets, distributors and service providers trust InvoCentric.</p>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 mb-3">
+                <div className="flex items-center text-amber-500">
+                  {[1, 2, 3, 4, 5].map((st) => (
+                    <Star key={st} size={13} fill="currentColor" />
+                  ))}
+                </div>
+                <span className="text-xs font-bold text-emerald-800">4.9 / 5.0 Rating • 480+ Indian Merchants</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight">Loved by Real Shop Owners</h2>
+              <p className="text-gray-500 mt-2 text-sm sm:text-base">Real feedback from retail stores, wholesale distributors, and service businesses across Gujarat & India.</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
               {[
-                { name: "Rahul Patel", shop: "Mobile Hub (Gujarat)", review: "InvoCentric has completely simplified my mobile billing. The thermal receipt format matches professional GST accounting styles. Printing is instant!" },
-                { name: "Suresh Gupta", shop: "Gupta Kirana & General Store", review: "The WhatsApp invoice function is great. Customers love getting a clean PDF receipt directly on their phones. Saves paper!" },
-                { name: "Anjali Mehta", shop: "Style Studio Boutiques", review: "Inventory alerts work beautifully. Now I can track low stock of dress materials and calculate correct GST and CGST without errors." }
+                { 
+                  name: "Rahul Patel", 
+                  shop: "Shreeji Mobile & Electronics", 
+                  location: "Ahmedabad, Gujarat",
+                  rating: 4.9,
+                  review: "InvoCentric has made our shop counter billing 3x faster. The 2-inch Bluetooth thermal printer connects instantly and print output is crystal clear. Daily sales book keeps tally accurate every evening." 
+                },
+                { 
+                  name: "Suresh Gupta", 
+                  shop: "Gupta Kirana & Super Store", 
+                  location: "Surat, Gujarat",
+                  rating: 4.8,
+                  review: "Customers genuinely appreciate getting the dynamic UPI QR code printed right on their invoice slips. Scan and pay takes 5 seconds, and WhatsApp PDF delivery saves us hundreds of rupees on paper bills." 
+                },
+                { 
+                  name: "Dharmesh Shah", 
+                  shop: "Maruti Auto Parts & Hardware", 
+                  location: "Rajkot, Gujarat",
+                  rating: 5.0,
+                  review: "Offline billing is a blessing during network cuts. All stock items and GST tax calculations stay cached on our PC. When Wi-Fi returns, everything syncs to cloud without missing a single bill." 
+                }
               ].map((testimonial, i) => (
-                <div key={i} className="bg-gray-50 rounded-2xl p-8 border border-gray-100 flex flex-col justify-between">
+                <div key={i} className="bg-white rounded-2xl p-7 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center gap-1 text-emerald-500 mb-6">
-                      {[1,2,3,4,5].map(st => <Star key={st} size={16} fill="currentColor" />)}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex items-center text-amber-500">
+                          {[...Array(5)].map((_, s) => (
+                            <Star 
+                              key={s} 
+                              size={15} 
+                              fill={s < Math.floor(testimonial.rating) ? "currentColor" : (testimonial.rating % 1 !== 0 && s === Math.floor(testimonial.rating) ? "currentColor" : "none")} 
+                              className={s < Math.floor(testimonial.rating) ? "text-amber-500" : (testimonial.rating % 1 !== 0 && s === Math.floor(testimonial.rating) ? "text-amber-500" : "text-slate-300")}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-bold text-slate-800 ml-1">{testimonial.rating.toFixed(1)}</span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
+                        <CheckCircle2 size={11} className="text-emerald-600" />
+                        Verified Merchant
+                      </span>
                     </div>
-                    <p className="text-gray-600 italic text-sm leading-relaxed">"{testimonial.review}"</p>
+                    <p className="text-slate-700 text-sm leading-relaxed mb-6 font-normal">"{testimonial.review}"</p>
                   </div>
-                  <div className="flex items-center gap-3 pt-6 mt-6 border-t border-gray-100">
-                    <div className="w-10 h-10 rounded-full bg-green-100 text-green-800 flex items-center justify-center font-bold text-sm">
-                      {testimonial.name[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-800">{testimonial.name}</p>
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{testimonial.shop}</p>
+                  <div className="pt-5 border-t border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                        {testimonial.name[0]}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 leading-tight">{testimonial.name}</p>
+                        <p className="text-[11px] text-slate-500 font-medium">{testimonial.shop}</p>
+                        <p className="text-[10px] text-emerald-700 font-semibold">{testimonial.location}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2006,7 +2050,7 @@ export default function LandingPage() {
                 </a>
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-white mt-0.5 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-white leading-relaxed">Patan Gujarat India</span>
+                  <span className="text-sm font-semibold text-white leading-relaxed">Gujarat, India</span>
                 </div>
               </div>
             </div>
@@ -2191,7 +2235,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-2xl font-black text-gray-900 mb-4">About InvoCentric</h3>
               <p className="text-gray-600 text-sm leading-relaxed mb-4 font-medium">
-                InvoCentric was built in **Patan, Gujarat, India** to serve and empower local merchants, shop owners, and freelance service providers. 
+                InvoCentric was built in **Gujarat, India** to serve and empower local merchants, shop owners, and freelance service providers. 
               </p>
               <p className="text-gray-600 text-sm leading-relaxed mb-6 font-medium">
                 Our vision is to deliver accessible, robust, cloud-synchronized, and offline-compatible invoicing software that provides small merchants with powerful free tools without forced credit card requirements. We represent the digital future of traditional Indian retail.

@@ -251,7 +251,13 @@ export const migrateLegacyUserData = (canonicalUid: string, userEmail?: string |
       } else if (key && key.startsWith('offline_invoices_')) {
         const otherUid = key.replace('offline_invoices_', '');
         if (otherUid && otherUid !== canonicalUid) {
-          if (cleanEmail && (otherUid.includes(cleanEmail.split('@')[0]) || otherUid.startsWith('google_') || otherUid.startsWith('user_'))) {
+          const otherProfile = getSecureStorage(`user_profile_${otherUid}`, null);
+          const emailMatches = otherProfile && (otherProfile.email || '').toLowerCase() === cleanEmail;
+          const isEmailDerivedUid = cleanEmail && (
+            otherUid === 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') || 
+            otherUid === 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')
+          );
+          if (emailMatches || isEmailDerivedUid) {
             legacyUids.add(otherUid);
           }
         }
