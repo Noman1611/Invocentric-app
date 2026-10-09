@@ -359,6 +359,14 @@ class UniversalUpdateService {
             };
           } else if (checkRes?.status === 'error') {
             this.updateState({ status: 'available', progress: 0, error: checkRes?.error || 'Update check error' });
+            const exeUrl = this.state.exeDownloadUrl || DEFAULT_WINDOWS_DOWNLOAD_URL;
+            if (exeUrl && electronAPI?.openExternalUrl) {
+              electronAPI.openExternalUrl(exeUrl);
+              return { 
+                success: true, 
+                message: 'Auto-updater metadata was unavailable. Opened download link for the latest installer in your browser.' 
+              };
+            }
             return { 
               success: false, 
               message: 'Auto-updater could not find release metadata. Please verify internet connection.' 

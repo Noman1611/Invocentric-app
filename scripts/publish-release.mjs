@@ -29,7 +29,7 @@ const RELEASE_NOTES = `## InvoCentric v1.0.47 Release Notes
 
 const ASSETS = [
   {
-    filePath: 'latest.yml',
+    filePath: fs.existsSync('dist_electron/latest.yml') ? 'dist_electron/latest.yml' : 'latest.yml',
     name: 'latest.yml',
     contentType: 'text/yaml'
   },
