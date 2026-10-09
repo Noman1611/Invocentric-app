@@ -63,17 +63,22 @@ class UniversalUpdateService {
     autoApplying: false
   };
   private checkIntervalTimer: any = null;
+  private lastAutoCheckTime: number = 0;
 
   constructor() {
     this.initPlatformHandlers();
-    // Check for updates on startup (2.5s after launch), every 30m, and on app resume
+    // Check for updates on startup (2.5s after launch), every 30m, and on app resume with cooldown
     if (typeof window !== 'undefined') {
       setTimeout(() => this.checkForUpdates(false), 2500);
       this.checkIntervalTimer = setInterval(() => this.checkForUpdates(false), 30 * 60 * 1000);
 
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-          this.checkForUpdates(false);
+          const now = Date.now();
+          if (now - this.lastAutoCheckTime > 30 * 60 * 1000) {
+            this.lastAutoCheckTime = now;
+            this.checkForUpdates(false);
+          }
         }
       });
 
@@ -212,7 +217,7 @@ class UniversalUpdateService {
    * Check GitHub Releases API for latest updates
    */
   public async checkForUpdates(isUserInitiated: boolean = true): Promise<AppUpdateState> {
-    if (this.state.status === 'checking' || this.state.status === 'downloading') {
+    if (this.state.status === 'checking' || this.state.status === 'downloading' || this.state.status === 'downloaded') {
       return this.getState();
     }
 
@@ -352,19 +357,32 @@ class UniversalUpdateService {
         this.updateState({ status: 'downloading', progress: 10 });
         try {
           const checkRes = await electronAPI.checkForUpdates();
+          if (checkRes?.status === 'downloaded') {
+            this.updateState({ status: 'downloaded', progress: 100, hasUpdate: true });
+            return {
+              success: true,
+              message: 'Update already downloaded! Please click "Restart Now" to apply.'
+            };
+          }
+          if (checkRes?.status === 'downloading') {
+            return {
+              success: true,
+              message: 'Update is currently downloading in background... Please wait.'
+            };
+          }
           if (checkRes?.status === 'success' || checkRes?.updateInfo) {
             return { 
               success: true, 
               message: 'Downloading update in the background. The installed software will update and restart in-place.' 
             };
-          } else if (checkRes?.status === 'error') {
+          } else if (checkRes?.status === 'error' || checkRes?.status === 'dev-mode') {
             this.updateState({ status: 'available', progress: 0, error: checkRes?.error || 'Update check error' });
             const exeUrl = this.state.exeDownloadUrl || DEFAULT_WINDOWS_DOWNLOAD_URL;
             if (exeUrl && electronAPI?.openExternalUrl) {
               electronAPI.openExternalUrl(exeUrl);
               return { 
                 success: true, 
-                message: 'Auto-updater metadata was unavailable. Opened download link for the latest installer in your browser.' 
+                message: 'Auto-updater metadata was unavailable. Installer browser me download ho raha hai. Download hone ke baad software band karke setup run karein.' 
               };
             }
             return { 

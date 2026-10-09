@@ -110,48 +110,62 @@ export async function fetchCollectionRest(
 
   const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery?key=${apiKey}`;
 
-  // Build query
-  const structuredQuery: any = {
-    from: [{ collectionId: collectionName }]
+  const querySingleUid = async (uid?: string): Promise<any[]> => {
+    const structuredQuery: any = {
+      from: [{ collectionId: collectionName }]
+    };
+    if (uid) {
+      structuredQuery.where = {
+        fieldFilter: {
+          field: { fieldPath: 'user_id' },
+          op: 'EQUAL',
+          value: { stringValue: uid }
+        }
+      };
+    }
+    try {
+      const res = await fetch(queryUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ structuredQuery })
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (!Array.isArray(data)) return [];
+      const items: any[] = [];
+      for (const entry of data) {
+        if (entry.document) {
+          const parsed = parseFirestoreRestDoc(entry.document);
+          if (parsed) items.push(parsed);
+        }
+      }
+      return items;
+    } catch {
+      return [];
+    }
   };
 
-  // If scoped to a specific user, strictly filter by user_id
-  if (!isGlobalFetch && userId) {
-    structuredQuery.where = {
-      fieldFilter: {
-        field: { fieldPath: 'user_id' },
-        op: 'EQUAL',
-        value: { stringValue: userId }
-      }
-    };
-  }
+  const uidsToQuery = (!isGlobalFetch && candidateUids.length > 0)
+    ? candidateUids
+    : (userId ? [userId] : []);
 
   try {
-    const res = await fetch(queryUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ structuredQuery })
-    });
-
-    if (!res.ok) {
-      // If structuredQuery failed with 403 or error, try direct collection listing endpoint
-      console.warn(`[Firestore REST] Query for ${collectionName} returned status ${res.status}. Trying list endpoint...`);
-      return await fallbackListCollection(collectionName, candidateUids, token, isGlobalFetch);
-    }
-
-    const data = await res.json();
-    if (!Array.isArray(data)) return [];
-
-    const items: any[] = [];
-    for (const entry of data) {
-      if (entry.document) {
-        const parsed = parseFirestoreRestDoc(entry.document);
-        if (parsed) {
-          if (isGlobalFetch || parsed.user_id === userId || candidateUids.includes(parsed.user_id) || (!parsed.user_id && candidateUids.includes(userId))) {
-            items.push(parsed);
+    let items: any[] = [];
+    if (isGlobalFetch || uidsToQuery.length === 0) {
+      items = await querySingleUid();
+    } else {
+      const settled = await Promise.allSettled(uidsToQuery.map(uid => querySingleUid(uid)));
+      const itemMap = new Map<string, any>();
+      for (const res of settled) {
+        if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+          for (const item of res.value) {
+            if (item && item.id && !itemMap.has(item.id)) {
+              itemMap.set(item.id, item);
+            }
           }
         }
       }
+      items = Array.from(itemMap.values());
     }
 
     console.log(`[Firestore REST] Successfully retrieved ${items.length} ${collectionName} via REST API.`);

@@ -16686,12 +16686,21 @@ ipcMain.handle("print-to-pdf", async (event, defaultName = "Invoice.pdf") => {
   }
 });
 var isUpdateDownloaded = false;
+var isUpdateDownloading = false;
 ipcMain.handle("check-for-updates", async () => {
   if (!autoUpdater) {
     return { status: "disabled", message: "Auto-updater is not available" };
   }
   if (!app.isPackaged) {
     return { status: "dev-mode", message: "Auto-update is disabled in development mode" };
+  }
+  if (isUpdateDownloaded) {
+    console.log("[AutoUpdater] Update is already downloaded and ready to install. Skipping check/download.");
+    return { status: "downloaded", message: "Update already downloaded and ready to install." };
+  }
+  if (isUpdateDownloading) {
+    console.log("[AutoUpdater] Update is already currently downloading. Skipping redundant check.");
+    return { status: "downloading", message: "Update is currently downloading." };
   }
   try {
     const result = await autoUpdater.checkForUpdates();
@@ -16708,8 +16717,8 @@ ipcMain.handle("restart-and-install", () => {
   }
   if (autoUpdater) {
     try {
-      console.log("[AutoUpdater] Initiating restart and in-place silent install...");
-      autoUpdater.quitAndInstall(true, true);
+      console.log("[AutoUpdater] Initiating restart and in-place installer execution...");
+      autoUpdater.quitAndInstall(false, true);
       return { success: true };
     } catch (err) {
       console.error("[AutoUpdater] Error during quitAndInstall:", err);
@@ -16730,18 +16739,21 @@ if (autoUpdater) {
   });
   autoUpdater.on("update-not-available", (info) => {
     isUpdateDownloaded = false;
+    isUpdateDownloading = false;
     console.log("[AutoUpdater] Software is up to date.");
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("update-not-available", info);
     }
   });
   autoUpdater.on("download-progress", (progressObj) => {
+    isUpdateDownloading = true;
     console.log(`[AutoUpdater] Download: ${progressObj?.percent?.toFixed(1)}%`);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("download-progress", progressObj);
     }
   });
   autoUpdater.on("update-downloaded", (info) => {
+    isUpdateDownloading = false;
     isUpdateDownloaded = true;
     console.log("[AutoUpdater] Update downloaded successfully:", info?.version);
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -16749,6 +16761,7 @@ if (autoUpdater) {
     }
   });
   autoUpdater.on("error", (err) => {
+    isUpdateDownloading = false;
     isUpdateDownloaded = false;
     console.error("[AutoUpdater] Update error:", err?.message || err);
     if (mainWindow && !mainWindow.isDestroyed()) {

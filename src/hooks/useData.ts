@@ -212,8 +212,15 @@ export function useInvoices() {
         if (d.last_reminded_at?.toDate) d.last_reminded_at = d.last_reminded_at.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      data.sort((a, b) => new Date(b.created_at || b.date || 0).getTime() - new Date(a.created_at || a.date || 0).getTime());
-      const finalData = mergeOfflineQueue(data, "invoices", user.uid); 
+
+      // Preserve legacy-UID and local cache lookup during migration so an empty canonical-only snapshot cannot overwrite displayed data
+      const localData = getResilientLocalData('invoices', user.uid, user.email);
+      const remoteIds = new Set(data.map(d => d.id));
+      const unmigratedOrLocal = localData.filter((item: any) => item && item.id && !remoteIds.has(item.id));
+      const combined = [...data, ...unmigratedOrLocal];
+
+      combined.sort((a, b) => new Date(b.created_at || b.date || 0).getTime() - new Date(a.created_at || a.date || 0).getTime());
+      const finalData = mergeOfflineQueue(combined, "invoices", user.uid); 
       setInvoices(finalData);
       setSecureStorage(`offline_invoices_${user.uid}`, finalData);
       setLoading(false);

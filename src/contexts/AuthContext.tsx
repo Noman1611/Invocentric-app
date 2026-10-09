@@ -800,23 +800,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Check if user was previously authenticated in local session to prevent premature loader dismiss
-    const hadActiveSession = typeof window !== 'undefined' && localStorage.getItem('invocentric_auth_active') === 'true';
-
-    // Safety timeout: if auth state doesn't resolve within timeout, force loading to false
-    const safetyTimeout = setTimeout(() => {
-      setLoading(false);
-      console.warn("Auth state took too long to resolve; safety timeout triggered.");
-    }, hadActiveSession ? 2500 : 1500);
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      clearTimeout(safetyTimeout);
       console.log("Auth state change:", firebaseUser ? `User ID ${firebaseUser.uid.slice(0, 5)}...` : "No user");
       await handleUserChange(firebaseUser);
     });
 
     return () => {
-      clearTimeout(safetyTimeout);
       unsubscribe();
     };
   }, []);
@@ -955,11 +944,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       let userDoc: any = null;
+      let readCompleted = false;
       try {
         userDoc = await Promise.race([
           getDoc(userDocRef),
           new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 1800))
         ]);
+        readCompleted = true;
       } catch (err: any) {
         console.warn("Background user doc fetch notice:", err?.message || err);
       }
@@ -1059,9 +1050,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (updateErr) {
           console.warn("Could not update last_login_at timestamp:", updateErr);
         }
-      } else {
-        // Profile does not exist in Firestore - create it safely!
+      } else if (readCompleted && userDoc && !userDoc.exists()) {
+        // Profile confirmed missing in Firestore by completed read - create it safely!
         await ensureUserProfileExists(firebaseUser);
+      } else {
+        // Read timed out or encountered an error: treat as unknown, do not write default profile fields
+        console.log("Background profile read incomplete or timed out; keeping existing profile intact.");
       }
 
       // Background Telegram login notification
@@ -1527,16 +1521,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const displayName = dummy.searchParams.get('displayName');
 
           if (idToken) {
-            let signedInSuccessfully = false;
             try {
               const cred = GoogleAuthProvider.credential(idToken, accessToken || undefined);
               await signInWithCredential(auth, cred);
-              signedInSuccessfully = true;
             } catch (credErr) {
-              console.warn("Credential sign-in notice, using session user fallback:", credErr);
-            }
-            if (!signedInSuccessfully && (uid || email)) {
-              await applyExternalSessionUser({ uid, email, displayName, idToken, accessToken });
+              console.warn("Credential sign-in failed from deep link token:", credErr);
             }
           } else if (sessionId) {
             // Check server API first
@@ -1545,22 +1534,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (res.ok) {
                 const sData = await res.json();
                 if (sData?.idToken) {
-                  let signedIn = false;
                   try {
                     const cred = GoogleAuthProvider.credential(sData.idToken, sData.accessToken || undefined);
                     await signInWithCredential(auth, cred);
-                    signedIn = true;
                     return;
                   } catch (credErr) {
-                    console.warn("Credential sign-in notice from mobile-session, using session data fallback:", credErr);
+                    console.warn("Credential sign-in failed from mobile-session:", credErr);
                   }
-                  if (!signedIn && (sData?.uid || sData?.email)) {
-                    await applyExternalSessionUser(sData);
-                    return;
-                  }
-                } else if (sData?.uid) {
-                  await applyExternalSessionUser(sData);
-                  return;
                 }
               }
             } catch (apiErr) {
@@ -1573,27 +1553,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (snap.exists()) {
                 const d = snap.data();
                 if (d.idToken) {
-                  let signedIn = false;
                   try {
                     const cred = GoogleAuthProvider.credential(d.idToken, d.accessToken || undefined);
                     await signInWithCredential(auth, cred);
-                    signedIn = true;
                   } catch (credErr) {
-                    console.warn("Credential sign-in notice from firestore session, using session data fallback:", credErr);
+                    console.warn("Credential sign-in failed from firestore session:", credErr);
                   }
-                  if (!signedIn && (d.uid || d.email)) {
-                    await applyExternalSessionUser(d);
-                  }
-                } else if (d.uid) {
-                  await applyExternalSessionUser(d);
                 }
                 await deleteDoc(doc(db, 'app_auth_sessions', sessionId)).catch(() => {});
               }
             } catch (fsErr) {
               console.warn("Firestore session fallback notice:", fsErr);
             }
-          } else if (uid) {
-            await applyExternalSessionUser({ uid, email, displayName });
           }
         } catch (e) {
           console.warn("Error handling deep link auth event:", e);
