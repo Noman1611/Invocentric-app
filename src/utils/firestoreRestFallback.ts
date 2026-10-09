@@ -116,24 +116,14 @@ export async function fetchCollectionRest(
   };
 
   // If scoped to a specific user, strictly filter by user_id
-  if (!isGlobalFetch && candidateUids.length > 0) {
-    if (candidateUids.length === 1) {
-      structuredQuery.where = {
-        fieldFilter: {
-          field: { fieldPath: 'user_id' },
-          op: 'EQUAL',
-          value: { stringValue: candidateUids[0] }
-        }
-      };
-    } else {
-      structuredQuery.where = {
-        fieldFilter: {
-          field: { fieldPath: 'user_id' },
-          op: 'IN',
-          value: { arrayValue: { values: candidateUids.map(u => ({ stringValue: u })) } }
-        }
-      };
-    }
+  if (!isGlobalFetch && userId) {
+    structuredQuery.where = {
+      fieldFilter: {
+        field: { fieldPath: 'user_id' },
+        op: 'EQUAL',
+        value: { stringValue: userId }
+      }
+    };
   }
 
   try {
@@ -157,7 +147,7 @@ export async function fetchCollectionRest(
       if (entry.document) {
         const parsed = parseFirestoreRestDoc(entry.document);
         if (parsed) {
-          if (isGlobalFetch || candidateUids.includes(parsed.user_id) || (!parsed.user_id && candidateUids.includes(userId))) {
+          if (isGlobalFetch || parsed.user_id === userId || candidateUids.includes(parsed.user_id) || (!parsed.user_id && candidateUids.includes(userId))) {
             items.push(parsed);
           }
         }
@@ -227,48 +217,50 @@ export async function syncAllUserDataFromFirestore(
     cleanEmail ? 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : null,
   ].filter(Boolean))) as string[];
 
-  console.log(`[Firestore REST] Starting full real data sync for user ${userId} (${userEmail || 'unknown'})...`);
+  console.log(`[Firestore REST] Starting fast parallel data sync for user ${userId} (${userEmail || 'unknown'})...`);
   const collections = ['invoices', 'customers', 'items', 'payments', 'daily_book', 'quotations', 'expenses', 'purchases', 'notifications'];
   const counts: Record<string, number> = {};
 
-  for (const col of collections) {
-    try {
-      const items = await fetchCollectionRest(col, userId, userEmail, effectiveToken);
-      const existingKey = `offline_${col}_${userId}`;
-      const existing = getSecureStorage(existingKey, []);
+  await Promise.allSettled(
+    collections.map(async (col) => {
+      try {
+        const items = await fetchCollectionRest(col, userId, userEmail, effectiveToken);
+        const existingKey = `offline_${col}_${userId}`;
+        const existing = getSecureStorage(existingKey, []);
 
-      // Filter out any foreign records previously contaminated into this user's cache
-      const validExisting = Array.isArray(existing) ? existing.filter((item: any) => {
-        if (!item) return false;
-        if (!item.user_id) return true;
-        return candidateUids.includes(item.user_id);
-      }) : [];
+        // Filter out any foreign records previously contaminated into this user's cache
+        const validExisting = Array.isArray(existing) ? existing.filter((item: any) => {
+          if (!item) return false;
+          if (!item.user_id) return true;
+          return candidateUids.includes(item.user_id);
+        }) : [];
 
-      if (Array.isArray(items)) {
-        counts[col] = items.length;
-        const remoteIds = new Set(items.map((i: any) => i.id));
-        const merged = [...items];
-        // Keep valid local-only items that Firestore doesn't know about yet
-        for (const localItem of validExisting) {
-          if (!remoteIds.has(localItem.id) || localItem._sync_status === 'saved_locally') {
-            if (!merged.find((m: any) => m.id === localItem.id)) {
-              merged.push(localItem);
+        if (Array.isArray(items)) {
+          counts[col] = items.length;
+          const remoteIds = new Set(items.map((i: any) => i.id));
+          const merged = [...items];
+          // Keep valid local-only items that Firestore doesn't know about yet
+          for (const localItem of validExisting) {
+            if (!remoteIds.has(localItem.id) || localItem._sync_status === 'saved_locally') {
+              if (!merged.find((m: any) => m.id === localItem.id)) {
+                merged.push(localItem);
+              }
             }
           }
+          setSecureStorage(existingKey, merged);
+          window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: col } }));
+          window.dispatchEvent(new CustomEvent(`${col}_updated`, { detail: { collection: col } }));
+        } else if (validExisting.length !== (existing || []).length) {
+          // If items were purged due to cross-contamination, save the sanitized cache
+          setSecureStorage(existingKey, validExisting);
+          window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: col } }));
+          window.dispatchEvent(new CustomEvent(`${col}_updated`, { detail: { collection: col } }));
         }
-        setSecureStorage(existingKey, merged);
-        window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: col } }));
-        window.dispatchEvent(new CustomEvent(`${col}_updated`, { detail: { collection: col } }));
-      } else if (validExisting.length !== (existing || []).length) {
-        // If items were purged due to cross-contamination, save the sanitized cache
-        setSecureStorage(existingKey, validExisting);
-        window.dispatchEvent(new CustomEvent('invocentric_data_updated', { detail: { collection: col } }));
-        window.dispatchEvent(new CustomEvent(`${col}_updated`, { detail: { collection: col } }));
+      } catch (e) {
+        console.warn(`[Firestore REST] Failed to sync ${col}:`, e);
       }
-    } catch (e) {
-      console.warn(`[Firestore REST] Failed to sync ${col}:`, e);
-    }
-  }
+    })
+  );
 
   // Also sync user profile document
   try {

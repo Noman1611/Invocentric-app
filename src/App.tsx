@@ -716,7 +716,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  if (loading || (settingsLoading && !settings)) {
+  if (loading && !user) {
     return <PageLoader />;
   }
 

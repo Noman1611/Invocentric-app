@@ -200,10 +200,7 @@ export function useInvoices() {
       };
     }
 
-    const candidateUids = getCandidateUids(user);
-    const q = candidateUids.length > 1
-      ? query(collection(db, 'invoices'), where('user_id', 'in', candidateUids))
-      : query(collection(db, 'invoices'), where('user_id', '==', user.uid));
+    const q = query(collection(db, 'invoices'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data: any[] = snapshot.docs.map(doc => {
@@ -299,10 +296,7 @@ export function useCustomers() {
       };
     }
 
-    const candidateUids = getCandidateUids(user);
-    const q = candidateUids.length > 1
-      ? query(collection(db, 'customers'), where('user_id', 'in', candidateUids))
-      : query(collection(db, 'customers'), where('user_id', '==', user.uid));
+    const q = query(collection(db, 'customers'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data: any[] = snapshot.docs.map(doc => {
@@ -396,10 +390,7 @@ export function useItems() {
       };
     }
 
-    const candidateUids = getCandidateUids(user);
-    const q = candidateUids.length > 1
-      ? query(collection(db, 'items'), where('user_id', 'in', candidateUids))
-      : query(collection(db, 'items'), where('user_id', '==', user.uid));
+    const q = query(collection(db, 'items'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data: any[] = snapshot.docs.map(doc => {
@@ -497,10 +488,7 @@ export function usePayments(customerId?: string) {
       };
     }
 
-    const candidateUids = getCandidateUids(user);
-    let q = candidateUids.length > 1
-      ? query(collection(db, 'payments'), where('user_id', 'in', candidateUids))
-      : query(collection(db, 'payments'), where('user_id', '==', user.uid));
+    let q = query(collection(db, 'payments'), where('user_id', '==', user.uid));
 
     if (customerId) {
       q = query(q, where('customer_id', '==', customerId));
@@ -597,10 +585,7 @@ export function useExpenses() {
       };
     }
 
-    const candidateUids = getCandidateUids(user);
-    const q = candidateUids.length > 1
-      ? query(collection(db, 'expenses'), where('user_id', 'in', candidateUids))
-      : query(collection(db, 'expenses'), where('user_id', '==', user.uid));
+    const q = query(collection(db, 'expenses'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data: any[] = snapshot.docs.map(doc => {
@@ -691,10 +676,7 @@ export function usePurchases() {
       };
     }
 
-    const candidateUids = getCandidateUids(user);
-    const q = candidateUids.length > 1
-      ? query(collection(db, 'purchases'), where('user_id', 'in', candidateUids))
-      : query(collection(db, 'purchases'), where('user_id', '==', user.uid));
+    const q = query(collection(db, 'purchases'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data: any[] = snapshot.docs.map(doc => {
@@ -769,8 +751,10 @@ export function useSettings() {
     const cachedProfile = getStoredUserProfile(user.uid);
     if (cachedProfile) {
       setSettings({ id: user.uid, ...cachedProfile, ...(isLocallyCompleted ? { wizard_completed: true } : {}) });
+      setLoading(false);
     } else if (isLocallyCompleted) {
       setSettings({ id: user.uid, wizard_completed: true });
+      setLoading(false);
     }
 
     if (isOfflineMode) {
@@ -778,11 +762,11 @@ export function useSettings() {
       return;
     }
 
-    // Safety timeout: if Firestore onSnapshot hangs, resolve loading after 4 seconds
+    // Safety timeout: if Firestore onSnapshot hangs, resolve loading after 1.5 seconds
     const safetyTimeout = setTimeout(() => {
       console.warn("Firestore snapshot for settings took too long; resolving with cached settings.");
       setLoading(false);
-    }, 4000);
+    }, 1500);
 
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
@@ -875,10 +859,7 @@ export function useNotifications() {
       return () => window.removeEventListener('storage', handleStorage);
     }
 
-    const candidateUids = getCandidateUids(user);
-    const q = candidateUids.length > 1
-      ? query(collection(db, 'notifications'), where('user_id', 'in', candidateUids))
-      : query(collection(db, 'notifications'), where('user_id', '==', user.uid));
+    const q = query(collection(db, 'notifications'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data: any[] = snapshot.docs.map(doc => {
@@ -978,10 +959,7 @@ export function useRecycleBin() {
       };
     }
 
-    const candidateUids = getCandidateUids(user);
-    const q = candidateUids.length > 1
-      ? query(collection(db, 'recycle_bin'), where('user_id', 'in', candidateUids))
-      : query(collection(db, 'recycle_bin'), where('user_id', '==', user.uid));
+    const q = query(collection(db, 'recycle_bin'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(
       q,
@@ -1056,10 +1034,7 @@ export function useTemplates() {
       };
     }
 
-    const candidateUids = getCandidateUids(user);
-    const q = candidateUids.length > 1
-      ? query(collection(db, 'templates'), where('user_id', 'in', candidateUids))
-      : query(collection(db, 'templates'), where('user_id', '==', user.uid));
+    const q = query(collection(db, 'templates'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => {

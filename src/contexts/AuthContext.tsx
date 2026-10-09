@@ -807,7 +807,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
       console.warn("Auth state took too long to resolve; safety timeout triggered.");
-    }, hadActiveSession ? 10000 : 5000);
+    }, hadActiveSession ? 2500 : 1500);
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       clearTimeout(safetyTimeout);
@@ -958,7 +958,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         userDoc = await Promise.race([
           getDoc(userDocRef),
-          new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 3500))
+          new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 1800))
         ]);
       } catch (err: any) {
         console.warn("Background user doc fetch notice:", err?.message || err);
@@ -1527,8 +1527,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const displayName = dummy.searchParams.get('displayName');
 
           if (idToken) {
-            const cred = GoogleAuthProvider.credential(idToken, accessToken || undefined);
-            await signInWithCredential(auth, cred);
+            let signedInSuccessfully = false;
+            try {
+              const cred = GoogleAuthProvider.credential(idToken, accessToken || undefined);
+              await signInWithCredential(auth, cred);
+              signedInSuccessfully = true;
+            } catch (credErr) {
+              console.warn("Credential sign-in notice, using session user fallback:", credErr);
+            }
+            if (!signedInSuccessfully && (uid || email)) {
+              await applyExternalSessionUser({ uid, email, displayName, idToken, accessToken });
+            }
           } else if (sessionId) {
             // Check server API first
             try {
@@ -1536,9 +1545,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (res.ok) {
                 const sData = await res.json();
                 if (sData?.idToken) {
-                  const cred = GoogleAuthProvider.credential(sData.idToken, sData.accessToken || undefined);
-                  await signInWithCredential(auth, cred);
-                  return;
+                  let signedIn = false;
+                  try {
+                    const cred = GoogleAuthProvider.credential(sData.idToken, sData.accessToken || undefined);
+                    await signInWithCredential(auth, cred);
+                    signedIn = true;
+                    return;
+                  } catch (credErr) {
+                    console.warn("Credential sign-in notice from mobile-session, using session data fallback:", credErr);
+                  }
+                  if (!signedIn && (sData?.uid || sData?.email)) {
+                    await applyExternalSessionUser(sData);
+                    return;
+                  }
                 } else if (sData?.uid) {
                   await applyExternalSessionUser(sData);
                   return;
@@ -1554,8 +1573,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (snap.exists()) {
                 const d = snap.data();
                 if (d.idToken) {
-                  const cred = GoogleAuthProvider.credential(d.idToken, d.accessToken || undefined);
-                  await signInWithCredential(auth, cred);
+                  let signedIn = false;
+                  try {
+                    const cred = GoogleAuthProvider.credential(d.idToken, d.accessToken || undefined);
+                    await signInWithCredential(auth, cred);
+                    signedIn = true;
+                  } catch (credErr) {
+                    console.warn("Credential sign-in notice from firestore session, using session data fallback:", credErr);
+                  }
+                  if (!signedIn && (d.uid || d.email)) {
+                    await applyExternalSessionUser(d);
+                  }
                 } else if (d.uid) {
                   await applyExternalSessionUser(d);
                 }
