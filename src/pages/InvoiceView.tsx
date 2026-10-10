@@ -603,27 +603,51 @@ export default function InvoiceViewPage() {
   // Each item row height depends on base row + sublines (serial, IMEI, batch, warranty, desc) + wrapped title
   const getItemHeight = (it: any): number => {
     const base = isA5 ? 18 : 24;
-    const subHeight = isA5 ? 11 : 15;
+    const subHeight = isA5 ? 11 : 14;
     const subCount = Array.isArray(it.subLines) ? it.subLines.length : 0;
     const nameLen = (it.name || '').length;
     let extraName = 0;
-    if (nameLen > 60) extraName = isA5 ? 18 : 24;
-    else if (nameLen > 30) extraName = isA5 ? 9 : 12;
+    if (nameLen > 65) extraName = isA5 ? 16 : 22;
+    else if (nameLen > 35) extraName = isA5 ? 8 : 11;
     return base + (subCount * subHeight) + extraName;
   };
 
   const lhDeduction = useLetterhead ? (letterheadTop + letterheadBottom) * 3.78 : 0;
+
+  // Estimate bottom summary height on the last page dynamically based on visible sections:
+  // (Totals row + words + HSN table + Bank/QR + Signature + Terms + Notes)
+  const estBottomSummaryHeight = (() => {
+    if (isA5) {
+      let h = 48; // Base totals + amount in words
+      if (showSec.hsn_summary && hsnEntries.length > 0) h += 18 + Math.min(hsnEntries.length, 3) * 12;
+      if (showSec.bank_details || showSec.upi_qr) h += 46;
+      if (showSec.signature || showSec.declaration) h += 36;
+      if (showSec.terms && termsText.length > 0) h += 20;
+      if (showSec.footer) h += 14;
+      return h;
+    } else {
+      let h = 76; // Base totals + amount in words
+      if (showSec.hsn_summary && hsnEntries.length > 0) h += 26 + Math.min(hsnEntries.length, 4) * 18;
+      if (showSec.bank_details || showSec.upi_qr) h += 72;
+      if (showSec.signature || showSec.declaration) h += 55;
+      if (showSec.terms && termsText.length > 0) h += 30;
+      if (showSec.footer) h += 20;
+      return h;
+    }
+  })();
   
   // Available height for items table body (in pixels):
-  // Single/Last page has to fit the bottom summary (totals, HSN table, bank details, terms, sign, etc.)
+  // Usable height inside sheet padding: A4 is ~1060px, A5 is ~525px.
+  // Header is ~195px on A4, ~130px on A5.
+  // Single/Last page has to fit the bottom summary:
   const maxLastPageHeight = isA5
-    ? Math.max(70, 140 - lhDeduction)
-    : Math.max(160, 420 - lhDeduction);
+    ? Math.max(80, Math.floor(525 - 130 - estBottomSummaryHeight - lhDeduction))
+    : Math.max(180, Math.floor(1060 - 195 - estBottomSummaryHeight - lhDeduction));
 
-  // Non-last pages only have the top header + "Continued on Next Page →" row:
+  // Non-last pages only have the top header + "Continued on Next Page →" row (~26px):
   const maxNonLastPageHeight = isA5
-    ? Math.max(140, 290 - lhDeduction)
-    : Math.max(280, 690 - lhDeduction);
+    ? Math.max(140, Math.floor(525 - 130 - 24 - lhDeduction))
+    : Math.max(300, Math.floor(1060 - 195 - 28 - lhDeduction));
 
   const itemPages: any[][] = [];
   if (itemRows.length === 0) {
@@ -635,19 +659,19 @@ export default function InvoiceViewPage() {
     if (totalItemsHeight <= maxLastPageHeight) {
       itemPages.push(itemRows);
     } else {
-      // Multi-page needed: partition items dynamically
+      // Multi-page needed: fill each page as much as physically possible until full, then overflow
       let remaining = [...itemRows];
 
       while (remaining.length > 0) {
         const remainingHeight = remaining.reduce((acc: number, it: any) => acc + getItemHeight(it), 0);
 
-        // If the remaining items can fit on the final page along with the bottom section:
+        // If all remaining items can fit completely on the final page along with bottom summary:
         if (remainingHeight <= maxLastPageHeight) {
           itemPages.push(remaining);
           break;
         }
 
-        // Fill current (non-last) page
+        // Fill current (non-last) page up to its maximum capacity
         let currentSlice: any[] = [];
         let currentHeight = 0;
 
@@ -655,24 +679,21 @@ export default function InvoiceViewPage() {
           const it = remaining[i];
           const itH = getItemHeight(it);
 
-          // If adding it would exceed non-last capacity, break (must keep at least 1 item)
+          // If adding it would exceed non-last capacity, break and push to next page
           if (currentSlice.length > 0 && currentHeight + itH > maxNonLastPageHeight) {
+            break;
+          }
+
+          // Ensure we don't leave 0 items for the final page (since remainingHeight > maxLastPageHeight,
+          // taking all items would leave 0 items for the last page with totals).
+          // Reserve at least 2 items (or 1 item if remaining is tiny) for the subsequent page:
+          const itemsLeft = remaining.length - (i + 1);
+          if (itemsLeft > 0 && itemsLeft < 2 && currentSlice.length >= 2) {
             break;
           }
 
           currentSlice.push(it);
           currentHeight += itH;
-
-          // Check remaining items after this
-          const nextRemaining = remaining.slice(i + 1);
-          const nextRemHeight = nextRemaining.reduce((acc: number, item: any) => acc + getItemHeight(item), 0);
-
-          // If what's left fits cleanly on the last page, we can stop here if we have a reasonable batch
-          if (nextRemaining.length > 0 && nextRemHeight <= maxLastPageHeight) {
-            if (nextRemaining.length <= 2 || currentHeight >= maxNonLastPageHeight * 0.5) {
-              break;
-            }
-          }
         }
 
         // Safety fallback to prevent infinite loop
@@ -1355,6 +1376,13 @@ export default function InvoiceViewPage() {
                 {colVis.gstPercent && <td style={{borderLeft:b,borderRight:b}}></td>}
                 <td style={{borderLeft:b,borderRight:b}}></td>
               </tr>
+              {!isLastPage && (
+                <tr style={{fontWeight:'bold',background:lb,borderTop:b}}>
+                  <td colSpan={dynamicColCount} style={{textAlign:'right',padding: isA5 ? '2px 3px' : '3px 6px',color:primaryForest}}>
+                    Continued on Next Page →
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -1820,6 +1848,13 @@ export default function InvoiceViewPage() {
               <tr>
                 <td colSpan={4 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0) + (colVis.mrp ? 1 : 0) + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0)} style={{ height: '100%' }}></td>
               </tr>
+              {!isLastPage && (
+                <tr style={{ fontWeight: 700, background: '#f8fafc', borderTop: `1px solid ${borderGray}` }}>
+                  <td colSpan={4 + (colVis.size ? 1 : 0) + (colVis.hsn ? 1 : 0) + (colVis.mrp ? 1 : 0) + (colVis.discount ? 1 : 0) + (colVis.gstPercent ? 1 : 0)} style={{ textAlign: 'right', padding: isA5 ? '3px 6px' : '5px 10px', color: headerBlue }}>
+                    Continued on Next Page →
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
 
@@ -2246,6 +2281,15 @@ export default function InvoiceViewPage() {
                   );
                 })}
               </tbody>
+              {!isLastPage && (
+                <tfoot>
+                  <tr style={{ fontWeight: 700, background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                    <td colSpan={10} style={{ textAlign: 'right', padding: isA5 ? '4px 6px' : '6px 12px', color: '#1e293b' }}>
+                      Continued on Next Page →
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
 
@@ -2571,33 +2615,36 @@ export default function InvoiceViewPage() {
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        <div className="min-w-full w-max flex flex-col items-center justify-start px-2 sm:px-4 py-2 sm:py-3">
+        <div className="min-w-full w-max flex flex-col items-center justify-start px-2 sm:px-4 py-2 sm:py-3 print:p-0 print:m-0 print:w-full print:block">
           <div 
             ref={invoiceRef} 
             id="invoice-document-canvas" 
-            className="flex flex-col items-center gap-4 print:gap-0 print:w-full print:flex print:items-center print:justify-center shrink-0"
+            className="flex flex-col items-center gap-4 print:gap-0 print:w-full print:block print:m-0 print:p-0 shrink-0"
             style={{
               width: !isPOS ? `calc(${sheetWidth} * ${activeScale})` : 'auto',
               minWidth: !isPOS ? `calc(${sheetWidth} * ${activeScale})` : 'auto',
             }}
           >
             {isPOS ? (
-              <div className="w-full flex justify-center print:w-full print:flex print:justify-center print:items-center">
+              <div className="w-full flex justify-center print:w-full print:block print:m-0 print:p-0">
                 {renderPOS(tpl === 'template_04' || tpl === 'template_14')}
               </div>
             ) : (
               itemPages.map((pItems, idx) => {
+                const isLast = idx === totalPages - 1;
                 const sheetHeightStyle = isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : 'auto');
                 return (
                   <div
                     key={idx}
-                    className="flex flex-col items-start justify-start"
+                    className="invoice-page-wrapper flex flex-col items-start justify-start print:m-0 print:p-0 print:w-full print:block"
                     style={{
                       width: `calc(${sheetWidth} * ${activeScale})`,
                       height: activeScale !== 1 ? `calc(${isA5 ? '148mm' : '297mm'} * ${activeScale} + 24px)` : 'auto',
                       marginBottom: activeScale < 1 ? '8px' : '16px',
                       overflow: 'visible',
-                      position: 'relative'
+                      position: 'relative',
+                      pageBreakAfter: isLast ? 'avoid' : 'always',
+                      breakAfter: isLast ? 'avoid' : 'page',
                     }}
                   >
                     <div
@@ -2618,8 +2665,8 @@ export default function InvoiceViewPage() {
                           background: '#fff',
                           boxSizing: 'border-box',
                           margin: '0 0 16px 0',
-                          pageBreakAfter: idx < totalPages - 1 ? 'always' : 'auto',
-                          breakAfter: idx < totalPages - 1 ? 'page' : 'auto',
+                          pageBreakAfter: 'auto',
+                          breakAfter: 'auto',
                           position: 'relative',
                           overflow: 'hidden'
                         }}
@@ -2996,6 +3043,8 @@ export default function InvoiceViewPage() {
           html, body { 
             width: 100% !important; 
             height: auto !important; 
+            min-height: 0 !important;
+            max-height: none !important;
             overflow: visible !important; 
             margin: 0 !important; 
             padding: 0 !important; 
@@ -3014,27 +3063,36 @@ export default function InvoiceViewPage() {
             max-width: 100% !important;
             margin: 0 auto !important;
             padding: 0 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: flex-start !important;
-            align-items: center !important;
+            display: block !important;
             background: #ffffff !important;
             transform: none !important;
           }
-          #invoice-document-canvas > div {
+          .invoice-page-wrapper {
             width: ${isPOS ? 'auto' : '210mm'} !important;
             min-width: ${isPOS ? 'auto' : '210mm'} !important;
             max-width: ${isPOS ? 'auto' : '210mm'} !important;
-            height: auto !important;
+            height: ${isPOS ? 'auto' : (isA5 ? '147mm' : '296mm')} !important;
+            max-height: ${isPOS ? 'auto' : (isA5 ? '147mm' : '296mm')} !important;
             margin: 0 auto !important;
             padding: 0 !important;
             transform: none !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            box-sizing: border-box !important;
+            display: block !important;
           }
-          #invoice-document-canvas > div > div {
+          .invoice-page-wrapper:not(:last-child) {
+            page-break-after: always !important;
+            break-after: page !important;
+          }
+          .invoice-page-wrapper:last-child {
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            margin-bottom: 0 !important;
+          }
+          .invoice-page-wrapper > div {
             width: 100% !important;
-            height: auto !important;
+            height: 100% !important;
             transform: none !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -3043,21 +3101,19 @@ export default function InvoiceViewPage() {
             width: ${isPOS ? 'auto' : '210mm'} !important;
             min-width: ${isPOS ? 'auto' : '210mm'} !important;
             max-width: ${isPOS ? 'auto' : '210mm'} !important;
-            height: ${isPOS ? 'auto' : (isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : 'auto'))} !important;
-            min-height: ${isPOS ? 'auto' : (isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : 'auto'))} !important;
-            max-height: ${isPOS ? 'auto' : (isA5 ? '148mm' : (pageSize === 'A4' ? '297mm' : 'none'))} !important;
+            height: ${isPOS ? 'auto' : (isA5 ? '147mm' : '296mm')} !important;
+            min-height: ${isPOS ? 'auto' : (isA5 ? '147mm' : '296mm')} !important;
+            max-height: ${isPOS ? 'auto' : (isA5 ? '147mm' : '296mm')} !important;
             margin: 0 auto !important;
             box-shadow: none !important;
             transform: none !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            page-break-after: auto !important;
+            break-after: auto !important;
             position: relative !important;
             overflow: hidden !important;
             box-sizing: border-box !important;
-          }
-          .invoice-page-sheet:last-child {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
           }
           .pos-thermal-receipt {
             margin: 0 auto !important;
@@ -3066,6 +3122,11 @@ export default function InvoiceViewPage() {
             box-sizing: border-box !important;
             display: block !important;
             transform: none !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
         }
       `}</style>
