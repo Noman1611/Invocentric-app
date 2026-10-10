@@ -297,8 +297,7 @@ class UniversalUpdateService {
         releaseNotes: releaseData.body || 'New features, improvements & security enhancements.',
         publishedAt: releaseData.published_at,
         exeDownloadUrl: exeAsset,
-        apkDownloadUrl: apkAsset,
-        status: hasUpdate ? (this.state.status === 'downloaded' ? 'downloaded' : 'available') : 'up-to-date',
+        status: hasUpdate ? (((this.state.status as string) === 'downloaded') ? 'downloaded' : 'available') : 'up-to-date',
         autoApplying: false
       });
 

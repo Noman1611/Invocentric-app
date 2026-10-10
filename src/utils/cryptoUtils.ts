@@ -32,9 +32,17 @@ export const decryptData = (cipherText: string | null, fallbackValue: any = null
   }
 };
 
+// In-memory cache to prevent CPU-intensive repeated CryptoJS.AES decryption cycles
+const memoryCache = new Map<string, { raw: string; parsed: any }>();
+
+export const clearMemoryCache = () => {
+  memoryCache.clear();
+};
+
 export const setSecureStorage = (key: string, data: any, silent = false) => {
   const encrypted = encryptData(data);
   localStorage.setItem(key, encrypted);
+  memoryCache.set(key, { raw: encrypted, parsed: data });
   if (!silent && typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('local_db_write', { detail: { key, data } }));
   }
@@ -42,13 +50,22 @@ export const setSecureStorage = (key: string, data: any, silent = false) => {
 
 export const getSecureStorage = (key: string, fallbackValue: any = null): any => {
   const raw = localStorage.getItem(key);
-  if (!raw) return fallbackValue;
+  if (!raw) {
+    memoryCache.delete(key);
+    return fallbackValue;
+  }
+
+  // Fast path: if raw string in storage matches cached entry, return parsed immediately
+  const cached = memoryCache.get(key);
+  if (cached && cached.raw === raw) {
+    return cached.parsed;
+  }
   
   // Try to parse it directly in case it's unencrypted legacy JSON data
   if (raw.startsWith('[') || raw.startsWith('{')) {
     try {
        const parsed = JSON.parse(raw);
-       // Optional: automatically encrypt old data to migrate it
+       // Automatically encrypt old data to migrate it
        setSecureStorage(key, parsed);
        return parsed;
     } catch {
@@ -56,5 +73,7 @@ export const getSecureStorage = (key: string, fallbackValue: any = null): any =>
     }
   }
 
-  return decryptData(raw, fallbackValue);
+  const parsed = decryptData(raw, fallbackValue);
+  memoryCache.set(key, { raw, parsed });
+  return parsed;
 };

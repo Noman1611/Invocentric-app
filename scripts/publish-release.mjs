@@ -17,25 +17,25 @@ if (!TOKEN) {
 }
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.48';
+const TAG = 'v1.0.49';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.48 - Desktop Update Loop Shield, Auth Security Hardening & Robust Migration Protection';
-const RELEASE_NOTES = `## InvoCentric v1.0.48 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.49 - High-Performance Startup Boost, In-Memory Decryption Cache & Resilient Offline Data Sync';
+const RELEASE_NOTES = `## InvoCentric v1.0.49 Release Notes
 
-### What's New in v1.0.48:
-- **Desktop Auto-Updater Stability Shield:**
-  - Resolved potential update loops by preventing duplicate checks when an update is actively downloading or already downloaded.
-  - Smooth NSIS in-place installer execution with proper confirmation dialog upon quit-and-install.
-  - Enhanced desktop update progress reporting and error handling.
-- **Auth Security & Session Hardening:**
-  - Hardened authentication flow and session persistence across web, desktop, and mobile.
-  - Enforced multi-tenant account data isolation.
-  - Dynamic token verification and graceful expired credential refresh.
-- **Legacy Data Migration & Sync Protection:**
-  - Enhanced fallback resilience in Firestore REST integration and local DB engine.
-  - Safe automated data preservation to protect all offline customer, invoice, and inventory records.
-- **Windows Desktop Setup:**
-  - Compiled and verified Windows Setup installer (.exe) with updated auto-update differential blockmap and metadata.
+### What's New in v1.0.49:
+- **Instant Startup & 0ms In-Memory Decryption Cache:**
+  - Resolved heavy CPU spikes on app launch by implementing an in-memory decryption cache for AES-256 secure storage.
+  - Eliminated UI thread freeze and sluggish scrolling across Desktop, Web, and Android.
+- **Resilient Offline Data Preservation:**
+  - Patched data sync hooks (\`useInvoices\`, \`useCustomers\`, \`useItems\`, \`usePayments\`, \`useExpenses\`, \`usePurchases\`, \`useNotifications\`, \`useTemplates\`) to safely merge local data with remote snapshots.
+  - Fixed cache overwrite bug so existing local and offline records are never erased by empty or unmigrated remote responses.
+- **Broadcast Storm Throttle & Safety Timeout:**
+  - Added targeted collection filtering to sync events to prevent simultaneous cascading re-renders.
+  - Added 1500ms safety timeout to prevent infinite loading spinners under slow or throttled network conditions.
+- **Cross-Platform Release Builds:**
+  - Freshly compiled Windows Setup (.exe) installer with blockmap.
+  - Rebuilt and signed Android production APK (\`InvoCentric.apk\`).
+  - Production WebApp bundle.
 `;
 
 const ASSETS = [

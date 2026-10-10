@@ -81,8 +81,8 @@ def build_clean_apk(target_apk_name, channel="production", do_web_build=True):
 
                 # Patch AndroidManifest.xml
                 if item.filename == "AndroidManifest.xml":
-                    v_code = 42
-                    v_name = "1.0.42"
+                    v_code = 49
+                    v_name = "1.0.49"
                     content = patch_android_manifest(content, version_code=v_code, version_name=v_name)
 
                 # Patch resources.arsc for test build to display TEST in icon label

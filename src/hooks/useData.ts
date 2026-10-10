@@ -88,6 +88,7 @@ function mergeOfflineQueue(data: any[], collectionName: string, userId: string) 
 }
 
 function getResilientLocalData(colName: string, userId: string, userEmail?: string | null): any[] {
+  if (!userId) return [];
   const cleanEmail = (userEmail || '').trim().toLowerCase();
   const candidateUids = [
     userId,
@@ -98,30 +99,58 @@ function getResilientLocalData(colName: string, userId: string, userEmail?: stri
   const currentKey = `offline_${colName}_${userId}`;
   const currentData = getSecureStorage(currentKey, []);
   if (Array.isArray(currentData) && currentData.length > 0) {
-    // Sanitize any foreign records that may have been cross-polluted by older versions
+    // Sanitize foreign records but NEVER discard records if all would be lost
     const validData = currentData.filter((item: any) => {
       if (!item) return false;
       if (!item.user_id) return true;
       return candidateUids.includes(item.user_id);
     });
+
+    // If filtering by candidate UIDs wiped all items, preserve the items by remapping user_id
+    if (validData.length === 0 && currentData.length > 0) {
+      const remapped = currentData.map((item: any) => ({ ...item, user_id: userId }));
+      setSecureStorage(currentKey, remapped);
+      return remapped;
+    }
+
     if (validData.length !== currentData.length) {
       setSecureStorage(currentKey, validData);
     }
     return validData;
   }
 
-  if (typeof window === 'undefined' || !cleanEmail) return [];
+  // Fallback 1: Check localDbEngine storage key
+  const localDbData = getSecureStorage(`local_offline_${colName}`, []);
+  if (Array.isArray(localDbData) && localDbData.length > 0) {
+    const remapped = localDbData.map((item: any) => ({ ...item, user_id: userId }));
+    setSecureStorage(currentKey, remapped);
+    console.log(`[useData] Recovered ${remapped.length} ${colName} from local_offline_${colName} for user ${userId}`);
+    return remapped;
+  }
 
-  // Search localStorage for any legacy collection key strictly belonging to this email
+  // Fallback 2: Check offline_guest storage
+  const guestData = getSecureStorage(`offline_${colName}_offline_guest`, []);
+  if (Array.isArray(guestData) && guestData.length > 0) {
+    const remapped = guestData.map((item: any) => ({ ...item, user_id: userId }));
+    setSecureStorage(currentKey, remapped);
+    console.log(`[useData] Recovered ${remapped.length} ${colName} from offline_guest for user ${userId}`);
+    return remapped;
+  }
+
+  if (typeof window === 'undefined') return [];
+
+  // Fallback 3: Search localStorage for any legacy collection key strictly belonging to this email
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith(`offline_${colName}_`)) {
       const otherUid = key.replace(`offline_${colName}_`, '');
       if (otherUid && otherUid !== userId) {
         const otherProfile = getSecureStorage(`user_profile_${otherUid}`, null);
-        const emailMatches = otherProfile && (otherProfile.email || '').toLowerCase() === cleanEmail;
-        const isEmailDerivedUid = otherUid === 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') || 
-                                  otherUid === 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+        const emailMatches = cleanEmail && otherProfile && (otherProfile.email || '').toLowerCase() === cleanEmail;
+        const isEmailDerivedUid = cleanEmail && (
+          otherUid === 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') || 
+          otherUid === 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')
+        );
 
         if (emailMatches || isEmailDerivedUid) {
           const legacyList = getSecureStorage(key, []);
@@ -133,6 +162,23 @@ function getResilientLocalData(colName: string, userId: string, userEmail?: stri
             console.log(`[useData] Instantly recovered ${remapped.length} ${colName} from ${key} for user ${userId}`);
             return remapped;
           }
+        }
+      }
+    }
+  }
+
+  // Fallback 4: If STILL empty, check ANY other offline_${colName}_* key on this device
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(`offline_${colName}_`)) {
+      const otherUid = key.replace(`offline_${colName}_`, '');
+      if (otherUid && otherUid !== userId) {
+        const legacyList = getSecureStorage(key, []);
+        if (Array.isArray(legacyList) && legacyList.length > 0) {
+          const remapped = legacyList.map((item: any) => ({ ...item, user_id: userId }));
+          setSecureStorage(currentKey, remapped);
+          console.log(`[useData] Recovered ${remapped.length} ${colName} from storage key ${key} for user ${userId}`);
+          return remapped;
         }
       }
     }
@@ -156,7 +202,7 @@ export function useInvoices() {
     if (!user) return false;
     try {
       const cached = getResilientLocalData("invoices", user.uid, user.email);
-      return cached === null;
+      return cached.length === 0;
     } catch {
       return true;
     }
@@ -180,7 +226,10 @@ export function useInvoices() {
       }
     };
 
-    const handleLocalEvent = () => loadLocal();
+    const handleLocalEvent = (e?: any) => {
+      if (e?.detail?.collection && e.detail.collection !== 'invoices') return;
+      loadLocal();
+    };
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === `offline_invoices_${user.uid}`) {
         loadLocal();
@@ -200,9 +249,14 @@ export function useInvoices() {
       };
     }
 
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     const q = query(collection(db, 'invoices'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      clearTimeout(safetyTimeout);
       const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
@@ -225,6 +279,7 @@ export function useInvoices() {
       setSecureStorage(`offline_invoices_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
+      clearTimeout(safetyTimeout);
       try {
         handleFirestoreError(error, OperationType.LIST, 'invoices');
       } catch (err) {
@@ -235,6 +290,7 @@ export function useInvoices() {
     });
 
     return () => {
+      clearTimeout(safetyTimeout);
       unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('invoices_updated', handleLocalEvent);
@@ -261,7 +317,7 @@ export function useCustomers() {
     if (!user) return false;
     try {
       const cached = getResilientLocalData("customers", user.uid, user.email);
-      return cached === null;
+      return cached.length === 0;
     } catch {
       return true;
     }
@@ -285,7 +341,10 @@ export function useCustomers() {
       }
     };
 
-    const handleLocalEvent = () => loadLocal();
+    const handleLocalEvent = (e?: any) => {
+      if (e?.detail?.collection && e.detail.collection !== 'customers') return;
+      loadLocal();
+    };
     const handleStorage = (e: StorageEvent) => {
       if (e.key === `offline_customers_${user.uid}`) loadLocal();
     };
@@ -303,9 +362,14 @@ export function useCustomers() {
       };
     }
 
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     const q = query(collection(db, 'customers'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      clearTimeout(safetyTimeout);
       const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
@@ -313,12 +377,20 @@ export function useCustomers() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      data.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      const finalData = mergeOfflineQueue(data, "customers", user.uid); 
+
+      // Preserve legacy-UID and local cache lookup during migration so an empty canonical-only snapshot cannot overwrite displayed data
+      const localData = getResilientLocalData('customers', user.uid, user.email);
+      const remoteIds = new Set(data.map(d => d.id));
+      const unmigratedOrLocal = localData.filter((item: any) => item && item.id && !remoteIds.has(item.id));
+      const combined = [...data, ...unmigratedOrLocal];
+
+      combined.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      const finalData = mergeOfflineQueue(combined, "customers", user.uid); 
       setCustomers(finalData);
       setSecureStorage(`offline_customers_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
+      clearTimeout(safetyTimeout);
       try {
         handleFirestoreError(error, OperationType.LIST, 'customers');
       } catch (err) {
@@ -329,6 +401,7 @@ export function useCustomers() {
     });
 
     return () => {
+      clearTimeout(safetyTimeout);
       unsubscribe();
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('customers_updated', handleLocalEvent);
@@ -355,7 +428,7 @@ export function useItems() {
     if (!user) return false;
     try {
       const cached = getResilientLocalData("items", user.uid, user.email);
-      return cached === null;
+      return cached.length === 0;
     } catch {
       return true;
     }
@@ -379,7 +452,10 @@ export function useItems() {
       }
     };
 
-    const handleLocalEvent = () => loadLocal();
+    const handleLocalEvent = (e?: any) => {
+      if (e?.detail?.collection && e.detail.collection !== 'items') return;
+      loadLocal();
+    };
     const handleStorage = (e: StorageEvent) => {
       if (e.key === `offline_items_${user.uid}`) loadLocal();
     };
@@ -397,9 +473,14 @@ export function useItems() {
       };
     }
 
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     const q = query(collection(db, 'items'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      clearTimeout(safetyTimeout);
       const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
@@ -407,12 +488,20 @@ export function useItems() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      data.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      const finalData = mergeOfflineQueue(data, "items", user.uid); 
+
+      // Preserve legacy-UID and local cache lookup during migration so an empty canonical-only snapshot cannot overwrite displayed data
+      const localData = getResilientLocalData('items', user.uid, user.email);
+      const remoteIds = new Set(data.map(d => d.id));
+      const unmigratedOrLocal = localData.filter((item: any) => item && item.id && !remoteIds.has(item.id));
+      const combined = [...data, ...unmigratedOrLocal];
+
+      combined.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      const finalData = mergeOfflineQueue(combined, "items", user.uid); 
       setItems(finalData);
       setSecureStorage(`offline_items_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
+      clearTimeout(safetyTimeout);
       try {
         handleFirestoreError(error, OperationType.LIST, 'items');
       } catch (err) {
@@ -423,6 +512,7 @@ export function useItems() {
     });
 
     return () => {
+      clearTimeout(safetyTimeout);
       unsubscribe();
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('items_updated', handleLocalEvent);
@@ -452,7 +542,7 @@ export function usePayments(customerId?: string) {
     if (!user) return false;
     try {
       const cached = getResilientLocalData("payments", user.uid, user.email);
-      return cached === null;
+      return cached.length === 0;
     } catch {
       return true;
     }
@@ -477,7 +567,10 @@ export function usePayments(customerId?: string) {
       setLoading(false);
     };
 
-    const handleLocalEvent = () => loadLocal();
+    const handleLocalEvent = (e?: any) => {
+      if (e?.detail?.collection && e.detail.collection !== 'payments') return;
+      loadLocal();
+    };
     const handleStorage = (e: StorageEvent) => {
       if (e.key === `offline_payments_${user.uid}`) loadLocal();
     };
@@ -495,6 +588,10 @@ export function usePayments(customerId?: string) {
       };
     }
 
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     let q = query(collection(db, 'payments'), where('user_id', '==', user.uid));
 
     if (customerId) {
@@ -502,6 +599,7 @@ export function usePayments(customerId?: string) {
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      clearTimeout(safetyTimeout);
       const data = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
@@ -509,14 +607,25 @@ export function usePayments(customerId?: string) {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      data.sort((a: any, b: any) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
-      const finalData = mergeOfflineQueue(data, "payments", user.uid); 
+
+      // Preserve legacy-UID and local cache lookup during migration so an empty canonical-only snapshot cannot overwrite displayed data
+      const localData = customerId ? [] : getResilientLocalData('payments', user.uid, user.email);
+      const remoteIds = new Set(data.map(d => d.id));
+      const unmigratedOrLocal = localData.filter((item: any) => item && item.id && !remoteIds.has(item.id));
+      let combined = [...data, ...unmigratedOrLocal];
+      if (customerId) {
+        combined = combined.filter((p: any) => p.customer_id === customerId);
+      }
+
+      combined.sort((a: any, b: any) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
+      const finalData = mergeOfflineQueue(combined, "payments", user.uid); 
       setPayments(finalData);
       if (!customerId) {
         setSecureStorage(`offline_payments_${user.uid}`, finalData);
       }
       setLoading(false);
     }, (error) => {
+      clearTimeout(safetyTimeout);
       try {
         handleFirestoreError(error, OperationType.LIST, 'payments');
       } catch (err) {
@@ -527,6 +636,7 @@ export function usePayments(customerId?: string) {
     });
 
     return () => {
+      clearTimeout(safetyTimeout);
       unsubscribe();
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('payments_updated', handleLocalEvent);
@@ -553,7 +663,7 @@ export function useExpenses() {
     if (!user) return false;
     try {
       const cached = getResilientLocalData("expenses", user.uid, user.email);
-      return cached === null;
+      return cached.length === 0;
     } catch {
       return true;
     }
@@ -574,7 +684,10 @@ export function useExpenses() {
       setLoading(false);
     };
 
-    const handleLocalEvent = () => loadLocal();
+    const handleLocalEvent = (e?: any) => {
+      if (e?.detail?.collection && e.detail.collection !== 'expenses') return;
+      loadLocal();
+    };
     const handleStorage = (e: StorageEvent) => {
       if (e.key === `offline_expenses_${user.uid}`) loadLocal();
     };
@@ -592,9 +705,14 @@ export function useExpenses() {
       };
     }
 
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     const q = query(collection(db, 'expenses'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      clearTimeout(safetyTimeout);
       const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
@@ -602,12 +720,20 @@ export function useExpenses() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      data.sort((a, b) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
-      const finalData = mergeOfflineQueue(data, "expenses", user.uid); 
+
+      // Preserve legacy-UID and local cache lookup during migration so an empty canonical-only snapshot cannot overwrite displayed data
+      const localData = getResilientLocalData('expenses', user.uid, user.email);
+      const remoteIds = new Set(data.map(d => d.id));
+      const unmigratedOrLocal = localData.filter((item: any) => item && item.id && !remoteIds.has(item.id));
+      const combined = [...data, ...unmigratedOrLocal];
+
+      combined.sort((a, b) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
+      const finalData = mergeOfflineQueue(combined, "expenses", user.uid); 
       setExpenses(finalData);
       setSecureStorage(`offline_expenses_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
+      clearTimeout(safetyTimeout);
       try {
         handleFirestoreError(error, OperationType.LIST, 'expenses');
       } catch (err) {
@@ -618,6 +744,7 @@ export function useExpenses() {
     });
 
     return () => {
+      clearTimeout(safetyTimeout);
       unsubscribe();
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('expenses_updated', handleLocalEvent);
@@ -644,7 +771,7 @@ export function usePurchases() {
     if (!user) return false;
     try {
       const cached = getResilientLocalData("purchases", user.uid, user.email);
-      return cached === null;
+      return cached.length === 0;
     } catch {
       return true;
     }
@@ -665,7 +792,10 @@ export function usePurchases() {
       setLoading(false);
     };
 
-    const handleLocalEvent = () => loadLocal();
+    const handleLocalEvent = (e?: any) => {
+      if (e?.detail?.collection && e.detail.collection !== 'purchases') return;
+      loadLocal();
+    };
     const handleStorage = (e: StorageEvent) => {
       if (e.key === `offline_purchases_${user.uid}`) loadLocal();
     };
@@ -683,9 +813,14 @@ export function usePurchases() {
       };
     }
 
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     const q = query(collection(db, 'purchases'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      clearTimeout(safetyTimeout);
       const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
@@ -693,12 +828,20 @@ export function usePurchases() {
         if (d.date?.toDate) d.date = d.date.toDate().toISOString();
         return { id: doc.id, ...d };
       });
-      data.sort((a, b) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
-      const finalData = mergeOfflineQueue(data, "purchases", user.uid); 
+
+      // Preserve legacy-UID and local cache lookup during migration so an empty canonical-only snapshot cannot overwrite displayed data
+      const localData = getResilientLocalData('purchases', user.uid, user.email);
+      const remoteIds = new Set(data.map(d => d.id));
+      const unmigratedOrLocal = localData.filter((item: any) => item && item.id && !remoteIds.has(item.id));
+      const combined = [...data, ...unmigratedOrLocal];
+
+      combined.sort((a, b) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
+      const finalData = mergeOfflineQueue(combined, "purchases", user.uid); 
       setPurchases(finalData);
       setSecureStorage(`offline_purchases_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
+      clearTimeout(safetyTimeout);
       try {
         handleFirestoreError(error, OperationType.LIST, 'purchases');
       } catch (err) {
@@ -709,6 +852,7 @@ export function usePurchases() {
     });
 
     return () => {
+      clearTimeout(safetyTimeout);
       unsubscribe();
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('purchases_updated', handleLocalEvent);
@@ -718,6 +862,7 @@ export function usePurchases() {
 
   return { purchases, loading };
 }
+
 
 export function useSettings() {
   const { user, isOfflineMode } = useAuth();
@@ -851,49 +996,85 @@ export function useNotifications() {
       return;
     }
 
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
+    const loadLocal = () => {
+      const local = getResilientLocalData("notifications", user.uid);
+      const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
+      const sorted = uniqueLocal.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      setNotifications(sorted);
+      return sorted;
+    };
+
     if (isOfflineMode) {
-      const loadLocal = () => {
-        const local = getSecureStorage(`offline_notifications_${user.uid}`, []);
-        const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
-        setNotifications(uniqueLocal.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()));
-        setLoading(false);
-      };
       loadLocal();
+      setLoading(false);
+      clearTimeout(safetyTimeout);
       const handleStorage = (e: StorageEvent) => {
         if (e.key === `offline_notifications_${user.uid}`) loadLocal();
       };
       window.addEventListener('storage', handleStorage);
-      return () => window.removeEventListener('storage', handleStorage);
+      return () => {
+        clearTimeout(safetyTimeout);
+        window.removeEventListener('storage', handleStorage);
+      };
     }
+
+    const unmigratedOrLocal = loadLocal();
 
     const q = query(collection(db, 'notifications'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      clearTimeout(safetyTimeout);
       const data: any[] = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
         return { id: doc.id, ...d };
       });
       data.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-      const finalData = mergeOfflineQueue(data, "notifications", user.uid);
+      
+      const combined = [...data];
+      unmigratedOrLocal.forEach((item: any) => {
+        if (!combined.some(c => c.id === item.id)) {
+          combined.push(item);
+        }
+      });
+
+      const finalData = mergeOfflineQueue(combined, "notifications", user.uid);
       setNotifications(finalData);
       setSecureStorage(`offline_notifications_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
+      clearTimeout(safetyTimeout);
       try {
         handleFirestoreError(error, OperationType.LIST, 'notifications');
       } catch (err) {
         console.error("Error fetching notifications (handled):", err);
       }
-      // Quota/network fallback
-      const local = getSecureStorage(`offline_notifications_${user.uid}`, []);
-      const uniqueLocal = local.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
-      setNotifications(uniqueLocal.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()));
+      loadLocal();
       setLoading(false);
       syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
     });
 
-    return () => unsubscribe();
+    const handleCustomEvent = (e?: Event) => {
+      if (e && 'detail' in e) {
+        const ce = e as CustomEvent;
+        if (ce.detail?.collection && ce.detail.collection !== 'notifications') return;
+      }
+      loadLocal();
+    };
+
+    window.addEventListener('notifications_updated', handleCustomEvent);
+    window.addEventListener('invocentric_data_updated', handleCustomEvent);
+
+    return () => {
+      clearTimeout(safetyTimeout);
+      unsubscribe();
+      window.removeEventListener('notifications_updated', handleCustomEvent);
+      window.removeEventListener('invocentric_data_updated', handleCustomEvent);
+    };
   }, [user, isOfflineMode]);
 
   return { notifications, loading };
@@ -944,9 +1125,14 @@ export function useRecycleBin() {
       setRecycleBinItems(purgeExpired(freshMerged));
     };
 
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     if (isOfflineMode) {
       refreshLocalRecycleBin();
       setLoading(false);
+      clearTimeout(safetyTimeout);
 
       const handleStorageChange = (e: Event) => {
         if ('key' in e) {
@@ -961,6 +1147,7 @@ export function useRecycleBin() {
       window.addEventListener('storage', handleStorageChange);
       window.addEventListener('recycle_bin_updated', handleStorageChange);
       return () => {
+        clearTimeout(safetyTimeout);
         window.removeEventListener('storage', handleStorageChange);
         window.removeEventListener('recycle_bin_updated', handleStorageChange);
       };
@@ -971,6 +1158,7 @@ export function useRecycleBin() {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        clearTimeout(safetyTimeout);
         const data = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -982,6 +1170,7 @@ export function useRecycleBin() {
         setLoading(false);
       },
       (error) => {
+        clearTimeout(safetyTimeout);
         try {
           handleFirestoreError(error, OperationType.LIST, 'recycle_bin');
         } catch {
@@ -993,12 +1182,22 @@ export function useRecycleBin() {
       }
     );
 
-    const handleCustomEvent = () => refreshLocalRecycleBin();
+    const handleCustomEvent = (e?: Event) => {
+      if (e && 'detail' in e) {
+        const ce = e as CustomEvent;
+        if (ce.detail?.collection && ce.detail.collection !== 'recycle_bin') return;
+      }
+      refreshLocalRecycleBin();
+    };
+
     window.addEventListener('recycle_bin_updated', handleCustomEvent);
+    window.addEventListener('invocentric_data_updated', handleCustomEvent);
 
     return () => {
+      clearTimeout(safetyTimeout);
       unsubscribe();
       window.removeEventListener('recycle_bin_updated', handleCustomEvent);
+      window.removeEventListener('invocentric_data_updated', handleCustomEvent);
     };
   }, [user, isOfflineMode]);
 
@@ -1041,9 +1240,14 @@ export function useTemplates() {
       };
     }
 
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     const q = query(collection(db, 'templates'), where('user_id', '==', user.uid));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      clearTimeout(safetyTimeout);
       const data = snapshot.docs.map(doc => {
         const d = doc.data({ serverTimestamps: 'estimate' });
         if (d.created_at?.toDate) d.created_at = d.created_at.toDate().toISOString();
@@ -1062,6 +1266,7 @@ export function useTemplates() {
       setSecureStorage(`offline_templates_${user.uid}`, finalData);
       setLoading(false);
     }, (error) => {
+      clearTimeout(safetyTimeout);
       try {
         handleFirestoreError(error, OperationType.LIST, 'templates');
       } catch (err) {
@@ -1071,10 +1276,15 @@ export function useTemplates() {
       setLoading(false);
     });
 
-    const handleCustomEvent = () => {
+    const handleCustomEvent = (e?: Event) => {
+      if (e && 'detail' in e) {
+        const ce = e as CustomEvent;
+        if (ce.detail?.collection && ce.detail.collection !== 'templates') return;
+      }
       setTemplates(loadLocal());
     };
     window.addEventListener('templates_updated', handleCustomEvent);
+    window.addEventListener('invocentric_data_updated', handleCustomEvent);
     const handleStorage = (e: StorageEvent) => {
       if (e.key === `offline_templates_${user.uid}`) {
         setTemplates(loadLocal());
@@ -1083,8 +1293,10 @@ export function useTemplates() {
     window.addEventListener('storage', handleStorage);
 
     return () => {
+      clearTimeout(safetyTimeout);
       unsubscribe();
       window.removeEventListener('templates_updated', handleCustomEvent);
+      window.removeEventListener('invocentric_data_updated', handleCustomEvent);
       window.removeEventListener('storage', handleStorage);
     };
   }, [user, isOfflineMode]);
