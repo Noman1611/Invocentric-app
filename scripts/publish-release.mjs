@@ -3,28 +3,39 @@ import path from 'path';
 import https from 'https';
 import dotenv from 'dotenv';
 
+import { execSync } from 'child_process';
+
 dotenv.config();
 
-const TOKEN = process.env.GITHUB_TOKEN || '';
+let TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
+if (!TOKEN) {
+  try {
+    TOKEN = execSync('gh auth token', { encoding: 'utf8' }).trim();
+  } catch (e) {
+    console.warn('[Release] Could not retrieve token from gh CLI:', e.message);
+  }
+}
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.47';
+const TAG = 'v1.0.48';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.47 - WebApp Google Login Isolation & APK Account Selection Chooser';
-const RELEASE_NOTES = `## InvoCentric v1.0.47 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.48 - Desktop Update Loop Shield, Auth Security Hardening & Robust Migration Protection';
+const RELEASE_NOTES = `## InvoCentric v1.0.48 Release Notes
 
-### What's New in v1.0.47:
-- **WebApp Google Login Isolation (No APK Hijacking):**
-  - Resolved issue where logging in via Google on the WebApp inside a mobile browser (Chrome/Android) erroneously triggered deep links or intent schemes that redirected into the installed APK.
-  - Refined platform detection in \`AuthContext\` so mobile web browsers are never mistakenly classified as native Android.
-  - Added strict automatic purging of stale mobile handshake session flags when accessing the WebApp normally in browsers.
-  - WebApp Google Login now stays 100% inside the browser with immediate redirect to dashboard upon successful authentication.
-- **Android APK Google Account Chooser & Selection Bottom Sheet:**
-  - Configured \`filterByAuthorizedAccounts = false\` and \`autoSelectEnabled = false\` in Credential Manager.
-  - Added proactive credential state reset (\`clearCredentialStateAsync\`) prior to sign-in requests so that Android Google Identity always displays the full Google Account Selection bottom sheet/dialog with all Gmail accounts available on the smartphone.
-  - Users can now freely switch and choose any Google account instead of being auto-logged-in with the previous account.
-- **WebApp Production Update:**
-  - Full production web build deployed and released.
+### What's New in v1.0.48:
+- **Desktop Auto-Updater Stability Shield:**
+  - Resolved potential update loops by preventing duplicate checks when an update is actively downloading or already downloaded.
+  - Smooth NSIS in-place installer execution with proper confirmation dialog upon quit-and-install.
+  - Enhanced desktop update progress reporting and error handling.
+- **Auth Security & Session Hardening:**
+  - Hardened authentication flow and session persistence across web, desktop, and mobile.
+  - Enforced multi-tenant account data isolation.
+  - Dynamic token verification and graceful expired credential refresh.
+- **Legacy Data Migration & Sync Protection:**
+  - Enhanced fallback resilience in Firestore REST integration and local DB engine.
+  - Safe automated data preservation to protect all offline customer, invoice, and inventory records.
+- **Windows Desktop Setup:**
+  - Compiled and verified Windows Setup installer (.exe) with updated auto-update differential blockmap and metadata.
 `;
 
 const ASSETS = [
@@ -41,6 +52,11 @@ const ASSETS = [
   {
     filePath: 'dist_electron/InvoCentric-Setup.exe',
     name: 'InvoCentric-Setup.exe',
+    contentType: 'application/octet-stream'
+  },
+  {
+    filePath: 'dist_electron/InvoCentric-Setup.exe.blockmap',
+    name: 'InvoCentric-Setup.exe.blockmap',
     contentType: 'application/octet-stream'
   }
 ];
