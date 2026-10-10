@@ -24,6 +24,8 @@ import {
 const UniversalAccountingExportDashboard = lazy(() =>
   import('../components/UniversalAccountingExportDashboard').then(m => ({ default: m.UniversalAccountingExportDashboard }))
 );
+import { InvoiceTemplatesShowcase } from '../components/InvoiceTemplatesShowcase';
+
 
 // Minimal blog data inline (avoids pulling 87KB BlogPage bundle)
 const BLOG_POSTS = [
@@ -322,6 +324,7 @@ export default function LandingPage() {
             <div className="hidden md:flex items-center gap-8">
                <a href="#features" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Features</a>
                <a href="#showcase" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Showcase</a>
+               <a href="#templates" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Templates</a>
                <a href="#pricing" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Pricing</a>
                <a href="#calculator" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">GST Tools</a>
                <button onClick={() => navigate('/blog')} className="text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200/60 hover:bg-emerald-100 transition-all cursor-pointer flex items-center gap-1.5">
@@ -846,6 +849,9 @@ export default function LandingPage() {
             </motion.div>
           </div>
         </section>
+
+        {/* -------------------- INVOICE TEMPLATES SHOWCASE SECTION -------------------- */}
+        <InvoiceTemplatesShowcase />
  
          {/* -------------------- STEP BY STEP "HOW IT WORKS" SECTION -------------------- */}
          <section id="how-it-works" className="py-24 bg-slate-50 border-b border-gray-200/60 relative overflow-hidden">
