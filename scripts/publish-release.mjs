@@ -17,25 +17,23 @@ if (!TOKEN) {
 }
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.49';
+const TAG = 'v1.0.50';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.49 - High-Performance Startup Boost, In-Memory Decryption Cache & Resilient Offline Data Sync';
-const RELEASE_NOTES = `## InvoCentric v1.0.49 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.50 - Smart Adaptive Invoice Pagination, Multi-Page Support (A4/A5) & Zero Blank Print Pages';
+const RELEASE_NOTES = `## InvoCentric v1.0.50 Release Notes
 
-### What's New in v1.0.49:
-- **Instant Startup & 0ms In-Memory Decryption Cache:**
-  - Resolved heavy CPU spikes on app launch by implementing an in-memory decryption cache for AES-256 secure storage.
-  - Eliminated UI thread freeze and sluggish scrolling across Desktop, Web, and Android.
-- **Resilient Offline Data Preservation:**
-  - Patched data sync hooks (\`useInvoices\`, \`useCustomers\`, \`useItems\`, \`usePayments\`, \`useExpenses\`, \`usePurchases\`, \`useNotifications\`, \`useTemplates\`) to safely merge local data with remote snapshots.
-  - Fixed cache overwrite bug so existing local and offline records are never erased by empty or unmigrated remote responses.
-- **Broadcast Storm Throttle & Safety Timeout:**
-  - Added targeted collection filtering to sync events to prevent simultaneous cascading re-renders.
-  - Added 1500ms safety timeout to prevent infinite loading spinners under slow or throttled network conditions.
-- **Cross-Platform Release Builds:**
-  - Freshly compiled Windows Setup (.exe) installer with blockmap.
-  - Rebuilt and signed Android production APK (\`InvoCentric.apk\`).
-  - Production WebApp bundle.
+### What's New in v1.0.50:
+- **Smart Adaptive Invoice Pagination (A4 & A5):**
+  - Implemented dynamic page-height and row-budget calculations that allow maximum items (15, 22, 25+ items) to naturally fill each invoice page before transitioning to the next page.
+  - Resolved premature overflow cutoff bug, ensuring optimal spacing and layout continuity across multi-page invoices.
+  - Full support for both standard A4 (297mm) and compact A5 (148mm) dimensions.
+- **Zero Blank Page Guarantee on Print & PDF Export:**
+  - Added subpixel margin buffers (296mm / 147mm) on page wrappers and zero-margin print stylesheets.
+  - Fixed browser and desktop printing page-break quirks so no unnecessary blank/empty pages are ever generated.
+- **Cross-Platform Releases:**
+  - **Desktop Software:** Updated Windows installer (\`InvoCentric-Setup.exe\`) with auto-updater support (\`latest.yml\`).
+  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 50.
+  - **Web Application:** Production-optimized static web assets and server build.
 `;
 
 const ASSETS = [
