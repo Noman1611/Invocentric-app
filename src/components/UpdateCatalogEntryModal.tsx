@@ -189,10 +189,11 @@ export default function UpdateCatalogEntryModal({
           initialSerials = initialData.serialNumber.split(',').map(s => s.trim()).filter(Boolean);
         }
 
+        const initialImg = initialData.image || (initialData as any).image_url || '';
         setFormData({
           id: initialData.id,
           name: initialData.name || '',
-          image: initialData.image || '',
+          image: initialImg,
           category: initialData.category || '',
           brand: initialData.brand || '',
           barcode: initialData.barcode || '',
@@ -220,9 +221,9 @@ export default function UpdateCatalogEntryModal({
           custom_box: initialData.custom_box || '',
           active: initialData.active !== undefined ? initialData.active : true
         });
-        setImagePreview(initialData.image || '');
-        if (initialData.image && !initialData.id) {
-          triggerAIExtraction(initialData.image);
+        setImagePreview(initialImg);
+        if (initialImg && !initialData.id) {
+          triggerAIExtraction(initialImg);
         }
       } else {
         setFormData({
@@ -290,7 +291,8 @@ export default function UpdateCatalogEntryModal({
         const rawResult = reader.result as string;
         const img = new Image();
         img.onload = () => {
-          const maxDim = 1280;
+          // Automatic compression for fast loading & ultra-light storage (under 40KB)
+          const maxDim = 480;
           let w = img.width;
           let h = img.height;
           if (w > maxDim || h > maxDim) {
@@ -308,19 +310,19 @@ export default function UpdateCatalogEntryModal({
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, w, h);
-            const compressed = canvas.toDataURL('image/jpeg', 0.85);
+            const compressed = canvas.toDataURL('image/jpeg', 0.72);
             setImagePreview(compressed);
-            setFormData(prev => ({ ...prev, image: compressed }));
+            setFormData(prev => ({ ...prev, image: compressed, image_url: compressed } as any));
             triggerAIExtraction(compressed);
             return;
           }
           setImagePreview(rawResult);
-          setFormData(prev => ({ ...prev, image: rawResult }));
+          setFormData(prev => ({ ...prev, image: rawResult, image_url: rawResult } as any));
           triggerAIExtraction(rawResult);
         };
         img.onerror = () => {
           setImagePreview(rawResult);
-          setFormData(prev => ({ ...prev, image: rawResult }));
+          setFormData(prev => ({ ...prev, image: rawResult, image_url: rawResult } as any));
           triggerAIExtraction(rawResult);
         };
         img.src = rawResult;
@@ -331,7 +333,7 @@ export default function UpdateCatalogEntryModal({
 
   const removeImage = () => {
     setImagePreview('');
-    setFormData(prev => ({ ...prev, image: '' }));
+    setFormData(prev => ({ ...prev, image: '', image_url: '' } as any));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -341,8 +343,11 @@ export default function UpdateCatalogEntryModal({
     setIsSubmitting(true);
     try {
       // Ensure serialNumber string matches serials array for backward compatibility
+      const itemImg = formData.image || (formData as any).image_url || '';
       const payload: CatalogItemData = {
         ...formData,
+        image: itemImg,
+        ...({ image_url: itemImg } as any),
         serialNumber: formData.serials?.length ? formData.serials.join(', ') : (formData.serialNumber || ''),
         serials: formData.serials || []
       };

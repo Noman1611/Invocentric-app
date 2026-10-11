@@ -35,7 +35,8 @@ import {
   Sparkles,
   AlertTriangle,
   RotateCcw,
-  Tag
+  Tag,
+  Package
 } from 'lucide-react';
 import { configureCameraTrackFocusAndZoom, triggerCameraRefocus, setCameraTorch, setCameraZoom, requestExplicitCameraPermission, startHtml5ScannerRobust, playScanBeepSound, playErrorBeepSound } from '../utils/cameraUtils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -877,10 +878,23 @@ export default function QuickPOSPage() {
                     >
                       {/* In Cart Indicator badge */}
                       {inCartItem && (
-                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-600 text-white font-black text-[10px] flex items-center justify-center shadow-xs">
+                        <div className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-emerald-600 text-white font-black text-[10px] flex items-center justify-center shadow-xs">
                           {inCartItem.quantity}
                         </div>
                       )}
+
+                      {/* Product Image Thumbnail */}
+                      <div className="w-full aspect-[4/3] mb-2 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                        {((prod as any).image || (prod as any).image_url) ? (
+                          <img
+                            src={(prod as any).image || (prod as any).image_url}
+                            alt={prod.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                        ) : (
+                          <Package className="text-slate-300" size={24} />
+                        )}
+                      </div>
 
                       <div>
                         {prod.category && (
@@ -971,12 +985,23 @@ export default function QuickPOSPage() {
                     key={cartItem.id}
                     className="p-2.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 hover:border-slate-300 transition-all"
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start justify-between gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center text-slate-400">
+                        {((cartItem.item as any).image || (cartItem.item as any).image_url) ? (
+                          <img
+                            src={(cartItem.item as any).image || (cartItem.item as any).image_url}
+                            alt={cartItem.item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Package size={15} />
+                        )}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-xs text-slate-900 truncate">{cartItem.item.name}</h4>
                         <p className="text-[11px] text-slate-500 font-medium">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         <span className="font-extrabold text-xs text-slate-900">
                           ₹{itemTotal.toLocaleString('en-IN')}
                         </span>

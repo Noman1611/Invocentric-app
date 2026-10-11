@@ -17,23 +17,28 @@ if (!TOKEN) {
 }
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.50';
+const TAG = 'v1.0.51';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.50 - Smart Adaptive Invoice Pagination, Multi-Page Support (A4/A5) & Zero Blank Print Pages';
-const RELEASE_NOTES = `## InvoCentric v1.0.50 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.51 - Customer Invoice History, Auto-Compressed Item Photos & High-Performance POS';
+const RELEASE_NOTES = `## InvoCentric v1.0.51 Release Notes
 
-### What's New in v1.0.50:
-- **Smart Adaptive Invoice Pagination (A4 & A5):**
-  - Implemented dynamic page-height and row-budget calculations that allow maximum items (15, 22, 25+ items) to naturally fill each invoice page before transitioning to the next page.
-  - Resolved premature overflow cutoff bug, ensuring optimal spacing and layout continuity across multi-page invoices.
-  - Full support for both standard A4 (297mm) and compact A5 (148mm) dimensions.
-- **Zero Blank Page Guarantee on Print & PDF Export:**
-  - Added subpixel margin buffers (296mm / 147mm) on page wrappers and zero-margin print stylesheets.
-  - Fixed browser and desktop printing page-break quirks so no unnecessary blank/empty pages are ever generated.
+### What's New in v1.0.51:
+- **Customer Profile & Invoices History:**
+  - Added full Invoices count badge and Total Billed summary directly on Customer Cards.
+  - Interactive Customer Profile modal showing complete profile info and exhaustive customer invoice history.
+  - Seamless 1-click navigation to view any invoice and quick "Create New Invoice" shortcut.
+  - Live customer details editing with instant offline & online database synchronization.
+- **Auto-Compressed Item Photos (Zero Performance Overhead):**
+  - High-resolution item photos are now compressed automatically client-side (max dimension 480px, 0.72 quality) to lightweight ~25KB-40KB files.
+  - Drastically reduces database load and memory usage across webapp and Android smartphone app.
+  - Item duplicate prevention: automatically updates existing item if duplicate barcode or name is provided.
+- **Enhanced POS & Catalog Visuals:**
+  - Product thumbnail previews in Item Grid View & List View.
+  - Quick POS product cards and live basket items now display product thumbnails for instant visual recognition.
 - **Cross-Platform Releases:**
   - **Desktop Software:** Updated Windows installer (\`InvoCentric-Setup.exe\`) with auto-updater support (\`latest.yml\`).
-  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 50.
-  - **Web Application:** Production-optimized static web assets and server build.
+  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 51.
+  - **Web Application:** Production-optimized static web assets and server bundle.
 `;
 
 const ASSETS = [

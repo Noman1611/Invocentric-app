@@ -1492,9 +1492,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    getRedirectResult(auth).then((result) => {
+    getRedirectResult(auth).then(async (result) => {
       if (result?.user) {
-        console.log("Redirect login successful");
+        console.log("Redirect login successful:", result.user.email);
+        try {
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          const idToken = credential?.idToken || (await result.user.getIdToken());
+          localStorage.setItem('invocentric_auth_active', 'true');
+          localStorage.setItem('invocentric_last_uid', result.user.uid);
+          if (result.user.email) {
+            localStorage.setItem('invocentric_last_email', result.user.email);
+          }
+          if (idToken) {
+            localStorage.setItem('invocentric_id_token', idToken);
+          }
+          localStorage.setItem('invocentric_session_user', JSON.stringify({
+            uid: result.user.uid,
+            email: result.user.email || null,
+            displayName: result.user.displayName || null,
+            photoURL: result.user.photoURL || null,
+            savedAt: Date.now()
+          }));
+          await handleUserChange(result.user);
+
+          // Background server JWT sync
+          const serverRes = await fetch(apiUrl('/api/auth/google-login'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, clientUid: result.user.uid })
+          });
+          if (serverRes.ok) {
+            const serverData = await serverRes.json();
+            if (serverData?.token) {
+              localStorage.setItem('invocentric_jwt_token', serverData.token);
+              migrateLegacyUserData(result.user.uid, result.user.email);
+            }
+          }
+        } catch (syncErr) {
+          console.warn("Redirect session setup warning:", syncErr);
+        }
       }
     }).catch((err) => {
       console.warn("Redirect result handle warning:", err);
@@ -1613,6 +1649,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log("Initiating Google Sign-In...");
       onProgress?.('initializing');
+
+      // Clear any prior auth user state so Google Account Chooser bottom-sheet / prompt is always shown
+      if (auth.currentUser) {
+        try {
+          await signOut(auth);
+        } catch (_) {}
+      }
+
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({
         prompt: 'select_account'
@@ -1779,7 +1823,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("Launching seamless Chrome Custom Tab Google Authentication handshake...");
         onProgress?.('bottom_sheet');
         const sessionId = 'mob_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-        const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}`;
+        const authUrl = `https://invocentric.in/login?mobile_auth=1&session=${sessionId}&prompt=select_account`;
 
         const updaterBridge = (window as any).AndroidAppUpdater;
         const googleAuthBridge = (window as any).AndroidGoogleAuth;

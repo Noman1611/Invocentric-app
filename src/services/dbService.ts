@@ -373,8 +373,10 @@ export async function findLinkedPayments(userId: string, invoiceId: string, isOf
   if (!isOfflineMode && !isLocalOnlyMode() && typeof navigator !== 'undefined' && navigator.onLine) {
     try {
       const q = query(collection(db, 'payments'), where('user_id', '==', userId), where('invoice_id', '==', invoiceId));
-      const snap = await withTimeout(getDocs(q), 2000, 'Linked payments query timed out');
-      snap.forEach((d: any) => existingPayments.push({ id: d.id, ...d.data() }));
+      const snap: any = await withTimeout(getDocs(q), 2000, 'Linked payments query timed out');
+      if (snap && typeof snap.forEach === 'function') {
+        snap.forEach((d: any) => existingPayments.push({ id: d.id, ...d.data() }));
+      }
     } catch (e) {
       console.warn("Failed to fetch linked payments from Firestore:", e);
     }

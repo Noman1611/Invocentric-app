@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Mail, Phone, MapPin, UserPlus, X, Trash2, Edit2, Mic, Contact, Tag, Sliders, Camera, Upload, User } from 'lucide-react';
-import { useCustomers } from '../hooks/useData';
+import { Plus, Search, Mail, Phone, MapPin, UserPlus, X, Trash2, Edit2, Mic, Contact, Tag, Sliders, Camera, Upload, User, FileText, Calendar, IndianRupee, ExternalLink, ArrowRight, Eye, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
+import { useCustomers, useInvoices } from '../hooks/useData';
 import { useAuth } from '../contexts/AuthContext';
-import { cn, openInBrowser } from '../lib/utils';
+import { cn, openInBrowser, formatCurrency } from '../lib/utils';
+import { format } from 'date-fns';
+import { parseDateSafe } from '../utils/dateUtils';
 
 import { dbService } from '../services/dbService';
 import { parseContactFromText } from '../services/aiService';
@@ -15,6 +17,8 @@ export default function CustomersPage() {
   const navigate = useNavigate();
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { customers, loading } = useCustomers();
+  const { invoices } = useInvoices();
+  const [selectedProfileCustomer, setSelectedProfileCustomer] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -250,6 +254,7 @@ export default function CustomersPage() {
 
       if (editingCustomer) {
         await dbService.update('customers', editingCustomer.id, data, { offlineMode: isOfflineMode, userId: user.uid });
+        setSelectedProfileCustomer((prev: any) => prev && prev.id === editingCustomer.id ? { ...prev, ...data } : prev);
       } else {
         await dbService.add('customers', data, { offlineMode: isOfflineMode, userId: user.uid });
       }
@@ -262,6 +267,16 @@ export default function CustomersPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const getCustomerInvoices = (customer: any) => {
+    if (!customer || !invoices) return [];
+    return invoices.filter((inv: any) => {
+      if (!inv) return false;
+      if (inv.customer_id && customer.id && String(inv.customer_id) === String(customer.id)) return true;
+      if (inv.customer_name && customer.name && inv.customer_name.trim().toLowerCase() === customer.name.trim().toLowerCase()) return true;
+      return false;
+    });
   };
 
   const handleEdit = (customer: any) => {
@@ -368,113 +383,139 @@ export default function CustomersPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filteredCustomers.map((customer, i) => (
-            <motion.div
-              key={customer.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              className="card-base p-6 group hover:ring-2 hover:ring-green-500/20 transition-all flex flex-col h-full bg-white"
-            >
-              <div className="flex items-start justify-between mb-5">
-                <div className="w-11 h-11 rounded-xl bg-slate-50 flex items-center justify-center text-sm font-bold text-slate-700 ring-1 ring-slate-100 overflow-hidden shrink-0">
-                  {customer.photo_url ? (
-                    <img src={customer.photo_url} alt={customer.name} className="w-full h-full object-cover" />
-                  ) : (
-                    customer.name.charAt(0)
-                  )}
-                </div>
-                <div className="flex items-center gap-1 opacity-100 transition-opacity">
-                  <button 
-                    type="button"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      const num = (customer.phone || '').replace(/[^0-9]/g, '');
-                      const plainMsg = `Dear ${customer.name}, gentle reminder regarding your outstanding balance with us. Please clear the pending dues. Thank you!`;
+          {filteredCustomers.map((customer, i) => {
+            const custInvoices = getCustomerInvoices(customer);
+            const totalBilled = custInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.amount ?? inv.total_amount ?? inv.grand_total) || 0), 0);
 
-                      if (whatsappDesktopService.isSupported()) {
-                        const status = await whatsappDesktopService.getStatus();
-                        if (status.status === 'connected') {
-                          const res = await whatsappDesktopService.sendMessage({ phone: num, text: plainMsg });
-                          if (res.success) {
-                            alert(`✅ WhatsApp reminder sent directly to ${customer.name}!`);
-                            return;
+            return (
+              <motion.div
+                key={customer.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                onClick={() => setSelectedProfileCustomer(customer)}
+                className="card-base p-6 group hover:ring-2 hover:ring-emerald-500/30 transition-all flex flex-col h-full bg-white cursor-pointer hover:shadow-lg relative"
+              >
+                <div className="flex items-start justify-between mb-5">
+                  <div className="w-11 h-11 rounded-xl bg-slate-50 flex items-center justify-center text-sm font-bold text-slate-700 ring-1 ring-slate-100 overflow-hidden shrink-0">
+                    {customer.photo_url ? (
+                      <img src={customer.photo_url} alt={customer.name} className="w-full h-full object-cover" />
+                    ) : (
+                      customer.name.charAt(0)
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 opacity-100 transition-opacity">
+                    <button 
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const num = (customer.phone || '').replace(/[^0-9]/g, '');
+                        const plainMsg = `Dear ${customer.name}, gentle reminder regarding your outstanding balance with us. Please clear the pending dues. Thank you!`;
+
+                        if (whatsappDesktopService.isSupported()) {
+                          const status = await whatsappDesktopService.getStatus();
+                          if (status.status === 'connected') {
+                            const res = await whatsappDesktopService.sendMessage({ phone: num, text: plainMsg });
+                            if (res.success) {
+                              alert(`✅ WhatsApp reminder sent directly to ${customer.name}!`);
+                              return;
+                            }
                           }
                         }
-                      }
 
-                      const msg = encodeURIComponent(plainMsg);
-                      openInBrowser(`https://wa.me/${num}?text=${msg}`);
-                    }}
-                    className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all flex items-center justify-center cursor-pointer"
-                    title="1-Click WhatsApp Payment Reminder"
-                  >
-                    <WhatsAppIcon size={18} />
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}
-                    className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
-                    title="Update Profile"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); handleDelete(customer.id, customer.name); }}
-                    className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all"
-                    title="Delete Entry"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <h3 className="font-bold text-slate-900 truncate leading-tight">{customer.name}</h3>
-                {customer.company_name && (
-                  <p className="text-[11px] font-bold text-green-600 mt-1 uppercase tracking-wider">
-                    {customer.company_name}
-                  </p>
-                )}
-                
-                <div className="mt-5 space-y-2.5">
-                  <div className="flex items-center gap-2.5 text-xs text-slate-500">
-                    <Mail size={14} className="text-slate-500" />
-                    <span className="truncate">{customer.email || '—'}</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-xs text-slate-500">
-                    <Phone size={14} className="text-slate-500" />
-                    <span>{customer.phone || '—'}</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-xs text-slate-500">
-                    <MapPin size={14} className="text-slate-500" />
-                    <span className="truncate leading-relaxed">{customer.address || '—'}</span>
+                        const msg = encodeURIComponent(plainMsg);
+                        openInBrowser(`https://wa.me/${num}?text=${msg}`);
+                      }}
+                      className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all flex items-center justify-center cursor-pointer"
+                      title="1-Click WhatsApp Payment Reminder"
+                    >
+                      <WhatsAppIcon size={18} />
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}
+                      className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
+                      title="Update Profile"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDelete(customer.id, customer.name); }}
+                      className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all"
+                      title="Delete Entry"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
 
-                {customer.custom_fields && customer.custom_fields.length > 0 && (
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5">
-                    {customer.custom_fields.map((cf: any, idx: number) => (
-                      <div key={idx} className="bg-green-50/80 border border-green-100/80 text-green-800 px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1">
-                        <span className="font-bold text-green-600">{cf.label}:</span>
-                        <span className="font-semibold">{cf.value}</span>
-                      </div>
-                    ))}
+                <div className="flex-1">
+                  <h3 className="font-bold text-slate-900 truncate leading-tight group-hover:text-emerald-700 transition-colors">{customer.name}</h3>
+                  {customer.company_name && (
+                    <p className="text-[11px] font-bold text-emerald-600 mt-1 uppercase tracking-wider">
+                      {customer.company_name}
+                    </p>
+                  )}
+                  
+                  <div className="mt-5 space-y-2.5">
+                    <div className="flex items-center gap-2.5 text-xs text-slate-500">
+                      <Mail size={14} className="text-slate-500" />
+                      <span className="truncate">{customer.email || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-xs text-slate-500">
+                      <Phone size={14} className="text-slate-500" />
+                      <span>{customer.phone || '—'}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-xs text-slate-500">
+                      <MapPin size={14} className="text-slate-500" />
+                      <span className="truncate leading-relaxed">{customer.address || '—'}</span>
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div className="mt-6 pt-5 border-t border-slate-50">
-                <button
-                  onClick={() => navigate(`/customers/statement/${customer.id}`)}
-                  className="w-full py-2.5 bg-slate-50 hover:bg-green-600 hover:text-white text-slate-600 text-[10px] font-bold rounded-lg transition-all uppercase tracking-widest"
-                >
-                  View Full Statement
-                </button>
-              </div>
-            </motion.div>
-          ))}
+                  {customer.custom_fields && customer.custom_fields.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5">
+                      {customer.custom_fields.map((cf: any, idx: number) => (
+                        <div key={idx} className="bg-emerald-50/80 border border-emerald-100/80 text-emerald-800 px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1">
+                          <span className="font-bold text-emerald-600">{cf.label}:</span>
+                          <span className="font-semibold">{cf.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Invoices Count & Total Billed Summary */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60">
+                      <FileText size={13} className="text-emerald-600" />
+                      <span>{custInvoices.length} {custInvoices.length === 1 ? 'Invoice' : 'Invoices'}</span>
+                    </span>
+                    <span className="font-bold text-slate-900 tabular-nums">
+                      {formatCurrency(totalBilled)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProfileCustomer(customer)}
+                    className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-emerald-200/60"
+                  >
+                    <Eye size={13} />
+                    View Invoices
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/customers/statement/${customer.id}`)}
+                    className="py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg transition-all border border-slate-200/60 uppercase tracking-wider text-center"
+                  >
+                    Statement
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       )}
 
@@ -781,6 +822,291 @@ export default function CustomersPage() {
             </motion.div>
           </div>
         )}
+
+        {/* Customer Profile & Invoices Details Modal */}
+        {selectedProfileCustomer && (() => {
+          const profileInvoices = getCustomerInvoices(selectedProfileCustomer);
+          const totalBilled = profileInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.amount ?? inv.total_amount ?? inv.grand_total) || 0), 0);
+          const paidInvoices = profileInvoices.filter((inv: any) => inv.status === 'paid');
+          const totalPaid = paidInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.amount ?? inv.total_amount ?? inv.grand_total) || 0), 0);
+          const pendingBalance = totalBilled - totalPaid;
+
+          return (
+            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedProfileCustomer(null)}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 30, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 30, scale: 0.98 }}
+                className="relative w-full max-w-2xl bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col"
+              >
+                {/* Header */}
+                <div className="p-6 bg-slate-50/80 border-b border-slate-100 flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center text-lg font-bold text-slate-700 ring-1 ring-slate-200 overflow-hidden shrink-0 shadow-sm">
+                      {selectedProfileCustomer.photo_url ? (
+                        <img src={selectedProfileCustomer.photo_url} alt={selectedProfileCustomer.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xl text-emerald-700 font-black">{selectedProfileCustomer.name?.charAt(0)}</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-slate-900 truncate leading-tight">
+                          {selectedProfileCustomer.name}
+                        </h2>
+                        {selectedProfileCustomer.gst_number && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 uppercase">
+                            GST: {selectedProfileCustomer.gst_number}
+                          </span>
+                        )}
+                      </div>
+                      {selectedProfileCustomer.company_name && (
+                        <p className="text-xs font-semibold text-emerald-600 mt-0.5">
+                          {selectedProfileCustomer.company_name}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Client ID: #{selectedProfileCustomer.id?.slice(0, 8)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cust = selectedProfileCustomer;
+                        setSelectedProfileCustomer(null);
+                        handleEdit(cust);
+                      }}
+                      className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
+                      title="Edit Customer Details"
+                    >
+                      <Edit2 size={13} />
+                      Edit Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProfileCustomer(null)}
+                      className="p-1.5 hover:bg-slate-200/80 rounded-full transition-colors text-slate-500"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 overflow-y-auto space-y-6">
+                  {/* Financial Stats Bar */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl">
+                      <span className="text-[11px] font-semibold text-slate-500 block">Total Invoices</span>
+                      <span className="text-lg font-bold text-slate-900 tabular-nums mt-0.5 block">
+                        {profileInvoices.length}
+                      </span>
+                    </div>
+                    <div className="p-3.5 bg-emerald-50/60 border border-emerald-100/60 rounded-xl">
+                      <span className="text-[11px] font-semibold text-emerald-700 block">Total Billed</span>
+                      <span className="text-lg font-bold text-emerald-800 tabular-nums mt-0.5 block">
+                        {formatCurrency(totalBilled)}
+                      </span>
+                    </div>
+                    <div className="p-3.5 bg-amber-50/60 border border-amber-100/60 rounded-xl">
+                      <span className="text-[11px] font-semibold text-amber-700 block">Outstanding Due</span>
+                      <span className="text-lg font-bold text-amber-800 tabular-nums mt-0.5 block">
+                        {formatCurrency(Math.max(0, pendingBalance))}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Contact Info & Metadata */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-slate-50/60 p-4 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-2.5 text-slate-600">
+                      <Phone size={14} className="text-slate-400 shrink-0" />
+                      <span className="font-medium truncate">{selectedProfileCustomer.phone || 'No phone number'}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-slate-600">
+                      <Mail size={14} className="text-slate-400 shrink-0" />
+                      <span className="font-medium truncate">{selectedProfileCustomer.email || 'No email address'}</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 text-slate-600 sm:col-span-2">
+                      <MapPin size={14} className="text-slate-400 shrink-0 mt-0.5" />
+                      <span className="font-medium leading-relaxed">{selectedProfileCustomer.address || 'No billing address specified'}</span>
+                    </div>
+                    {selectedProfileCustomer.custom_fields && selectedProfileCustomer.custom_fields.length > 0 && (
+                      <div className="sm:col-span-2 pt-2 border-t border-slate-200/60 flex flex-wrap gap-2">
+                        {selectedProfileCustomer.custom_fields.map((cf: any, idx: number) => (
+                          <div key={idx} className="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1">
+                            <span className="font-bold text-slate-500">{cf.label}:</span>
+                            <span className="font-semibold text-slate-800">{cf.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Invoices List Section */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <FileText size={16} className="text-emerald-600" />
+                        <h3 className="font-bold text-slate-900 text-sm">Customer Invoices ({profileInvoices.length})</h3>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedProfileCustomer(null);
+                            navigate(`/customers/statement/${selectedProfileCustomer.id}`);
+                          }}
+                          className="text-[11px] font-bold text-slate-600 hover:text-emerald-700 underline"
+                        >
+                          View Ledger Statement
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedProfileCustomer(null);
+                            navigate(`/invoices/new?customer_id=${selectedProfileCustomer.id}`);
+                          }}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition-all"
+                        >
+                          <Plus size={12} />
+                          New Invoice
+                        </button>
+                      </div>
+                    </div>
+
+                    {profileInvoices.length === 0 ? (
+                      <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-slate-200 mx-auto mb-2 text-slate-400">
+                          <FileText size={22} />
+                        </div>
+                        <p className="text-slate-900 font-bold text-sm">No invoices found for this customer</p>
+                        <p className="text-slate-500 text-xs mt-1 max-w-sm mx-auto">
+                          Create an invoice to bill this customer and track transaction records here.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedProfileCustomer(null);
+                            navigate(`/invoices/new?customer_id=${selectedProfileCustomer.id}`);
+                          }}
+                          className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-emerald-700 transition-all"
+                        >
+                          <Plus size={14} />
+                          Create First Invoice
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {profileInvoices.map((inv: any) => {
+                          const invTotal = Number(inv.amount ?? inv.total_amount ?? inv.grand_total) || 0;
+                          const invItems = inv.items || [];
+                          const itemsSummary = invItems.map((it: any) => it.name).filter(Boolean).slice(0, 2).join(', ');
+                          const extraItems = invItems.length > 2 ? ` +${invItems.length - 2} more` : '';
+
+                          return (
+                            <div
+                              key={inv.id}
+                              onClick={() => {
+                                setSelectedProfileCustomer(null);
+                                navigate(`/invoices/${inv.id}`);
+                              }}
+                              className="p-3.5 bg-white border border-slate-200 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-50/20 transition-all cursor-pointer flex items-center justify-between gap-3 group shadow-xs"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-slate-900 text-xs group-hover:text-emerald-700 transition-colors">
+                                    #INV-{inv.id.slice(0, 4).toUpperCase()}
+                                  </span>
+                                  <span className={cn(
+                                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                    inv.status === 'paid' && "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
+                                    inv.status === 'sent' && "bg-amber-50 text-amber-700 border border-amber-200/60",
+                                    inv.status === 'draft' && "bg-slate-100 text-slate-600 border border-slate-200",
+                                    inv.status === 'overdue' && "bg-rose-50 text-rose-700 border border-rose-200/60",
+                                  )}>
+                                    <span className={cn(
+                                      "w-1.5 h-1.5 rounded-full",
+                                      inv.status === 'paid' && "bg-emerald-500",
+                                      inv.status === 'sent' && "bg-amber-500",
+                                      inv.status === 'draft' && "bg-slate-400",
+                                      inv.status === 'overdue' && "bg-rose-500",
+                                    )} />
+                                    {inv.status || 'draft'}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar size={11} className="text-slate-400" />
+                                    {inv.created_at ? format(parseDateSafe(inv.created_at), 'MMM d, yyyy') : 'N/A'}
+                                  </span>
+                                  {itemsSummary && (
+                                    <span className="truncate max-w-[200px] text-slate-600">
+                                      • {itemsSummary}{extraItems}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 shrink-0">
+                                <div className="text-right">
+                                  <div className="text-sm font-bold text-slate-900 tabular-nums">
+                                    {formatCurrency(invTotal, inv.currency)}
+                                  </div>
+                                  {inv.due_date && (
+                                    <span className="text-[10px] text-slate-500 block">
+                                      Due: {format(parseDateSafe(inv.due_date), 'MMM d')}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="w-8 h-8 rounded-lg bg-slate-50 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center text-slate-500 transition-colors">
+                                  <ArrowRight size={14} />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cust = selectedProfileCustomer;
+                      setSelectedProfileCustomer(null);
+                      handleEdit(cust);
+                    }}
+                    className="btn-secondary py-2 text-xs flex items-center gap-1.5"
+                  >
+                    <Edit2 size={13} />
+                    Edit Customer Details
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProfileCustomer(null)}
+                    className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
       </AnimatePresence>
     </div>
   );

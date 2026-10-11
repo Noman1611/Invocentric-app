@@ -43,8 +43,14 @@ export default function MobileNav() {
   const showAdmin = isAdmin || isHardcodedAdmin;
 
   // Do not render bottom nav on document viewer, fullscreen scanner, or POS routes
+  const isInvoiceDetail = (location.pathname.startsWith('/invoices/') || location.pathname.startsWith('/invoices/view/')) &&
+    !location.pathname.startsWith('/invoices/create') &&
+    !location.pathname.startsWith('/invoices/new') &&
+    !location.pathname.startsWith('/invoices/edit') &&
+    location.pathname !== '/invoices';
+
   if (
-    location.pathname.startsWith('/invoices/view') ||
+    isInvoiceDetail ||
     location.pathname.startsWith('/mobile-scan') ||
     location.pathname.startsWith('/pos')
   ) {

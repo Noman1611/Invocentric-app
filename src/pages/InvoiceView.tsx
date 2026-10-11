@@ -332,16 +332,16 @@ export default function InvoiceViewPage() {
   useEffect(() => {
     if (invoice || sellerInfo) {
       const isEnabled = invoice?.letterhead_enabled !== undefined 
-        ? Boolean(invoice.letterhead_enabled) 
+        ? Boolean(invoice?.letterhead_enabled) 
         : Boolean(sellerInfo?.letterhead_enabled);
       const rawTop = invoice?.letterhead_top_margin !== undefined 
-        ? Number(invoice.letterhead_top_margin) 
+        ? Number(invoice?.letterhead_top_margin) 
         : (sellerInfo?.letterhead_top_margin !== undefined ? Number(sellerInfo.letterhead_top_margin) : 55);
       const rawBottom = invoice?.letterhead_bottom_margin !== undefined 
-        ? Number(invoice.letterhead_bottom_margin) 
+        ? Number(invoice?.letterhead_bottom_margin) 
         : (sellerInfo?.letterhead_bottom_margin !== undefined ? Number(sellerInfo.letterhead_bottom_margin) : 35);
       const hideHeader = invoice?.letterhead_hide_header !== undefined 
-        ? Boolean(invoice.letterhead_hide_header) 
+        ? Boolean(invoice?.letterhead_hide_header) 
         : (sellerInfo?.letterhead_hide_header !== undefined ? Boolean(sellerInfo.letterhead_hide_header) : true);
       const url = invoice?.letterhead_url || sellerInfo?.letterhead_url || '';
 
@@ -504,6 +504,8 @@ export default function InvoiceViewPage() {
     hsn_summary: !hideSec.hsn_summary,
     footer: !hideSec.footer,
   };
+
+  const termsText = (((invoice?.terms ?? sellerInfo?.default_terms ?? '') as string) || '').split('\n').filter(Boolean);
 
   const itemRows = items.map((i: any) => {
     const qty = Number(i.quantity) || 0;
@@ -880,7 +882,7 @@ export default function InvoiceViewPage() {
   if (!invoice) return <div className="min-h-screen flex items-center justify-center p-4"><div className="bg-white p-8 rounded-2xl shadow text-center max-w-sm w-full"><p className="font-bold text-slate-800 mb-4">Invoice Not Found</p><button onClick={() => navigate('/invoices')} className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs">Back to Invoices</button></div></div>;
 
   const invNo = calculatedInvNo;
-  const isPaid = invoice.status === 'paid';
+  const isPaid = invoice?.status === 'paid';
   const co = {
     name: sellerInfo?.business_name || '', 
     address: sellerInfo?.address || '',
@@ -904,7 +906,7 @@ export default function InvoiceViewPage() {
     social_qr_label: (sellerInfo?.social_qr_label || '').trim(),
   };
   const bu = {
-    name: customer?.name || invoice.customer_name || '',
+    name: customer?.name || invoice?.customer_name || '',
     address: customer?.address || '', phone: customer?.phone || '',
     gstin: customer?.gst_number || '', pan: customer?.pan || '',
     drug_license: invoice?.buyer_drug_license || (customer as any)?.drug_license_no || '',
@@ -913,8 +915,8 @@ export default function InvoiceViewPage() {
   };
   const sh = bu;
   const im = {
-    invoiceNo: invNo, invoiceDate: fmtDate(invoice.date), dueDate: fmtDate(invoice.due_date),
-    poNo: invoice.po_number || '', poDate: fmtDate(invoice.po_date), eWayNo: invoice.e_way_bill || '',
+    invoiceNo: invNo, invoiceDate: fmtDate(invoice?.date), dueDate: fmtDate(invoice?.due_date),
+    poNo: invoice?.po_number || '', poDate: fmtDate(invoice?.po_date), eWayNo: invoice?.e_way_bill || '',
   };
 
   const hasUpi = Boolean(showSec.upi_qr && upiUrl);
@@ -1001,7 +1003,7 @@ export default function InvoiceViewPage() {
       </div>
     );
   };
-  const termsText = (invoice.terms || sellerInfo?.default_terms || '').split('\n').filter(Boolean);
+  // termsText is declared above for adaptive pagination calculations
   const isQuotation = invoice?.bill_type === 'QUOTATION' || invoice?.bill_type === 'ESTIMATE' || invoice?.status === 'quotation';
   const hasGstInItems = itemRows.some((r: any) => (r.gstPct > 0 || r.gstAmt > 0));
   const isGstEnabled = colVis.gstPercent === true || (colVis.gstPercent !== false && hasGstInItems);
@@ -1086,8 +1088,8 @@ export default function InvoiceViewPage() {
                 [isQuotation ? 'Quotation No.' : 'Invoice No.',im.invoiceNo],
                 [isQuotation ? 'Quote Date' : 'Invoice Date',im.invoiceDate],
                 ['Due Date',im.dueDate],
-                invoice.is_recurring ? ['Recurring Cycle', `${(invoice.recurring_frequency || 'monthly').toUpperCase()} (${fmtDate(invoice.service_period_start)} to ${fmtDate(invoice.service_period_end)})`] : null,
-                invoice.is_recurring && invoice.next_renewal_date ? ['Next Renewal', fmtDate(invoice.next_renewal_date)] : null,
+                invoice?.is_recurring ? ['Recurring Cycle', `${(invoice?.recurring_frequency || 'monthly').toUpperCase()} (${fmtDate(invoice?.service_period_start)} to ${fmtDate(invoice?.service_period_end)})`] : null,
+                invoice?.is_recurring && invoice?.next_renewal_date ? ['Next Renewal', fmtDate(invoice?.next_renewal_date)] : null,
                 ['P.O. No.',im.poNo],
                 ['P.O. Date',im.poDate],
                 ['E-Way No.',im.eWayNo]
@@ -1287,9 +1289,9 @@ export default function InvoiceViewPage() {
 
             {renderSocialStrip(primaryEmerald, lb)}
 
-            {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
+            {showSec.footer && (invoice?.notes || sellerInfo?.footer_notes) && (
               <div style={{border:b,borderTop:'none',fontSize: isA5 ? 8 : 9.5,padding:'2px 5px',textAlign:'center',background:lb}}>
-                {invoice.notes || sellerInfo?.footer_notes}
+                {invoice?.notes || sellerInfo?.footer_notes}
               </div>
             )}
           </div>
@@ -1320,8 +1322,8 @@ export default function InvoiceViewPage() {
             <div>{[
               [isQuotation ? 'Quote #:' : 'Invoice #:',im.invoiceNo],
               [isQuotation ? 'Quote Date:' : 'Invoice Date:',im.invoiceDate],
-              invoice.is_recurring ? ['Recurring:', `${(invoice.recurring_frequency || 'monthly').toUpperCase()}`] : null,
-              invoice.is_recurring && invoice.next_renewal_date ? ['Renewal:', fmtDate(invoice.next_renewal_date)] : null,
+              invoice?.is_recurring ? ['Recurring:', `${(invoice?.recurring_frequency || 'monthly').toUpperCase()}`] : null,
+              invoice?.is_recurring && invoice?.next_renewal_date ? ['Renewal:', fmtDate(invoice?.next_renewal_date)] : null,
               ['P.O. No.:',im.poNo],
               ['E-Way No.:',im.eWayNo]
             ].filter(Boolean).map(([l,v]: any)=>(<div key={l} style={{display:'flex',marginBottom:0.5}}><div style={{fontWeight:'bold',width: isA5 ? 55 : 70}}>{l}</div><b>{v}</b></div>))}</div>
@@ -1458,9 +1460,9 @@ export default function InvoiceViewPage() {
 
             {renderSocialStrip(primaryForest, '#ffffff')}
 
-            {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
+            {showSec.footer && (invoice?.notes || sellerInfo?.footer_notes) && (
               <div style={{borderTop:`1px solid ${primaryForest}`, fontSize: isA5 ? 7.5 : 9.5, padding:'2px 4px', textAlign:'center', marginTop: 3, color: '#334155'}}>
-                {invoice.notes || sellerInfo?.footer_notes}
+                {invoice?.notes || sellerInfo?.footer_notes}
               </div>
             )}
           </div>
@@ -1594,10 +1596,10 @@ export default function InvoiceViewPage() {
             <span style={{ fontWeight: 700 }}>DATE:</span>
             <span>{im.invoiceDate}</span>
           </div>
-          {invoice.is_recurring && (
+          {invoice?.is_recurring && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
               <span style={{ fontWeight: 700 }}>RECURRING:</span>
-              <span style={{ textTransform: 'uppercase' }}>{invoice.recurring_frequency}</span>
+              <span style={{ textTransform: 'uppercase' }}>{invoice?.recurring_frequency}</span>
             </div>
           )}
         </div>
@@ -1718,9 +1720,9 @@ export default function InvoiceViewPage() {
 
         {/* 6. Footer: InvoCentric Branding & Visit Again */}
         <div style={{ marginTop: '6px', textAlign: 'center' }}>
-          {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
+          {showSec.footer && (invoice?.notes || sellerInfo?.footer_notes) && (
             <div style={{ fontSize: subItalicSize, fontStyle: 'italic', margin: '4px 0', color: '#333333' }}>
-              {invoice.notes || sellerInfo?.footer_notes}
+              {invoice?.notes || sellerInfo?.footer_notes}
             </div>
           )}
           <div style={{ fontWeight: 700, fontSize: docTitleSize, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
@@ -1756,11 +1758,11 @@ export default function InvoiceViewPage() {
               <div><span style={{ fontWeight: 700 }}>{isQuotation ? 'Quote Date:' : 'Date:'}</span> {im.invoiceDate}</div>
               {im.poNo && <div><span style={{ fontWeight: 700 }}>PO Number:</span> {im.poNo}</div>}
               {im.dueDate && <div><span style={{ fontWeight: 700 }}>Due Date:</span> {im.dueDate}</div>}
-              {invoice.is_recurring && (
-                <div><span style={{ fontWeight: 700 }}>Recurring:</span> <span style={{ textTransform: 'uppercase' }}>{invoice.recurring_frequency}</span></div>
+              {invoice?.is_recurring && (
+                <div><span style={{ fontWeight: 700 }}>Recurring:</span> <span style={{ textTransform: 'uppercase' }}>{invoice?.recurring_frequency}</span></div>
               )}
-              {invoice.is_recurring && invoice.next_renewal_date && (
-                <div><span style={{ fontWeight: 700 }}>Next Renewal:</span> {fmtDate(invoice.next_renewal_date)}</div>
+              {invoice?.is_recurring && invoice?.next_renewal_date && (
+                <div><span style={{ fontWeight: 700 }}>Next Renewal:</span> {fmtDate(invoice?.next_renewal_date)}</div>
               )}
               <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>Page {pageIdx + 1} of {totalPages}</div>
             </div>
@@ -2017,9 +2019,9 @@ export default function InvoiceViewPage() {
             {renderSocialStrip(borderGray, '#f8fafc')}
 
             {/* Footer Notes */}
-            {showSec.footer && (invoice.notes || sellerInfo?.footer_notes) && (
+            {showSec.footer && (invoice?.notes || sellerInfo?.footer_notes) && (
               <div style={{ borderTop: `1px solid ${borderGray}`, fontSize: isA5 ? 7.5 : 9.5, padding: '4px 6px', textAlign: 'center', marginTop: 6, color: '#475569' }}>
-                {invoice.notes || sellerInfo?.footer_notes}
+                {invoice?.notes || sellerInfo?.footer_notes}
               </div>
             )}
 
@@ -2163,7 +2165,7 @@ export default function InvoiceViewPage() {
                 </div>
                 {invoice?.shipping_attn && (
                   <div style={{ color: '#475569', fontSize: isA5 ? 8 : 9.5, marginBottom: 1 }}>
-                    {invoice.shipping_attn}
+                    {invoice?.shipping_attn}
                   </div>
                 )}
                 <div style={{ color: '#334155', lineHeight: 1.35, whiteSpace: 'pre-line' }}>
@@ -2188,8 +2190,8 @@ export default function InvoiceViewPage() {
                   {im.poNo && <div><span style={{ fontWeight: 700 }}>PO Number:</span> {im.poNo}</div>}
                   {im.eWayNo && <div><span style={{ fontWeight: 700 }}>E-Way No:</span> {im.eWayNo}</div>}
                   <div><span style={{ fontWeight: 700 }}>Payment Terms:</span> {invoice?.payment_terms || (invoice?.payment_mode ? invoice.payment_mode.toUpperCase() : 'Net 30')}</div>
-                  {invoice.is_recurring && (
-                    <div><span style={{ fontWeight: 700 }}>Recurring:</span> {(invoice.recurring_frequency || 'monthly').toUpperCase()}</div>
+                  {invoice?.is_recurring && (
+                    <div><span style={{ fontWeight: 700 }}>Recurring:</span> {(invoice?.recurring_frequency || 'monthly').toUpperCase()}</div>
                   )}
                 </div>
               </div>
@@ -2475,11 +2477,11 @@ export default function InvoiceViewPage() {
               <div className="flex items-center gap-1 sm:gap-2">
                 <h1 className="text-xs sm:text-sm md:text-base font-black text-slate-900 truncate leading-none">#{invNo}</h1>
                 <span className={cn('px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider', isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800')}>
-                  {invoice.status || 'Draft'}
+                  {invoice?.status || 'Draft'}
                 </span>
               </div>
               <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                {customer?.name || invoice.customer_name || 'Cash Sale'}
+                {customer?.name || invoice?.customer_name || 'Cash Sale'}
               </p>
             </div>
           </div>
@@ -2565,7 +2567,7 @@ export default function InvoiceViewPage() {
 
             {/* Action Buttons: Edit, WhatsApp Share, PDF, Print (ALWAYS VISIBLE) */}
             <button 
-              onClick={() => navigate(`/invoices/edit/${invoice.id}`)} 
+              onClick={() => invoice?.id && navigate(`/invoices/edit/${invoice.id}`)} 
               className="inline-flex items-center justify-center gap-1 h-8 px-2 sm:px-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs transition-colors cursor-pointer active:scale-95"
               title="Edit Invoice"
             >

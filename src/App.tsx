@@ -1910,6 +1910,7 @@ function ImpersonationBanner() {
               <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
               <Route path="/pricing" element={<PrivateRoute><PricingPage /></PrivateRoute>} />
               <Route path="/invoices/:id" element={<PrivateRoute><InvoiceViewPage /></PrivateRoute>} />
+              <Route path="/invoices/view/:id" element={<PrivateRoute><InvoiceViewPage /></PrivateRoute>} />
               <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
               <Route path="/pos" element={<PrivateRoute><QuickPOSPage /></PrivateRoute>} />
               <Route path="/qr-generator" element={<PrivateRoute><QrGeneratorPage /></PrivateRoute>} />

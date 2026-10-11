@@ -13,6 +13,7 @@ import {
   setDoc,
   serverTimestamp
 } from 'firebase/firestore';
+import { dbService } from '../services/dbService';
 import { useAuth } from '../contexts/AuthContext';
 
 function getCandidateUids(user: { uid: string; email?: string | null }): string[] {
@@ -1108,10 +1109,8 @@ export function useRecycleBin() {
       });
 
       if (expiredItems.length > 0) {
-        import('../services/dbService').then(({ dbService }) => {
-          expiredItems.forEach((exp) => {
-            dbService.delete('recycle_bin', exp.id, { permanent: true, offlineMode: isOfflineMode, userId: user.uid }).catch(console.error);
-          });
+        expiredItems.forEach((exp) => {
+          dbService.delete('recycle_bin', exp.id, { permanent: true, offlineMode: isOfflineMode, userId: user.uid }).catch(console.error);
         });
       }
 

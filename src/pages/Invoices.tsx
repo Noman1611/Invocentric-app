@@ -349,10 +349,18 @@ export default function InvoicesPage() {
             </div>
           ) : (
             filteredInvoices.map((invoice) => (
-              <div key={invoice.id} className="p-4 space-y-3 hover:bg-slate-50/50 transition-colors">
+              <div 
+                key={invoice.id} 
+                onClick={() => navigate(`/invoices/${invoice.id}`)}
+                className="p-4 space-y-3 hover:bg-slate-50/70 transition-colors cursor-pointer active:bg-slate-100/60"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <Link to={`/invoices/${invoice.id}`} className="font-bold text-slate-900 hover:text-green-600 transition-colors text-sm flex items-center gap-1.5">
+                    <Link 
+                      to={`/invoices/${invoice.id}`} 
+                      onClick={(e) => e.stopPropagation()}
+                      className="font-bold text-slate-900 hover:text-green-600 transition-colors text-sm flex items-center gap-1.5"
+                    >
                       #INV-{invoice.id.slice(0, 4).toUpperCase()}
                     </Link>
                     <p className="text-xs font-semibold text-slate-700 mt-0.5">{invoice.customer_name || 'Individual Profile'}</p>
@@ -396,7 +404,7 @@ export default function InvoicesPage() {
                   <span className="text-[11px] text-slate-500">
                     Due: {invoice.due_date ? format(parseDateSafe(invoice.due_date), 'MMM d') : '-'}
                   </span>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     {invoice.is_recurring && (
                       <Link 
                         to={`/invoices/new?renew_from=${invoice.id}`}
@@ -480,9 +488,17 @@ export default function InvoicesPage() {
                   </td>
                 </tr>
               ) : filteredInvoices.map((invoice) => (
-                <tr key={invoice.id} className="hover:bg-slate-50/40 transition-colors group">
+                <tr 
+                  key={invoice.id} 
+                  onClick={() => navigate(`/invoices/${invoice.id}`)}
+                  className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
+                >
                   <td className="px-6 py-5">
-                    <Link to={`/invoices/${invoice.id}`} className="font-bold text-slate-900 hover:text-green-600 transition-colors block leading-none">
+                    <Link 
+                      to={`/invoices/${invoice.id}`} 
+                      onClick={(e) => e.stopPropagation()}
+                      className="font-bold text-slate-900 hover:text-green-600 transition-colors block leading-none"
+                    >
                       #INV-{invoice.id.slice(0, 4).toUpperCase()}
                     </Link>
                     <span className="text-[10px] text-slate-500 mt-1.5 font-medium uppercase tracking-tight flex items-center gap-1.5">
@@ -535,7 +551,7 @@ export default function InvoicesPage() {
                       {invoice.due_date ? format(parseDateSafe(invoice.due_date), 'MMM d, yyyy') : '-'}
                     </p>
                   </td>
-                  <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
+                  <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5 opacity-100 transition-opacity">
                       {invoice.is_recurring && (
                         <Link 

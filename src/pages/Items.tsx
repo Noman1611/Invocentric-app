@@ -1414,12 +1414,20 @@ export default function ItemsPage() {
               <div className="flex justify-between items-start mb-5">
                 <div className="relative">
                   <div className={cn(
-                    "w-11 h-11 rounded-xl flex items-center justify-center transition-colors ring-1",
+                    "w-11 h-11 rounded-xl flex items-center justify-center transition-colors ring-1 overflow-hidden shrink-0",
                     appMode !== 'freelancer' && item.stock <= (item.low_stock_threshold || 5) 
                       ? "bg-rose-50 text-rose-600 ring-rose-100" 
                       : "bg-slate-50 text-slate-600 ring-slate-100"
                   )}>
-                    <Package size={20} />
+                    {((item as any).image || (item as any).image_url) ? (
+                      <img 
+                        src={(item as any).image || (item as any).image_url} 
+                        alt={item.name} 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <Package size={20} />
+                    )}
                   </div>
                   {appMode !== 'freelancer' && item.stock <= (item.low_stock_threshold || 5) && (
                     <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
@@ -1591,8 +1599,16 @@ export default function ItemsPage() {
                 <tr key={item.id} className="hover:bg-slate-50/40 transition-colors group">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500 ring-1 ring-slate-100 shrink-0">
-                        <Package size={18} />
+                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500 ring-1 ring-slate-100 shrink-0 overflow-hidden">
+                        {((item as any).image || (item as any).image_url) ? (
+                          <img 
+                            src={(item as any).image || (item as any).image_url} 
+                            alt={item.name} 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <Package size={18} />
+                        )}
                       </div>
                       <div>
                         <p className="font-bold text-slate-900 flex items-center gap-2">
@@ -1745,6 +1761,7 @@ export default function ItemsPage() {
           }
 
           try {
+            const itemImg = itemData.image || (itemData as any).image_url || '';
             const data: any = {
               name: itemData.name,
               description: itemData.description || '',
@@ -1773,14 +1790,31 @@ export default function ItemsPage() {
               serialNumber: itemData.serialNumber || '',
               serials: itemData.serials || [],
               custom_box: itemData.custom_box || '',
-              image: itemData.image || '',
+              image: itemImg,
+              image_url: itemImg,
               active: itemData.active !== undefined ? itemData.active : true
             };
 
             if (editingItem) {
               await dbService.update('items', editingItem.id, data, { offlineMode: isOfflineMode, userId: user.uid });
             } else {
-              await dbService.add('items', data, { offlineMode: isOfflineMode, userId: user.uid });
+              // Check if item with same barcode or exact same name already exists to prevent duplicate creation
+              const existingDuplicate = items.find((it: any) => {
+                if (data.barcode && it.barcode && String(it.barcode).trim() === String(data.barcode).trim()) {
+                  return true;
+                }
+                if (data.name && it.name && it.name.trim().toLowerCase() === data.name.trim().toLowerCase()) {
+                  return true;
+                }
+                return false;
+              });
+
+              if (existingDuplicate) {
+                // Update existing item instead of creating duplicate
+                await dbService.update('items', existingDuplicate.id, { ...existingDuplicate, ...data }, { offlineMode: isOfflineMode, userId: user.uid });
+              } else {
+                await dbService.add('items', data, { offlineMode: isOfflineMode, userId: user.uid });
+              }
             }
 
             setIsModalOpen(false);
@@ -1793,7 +1827,7 @@ export default function ItemsPage() {
         initialData={editingItem ? {
           id: editingItem.id,
           name: editingItem.name,
-          image: (editingItem as any).image || '',
+          image: (editingItem as any).image || (editingItem as any).image_url || '',
           category: editingItem.category || '',
           brand: (editingItem as any).brand || '',
           barcode: editingItem.barcode || '',

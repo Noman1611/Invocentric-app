@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/Logo';
 import { motion, AnimatePresence } from 'motion/react';
-import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, updateProfile } from 'firebase/auth';
+import { sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, updateProfile, signOut } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
@@ -91,7 +91,8 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
     registerWithPasswordAndOtp,
     resetPasswordWithOtp,
     user,
-    loading: authLoading
+    loading: authLoading,
+    logout
   } = useAuth();
   
   const urlMode = searchParams.get('mode') as 'login' | 'signup' | 'forgot' | null;
@@ -263,6 +264,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
 
     let isCancelled = false;
 
+    // Explicit Google redirect completion (when user picked account in Google account chooser via redirect)
     getRedirectResult(auth).then(async (result) => {
       if (isCancelled) return;
       if (result?.user) {
@@ -273,25 +275,63 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
       console.warn("Mobile auth redirect handling:", err);
     });
 
-    const unsubscribe = onAuthStateChanged(auth, async (u) => {
-      if (isCancelled || !u || handshakeCompleted) return;
-      setTimeout(async () => {
-        if (!isCancelled && !handshakeCompleted && auth.currentUser) {
-          await transmitHandshake(auth.currentUser, null, null, activeSid);
-        }
-      }, 500);
-    });
-
     return () => {
       isCancelled = true;
-      unsubscribe();
     };
-  }, [isMobileAuth, mobileSessionId, handshakeCompleted]);
+  }, [isMobileAuth, mobileSessionId]);
+
+  const handleSwitchGoogleAccount = async () => {
+    setGoogleLoading(true);
+    setError(null);
+    try {
+      await logout().catch(() => {});
+      if (auth.currentUser) {
+        await signOut(auth).catch(() => {});
+      }
+
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      try {
+        const result = await signInWithPopup(auth, provider);
+        if (result?.user) {
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          if (isMobileAuth && mobileSessionId) {
+            await transmitHandshake(result.user, credential?.idToken, credential?.accessToken, mobileSessionId);
+            return;
+          }
+          navigate('/dashboard');
+          return;
+        }
+      } catch (popupErr: any) {
+        if (
+          popupErr?.code === 'auth/popup-closed-by-user' ||
+          popupErr?.code === 'auth/cancelled-popup-request' ||
+          popupErr?.message?.includes('cancelled')
+        ) {
+          setGoogleLoading(false);
+          return;
+        }
+        console.warn("Popup attempt notice, falling back to redirect for account chooser:", popupErr?.code);
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+    } catch (err: any) {
+      console.error("Switch Google Account Error:", err);
+      setError(err?.message || "Failed to switch Google account. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     setError(null);
     try {
+      if (auth.currentUser) {
+        await signOut(auth).catch(() => {});
+      }
+
       if (isMobileAuth && mobileSessionId) {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
@@ -599,14 +639,44 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
           <InvoCentricBrandBadge />
           <h2 className="text-xl font-bold text-slate-900 mb-1">Connect to InvoCentric App</h2>
           <p className="text-xs text-slate-500 mb-6">
-            Signed in as <strong className="text-slate-800">{user.email}</strong>. Tap below to send this login to your app.
+            Signed in as <strong className="text-slate-800">{user.email}</strong>. Choose an option below to continue to your mobile app.
           </p>
+
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs text-left">
+              {error}
+            </div>
+          )}
+
           <button
             onClick={handleAuthorizeApp}
-            disabled={loading}
+            disabled={loading || googleLoading}
             className="w-full h-12 flex items-center justify-center gap-2 bg-slate-900 hover:bg-black text-white font-semibold rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 mb-3 cursor-pointer"
           >
             {loading ? "Connecting..." : "Authorize App Login"}
+          </button>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="px-2 bg-white text-slate-400 font-medium uppercase tracking-wider text-[11px]">OR SWITCH ID</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSwitchGoogleAccount}
+            disabled={googleLoading || loading}
+            className="w-full h-12 flex items-center justify-center gap-2.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 shadow-sm transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+          >
+            {googleLoading ? (
+              <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <GoogleIcon className="w-5 h-5" />
+            )}
+            <span>{googleLoading ? 'Opening account list...' : 'Choose Another Google Account'}</span>
           </button>
         </motion.div>
       </div>
