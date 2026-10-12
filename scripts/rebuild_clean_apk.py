@@ -11,7 +11,7 @@ DIST_DIR = os.path.join(BASE_DIR, "dist")
 PUBLIC_DIR = os.path.join(BASE_DIR, "public")
 UBER_JAR = os.path.join(BASE_DIR, "uber-apk-signer.jar")
 
-def patch_android_manifest(raw_bytes, version_code=51, version_name="1.0.51"):
+def patch_android_manifest(raw_bytes, version_code=52, version_name="1.0.52"):
     manifest = bytearray(raw_bytes)
     # 1. Patch versionName string in UTF-16LE string pool
     target_utf16 = "1.0.39".encode("utf-16le")
@@ -81,8 +81,8 @@ def build_clean_apk(target_apk_name, channel="production", do_web_build=True):
 
                 # Patch AndroidManifest.xml
                 if item.filename == "AndroidManifest.xml":
-                    v_code = 51
-                    v_name = "1.0.51"
+                    v_code = 52
+                    v_name = "1.0.52"
                     content = patch_android_manifest(content, version_code=v_code, version_name=v_name)
 
                 # Patch resources.arsc for test build to display TEST in icon label

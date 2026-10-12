@@ -17,27 +17,27 @@ if (!TOKEN) {
 }
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.51';
+const TAG = 'v1.0.52';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.51 - Customer Invoice History, Auto-Compressed Item Photos & High-Performance POS';
-const RELEASE_NOTES = `## InvoCentric v1.0.51 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.52 - Guaranteed Profile & Multi-Device Sync, Protected Local Storage & System Reliability';
+const RELEASE_NOTES = `## InvoCentric v1.0.52 Release Notes
 
-### What's New in v1.0.51:
-- **Customer Profile & Invoices History:**
-  - Added full Invoices count badge and Total Billed summary directly on Customer Cards.
-  - Interactive Customer Profile modal showing complete profile info and exhaustive customer invoice history.
-  - Seamless 1-click navigation to view any invoice and quick "Create New Invoice" shortcut.
-  - Live customer details editing with instant offline & online database synchronization.
-- **Auto-Compressed Item Photos (Zero Performance Overhead):**
-  - High-resolution item photos are now compressed automatically client-side (max dimension 480px, 0.72 quality) to lightweight ~25KB-40KB files.
-  - Drastically reduces database load and memory usage across webapp and Android smartphone app.
-  - Item duplicate prevention: automatically updates existing item if duplicate barcode or name is provided.
-- **Enhanced POS & Catalog Visuals:**
-  - Product thumbnail previews in Item Grid View & List View.
-  - Quick POS product cards and live basket items now display product thumbnails for instant visual recognition.
+### What's New in v1.0.52:
+- **Guaranteed Business Profile & Bank Details Sync:**
+  - Essential business & banking fields (Business Name, Phone, GSTIN, Address, Bank Name, Account Number, IFSC, UPI ID) now have an automatic guaranteed cloud fallback so they never fail to sync or get lost.
+  - Added smart payload sanitization to protect against document size limits when branding logos or signatures are uploaded.
+- **Reliable Multi-Device & Next-Day Login Hydration:**
+  - Increased profile hydration network timeout to 8 seconds on initial login to prevent false timeout dropouts.
+  - Added Candidate UID self-healing to seamlessly link and restore business profiles across login methods (Google / Email).
+  - Immediate local storage layer synchronization across tabs and sessions.
+- **Party (Customer) & Invoice Data Resilience:**
+  - Extended network write timeouts to 6 seconds so mobile & fluctuating connections don't drop customer/invoice creation to offline queue.
+  - Real-time event listeners instantly refresh UI when remote data arrives without requiring manual page reload.
+- **Strict Local Storage Protection:**
+  - Completely preserves 100% of offline and Local PC Mode data. Users who choose local storage remain entirely private with zero unrequested cloud pushes or data resets.
 - **Cross-Platform Releases:**
   - **Desktop Software:** Updated Windows installer (\`InvoCentric-Setup.exe\`) with auto-updater support (\`latest.yml\`).
-  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 51.
+  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 52.
   - **Web Application:** Production-optimized static web assets and server bundle.
 `;
 

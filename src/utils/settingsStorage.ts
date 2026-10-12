@@ -312,29 +312,66 @@ export function saveStoredUserProfile(userId: string | null | undefined, data: a
 
   return toSave;
 }
+/**
+ * Extracts essential business and banking profile fields that MUST ALWAYS
+ * be preserved and synced to the cloud. Zero risk of exceeding Firestore limits.
+ */
+export function getEssentialProfilePayload(data: any): Record<string, any> {
+  if (!data || typeof data !== 'object') return {};
+  const essentialKeys = [
+    'id', 'user_id', 'email', 'business_name', 'owner_name', 'display_name',
+    'phone', 'address', 'city', 'state', 'pincode', 'gstin', 'pan',
+    'upi_id', 'bank_name', 'bank_branch', 'account_number', 'ifsc_code', 'account_holder',
+    'invoice_prefix', 'currency', 'default_terms', 'default_notes',
+    'drug_license_no', 'app_mode', 'wizard_completed', 'industry_modules',
+    'updated_at'
+  ];
+  const payload: Record<string, any> = {};
+  for (const k of essentialKeys) {
+    if (data[k] !== undefined && data[k] !== null) {
+      payload[k] = data[k];
+    }
+  }
+  return payload;
+}
 
 /**
  * Strips undefined values, functions, and dangerous payloads
  * to prevent Firestore setDoc/updateDoc from crashing.
+ * Guaranteed to prioritize essential business & banking details so they never drop.
  */
 export function sanitizeFirestorePayload(data: any): Record<string, any> {
   if (!data || typeof data !== 'object') return {};
   const sanitized: Record<string, any> = {};
 
+  // First pass: copy non-string or small values, prioritizing essential text
   for (const [key, value] of Object.entries(data)) {
-    // Firestore throws on undefined
     if (value === undefined) continue;
     if (typeof value === 'function') continue;
 
-    // Safety check for massive base64 payloads: if string is > 750KB, truncate or skip
+    // Safety check for massive base64 payloads: if string is > 400KB, skip or protect
     // to prevent crashing Firestore's 1MB hard document limit
-    if (typeof value === 'string' && value.length > 800000) {
-      console.warn(`Field ${key} exceeds 800KB, skipping from cloud sync to protect Firestore document size.`);
+    if (typeof value === 'string' && value.length > 400000) {
+      console.warn(`Field ${key} exceeds 400KB, skipping from cloud sync to protect Firestore document size.`);
       continue;
     }
 
     sanitized[key] = value;
   }
+
+  // Safety check on total payload size
+  try {
+    const totalSize = JSON.stringify(sanitized).length;
+    if (totalSize > 850000) {
+      // If still close to 1MB, drop large optional image strings while preserving essential text
+      const heavyImageKeys = ['logo_url', 'signature_url', 'social_qr_url', 'profile_photo_url', 'letterhead_url'];
+      for (const imgKey of heavyImageKeys) {
+        if (sanitized[imgKey] && typeof sanitized[imgKey] === 'string' && sanitized[imgKey].length > 50000) {
+          delete sanitized[imgKey];
+        }
+      }
+    }
+  } catch (_) {}
 
   return sanitized;
 }

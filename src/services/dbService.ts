@@ -349,7 +349,7 @@ async function triggerNotification(
   }
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number = 2500, fallbackMsg: string = 'Operation timed out'): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number = 6000, fallbackMsg: string = 'Operation timed out'): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error(fallbackMsg)), ms))

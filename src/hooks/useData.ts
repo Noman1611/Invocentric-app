@@ -1,5 +1,5 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
-import { getStoredUserProfile, saveStoredUserProfile, sanitizeFirestorePayload } from '../utils/settingsStorage';
+import { getStoredUserProfile, saveStoredUserProfile, sanitizeFirestorePayload, getEssentialProfilePayload } from '../utils/settingsStorage';
 import { syncAllUserDataFromFirestore, fetchCollectionRest } from '../utils/firestoreRestFallback';
 import { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
@@ -915,11 +915,25 @@ export function useSettings() {
       return;
     }
 
-    // Safety timeout: if Firestore onSnapshot hangs, resolve loading after 1.5 seconds
+    // Listen to profile updates from background sync or other tabs
+    const handleProfileUpdate = (e: any) => {
+      const updated = e?.detail || getStoredUserProfile(user.uid);
+      if (updated) {
+        setSettings((prev: any) => ({ ...(prev || {}), ...updated, id: user.uid }));
+        setLoading(false);
+      }
+    };
+    window.addEventListener('invocentric_profile_updated', handleProfileUpdate);
+
+    // Safety timeout: give fresh connections enough time to fetch before falling back
+    const timeoutMs = cachedProfile ? 2000 : 4500;
     const safetyTimeout = setTimeout(() => {
-      console.warn("Firestore snapshot for settings took too long; resolving with cached settings.");
+      const latestCached = getStoredUserProfile(user.uid);
+      if (latestCached) {
+        setSettings({ id: user.uid, ...latestCached });
+      }
       setLoading(false);
-    }, 1500);
+    }, timeoutMs);
 
     const userDocRef = doc(db, 'users', user.uid);
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
@@ -956,6 +970,7 @@ export function useSettings() {
     return () => {
       clearTimeout(safetyTimeout);
       unsubscribe();
+      window.removeEventListener('invocentric_profile_updated', handleProfileUpdate);
     };
   }, [user, isOfflineMode]);
 
@@ -974,7 +989,18 @@ export function useSettings() {
           });
           await setDoc(userDocRef, cleanPayload, { merge: true });
         } catch (cloudErr) {
-          console.warn("Could not sync settings to cloud (saved locally):", cloudErr);
+          console.warn("Full settings sync deferred, retrying with guaranteed essential payload:", cloudErr);
+          try {
+            const essentialPayload = getEssentialProfilePayload({
+              ...newData,
+              id: user.uid,
+              updated_at: serverTimestamp()
+            });
+            await setDoc(doc(db, 'users', user.uid), essentialPayload, { merge: true });
+            console.log("Essential business profile guaranteed to cloud successfully.");
+          } catch (e2) {
+            console.warn("Could not sync settings to cloud (saved locally):", e2);
+          }
         }
       }
     } catch (error) {

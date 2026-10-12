@@ -948,14 +948,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         userDoc = await Promise.race([
           getDoc(userDocRef),
-          new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 1800))
+          new Promise<null>((_, reject) => setTimeout(() => reject(new Error("Firestore timeout")), 8000))
         ]);
         readCompleted = true;
       } catch (err: any) {
         console.warn("Background user doc fetch notice:", err?.message || err);
       }
 
-      const profile = userDoc?.exists() ? userDoc.data() : null;
+      let profile = userDoc?.exists() ? userDoc.data() : null;
+
+      // Candidate UID self-healing fallback if profile not directly on canonical UID
+      if (!profile && readCompleted) {
+        const candidateUids = [
+          firebaseUser.email ? 'user_' + firebaseUser.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_') : null,
+          firebaseUser.email ? 'google_' + firebaseUser.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_') : null,
+        ].filter(Boolean) as string[];
+
+        for (const cUid of candidateUids) {
+          try {
+            const aliasSnap = await getDoc(doc(db, 'users', cUid));
+            if (aliasSnap.exists()) {
+              const aliasData = aliasSnap.data();
+              if (aliasData && (aliasData.business_name || aliasData.phone || aliasData.gstin || aliasData.bank_name || aliasData.upi_id)) {
+                profile = aliasData;
+                setDoc(userDocRef, { ...aliasData, id: firebaseUser.uid, updated_at: serverTimestamp() }, { merge: true }).catch(() => {});
+                console.log(`[Profile Self-Healing] Recovered profile from alias UID ${cUid} to ${firebaseUser.uid}`);
+                break;
+              }
+            }
+          } catch (_) {}
+        }
+      }
 
       if (profile) {
         // Save to local storage

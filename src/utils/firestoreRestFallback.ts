@@ -1,5 +1,6 @@
 import firebaseConfig from '../../firebase-applet-config.json';
 import { setSecureStorage, getSecureStorage } from './cryptoUtils';
+import { saveStoredUserProfile } from './settingsStorage';
 import { auth } from '../lib/firebase';
 
 /**
@@ -276,7 +277,7 @@ export async function syncAllUserDataFromFirestore(
     })
   );
 
-  // Also sync user profile document
+  // Also sync user profile document and essential business details
   try {
     const projectId = firebaseConfig.projectId;
     const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
@@ -285,15 +286,31 @@ export async function syncAllUserDataFromFirestore(
     const headers: Record<string, string> = {};
     if (effectiveToken) headers['Authorization'] = `Bearer ${effectiveToken}`;
 
-    const userDocUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${userId}?key=${apiKey}`;
-    const userRes = await fetch(userDocUrl, { headers });
-    if (userRes.ok) {
-      const userDoc = await userRes.json();
-      const parsedUser = parseFirestoreRestDoc(userDoc);
-      if (parsedUser) {
-        setSecureStorage(`user_profile_${userId}`, parsedUser);
-        window.dispatchEvent(new CustomEvent('invocentric_profile_updated', { detail: parsedUser }));
-      }
+    let parsedUser: any = null;
+    const uidsToCheck = [userId, ...candidateUids.filter(u => u !== userId)];
+
+    for (const targetUid of uidsToCheck) {
+      try {
+        const userDocUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/users/${targetUid}?key=${apiKey}`;
+        const userRes = await fetch(userDocUrl, { headers });
+        if (userRes.ok) {
+          const userDoc = await userRes.json();
+          const docData = parseFirestoreRestDoc(userDoc);
+          if (docData && (docData.business_name || docData.phone || docData.gstin || docData.owner_name || docData.bank_name || docData.upi_id)) {
+            parsedUser = docData;
+            break;
+          } else if (docData && !parsedUser) {
+            parsedUser = docData;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (parsedUser) {
+      setSecureStorage(`user_profile_${userId}`, parsedUser);
+      saveStoredUserProfile(userId, parsedUser, userEmail);
+      window.dispatchEvent(new CustomEvent('invocentric_profile_updated', { detail: parsedUser }));
+      console.log(`[Firestore REST] Successfully hydrated business profile for user ${userId}`);
     }
   } catch (userErr) {
     console.warn('[Firestore REST] User profile fetch note:', userErr);

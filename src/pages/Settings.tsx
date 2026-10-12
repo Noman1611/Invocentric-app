@@ -1,5 +1,5 @@
 import { getSecureStorage, setSecureStorage } from '../utils/cryptoUtils';
-import { getStoredUserProfile, saveStoredUserProfile, sanitizeFirestorePayload, sanitizeUserProfile, DEFAULT_PROFILE_DATA, UserProfileData } from '../utils/settingsStorage';
+import { getStoredUserProfile, saveStoredUserProfile, sanitizeFirestorePayload, getEssentialProfilePayload, sanitizeUserProfile, DEFAULT_PROFILE_DATA, UserProfileData } from '../utils/settingsStorage';
 import { apiUrl } from '../utils/apiConfig';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
@@ -945,7 +945,20 @@ export default function SettingsPage() {
         });
         await setDoc(userDocRef, updateData, { merge: true });
       } catch (cloudErr) {
-        console.warn("Cloud settings sync notice:", cloudErr);
+        console.warn("Cloud settings sync notice, retrying with guaranteed essential payload:", cloudErr);
+        try {
+          // Guaranteed fallback: sync essential business, banking & tax details without heavy image payloads
+          const essentialData = getEssentialProfilePayload({
+            ...dataToSave,
+            id: user.uid,
+            email: user.email || dataToSave.email || null,
+            updated_at: serverTimestamp(),
+          });
+          await setDoc(doc(db, 'users', user.uid), essentialData, { merge: true });
+          console.log("Essential business profile successfully synchronized to cloud fallback.");
+        } catch (fallbackErr) {
+          console.warn("Essential profile fallback sync notice:", fallbackErr);
+        }
       }
     }
   };
