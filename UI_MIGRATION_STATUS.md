@@ -18,10 +18,10 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **A. Feature Audit & Checkpoint** | N/A | Entire codebase | **COMPLETED** | Git branch `feature/ui-v2-migration` created, full inventory documented |
 | **B. Design Tokens & Primitives** | Shared | `src/index.css`, components | **COMPLETED** | Google Manrope font preloaded, UI v2 tokens & primitives integrated |
-| **C. Shell & Navigation** | Shared | `App.tsx`, `Sidebar.tsx`, `MobileNav.tsx` | **COMPLETED** | Dark nav capsule `#10251F`, desktop sidebar, clean header bar with official logo |
+| **C. Shell & Navigation** | Shared | `App.tsx`, `Sidebar.tsx`, `MobileNav.tsx` | **COMPLETED** | Floating dark capsule sidebar (`#073E36`, `rounded-[28px]`, `w-56`), soft canvas (`#EEF2EB`), floating main card (`rounded-[32px]`), mobile bottom nav |
 | **D. Dashboard** | IC-013 - IC-018 | `/dashboard`, `src/pages/Dashboard.tsx` | **COMPLETED** | Hero Mint card (`#D7F4D4`), period tabs, stats in `#073E36`, quick actions & area chart |
 | **E. Invoices & Quotations** | IC-019 - IC-043 | `/invoices`, `Invoices.tsx`, `Quotations.tsx` | **COMPLETED** | Status pill tabs, responsive mobile cards, desktop tables, all 16 invoice templates intact |
-| **F. POS & Mobile Scanner** | IC-044 - IC-054 | `/pos`, `/mobile-scan`, `QuickPOS.tsx` | **COMPLETED** | Barcode search, category pills, product grid, real-time desktop cart, mobile bottom sheet |
+| **F. POS & Mobile Scanner** | IC-044 - IC-054 | `/pos`, `/mobile-scan`, `QuickPOS.tsx` | **COMPLETED** | Exact IC-044 Card View (`A smoother checkout.`, full search pill, 4-col isometric cards, floating cart pill, layout switcher) + high-speed split register |
 | **G. Products & Inventory** | IC-055 - IC-065 | `/items`, `src/pages/Items.tsx` | **COMPLETED** | 10 inventory navigation tabs (`ScrollableTabBar`), AI buttons, stock badges, item grid & table |
 | **H. Customers & Ledgers** | IC-066 - IC-073 | `/customers`, `Statement.tsx` | **COMPLETED** | Client directory, WhatsApp 1-click reminders, A4/Thermal statement generator |
 | **I. Purchases & Expenses** | IC-074 - IC-090 | `/purchases`, `/dailybook`, `/expenses` | **COMPLETED** | Supplier bills, Net Daily Cash Balance card (`#073E36` & `#D7F4D4`), expense categories |
