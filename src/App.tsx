@@ -471,6 +471,15 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     };
   }, [isNotificationsOpen, isProfileOpen]);
 
+  useEffect(() => {
+    const handleToggleNotifications = () => {
+      setIsNotificationsOpen(prev => !prev);
+      setIsProfileOpen(false);
+    };
+    window.addEventListener('open_notifications', handleToggleNotifications);
+    return () => window.removeEventListener('open_notifications', handleToggleNotifications);
+  }, []);
+
   // Real-time Presence Heartbeat
   useEffect(() => {
     if (!user || user.uid === 'offline_guest') return;
@@ -919,7 +928,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="max-sm:fixed max-sm:inset-x-4 max-sm:top-16 max-sm:w-auto absolute right-14 top-14 w-80 md:w-96 bg-white border border-[#E5EBE0] rounded-2xl shadow-xl shadow-[#10251F]/10 z-50 overflow-hidden"
+                    className="max-sm:fixed max-sm:inset-x-4 max-sm:top-16 max-sm:w-auto absolute right-4 sm:right-14 top-14 w-80 md:w-96 bg-white border border-[#E5EBE0] rounded-2xl shadow-2xl z-[9999] overflow-hidden"
                   >
                     <div className="p-4 border-b border-[#E5EBE0] flex items-center justify-between bg-[#F6F8F3]">
                       <h3 className="text-xs font-bold text-[#102723] uppercase tracking-wider flex items-center gap-1.5">

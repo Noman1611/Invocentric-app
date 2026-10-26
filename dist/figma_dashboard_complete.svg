@@ -1,0 +1,269 @@
+<svg width="390" height="1160" viewBox="0 0 390 1160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Figma Theme Gradients & Filters -->
+    <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0D5C50" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0D5C50" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ================= BASE CANVAS / SCREEN BACKGROUND ================= -->
+  <!-- Exact Figma light mint/sage background -->
+  <rect width="390" height="1160" rx="36" fill="#EAF2EE"/>
+
+  <!-- ================= 1. HEADER (EXACT FIGMA DARK FOREST GREEN) ================= -->
+  <g id="HeaderSection">
+    <!-- Dark Forest Green Top Container with rounded bottom corners -->
+    <path d="M0 36 C0 16.1 16.1 0 36 0 H354 C373.9 0 390 16.1 390 36 V248 C390 268 372 284 352 284 H38 C18 284 0 268 0 248 Z" fill="#0A3931"/>
+
+    <!-- Top Status Bar & App Logo -->
+    <g transform="translate(20, 24)">
+      <!-- Logo Mark (Circle with Checkmark) -->
+      <circle cx="16" cy="16" r="14" stroke="#34D399" stroke-width="2.5" fill="none"/>
+      <path d="M10 16 l4 4 l8 -8" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      
+      <!-- Logo Text -->
+      <text x="36" y="21" font-family="Inter, -apple-system, sans-serif" font-size="17" font-weight="800" fill="#FFFFFF">InvoCentric</text>
+
+      <!-- Cloud Sync & Online Indicator (Added feature in Figma style) -->
+      <circle cx="140" cy="16" r="3.5" fill="#34D399"/>
+      <text x="148" y="19" font-family="Inter, sans-serif" font-size="9" font-weight="700" fill="#86EFAC">ONLINE • SYNC</text>
+
+      <!-- Right Date Badge -->
+      <rect x="250" y="4" width="100" height="24" rx="12" fill="#0F4A40"/>
+      <text x="300" y="19" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#E2ECE9">Today · 12 Oct</text>
+    </g>
+
+    <!-- Greeting & Subtitle -->
+    <g transform="translate(20, 78)">
+      <text x="0" y="22" font-family="Inter, sans-serif" font-size="22" font-weight="800" fill="#FFFFFF">Good evening 👋</text>
+      <text x="0" y="40" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#9FBDB6">Here is your business overview</text>
+    </g>
+
+    <!-- Top 2 Metrics Cards (Inside Dark Forest Green Header) -->
+    <g transform="translate(20, 142)">
+      <!-- Card 1: Today Sales -->
+      <rect x="0" y="0" width="170" height="114" rx="16" fill="#0D483F"/>
+      <text x="14" y="26" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#9FBDB6">Today Sales</text>
+      <text x="14" y="58" font-family="Inter, sans-serif" font-size="24" font-weight="900" fill="#FFFFFF">₹24,580</text>
+      
+      <!-- Performance Indicator -->
+      <g transform="translate(14, 76)">
+        <path d="M4 10 L4 2 M1 5 L4 2 L7 5" stroke="#34D399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="14" y="10" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#34D399">+12.8% vs yesterday</text>
+      </g>
+
+      <!-- Card 2: Outstanding -->
+      <rect x="180" y="0" width="170" height="114" rx="16" fill="#0D483F"/>
+      <text x="194" y="26" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#9FBDB6">Outstanding</text>
+      <text x="194" y="58" font-family="Inter, sans-serif" font-size="24" font-weight="900" fill="#FFFFFF">₹18,400</text>
+      <text x="194" y="86" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#9FBDB6">12 pending payments</text>
+    </g>
+  </g>
+
+  <!-- ================= 2. BUSINESS OVERVIEW ================= -->
+  <g id="BusinessOverviewSection" transform="translate(20, 308)">
+    <text x="0" y="16" font-family="Inter, sans-serif" font-size="15" font-weight="800" fill="#0A3931">Business overview</text>
+    
+    <g transform="translate(0, 28)">
+      <!-- Card 1: Invoices -->
+      <rect x="0" y="0" width="170" height="88" rx="16" fill="#FFFFFF"/>
+      <text x="14" y="24" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#66827B">Invoices</text>
+      <text x="14" y="52" font-family="Inter, sans-serif" font-size="22" font-weight="900" fill="#0A3931">36</text>
+      <text x="14" y="72" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#059669">8 created today</text>
+
+      <!-- Card 2: Low Stock -->
+      <rect x="180" y="0" width="170" height="88" rx="16" fill="#FFFFFF"/>
+      <text x="194" y="24" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="#66827B">Low Stock</text>
+      <text x="194" y="52" font-family="Inter, sans-serif" font-size="22" font-weight="900" fill="#0A3931">4 items</text>
+      <!-- Alert & Restock link -->
+      <text x="194" y="72" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#D97706">Needs attention · Restock ➔</text>
+    </g>
+  </g>
+
+  <!-- ================= 3. SALES TREND CHART (ADDED IN FIGMA STYLE) ================= -->
+  <g id="SalesTrendSection" transform="translate(20, 444)">
+    <rect width="350" height="132" rx="16" fill="#FFFFFF"/>
+    
+    <!-- Title & Badge -->
+    <text x="16" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0A3931">Sales trend</text>
+    <text x="16" y="38" font-family="Inter, sans-serif" font-size="10" font-weight="500" fill="#78938C">Monthly revenue performance</text>
+    
+    <rect x="265" y="14" width="70" height="20" rx="6" fill="#E2ECE9"/>
+    <text x="300" y="27" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#0A3931">● LIVE CHART</text>
+
+    <!-- Mini Area Curve in Figma Green -->
+    <path d="M 20 102 L 65 88 L 120 95 L 180 72 L 235 78 L 290 54 L 330 64 L 330 110 L 20 110 Z" fill="url(#chartFill)"/>
+    <path d="M 20 102 L 65 88 L 120 95 L 180 72 L 235 78 L 290 54 L 330 64" stroke="#0D5C50" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Active Point Tooltip -->
+    <circle cx="290" cy="54" r="4.5" fill="#0A3931" stroke="#FFFFFF" stroke-width="2"/>
+    <rect x="268" y="36" width="46" height="15" rx="4" fill="#0A3931"/>
+    <text x="291" y="47" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="800" fill="#FFFFFF">₹24.5k</text>
+
+    <!-- Month Axis -->
+    <text x="24" y="122" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#8FA8A1">May</text>
+    <text x="80" y="122" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#8FA8A1">Jun</text>
+    <text x="135" y="122" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#8FA8A1">Jul</text>
+    <text x="195" y="122" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#8FA8A1">Aug</text>
+    <text x="250" y="122" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#8FA8A1">Sep</text>
+    <text x="310" y="122" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#0A3931">Oct</text>
+  </g>
+
+  <!-- ================= 4. QUICK ACTIONS (EXACT FIGMA STYLE) ================= -->
+  <g id="QuickActionsSection" transform="translate(20, 594)">
+    <text x="0" y="16" font-family="Inter, sans-serif" font-size="15" font-weight="800" fill="#0A3931">Quick actions</text>
+
+    <!-- 4 Rounded Action Cards in Figma Palette (#DFECE7) -->
+    <g transform="translate(0, 26)">
+      <!-- 1. Create Invoice -->
+      <rect x="0" y="0" width="80" height="74" rx="14" fill="#DFECE7"/>
+      <!-- Plus Icon -->
+      <circle cx="40" cy="24" r="10" fill="#C5DED7"/>
+      <path d="M40 19 V29 M35 24 H45" stroke="#0A3931" stroke-width="2" stroke-linecap="round"/>
+      <text x="40" y="52" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#0A3931">Create</text>
+      <text x="40" y="64" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#0A3931">Invoice</text>
+
+      <!-- 2. POS Billing -->
+      <rect x="90" y="0" width="80" height="74" rx="14" fill="#DFECE7"/>
+      <!-- POS Calculator / Grid Icon -->
+      <rect x="30" y="15" width="20" height="18" rx="4" fill="#C5DED7"/>
+      <path d="M34 20 h3 M39 20 h3 M34 24 h3 M39 24 h3 M34 28 h8" stroke="#0A3931" stroke-width="1.5" stroke-linecap="round"/>
+      <text x="130" y="52" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#0A3931">POS</text>
+      <text x="130" y="64" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#0A3931">Billing</text>
+
+      <!-- 3. Add Payment -->
+      <rect x="180" y="0" width="80" height="74" rx="14" fill="#DFECE7"/>
+      <!-- Payment Arrows Icon -->
+      <circle cx="220" cy="24" r="10" fill="#C5DED7"/>
+      <path d="M216 22 h8 l-2.5 -2.5 M224 26 h-8 l2.5 2.5" stroke="#0A3931" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="220" y="52" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#0A3931">Add</text>
+      <text x="220" y="64" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#0A3931">Payment</text>
+
+      <!-- 4. Add Customer -->
+      <rect x="270" y="0" width="80" height="74" rx="14" fill="#DFECE7"/>
+      <!-- User Plus Icon -->
+      <circle cx="310" cy="20" r="5" fill="#0A3931"/>
+      <path d="M303 31 c0 -3.5 3 -5 7 -5 s7 1.5 7 5" stroke="#0A3931" stroke-width="1.5" fill="none"/>
+      <text x="310" y="52" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#0A3931">Add</text>
+      <text x="310" y="64" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#0A3931">Customer</text>
+    </g>
+
+    <!-- Additional Module Jumpers (Quotations, Purchases) in Figma Style -->
+    <g transform="translate(0, 110)">
+      <!-- Quotations Chip -->
+      <rect x="0" y="0" width="170" height="40" rx="12" fill="#FFFFFF"/>
+      <path d="M16 16 h14 M16 20 h10 M16 24 h6" stroke="#0A3931" stroke-width="1.6" stroke-linecap="round"/>
+      <text x="42" y="25" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0A3931">Quotations (Estimates) ➔</text>
+
+      <!-- Purchases Chip -->
+      <rect x="180" y="0" width="170" height="40" rx="12" fill="#FFFFFF"/>
+      <path d="M196 16 h14 l-1.5 8 h-11 z" stroke="#0A3931" stroke-width="1.6" fill="none"/>
+      <text x="220" y="25" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0A3931">Purchases (Inward) ➔</text>
+    </g>
+  </g>
+
+  <!-- ================= 5. RECENT INVOICES (FIGMA STYLE + 1-TAP WHATSAPP) ================= -->
+  <g id="RecentInvoicesSection" transform="translate(20, 762)">
+    <text x="0" y="16" font-family="Inter, sans-serif" font-size="15" font-weight="800" fill="#0A3931">Recent invoices</text>
+    <text x="306" y="16" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#0D5C50">See all ➔</text>
+
+    <!-- White Card Container for Invoices List -->
+    <g transform="translate(0, 26)">
+      <rect width="350" height="236" rx="16" fill="#FFFFFF"/>
+
+      <!-- Row 1: Aarav Traders -->
+      <g transform="translate(16, 16)">
+        <text x="0" y="14" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0A3931">INV-2026-1042</text>
+        <text x="0" y="30" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#78938C">Aarav Traders</text>
+
+        <!-- Right: Amount + Status + WhatsApp -->
+        <text x="240" y="16" text-anchor="end" font-family="Inter, sans-serif" font-size="14" font-weight="800" fill="#0A3931">₹8,450</text>
+        <!-- Paid Badge (Figma Style) -->
+        <rect x="202" y="24" width="38" height="18" rx="5" fill="#D4EFE5"/>
+        <text x="221" y="36" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#0A3931">PAID</text>
+
+        <!-- 1-Tap WhatsApp Share Button (Added Feature) -->
+        <rect x="282" y="6" width="34" height="34" rx="10" fill="#DFECE7"/>
+        <path d="M299 18 c-2.8 0 -5 2.2 -5 5 c0 1 0.3 2 0.8 2.7 l-0.8 3.1 l3.2 -0.8 c0.7 0.5 1.6 0.8 2.6 0.8 c2.8 0 5 -2.2 5 -5 s-2.2 -5 -5 -5 z" fill="#0A3931"/>
+      </g>
+
+      <!-- Divider 1 -->
+      <line x1="16" y1="78" x2="334" y2="78" stroke="#EEF4F1" stroke-width="1.5"/>
+
+      <!-- Row 2: Meera Stores -->
+      <g transform="translate(16, 94)">
+        <text x="0" y="14" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0A3931">INV-2026-1041</text>
+        <text x="0" y="30" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#78938C">Meera Stores</text>
+
+        <text x="240" y="16" text-anchor="end" font-family="Inter, sans-serif" font-size="14" font-weight="800" fill="#0A3931">₹3,200</text>
+        <!-- Pending Badge (Figma Style) -->
+        <rect x="184" y="24" width="56" height="18" rx="5" fill="#FBE7D4"/>
+        <text x="212" y="36" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#92400E">PENDING</text>
+
+        <rect x="282" y="6" width="34" height="34" rx="10" fill="#DFECE7"/>
+        <path d="M299 18 c-2.8 0 -5 2.2 -5 5 c0 1 0.3 2 0.8 2.7 l-0.8 3.1 l3.2 -0.8 c0.7 0.5 1.6 0.8 2.6 0.8 c2.8 0 5 -2.2 5 -5 s-2.2 -5 -5 -5 z" fill="#0A3931"/>
+      </g>
+
+      <!-- Divider 2 -->
+      <line x1="16" y1="156" x2="334" y2="156" stroke="#EEF4F1" stroke-width="1.5"/>
+
+      <!-- Row 3: RK Enterprises -->
+      <g transform="translate(16, 172)">
+        <text x="0" y="14" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0A3931">INV-2026-1040</text>
+        <text x="0" y="30" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#78938C">RK Enterprises</text>
+
+        <text x="240" y="16" text-anchor="end" font-family="Inter, sans-serif" font-size="14" font-weight="800" fill="#0A3931">₹12,930</text>
+        <rect x="202" y="24" width="38" height="18" rx="5" fill="#D4EFE5"/>
+        <text x="221" y="36" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#0A3931">PAID</text>
+
+        <rect x="282" y="6" width="34" height="34" rx="10" fill="#DFECE7"/>
+        <path d="M299 18 c-2.8 0 -5 2.2 -5 5 c0 1 0.3 2 0.8 2.7 l-0.8 3.1 l3.2 -0.8 c0.7 0.5 1.6 0.8 2.6 0.8 c2.8 0 5 -2.2 5 -5 s-2.2 -5 -5 -5 z" fill="#0A3931"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ================= 6. BOTTOM NAVIGATION BAR (MATCHING FIGMA PALETTE) ================= -->
+  <g id="BottomNavBar" transform="translate(0, 1076)">
+    <!-- White bar with top subtle border -->
+    <rect width="390" height="84" fill="#FFFFFF"/>
+    <line x1="0" y1="0" x2="390" y2="0" stroke="#DFECE7" stroke-width="1.5"/>
+
+    <!-- Home (Active) -->
+    <g transform="translate(34, 12)">
+      <circle cx="14" cy="12" r="14" fill="#E2ECE9"/>
+      <path d="M8 14 L14 9 L20 14 V19 H8 Z" fill="#0A3931"/>
+      <text x="14" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="#0A3931">Home</text>
+    </g>
+
+    <!-- Invoices -->
+    <g transform="translate(108, 12)">
+      <path d="M9 7 h10 v14 h-10 z M12 11 h4 M12 15 h4" stroke="#78938C" stroke-width="1.5" fill="none"/>
+      <text x="14" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" fill="#78938C">Invoices</text>
+    </g>
+
+    <!-- POS (Center Action) -->
+    <g transform="translate(182, 6)">
+      <circle cx="14" cy="14" r="18" fill="#0A3931"/>
+      <path d="M8 8 h4 v4 h-4 z M16 8 h4 v4 h-4 z M8 16 h4 v4 h-4 z M16 16 h4 v4 h-4 z" fill="#FFFFFF"/>
+      <text x="14" y="40" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="#0A3931">POS</text>
+    </g>
+
+    <!-- Stock -->
+    <g transform="translate(254, 12)">
+      <path d="M7 9 l7 -4 l7 4 v8 l-7 4 l-7 -4 z" stroke="#78938C" stroke-width="1.5" fill="none"/>
+      <text x="14" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" fill="#78938C">Stock</text>
+    </g>
+
+    <!-- More -->
+    <g transform="translate(326, 12)">
+      <circle cx="8" cy="14" r="1.75" fill="#78938C"/>
+      <circle cx="14" cy="14" r="1.75" fill="#78938C"/>
+      <circle cx="20" cy="14" r="1.75" fill="#78938C"/>
+      <text x="14" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" fill="#78938C">More</text>
+    </g>
+
+    <!-- Bottom Touch Bar -->
+    <rect x="140" y="66" width="110" height="4" rx="2" fill="#C5DED7"/>
+  </g>
+</svg>

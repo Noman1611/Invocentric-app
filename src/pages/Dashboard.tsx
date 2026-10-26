@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   TrendingUp, 
@@ -36,12 +36,12 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
-import { useInvoices, useCustomers, useItems, useRecycleBin } from '../hooks/useData';
+import { useInvoices, useCustomers, useItems, useRecycleBin, useNotifications } from '../hooks/useData';
 import { dbService } from '../services/dbService';
 import { syncAllUserDataFromFirestore } from '../utils/firestoreRestFallback';
 import RecycleBinModal from '../components/RecycleBinModal';
 import { format, subDays, startOfMonth, endOfMonth, isSameDay } from 'date-fns';
-import { parseDateSafe } from '../utils/dateUtils';
+import { parseDateSafe, getRelativeTimeString } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { AppUpdateButton } from '../components/AppUpdateButton';
 import { Link, useNavigate } from 'react-router-dom';
@@ -61,6 +61,49 @@ export default function DashboardPage() {
   const { recycleBinItems } = useRecycleBin();
   const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
   useAutoReminders();
+
+  const { notifications } = useNotifications();
+  const [isDashNotifOpen, setIsDashNotifOpen] = useState(false);
+  const [notifActiveTab, setNotifActiveTab] = useState<'all' | 'invoices' | 'inventory' | 'other'>('all');
+  const dashNotifRef = useRef<HTMLDivElement>(null);
+  const dashBellBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (isDashNotifOpen) {
+        if (
+          dashNotifRef.current &&
+          !dashNotifRef.current.contains(event.target as Node) &&
+          dashBellBtnRef.current &&
+          !dashBellBtnRef.current.contains(event.target as Node)
+        ) {
+          setIsDashNotifOpen(false);
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDashNotifOpen]);
+
+  const filteredNotifications = useMemo(() => {
+    if (notifActiveTab === 'all') return notifications;
+    return notifications.filter(n => {
+      const cat = (n.category || '').toLowerCase();
+      const txt = (n.text || '').toLowerCase();
+      if (notifActiveTab === 'invoices') {
+        return cat === 'invoices' || txt.includes('invoice') || txt.includes('payment');
+      }
+      if (notifActiveTab === 'inventory') {
+        return cat === 'inventory' || txt.includes('product') || txt.includes('stock') || txt.includes('inventory');
+      }
+      if (notifActiveTab === 'other') {
+        return cat !== 'invoices' && cat !== 'inventory' && !txt.includes('invoice') && !txt.includes('payment') && !txt.includes('product') && !txt.includes('stock') && !txt.includes('inventory');
+      }
+      return true;
+    });
+  }, [notifications, notifActiveTab]);
+
+  const unreadNotifCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
   const [period, setPeriod] = useState<'Today' | 'Week' | 'Month' | 'Year'>('Month');
   const [timeFilter, setTimeFilter] = useState('This Year');
@@ -323,17 +366,151 @@ export default function DashboardPage() {
             <span>{syncFeedback || (isSyncing ? "Syncing..." : isOfflineMode ? "Local PC Mode" : "Cloud Mode")}</span>
           </button>
 
-          {/* Notifications Shortcut */}
-          <Link
-            to="/statement"
-            className="w-8 h-8 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#7B8781] hover:text-[#102723] hover:bg-[#F6F8F3] transition-all relative"
-            title="Payment Reminders & Due"
-          >
-            <Bell size={15} />
-            {overdueInvoicesCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#BE3349] rounded-full border-2 border-white animate-pulse"></span>
+          {/* Notifications Shortcut & Interactive Popover */}
+          <div className="relative">
+            <button
+              ref={dashBellBtnRef}
+              type="button"
+              onClick={() => {
+                setIsDashNotifOpen(!isDashNotifOpen);
+                window.dispatchEvent(new CustomEvent('open_notifications'));
+              }}
+              className={cn(
+                "w-8 h-8 rounded-full border flex items-center justify-center transition-all relative cursor-pointer active:scale-95 shadow-2xs",
+                isDashNotifOpen 
+                  ? "bg-[#D7F4D4] text-[#163C2C] border-[#B9E2B5]" 
+                  : "bg-white border-[#E5EBE0] text-[#7B8781] hover:text-[#102723] hover:bg-[#F6F8F3]"
+              )}
+              title="Notifications & Alerts"
+            >
+              <Bell size={15} />
+              {(unreadNotifCount > 0 || overdueInvoicesCount > 0) && (
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#BE3349] rounded-full border-2 border-white animate-pulse"></span>
+              )}
+            </button>
+
+            {/* Dropdown Popover */}
+            {isDashNotifOpen && (
+              <div
+                ref={dashNotifRef}
+                className="absolute right-0 top-10 w-80 sm:w-96 bg-white border border-[#E5EBE0] rounded-2xl shadow-2xl z-[999] overflow-hidden text-left"
+              >
+                <div className="p-3.5 border-b border-[#E5EBE0] flex items-center justify-between bg-[#F6F8F3]">
+                  <h3 className="text-xs font-bold text-[#102723] uppercase tracking-wider flex items-center gap-1.5">
+                    <Bell size={14} className="text-[#163C2C]" />
+                    <span>Notifications ({unreadNotifCount})</span>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!user) return;
+                        const unread = notifications.filter(n => !n.read);
+                        await Promise.all(
+                          unread.map(n =>
+                            dbService.update('notifications', n.id, { read: true }, { offlineMode: isOfflineMode, userId: user.uid })
+                          )
+                        );
+                      }}
+                      className="text-[10px] font-black text-[#163C2C] hover:text-[#073E36] uppercase tracking-wider cursor-pointer"
+                    >
+                      Mark read
+                    </button>
+                    <span className="text-[#CCD4C8] text-[10px]">|</span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!user) return;
+                        const readDocs = notifications.filter(n => n.read);
+                        await Promise.all(
+                          readDocs.map(n =>
+                            dbService.delete('notifications', n.id, { offlineMode: isOfflineMode, userId: user.uid })
+                          )
+                        );
+                      }}
+                      className="text-[10px] font-black text-[#BE3349] hover:text-[#BE3349]/80 uppercase tracking-wider cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Category Tabs */}
+                <div className="flex border-b border-[#E5EBE0] bg-[#FAFBF7] p-1 gap-1">
+                  {(['all', 'invoices', 'inventory', 'other'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setNotifActiveTab(tab)}
+                      className={cn(
+                        "flex-1 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer",
+                        notifActiveTab === tab
+                          ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs border border-[#C6E9C1]"
+                          : "text-[#7B8781] hover:text-[#102723] hover:bg-[#E9EFE6]"
+                      )}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Notifications List */}
+                <div className="divide-y divide-slate-100 max-h-[300px] overflow-y-auto">
+                  {filteredNotifications.length === 0 ? (
+                    <div className="p-6 text-center text-[#7B8781]">
+                      <Bell size={22} className="mx-auto mb-1.5 text-[#CCD4C8] stroke-[1.5]" />
+                      <p className="text-xs font-semibold text-[#102723]">No notifications</p>
+                      <p className="text-[10px] text-[#7B8781] mt-0.5">
+                        {notifActiveTab === 'all'
+                          ? "Alerts for bills, inventory, and payments will appear here."
+                          : `No notifications in ${notifActiveTab}.`}
+                      </p>
+                    </div>
+                  ) : (
+                    filteredNotifications.map(n => {
+                      const cat = (n.category || '').toLowerCase();
+                      const txt = (n.text || '').toLowerCase();
+                      let icon = <Bell size={13} className="text-[#163C2C]" />;
+                      if (cat === 'invoices' || txt.includes('invoice') || txt.includes('payment')) {
+                        icon = <FileText size={13} className="text-[#163C2C]" />;
+                      } else if (cat === 'inventory' || txt.includes('product') || txt.includes('stock') || txt.includes('inventory')) {
+                        icon = <Package size={13} className="text-[#B7892E]" />;
+                      }
+
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            setIsDashNotifOpen(false);
+                            if (cat === 'invoices' || txt.includes('invoice')) {
+                              navigate('/invoices');
+                            } else if (cat === 'inventory' || txt.includes('stock')) {
+                              navigate('/items');
+                            } else if (txt.includes('payment')) {
+                              navigate('/payments');
+                            }
+                          }}
+                          className={cn(
+                            "p-3 text-left transition-colors cursor-pointer flex gap-2.5 items-start",
+                            n.read ? "bg-white hover:bg-[#F6F8F3]" : "bg-[#D7F4D4]/20 hover:bg-[#D7F4D4]/35"
+                          )}
+                        >
+                          <div className="shrink-0 mt-0.5">{icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-medium text-[#102723] leading-snug">{n.text}</p>
+                            <p className="text-[9px] text-[#7B8781] mt-0.5 font-semibold uppercase">{getRelativeTimeString(n.created_at)}</p>
+                          </div>
+                          {!n.read && (
+                            <span className="w-1.5 h-1.5 bg-[#BE3349] rounded-full shrink-0 mt-1" />
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             )}
-          </Link>
+          </div>
 
           {/* In-App Update Trigger */}
           <AppUpdateButton />

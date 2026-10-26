@@ -178,13 +178,18 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
       {/* Header with Official App Brand */}
       <div className="p-4 flex items-center justify-between border-b border-white/10 shrink-0">
         <div className={cn("flex items-center gap-2.5 transition-all duration-300", collapsed && "opacity-0 hidden")}>
-          <Logo size={28} showBg={false} />
+          <Logo size={28} showBg={false} iconColor="#D7F4D4" />
           <div className="flex flex-col">
             <span className="font-brand text-[17px] tracking-tight text-white font-extrabold leading-tight">
               InvoCentric
             </span>
           </div>
         </div>
+        {collapsed && (
+          <div className="mx-auto flex items-center justify-center">
+            <Logo size={28} showBg={false} iconColor="#D7F4D4" />
+          </div>
+        )}
         <button 
           onClick={() => setCollapsed(!collapsed)}
           className="p-1.5 rounded-xl transition-all hover:bg-white/10 text-white/70 hover:text-white cursor-pointer ml-auto"
