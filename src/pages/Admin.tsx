@@ -1722,8 +1722,8 @@ export default function AdminPage() {
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto relative">
           
           {/* Live Online Badge */}
-          <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-50 border border-emerald-200/80 rounded-xl text-xs font-bold text-emerald-800 shadow-xs">
-            <Radio size={14} className="text-emerald-600 animate-pulse" />
+          <div className="flex items-center gap-2 px-3.5 py-2 bg-[#D7F4D4] border border-[#C6E9C1] rounded-xl text-xs font-bold text-[#073E36] shadow-xs">
+            <Radio size={14} className="text-[#073E36] animate-pulse" />
             <span>{activeNowCount} Online Now</span>
           </div>
 
@@ -1734,17 +1734,17 @@ export default function AdminPage() {
                 setShowDatePickerDropdown(!showDatePickerDropdown);
                 setShowExportMenu(false);
               }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 transition-all shadow-sm cursor-pointer select-none"
+              className="flex items-center gap-2 px-4 py-2 bg-[#F8FAF6] border border-[#E5EBE0] hover:border-[#0F645D] rounded-xl text-xs font-semibold text-[#10251F] transition-all shadow-xs cursor-pointer select-none"
             >
-              <Calendar size={14} className="text-slate-400" />
+              <Calendar size={14} className="text-[#52796F]" />
               <span>{dateRangeText}</span>
-              <ChevronDown size={14} className="text-slate-500" />
+              <ChevronDown size={14} className="text-[#52796F]" />
             </button>
 
             {showDatePickerDropdown && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200/80 rounded-2xl shadow-xl z-50 overflow-hidden animate-fadeIn py-1">
-                <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/50">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Filter System Range</p>
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E5EBE0] rounded-2xl shadow-xl z-50 overflow-hidden animate-fadeIn py-1">
+                <div className="px-3.5 py-2 border-b border-[#E5EBE0] bg-[#F8FAF6]">
+                  <p className="text-[10px] font-bold text-[#52796F] uppercase tracking-widest">Filter System Range</p>
                 </div>
                 {[
                   'Today (Real-time)',
@@ -1757,9 +1757,14 @@ export default function AdminPage() {
                   <button
                     key={rangeOption}
                     onClick={() => handleSelectDateRange(rangeOption)}
-                    className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border-none"
+                    className={cn(
+                      "w-full text-left px-4 py-2 text-xs font-medium transition-colors cursor-pointer border-none",
+                      dateRangeText.includes(rangeOption)
+                        ? "bg-[#D7F4D4] text-[#073E36] font-bold"
+                        : "text-[#10251F] hover:bg-[#F8FAF6]"
+                    )}
                   >
-                    {rangeOption}
+                    <span>{rangeOption}</span>
                   </button>
                 ))}
               </div>
@@ -1773,27 +1778,27 @@ export default function AdminPage() {
                 setShowExportMenu(!showExportMenu);
                 setShowDatePickerDropdown(false);
               }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#00B074] hover:bg-[#00905d] text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer select-none border-none"
+              className="flex items-center gap-2 px-4 py-2 bg-[#073E36] hover:bg-[#0d4f45] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer select-none border-none"
             >
-              <FileCheck size={14} />
+              <FileCheck size={14} className="text-[#D7F4D4]" />
               <span>Export User Log</span>
-              <ChevronDown size={14} className="text-white opacity-80" />
+              <ChevronDown size={14} className="text-[#D7F4D4] opacity-80" />
             </button>
 
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200/80 rounded-xl shadow-xl z-50 overflow-hidden animate-fadeIn py-1">
+              <div className="absolute right-0 mt-2 w-52 bg-white border border-[#E5EBE0] rounded-xl shadow-xl z-50 overflow-hidden animate-fadeIn py-1">
                 <button
                   onClick={() => handleExportData('csv')}
-                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2 border-none cursor-pointer"
+                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-[#10251F] hover:bg-[#F8FAF6] transition-colors flex items-center gap-2 border-none cursor-pointer"
                 >
-                  <FileText size={14} className="text-slate-400" />
+                  <FileText size={14} className="text-[#52796F]" />
                   <span>Download User Activity CSV</span>
                 </button>
                 <button
                   onClick={() => handleExportData('pdf')}
-                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2 border-none cursor-pointer"
+                  className="w-full text-left px-4 py-2.5 text-xs font-semibold text-[#10251F] hover:bg-[#F8FAF6] transition-colors flex items-center gap-2 border-none cursor-pointer"
                 >
-                  <FileCheck size={14} className="text-slate-400" />
+                  <FileCheck size={14} className="text-[#52796F]" />
                   <span>Print Activity Report</span>
                 </button>
               </div>
@@ -1804,15 +1809,15 @@ export default function AdminPage() {
       </div>
 
       {/* TABS SUB-NAVIGATION BAR (with swipe/scroll & arrow buttons) */}
-      <ScrollableTabBar containerClassName="border-b border-slate-100" className="scroll-smooth">
-        <div className="flex space-x-1 p-1 bg-slate-50 rounded-2xl border border-slate-100 w-full md:w-auto min-w-max">
+      <ScrollableTabBar containerClassName="border-b border-[#E5EBE0]" className="scroll-smooth">
+        <div className="flex space-x-1 p-1 bg-[#C6E9C1] rounded-2xl border border-[#C6E9C1] w-full md:w-auto min-w-max">
           <button
             onClick={() => setActiveTab('overview')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
+              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
               activeTab === 'overview'
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-900 bg-transparent"
+                ? "bg-[#073E36] text-white shadow-xs"
+                : "text-[#073E36] hover:bg-[#D7F4D4] bg-transparent"
             )}
           >
             <Activity size={15} />
@@ -1822,15 +1827,18 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('users')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
+              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
               activeTab === 'users'
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-900 bg-transparent"
+                ? "bg-[#073E36] text-white shadow-xs"
+                : "text-[#073E36] hover:bg-[#D7F4D4] bg-transparent"
             )}
           >
             <Users size={15} />
             <span>User Registry</span>
-            <span className="ml-1 px-2 py-0.5 text-[10px] font-black bg-slate-200/80 text-slate-700 rounded-full">
+            <span className={cn(
+              "ml-1 px-2 py-0.5 text-[10px] font-bold rounded-full",
+              activeTab === 'users' ? "bg-[#D7F4D4] text-[#073E36]" : "bg-white/80 text-[#073E36]"
+            )}>
               {mergedUsers.length}
             </span>
           </button>
@@ -1838,20 +1846,23 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('approvals')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer relative shrink-0",
+              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-none cursor-pointer relative shrink-0",
               activeTab === 'approvals'
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-900 bg-transparent"
+                ? "bg-[#073E36] text-white shadow-xs"
+                : "text-[#073E36] hover:bg-[#D7F4D4] bg-transparent"
             )}
           >
             <CheckCircle size={15} />
             <span>UPI Approvals</span>
             {subscriptionRequests.filter(r => r.status === 'pending').length > 0 ? (
-              <span className="px-2 py-0.5 text-[10px] font-black bg-amber-500 text-white rounded-full animate-pulse">
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full animate-pulse">
                 {subscriptionRequests.filter(r => r.status === 'pending').length}
               </span>
             ) : (
-              <span className="ml-1 px-2 py-0.5 text-[10px] font-black bg-slate-200/85 text-slate-700 rounded-full">
+              <span className={cn(
+                "ml-1 px-2 py-0.5 text-[10px] font-bold rounded-full",
+                activeTab === 'approvals' ? "bg-[#D7F4D4] text-[#073E36]" : "bg-white/80 text-[#073E36]"
+              )}>
                 0
               </span>
             )}
@@ -1860,15 +1871,18 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('emails')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
+              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
               activeTab === 'emails'
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-900 bg-transparent"
+                ? "bg-[#073E36] text-white shadow-xs"
+                : "text-[#073E36] hover:bg-[#D7F4D4] bg-transparent"
             )}
           >
             <Mail size={15} />
-            <span>Email & Automations</span>
-            <span className="ml-1 px-2 py-0.5 text-[10px] font-black bg-slate-200/85 text-slate-700 rounded-full">
+            <span>Email &amp; Automations</span>
+            <span className={cn(
+              "ml-1 px-2 py-0.5 text-[10px] font-bold rounded-full",
+              activeTab === 'emails' ? "bg-[#D7F4D4] text-[#073E36]" : "bg-white/80 text-[#073E36]"
+            )}>
               {emailLogs.length}
             </span>
           </button>
@@ -1876,15 +1890,15 @@ export default function AdminPage() {
           <button
             onClick={() => setActiveTab('plans')}
             className={cn(
-              "flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
+              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border-none cursor-pointer shrink-0",
               activeTab === 'plans'
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-900 bg-transparent"
+                ? "bg-[#073E36] text-white shadow-xs"
+                : "text-[#073E36] hover:bg-[#D7F4D4] bg-transparent"
             )}
           >
             <Sliders size={15} />
             <span>Plans Control</span>
-            <span className="ml-1 px-2 py-0.5 text-[10px] font-black bg-amber-100 text-amber-800 rounded-full">
+            <span className="ml-1 px-2 py-0.5 text-[10px] font-bold bg-[#D7F4D4] text-[#073E36] rounded-full border border-[#C6E9C1]">
               SaaS
             </span>
           </button>

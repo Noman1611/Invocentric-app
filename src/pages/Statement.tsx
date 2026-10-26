@@ -527,23 +527,23 @@ export default function StatementPage() {
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-4">
-          <Link to="/customers" className="btn-secondary p-2 rounded-xl">
+          <Link to="/customers" className="p-2.5 rounded-xl bg-white border border-[#E5EBE0] text-[#10251F] hover:bg-[#F0F5ED] shadow-xs transition-colors">
             <ArrowLeft size={20} />
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-black text-neutral-900 leading-none">
+              <h1 className="text-2xl font-extrabold text-[#10251F] leading-none">
                 Billing Statement
               </h1>
               <button
                 onClick={openEditModal}
-                className="text-neutral-400 hover:text-green-600 transition-colors"
+                className="text-[#4B6358] hover:text-[#0F645D] transition-colors"
                 title="Edit Customer"
               >
                 <Edit2 size={16} />
               </button>
             </div>
-            <p className="text-xs font-bold text-neutral-500 mt-1 uppercase tracking-widest">
+            <p className="text-xs font-semibold text-[#4B6358] mt-1 uppercase tracking-widest">
               {customer.name}
             </p>
           </div>
@@ -553,7 +553,7 @@ export default function StatementPage() {
           <select
             value={templateStyle}
             onChange={(e) => setTemplateStyle(e.target.value as "excel" | "thermal")}
-            className="px-3 py-2 text-xs font-black uppercase tracking-wider bg-white border border-neutral-200 rounded-xl text-neutral-700 shadow-sm hover:border-neutral-300 transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-neutral-400"
+            className="px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider bg-white border border-[#E5EBE0] rounded-[14px] text-[#10251F] shadow-xs hover:border-[#C6E9C1] transition-colors cursor-pointer outline-none focus:ring-2 focus:ring-[#0F645D]/20"
           >
             <option value="excel">Standard A4</option>
             <option value="thermal">POS Thermal (80mm)</option>
@@ -562,10 +562,10 @@ export default function StatementPage() {
           <button
             onClick={handleDownloadPDF}
             disabled={isDownloading}
-            className="btn-secondary flex items-center gap-2 py-2 text-xs bg-green-50 text-green-700 border-green-100"
+            className="flex items-center gap-2 py-2.5 px-4 text-xs font-bold bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1] rounded-[14px] shadow-xs hover:bg-[#C6E9C1] transition-all cursor-pointer"
           >
             {isDownloading ? (
-              <Loader2 size={16} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin text-[#073E36]" />
             ) : (
               <Download size={16} />
             )}
@@ -575,7 +575,7 @@ export default function StatementPage() {
           <button
             onClick={handleWhatsAppShare}
             disabled={isDownloading}
-            className="btn-primary flex items-center gap-2 py-2 text-xs bg-[#25D366] hover:bg-[#128C7E] border-none"
+            className="flex items-center gap-2 py-2.5 px-4 text-xs font-bold bg-[#25D366] hover:bg-[#128C7E] text-white rounded-[14px] shadow-xs transition-all cursor-pointer"
           >
             <WhatsAppIcon size={18} />
             WhatsApp
@@ -583,14 +583,14 @@ export default function StatementPage() {
 
           <button
             onClick={handlePrint}
-            className="btn-secondary flex items-center gap-2 py-2 text-xs"
+            className="flex items-center gap-2 py-2.5 px-4 text-xs font-bold bg-white text-[#10251F] border border-[#E5EBE0] rounded-[14px] shadow-xs hover:bg-[#F0F5ED] transition-all cursor-pointer"
           >
-            <Printer size={16} />
+            <Printer size={16} className="text-[#4B6358]" />
             Print
           </button>
           <button
             onClick={() => setShowPaymentModal(true)}
-            className="btn-primary flex items-center gap-2 py-2 text-xs"
+            className="flex items-center gap-2 py-2.5 px-4 text-xs font-bold bg-[#073E36] hover:bg-[#0F645D] text-white rounded-[14px] shadow-[0_8px_20px_rgba(7,62,54,0.18)] transition-all cursor-pointer"
           >
             <Plus size={16} />
             Add Payment
@@ -600,53 +600,53 @@ export default function StatementPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">
-        <div className="glass-card p-6 border-l-4 border-l-green-500">
+        <div className="bg-white rounded-[22px] border border-[#E5EBE0] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+            <div className="p-2.5 bg-[#D7F4D4] text-[#073E36] rounded-xl border border-[#C6E9C1]">
               <TrendingDown size={20} />
             </div>
-            <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-[#0F645D] uppercase tracking-widest">
               Total Sales
             </span>
           </div>
-          <p className="text-2xl font-black text-neutral-900">
+          <p className="text-2xl font-extrabold text-[#10251F] tabular-nums">
             {formatCurrency(totals.totalInvoiced, "INR")}
           </p>
-          <p className="text-xs font-bold text-neutral-400 mt-1 uppercase">
+          <p className="text-xs font-medium text-[#4B6358] mt-1">
             Across all transactions
           </p>
         </div>
 
-        <div className="glass-card p-6 border-l-4 border-l-green-500">
+        <div className="bg-white rounded-[22px] border border-[#E5EBE0] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-green-50 text-green-600 rounded-lg">
+            <div className="p-2.5 bg-[#D7F4D4] text-[#073E36] rounded-xl border border-[#C6E9C1]">
               <TrendingUp size={20} />
             </div>
-            <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-[#0F645D] uppercase tracking-widest">
               Total Received
             </span>
           </div>
-          <p className="text-2xl font-black text-neutral-900">
+          <p className="text-2xl font-extrabold text-[#10251F] tabular-nums">
             {formatCurrency(totals.totalPaid, "INR")}
           </p>
-          <p className="text-xs font-bold text-neutral-400 mt-1 uppercase">
+          <p className="text-xs font-medium text-[#4B6358] mt-1">
             Payments recorded
           </p>
         </div>
 
-        <div className="glass-card p-6 border-l-4 border-l-orange-500">
+        <div className="bg-[#073E36] text-white rounded-[22px] p-6 shadow-[0_4px_24px_rgba(7,62,54,0.15)]">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
+            <div className="p-2.5 bg-white/10 text-[#D7F4D4] rounded-xl border border-white/15">
               <Wallet size={20} />
             </div>
-            <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">
+            <span className="text-[10px] font-bold text-[#D7F4D4] uppercase tracking-widest">
               Running Balance
             </span>
           </div>
-          <p className="text-2xl font-black text-neutral-900">
+          <p className="text-2xl font-extrabold text-white tabular-nums">
             {formatCurrency(totals.balance, "INR")}
           </p>
-          <p className="text-xs font-bold text-neutral-400 mt-1 uppercase">
+          <p className="text-xs font-medium text-[#D7F4D4] mt-1">
             Net amount pending
           </p>
         </div>

@@ -627,23 +627,23 @@ export default function QuickPOSPage() {
   };
 
   return (
-    <div className="flex flex-col -m-4 md:-m-10 min-h-[calc(100dvh-5rem)] md:min-h-0 md:h-full bg-slate-50 text-slate-800 font-sans select-none overflow-hidden">
+    <div className="flex flex-col -m-4 md:-m-10 min-h-[calc(100dvh-5rem)] md:min-h-0 md:h-full bg-[#F6F8F3] text-[#142921] font-sans select-none overflow-hidden">
       
       {/* ── Top POS Header ── */}
-      <header className="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between sticky top-0 z-30 shadow-xs shrink-0 gap-1.5 sm:gap-2">
+      <header className="bg-white border-b border-[#E5EBE0] px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between sticky top-0 z-30 shadow-xs shrink-0 gap-1.5 sm:gap-2">
         <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
           <button 
             onClick={() => navigate('/')}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:text-slate-950 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F5EC] text-[#2C4A3E] hover:bg-[#E2EBDC] active:scale-95 transition-all cursor-pointer shrink-0"
             aria-label="Back"
             title="Exit POS"
           >
             <X size={16} />
           </button>
           <div className="flex items-center gap-1.5 min-w-0">
-            <h1 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight flex items-center gap-1.5 truncate">
+            <h1 className="text-xs sm:text-sm font-black text-[#142921] tracking-tight flex items-center gap-1.5 truncate">
               <span>QuickPOS</span>
-              <span className="hidden xs:inline-block text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">Live</span>
+              <span className="hidden xs:inline-block text-[9px] font-black uppercase tracking-wider bg-[#D7F4D4] text-[#163C2C] px-2 py-0.5 rounded-full border border-[#B9E2B5]">Live</span>
             </h1>
           </div>
         </div>
@@ -667,8 +667,8 @@ export default function QuickPOSPage() {
             className={cn(
               "h-8 w-8 sm:w-auto px-0 sm:px-2.5 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-all active:scale-95 cursor-pointer shrink-0",
               soundEnabled
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                ? "bg-[#D7F4D4] text-[#163C2C] border-[#B9E2B5] hover:bg-[#C9ECC5]"
+                : "bg-white text-[#60776C] border-[#E2EBDC] hover:bg-[#F6F8F3]"
             )}
             title={soundEnabled ? "Mute scan beep" : "Enable scan beep"}
           >
@@ -682,8 +682,8 @@ export default function QuickPOSPage() {
             className={cn(
               "h-8 w-8 sm:w-auto px-0 sm:px-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 border flex items-center justify-center gap-1 cursor-pointer shrink-0",
               showHelpGuide 
-                ? "bg-emerald-50 text-emerald-700 border-emerald-200" 
-                : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                ? "bg-[#D7F4D4] text-[#163C2C] border-[#B9E2B5]" 
+                : "bg-[#F0F5EC] text-[#2C4A3E] border-[#E2EBDC] hover:bg-[#E2EBDC]"
             )}
             title="Guide & Shortcuts"
           >
@@ -696,8 +696,8 @@ export default function QuickPOSPage() {
             className={cn(
               "h-8 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition-all active:scale-95 border flex items-center justify-center gap-1.5 cursor-pointer shrink-0",
               isScanning 
-                ? "bg-emerald-600 text-white border-emerald-700 shadow-xs" 
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                ? "bg-[#073E36] text-white border-[#073E36] shadow-xs" 
+                : "bg-white text-[#2C4A3E] border-[#E2EBDC] hover:bg-[#F6F8F3]"
             )}
             title="Toggle Camera Barcode Scanner"
           >
@@ -711,12 +711,12 @@ export default function QuickPOSPage() {
       <div className="flex-1 lg:grid lg:grid-cols-12 overflow-hidden">
         
         {/* ── Left Side: Products Catalog & Search (7 Cols) ── */}
-        <section className="lg:col-span-7 xl:col-span-7 flex flex-col h-full overflow-hidden border-r border-slate-200 bg-slate-50/50">
+        <section className="lg:col-span-7 xl:col-span-7 flex flex-col h-full overflow-hidden border-r border-[#E5EBE0] bg-[#F6F8F3]/60">
           
           {/* Top Barcode Search Input & Scanner Source Tabs */}
-          <div className="bg-white p-3 border-b border-slate-200 space-y-2 shrink-0">
+          <div className="bg-white p-3 border-b border-[#E5EBE0] space-y-2 shrink-0">
             <div className="relative flex items-center">
-              <Barcode className="absolute left-3.5 text-emerald-600 pointer-events-none" size={18} />
+              <Barcode className="absolute left-3.5 text-[#0F645D] pointer-events-none" size={18} />
               <input
                 id="pos-search-input"
                 type="text"
@@ -733,14 +733,14 @@ export default function QuickPOSPage() {
                     ? "Pull barcode gun trigger or type product/serial..."
                     : "Search product name, barcode, or serial number..."
                 }
-                className="w-full bg-slate-50 text-slate-900 placeholder-slate-400 text-xs font-semibold pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-xs"
+                className="w-full bg-[#F6F8F3] text-[#142921] placeholder-[#768C81] text-xs font-semibold pl-10 pr-9 py-2.5 rounded-[16px] border border-[#E2EBDC] focus:outline-none focus:border-[#0F645D] focus:ring-2 focus:ring-[#0F645D]/15 transition-all shadow-xs"
                 autoFocus
               />
               {searchInput && (
                 <button
                   type="button"
                   onClick={() => setSearchInput('')}
-                  className="absolute right-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  className="absolute right-3 text-[#768C81] hover:text-[#142921] cursor-pointer"
                 >
                   <X size={14} />
                 </button>
@@ -749,15 +749,15 @@ export default function QuickPOSPage() {
 
             {/* Scanner Mode Switch Tabs */}
             {isScanning && (
-              <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-3 gap-1 bg-[#EAF1E4] p-1 rounded-xl border border-[#DCE6D6]">
                 <button
                   type="button"
                   onClick={() => setScannerSource('usb-gun')}
                   className={cn(
                     "flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                     scannerSource === 'usb-gun'
-                      ? "bg-white text-emerald-700 shadow-xs border border-slate-200"
-                      : "text-slate-500 hover:text-slate-900"
+                      ? "bg-white text-[#0F645D] shadow-xs border border-[#DCE6D6]"
+                      : "text-[#60776C] hover:text-[#142921]"
                   )}
                 >
                   <Barcode size={13} />
@@ -769,8 +769,8 @@ export default function QuickPOSPage() {
                   className={cn(
                     "flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                     scannerSource === 'pc-camera'
-                      ? "bg-white text-emerald-700 shadow-xs border border-slate-200"
-                      : "text-slate-500 hover:text-slate-900"
+                      ? "bg-white text-[#0F645D] shadow-xs border border-[#DCE6D6]"
+                      : "text-[#60776C] hover:text-[#142921]"
                   )}
                 >
                   <Camera size={13} />
@@ -782,8 +782,8 @@ export default function QuickPOSPage() {
                   className={cn(
                     "flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
                     scannerSource === 'mobile-usb'
-                      ? "bg-white text-emerald-700 shadow-xs border border-slate-200"
-                      : "text-slate-500 hover:text-slate-900"
+                      ? "bg-white text-[#0F645D] shadow-xs border border-[#DCE6D6]"
+                      : "text-[#60776C] hover:text-[#142921]"
                   )}
                 >
                   <Phone size={13} />
@@ -800,7 +800,7 @@ export default function QuickPOSPage() {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: '180px', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="w-full bg-black relative overflow-hidden shrink-0 border-b border-slate-200"
+                className="w-full bg-black relative overflow-hidden shrink-0 border-b border-[#E5EBE0]"
               >
                 <div id="pos-qr-reader" className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full" />
                 
@@ -827,7 +827,7 @@ export default function QuickPOSPage() {
           </AnimatePresence>
 
           {/* Category Filter Pills (with swipe/scroll & arrow buttons) */}
-          <ScrollableTabBar containerClassName="bg-white border-b border-slate-200 px-2 py-1.5" className="gap-1.5">
+          <ScrollableTabBar containerClassName="bg-white border-b border-[#E5EBE0] px-2 py-1.5" className="gap-1.5">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -836,8 +836,8 @@ export default function QuickPOSPage() {
                 className={cn(
                   "px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer border shrink-0",
                   selectedCategory === cat
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
-                    : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-[#073E36] text-white border-[#073E36] shadow-xs font-extrabold"
+                    : "bg-[#F6F8F3] text-[#60776C] border-[#E2EBDC] hover:bg-[#EDF3E8] hover:text-[#142921]"
                 )}
               >
                 {cat}
@@ -848,10 +848,10 @@ export default function QuickPOSPage() {
           {/* Product Cards Grid */}
           <div className="flex-1 p-3 overflow-y-auto">
             {filteredProducts.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
-                <ShoppingBag size={36} className="mb-2 opacity-50" />
-                <p className="text-sm font-bold text-slate-600">No items found</p>
-                <p className="text-xs text-slate-400 mt-0.5">Try searching with another keyword or category</p>
+              <div className="h-full flex flex-col items-center justify-center text-center p-8 text-[#768C81]">
+                <ShoppingBag size={36} className="mb-2 opacity-40 text-[#0F645D]" />
+                <p className="text-sm font-bold text-[#142921]">No items found</p>
+                <p className="text-xs text-[#768C81] mt-0.5">Try searching with another keyword or category</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-4 gap-2 sm:gap-2.5">
@@ -870,21 +870,21 @@ export default function QuickPOSPage() {
                       className={cn(
                         "text-left p-2.5 sm:p-3 rounded-2xl border transition-all flex flex-col justify-between relative group cursor-pointer active:scale-[0.98]",
                         isOutOfStock 
-                          ? "bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed" 
+                          ? "bg-[#F0F2ED] border-[#E2EBDC] opacity-60 cursor-not-allowed" 
                           : inCartItem
-                            ? "bg-emerald-50/70 border-emerald-400 shadow-xs ring-2 ring-emerald-500/20"
-                            : "bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm"
+                            ? "bg-[#EAF7EA] border-[#0F645D] shadow-xs ring-2 ring-[#0F645D]/15"
+                            : "bg-white border-[#E5EBE0] hover:border-[#B9E2B5] hover:shadow-xs"
                       )}
                     >
                       {/* In Cart Indicator badge */}
                       {inCartItem && (
-                        <div className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-emerald-600 text-white font-black text-[10px] flex items-center justify-center shadow-xs">
+                        <div className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full bg-[#073E36] text-white font-black text-[10px] flex items-center justify-center shadow-xs">
                           {inCartItem.quantity}
                         </div>
                       )}
 
                       {/* Product Image Thumbnail */}
-                      <div className="w-full aspect-[4/3] mb-2 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                      <div className="w-full aspect-[4/3] mb-2 rounded-xl bg-[#F6F8F3] border border-[#E9EFE4] flex items-center justify-center overflow-hidden shrink-0">
                         {((prod as any).image || (prod as any).image_url) ? (
                           <img
                             src={(prod as any).image || (prod as any).image_url}
@@ -892,31 +892,31 @@ export default function QuickPOSPage() {
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                           />
                         ) : (
-                          <Package className="text-slate-300" size={24} />
+                          <Package className="text-[#A2B5A9]" size={24} />
                         )}
                       </div>
 
                       <div>
                         {prod.category && (
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5 truncate">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-[#768C81] block mb-0.5 truncate">
                             {prod.category}
                           </span>
                         )}
-                        <h3 className="font-bold text-xs text-slate-900 line-clamp-2 leading-snug">
+                        <h3 className="font-bold text-xs text-[#142921] line-clamp-2 leading-snug">
                           {prod.name}
                         </h3>
 
                         {hasSerials && (
-                          <div className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                          <div className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-[#0F645D] bg-[#EAF7EA] px-1.5 py-0.5 rounded border border-[#B9E2B5]">
                             <Barcode size={10} />
                             <span>S/N Tracked</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
+                      <div className="mt-2.5 pt-2 border-t border-[#E5EBE0] flex items-center justify-between gap-1">
                         <div>
-                          <span className="text-xs font-extrabold text-slate-900 truncate">
+                          <span className="text-xs font-extrabold text-[#142921] truncate">
                             ₹{Number(prod.price || 0).toLocaleString('en-IN')}
                           </span>
                         </div>
@@ -924,10 +924,10 @@ export default function QuickPOSPage() {
                           <span className={cn(
                             "text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0",
                             isOutOfStock
-                              ? "bg-rose-50 text-rose-600"
+                              ? "bg-[#FBE4E8] text-[#9A1C36]"
                               : stockNum <= 5
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-slate-100 text-slate-600"
+                                ? "bg-amber-50 text-amber-800"
+                                : "bg-[#E8F3E5] text-[#2C4A3E]"
                           )}>
                             {isOutOfStock ? 'Out' : `${stockNum} left`}
                           </span>
@@ -942,16 +942,16 @@ export default function QuickPOSPage() {
         </section>
 
         {/* ── Right Side: Live Billing Counter & Checkout (5 Cols) ── */}
-        <section className="hidden lg:flex lg:col-span-5 xl:col-span-5 flex-col h-full bg-white shadow-lg overflow-hidden">
+        <section className="hidden lg:flex lg:col-span-5 xl:col-span-5 flex-col h-full bg-white shadow-lg overflow-hidden border-l border-[#E5EBE0]">
           
           {/* Cart Header */}
-          <div className="p-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+          <div className="p-3.5 border-b border-[#E5EBE0] flex items-center justify-between bg-[#F6F8F3]">
             <div>
-              <h2 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                <ShoppingBag size={14} className="text-emerald-600" />
+              <h2 className="text-xs font-black uppercase tracking-wider text-[#142921] flex items-center gap-1.5">
+                <ShoppingBag size={14} className="text-[#0F645D]" />
                 <span>Current Order</span>
               </h2>
-              <p className="text-[10px] text-slate-400 font-medium">{totals.totalItems} item(s) in basket</p>
+              <p className="text-[10px] text-[#768C81] font-medium">{totals.totalItems} item(s) in basket</p>
             </div>
             
             {/* Quick Customer Selection */}
@@ -961,7 +961,7 @@ export default function QuickPOSPage() {
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="Customer Name"
-                className="w-32 text-xs font-semibold px-2.5 py-1 bg-white rounded-lg border border-slate-200 focus:outline-none focus:border-emerald-500"
+                className="w-32 text-xs font-semibold px-2.5 py-1.5 bg-white rounded-[14px] border border-[#E2EBDC] text-[#142921] placeholder-[#768C81] focus:outline-none focus:border-[#0F645D]"
               />
             </div>
           </div>
@@ -969,10 +969,10 @@ export default function QuickPOSPage() {
           {/* Cart Items List */}
           <div className="flex-1 p-3 overflow-y-auto space-y-2">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
-                <Barcode size={32} className="opacity-40 mb-2" />
-                <p className="text-xs font-bold text-slate-600">Cart is empty</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Scan barcodes or tap products on the left to add</p>
+              <div className="h-full flex flex-col items-center justify-center text-center p-6 text-[#768C81]">
+                <Barcode size={32} className="opacity-30 mb-2 text-[#0F645D]" />
+                <p className="text-xs font-bold text-[#142921]">Cart is empty</p>
+                <p className="text-[11px] text-[#768C81] mt-0.5">Scan barcodes or tap products on the left to add</p>
               </div>
             ) : (
               cart.map((cartItem) => {
@@ -983,10 +983,10 @@ export default function QuickPOSPage() {
                 return (
                   <div 
                     key={cartItem.id}
-                    className="p-2.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 hover:border-slate-300 transition-all"
+                    className="p-2.5 bg-[#F6F8F3] border border-[#E5EBE0] rounded-2xl space-y-2 hover:border-[#DCE6D6] transition-all"
                   >
                     <div className="flex items-start justify-between gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center text-slate-400">
+                      <div className="w-9 h-9 rounded-xl bg-white border border-[#E5EBE0] overflow-hidden shrink-0 flex items-center justify-center text-[#768C81]">
                         {((cartItem.item as any).image || (cartItem.item as any).image_url) ? (
                           <img
                             src={(cartItem.item as any).image || (cartItem.item as any).image_url}
@@ -998,11 +998,11 @@ export default function QuickPOSPage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-xs text-slate-900 truncate">{cartItem.item.name}</h4>
-                        <p className="text-[11px] text-slate-500 font-medium">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</p>
+                        <h4 className="font-bold text-xs text-[#142921] truncate">{cartItem.item.name}</h4>
+                        <p className="text-[11px] text-[#768C81] font-medium">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="font-extrabold text-xs text-slate-900">
+                        <span className="font-extrabold text-xs text-[#142921]">
                           ₹{itemTotal.toLocaleString('en-IN')}
                         </span>
                       </div>
@@ -1016,40 +1016,40 @@ export default function QuickPOSPage() {
                         className={cn(
                           "text-[10px] font-bold px-2 py-1 rounded-lg border transition-all flex items-center gap-1 cursor-pointer",
                           assignedCount === cartItem.quantity && assignedCount > 0
-                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                            ? "bg-[#D7F4D4] text-[#163C2C] border-[#B9E2B5]"
                             : assignedCount > 0
                               ? "bg-amber-50 text-amber-800 border-amber-300"
-                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                              : "bg-white text-[#2C4A3E] border-[#E2EBDC] hover:bg-[#F6F8F3]"
                         )}
                       >
                         <Barcode size={12} />
                         <span>S/N ({assignedCount}/{cartItem.quantity})</span>
-                        {assignedCount === cartItem.quantity && assignedCount > 0 && <CheckCircle2 size={11} className="text-emerald-600" />}
+                        {assignedCount === cartItem.quantity && assignedCount > 0 && <CheckCircle2 size={11} className="text-[#0F645D]" />}
                       </button>
 
                       {/* Quantity Controls */}
-                      <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-2xs">
+                      <div className="flex items-center gap-1 bg-white border border-[#E5EBE0] rounded-xl p-1 shadow-2xs">
                         <button
                           type="button"
                           onClick={() => updateQuantity(cartItem.id, -1)}
-                          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
+                          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-full bg-[#EBF2E6] hover:bg-[#E0EBD8] text-[#142921] flex items-center justify-center transition-all active:scale-90 cursor-pointer"
                         >
                           <Minus size={13} />
                         </button>
-                        <span className="w-7 text-center text-xs font-black text-slate-900">
+                        <span className="w-7 text-center text-xs font-black text-[#142921]">
                           {cartItem.quantity}
                         </span>
                         <button
                           type="button"
                           onClick={() => updateQuantity(cartItem.id, 1)}
-                          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-all active:scale-90 cursor-pointer"
+                          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-full bg-[#EBF2E6] hover:bg-[#E0EBD8] text-[#142921] flex items-center justify-center transition-all active:scale-90 cursor-pointer"
                         >
                           <Plus size={13} />
                         </button>
                         <button
                           type="button"
                           onClick={() => removeItem(cartItem.id)}
-                          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-lg text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all ml-1 active:scale-90 cursor-pointer"
+                          className="w-8 h-8 min-w-[32px] min-h-[32px] rounded-full text-rose-500 hover:bg-rose-50 flex items-center justify-center transition-all ml-1 active:scale-90 cursor-pointer"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -1062,11 +1062,11 @@ export default function QuickPOSPage() {
           </div>
 
           {/* Checkout & Summary Panel */}
-          <div className="p-3.5 border-t border-slate-200 bg-slate-50 space-y-3 shrink-0">
+          <div className="p-3.5 border-t border-[#E5EBE0] bg-[#F6F8F3] space-y-3 shrink-0">
             
             {/* Payment Method Selector */}
             <div>
-              <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1 block">
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#768C81] mb-1 block">
                 Payment Mode
               </label>
               <div className="grid grid-cols-4 gap-1">
@@ -1085,8 +1085,8 @@ export default function QuickPOSPage() {
                       className={cn(
                         "py-1.5 rounded-xl text-[10px] font-bold border transition-all flex flex-col items-center gap-0.5 cursor-pointer",
                         paymentMethod === mode.id
-                          ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-black"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                          ? "bg-[#073E36] text-white border-[#073E36] shadow-xs font-black"
+                          : "bg-white text-[#60776C] border-[#E2EBDC] hover:bg-[#F6F8F3]"
                       )}
                     >
                       <Icon size={13} />
@@ -1109,7 +1109,7 @@ export default function QuickPOSPage() {
                         alert(`Cash Tendered: ₹${cashVal}\nChange to return: ₹${Math.max(0, cashVal - totals.finalTotal).toFixed(2)}`);
                       }
                     }}
-                    className="px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-[10px] font-bold whitespace-nowrap cursor-pointer transition-all shadow-2xs"
+                    className="px-2 py-1 bg-white hover:bg-[#F0F5EC] border border-[#E2EBDC] text-[#2C4A3E] rounded-lg text-[10px] font-bold whitespace-nowrap cursor-pointer transition-all shadow-2xs"
                   >
                     ₹{cashVal}
                   </button>
@@ -1118,26 +1118,26 @@ export default function QuickPOSPage() {
             )}
 
             {/* Summary Lines */}
-            <div className="space-y-1 text-xs pt-1 border-t border-slate-200/80">
-              <div className="flex justify-between text-slate-500 font-medium">
+            <div className="space-y-1 text-xs pt-1 border-t border-[#E5EBE0]">
+              <div className="flex justify-between text-[#768C81] font-medium">
                 <span>Subtotal</span>
                 <span>₹{totals.rawSubtotal.toFixed(2)}</span>
               </div>
               {totals.totalGst > 0 && (
-                <div className="flex justify-between text-slate-500 font-medium">
+                <div className="flex justify-between text-[#768C81] font-medium">
                   <span>GST Tax</span>
                   <span>+₹{totals.totalGst.toFixed(2)}</span>
                 </div>
               )}
               {discountAmount > 0 && (
-                <div className="flex justify-between text-emerald-600 font-medium">
+                <div className="flex justify-between text-[#0F645D] font-medium">
                   <span>Discount</span>
                   <span>-₹{discountAmount.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between items-center text-slate-900 pt-1 border-t border-slate-200">
+              <div className="flex justify-between items-center text-[#142921] pt-1 border-t border-[#E5EBE0]">
                 <span className="font-extrabold text-sm">Net Payable:</span>
-                <span className="font-black text-base text-emerald-700">
+                <span className="font-black text-base text-[#0F645D]">
                   ₹{totals.finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -1151,8 +1151,8 @@ export default function QuickPOSPage() {
               className={cn(
                 "w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer",
                 cart.length === 0
-                  ? "bg-slate-200 text-slate-400 cursor-not-allowed border-none shadow-none"
-                  : "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 shadow-emerald-600/20"
+                  ? "bg-[#E2EBDC] text-[#A2B5A9] cursor-not-allowed border-none shadow-none"
+                  : "bg-[#073E36] hover:bg-[#0A4E44] text-white border border-[#073E36] shadow-[#073E36]/20"
               )}
             >
               {isCreating ? (
@@ -1173,10 +1173,10 @@ export default function QuickPOSPage() {
       </div>
 
       {/* ── Mobile Sticky Bottom Floating Bar (< lg) ── */}
-      <div className="lg:hidden p-3.5 bg-white border-t border-slate-200 flex items-center justify-between shrink-0 shadow-lg z-30 mb-16 md:mb-0">
+      <div className="lg:hidden p-3.5 bg-white border-t border-[#E5EBE0] flex items-center justify-between shrink-0 shadow-lg z-30 mb-16 md:mb-0">
         <div>
-          <span className="text-[10px] font-bold text-slate-500 block uppercase tracking-wider">Total Payable</span>
-          <span className="text-base font-black text-emerald-700">
+          <span className="text-[10px] font-bold text-[#768C81] block uppercase tracking-wider">Total Payable</span>
+          <span className="text-base font-black text-[#0F645D]">
             ₹{totals.finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </span>
         </div>
@@ -1188,8 +1188,8 @@ export default function QuickPOSPage() {
           className={cn(
             "px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md",
             cart.length === 0
-              ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 active:scale-95"
+              ? "bg-[#E2EBDC] text-[#A2B5A9] cursor-not-allowed shadow-none"
+              : "bg-[#073E36] hover:bg-[#0A4E44] text-white shadow-[#073E36]/20 active:scale-95"
           )}
         >
           <ShoppingBag size={15} />
@@ -1210,17 +1210,17 @@ export default function QuickPOSPage() {
               className="w-full max-h-[90vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden"
             >
               {/* Sheet Drag Handle & Header */}
-              <div className="pt-3 px-4 pb-3 border-b border-slate-200 bg-slate-50">
-                <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-2" />
+              <div className="pt-3 px-4 pb-3 border-b border-[#E5EBE0] bg-[#F6F8F3]">
+                <div className="w-12 h-1.5 bg-[#DCE6D6] rounded-full mx-auto mb-2" />
                 <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-                    <ShoppingBag size={16} className="text-emerald-600" />
+                  <h3 className="font-extrabold text-sm text-[#142921] flex items-center gap-2">
+                    <ShoppingBag size={16} className="text-[#0F645D]" />
                     <span>Cart Items ({totals.totalItems})</span>
                   </h3>
                   <button
                     type="button"
                     onClick={() => setShowMobileCart(false)}
-                    className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center cursor-pointer active:scale-90 transition-all"
+                    className="w-8 h-8 rounded-full bg-[#F0F5EC] hover:bg-[#E2EBDC] text-[#2C4A3E] flex items-center justify-center cursor-pointer active:scale-90 transition-all"
                   >
                     <X size={16} />
                   </button>
@@ -1230,29 +1230,29 @@ export default function QuickPOSPage() {
               {/* Scrollable Sheet Content */}
               <div className="p-4 overflow-y-auto space-y-3.5 flex-1">
                 {/* Mobile Customer Details */}
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                <div className="p-3 bg-[#F6F8F3] border border-[#E5EBE0] rounded-2xl space-y-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#768C81] block">
                     Customer Details
                   </span>
                   <div className="space-y-2">
                     <div className="relative">
-                      <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#768C81]" />
                       <input
                         type="text"
                         placeholder="Customer Name (Optional)"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
-                        className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-500"
+                        className="w-full pl-8 pr-3 py-2 bg-white border border-[#E2EBDC] rounded-xl text-xs font-medium text-[#142921] placeholder-[#768C81] focus:outline-none focus:border-[#0F645D]"
                       />
                     </div>
                     <div className="relative">
-                      <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#768C81]" />
                       <input
                         type="tel"
                         placeholder="Phone Number (Optional)"
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
-                        className="w-full pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-500"
+                        className="w-full pl-8 pr-3 py-2 bg-white border border-[#E2EBDC] rounded-xl text-xs font-medium text-[#142921] placeholder-[#768C81] focus:outline-none focus:border-[#0F645D]"
                       />
                     </div>
                   </div>
@@ -1260,51 +1260,51 @@ export default function QuickPOSPage() {
 
                 {/* Cart Items List */}
                 <div className="space-y-2.5">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#768C81] block">
                     Selected Products
                   </span>
                   {cart.map((cartItem) => (
-                    <div key={cartItem.id} className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                    <div key={cartItem.id} className="p-3 bg-[#F6F8F3] border border-[#E5EBE0] rounded-2xl space-y-2">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-bold text-xs text-slate-900">{cartItem.item.name}</h4>
-                          <span className="text-[11px] text-slate-500">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</span>
+                          <h4 className="font-bold text-xs text-[#142921]">{cartItem.item.name}</h4>
+                          <span className="text-[11px] text-[#768C81]">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</span>
                         </div>
-                        <span className="font-black text-xs text-slate-900">
+                        <span className="font-black text-xs text-[#142921]">
                           ₹{(Number(cartItem.item.price || 0) * cartItem.quantity).toLocaleString('en-IN')}
                         </span>
                       </div>
 
-                      <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+                      <div className="flex justify-between items-center pt-1 border-t border-[#E5EBE0]">
                         <button
                           type="button"
                           onClick={() => openSerialModal(cartItem)}
-                          className="text-[10px] font-bold px-2 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 flex items-center gap-1 active:scale-95 cursor-pointer"
+                          className="text-[10px] font-bold px-2 py-1 rounded-lg border border-[#E2EBDC] bg-white text-[#2C4A3E] flex items-center gap-1 active:scale-95 cursor-pointer"
                         >
                           <Barcode size={12} />
                           <span>S/N ({cartItem.selectedSerials?.length || 0}/{cartItem.quantity})</span>
                         </button>
 
-                        <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl p-1 shadow-2xs">
+                        <div className="flex items-center gap-1.5 bg-white border border-[#E5EBE0] rounded-xl p-1 shadow-2xs">
                           <button
                             type="button"
                             onClick={() => updateQuantity(cartItem.id, -1)}
-                            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center active:scale-90 cursor-pointer"
+                            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-[#EBF2E6] hover:bg-[#E0EBD8] text-[#142921] flex items-center justify-center active:scale-90 cursor-pointer"
                           >
                             <Minus size={14} />
                           </button>
-                          <span className="text-xs font-black w-6 text-center">{cartItem.quantity}</span>
+                          <span className="text-xs font-black w-6 text-center text-[#142921]">{cartItem.quantity}</span>
                           <button
                             type="button"
                             onClick={() => updateQuantity(cartItem.id, 1)}
-                            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center active:scale-90 cursor-pointer"
+                            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-[#EBF2E6] hover:bg-[#E0EBD8] text-[#142921] flex items-center justify-center active:scale-90 cursor-pointer"
                           >
                             <Plus size={14} />
                           </button>
                           <button
                             type="button"
                             onClick={() => removeItem(cartItem.id)}
-                            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-lg text-rose-500 hover:bg-rose-50 flex items-center justify-center ml-1 active:scale-90 cursor-pointer"
+                            className="w-9 h-9 min-w-[36px] min-h-[36px] rounded-full text-rose-500 hover:bg-rose-50 flex items-center justify-center ml-1 active:scale-90 cursor-pointer"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1315,8 +1315,8 @@ export default function QuickPOSPage() {
                 </div>
 
                 {/* Mobile Payment Mode Selector */}
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
+                <div className="p-3 bg-[#F6F8F3] border border-[#E5EBE0] rounded-2xl space-y-2">
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#768C81] block">
                     Payment Mode
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
@@ -1335,8 +1335,8 @@ export default function QuickPOSPage() {
                           className={cn(
                             "min-h-[44px] py-2 px-1 rounded-xl text-[11px] font-bold border transition-all flex flex-col items-center justify-center gap-1 active:scale-95 cursor-pointer",
                             paymentMethod === mode.id
-                              ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-black"
-                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                              ? "bg-[#073E36] text-white border-[#073E36] shadow-xs font-black"
+                              : "bg-white text-[#60776C] border-[#E2EBDC] hover:bg-[#F6F8F3]"
                           )}
                         >
                           <Icon size={14} />
@@ -1358,7 +1358,7 @@ export default function QuickPOSPage() {
                               alert(`Cash Tendered: ₹${cashVal}\nChange to return: ₹${Math.max(0, cashVal - totals.finalTotal).toFixed(2)}`);
                             }
                           }}
-                          className="min-h-[36px] px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-[11px] font-bold whitespace-nowrap cursor-pointer transition-all shadow-2xs active:scale-95"
+                          className="min-h-[36px] px-3 py-1.5 bg-white hover:bg-[#F0F5EC] border border-[#E2EBDC] text-[#2C4A3E] rounded-lg text-[11px] font-bold whitespace-nowrap cursor-pointer transition-all shadow-2xs active:scale-95"
                         >
                           ₹{cashVal}
                         </button>
@@ -1367,42 +1367,42 @@ export default function QuickPOSPage() {
                   )}
 
                   {/* Discount Input */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/80">
-                    <span className="text-xs font-bold text-slate-600">Discount (₹)</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-[#E5EBE0]">
+                    <span className="text-xs font-bold text-[#60776C]">Discount (₹)</span>
                     <input
                       type="number"
                       min="0"
                       value={discountAmount || ''}
                       onChange={(e) => setDiscountAmount(Math.max(0, parseFloat(e.target.value) || 0))}
                       placeholder="0"
-                      className="w-24 px-2.5 py-1 text-right bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500"
+                      className="w-24 px-2.5 py-1 text-right bg-white border border-[#E2EBDC] rounded-lg text-xs font-bold text-[#142921] focus:outline-none focus:border-[#0F645D]"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Sheet Checkout Footer */}
-              <div className="p-4 pb-8 sm:pb-4 bg-slate-50 border-t border-slate-200 space-y-3 pb-safe">
+              <div className="p-4 pb-8 sm:pb-4 bg-[#F6F8F3] border-t border-[#E5EBE0] space-y-3 pb-safe">
                 <div className="space-y-1 text-xs">
-                  <div className="flex justify-between text-slate-500 font-medium">
+                  <div className="flex justify-between text-[#768C81] font-medium">
                     <span>Subtotal</span>
                     <span>₹{totals.rawSubtotal.toFixed(2)}</span>
                   </div>
                   {totals.totalGst > 0 && (
-                    <div className="flex justify-between text-slate-500 font-medium">
+                    <div className="flex justify-between text-[#768C81] font-medium">
                       <span>GST Tax</span>
                       <span>+₹{totals.totalGst.toFixed(2)}</span>
                     </div>
                   )}
                   {discountAmount > 0 && (
-                    <div className="flex justify-between text-emerald-600 font-medium">
+                    <div className="flex justify-between text-[#0F645D] font-medium">
                       <span>Discount</span>
                       <span>-₹{discountAmount.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between items-center text-slate-900 pt-1 border-t border-slate-200">
+                  <div className="flex justify-between items-center text-[#142921] pt-1 border-t border-[#E5EBE0]">
                     <span className="font-extrabold text-sm">Net Payable:</span>
-                    <span className="font-black text-base text-emerald-700">
+                    <span className="font-black text-base text-[#0F645D]">
                       ₹{totals.finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -1415,8 +1415,8 @@ export default function QuickPOSPage() {
                   className={cn(
                     "w-full min-h-[50px] py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 cursor-pointer",
                     cart.length === 0
-                      ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30"
+                      ? "bg-[#E2EBDC] text-[#A2B5A9] cursor-not-allowed shadow-none"
+                      : "bg-[#073E36] hover:bg-[#0A4E44] text-white shadow-[#073E36]/30"
                   )}
                 >
                   {isCreating ? (
@@ -1445,23 +1445,23 @@ export default function QuickPOSPage() {
               initial={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
               animate={{ y: 0, sm: { scale: 1, opacity: 1 } }}
               exit={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
-              className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl border border-slate-200 space-y-4 pb-safe sm:pb-5"
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-md max-h-[92vh] overflow-y-auto shadow-2xl border border-[#E5EBE0] space-y-4 pb-safe sm:pb-5"
             >
-              <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto sm:hidden -mt-1 mb-1" />
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="w-12 h-1.5 bg-[#DCE6D6] rounded-full mx-auto sm:hidden -mt-1 mb-1" />
+              <div className="flex items-center justify-between border-b border-[#E5EBE0] pb-3">
                 <div>
-                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
-                    <Barcode size={16} className="text-emerald-600" />
+                  <h3 className="font-extrabold text-sm text-[#142921] flex items-center gap-1.5">
+                    <Barcode size={16} className="text-[#0F645D]" />
                     <span>Select Serial Numbers</span>
                   </h3>
-                  <p className="text-[11px] text-slate-500 font-medium">
+                  <p className="text-[11px] text-[#768C81] font-medium">
                     {activeSerialModalItem.item.name} (Qty: {activeSerialModalItem.quantity})
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveSerialModalItem(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center cursor-pointer active:scale-90 transition-all"
+                  className="w-8 h-8 rounded-full bg-[#F0F5EC] text-[#2C4A3E] hover:bg-[#E2EBDC] flex items-center justify-center cursor-pointer active:scale-90 transition-all"
                 >
                   <X size={14} />
                 </button>
@@ -1469,7 +1469,7 @@ export default function QuickPOSPage() {
 
               {/* Quick Scan Input */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase">Scan or Type Serial Number</label>
+                <label className="text-[10px] font-bold text-[#768C81] uppercase">Scan or Type Serial Number</label>
                 <div className="flex gap-1.5">
                   <input
                     type="text"
@@ -1485,7 +1485,7 @@ export default function QuickPOSPage() {
                       }
                     }}
                     placeholder="Scan barcode on box..."
-                    className="flex-1 text-xs font-semibold px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500"
+                    className="flex-1 text-xs font-semibold px-3 py-2.5 bg-[#F6F8F3] border border-[#E2EBDC] rounded-xl text-[#142921] placeholder-[#768C81] focus:outline-none focus:border-[#0F645D]"
                   />
                   <button
                     type="button"
@@ -1496,7 +1496,7 @@ export default function QuickPOSPage() {
                         setSerialScanInput('');
                       }
                     }}
-                    className="min-h-[44px] px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs cursor-pointer active:scale-95"
+                    className="min-h-[44px] px-4 py-2 bg-[#073E36] hover:bg-[#0A4E44] text-white rounded-xl font-bold text-xs cursor-pointer active:scale-95"
                   >
                     Add
                   </button>
@@ -1505,14 +1505,14 @@ export default function QuickPOSPage() {
 
               {/* Available Stock Serials List */}
               <div className="space-y-1.5">
-                <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
+                <div className="flex justify-between items-center text-[10px] font-bold text-[#768C81] uppercase">
                   <span>Available in Stock ({Array.isArray(activeSerialModalItem.item.serials) ? activeSerialModalItem.item.serials.length : 0})</span>
-                  <span className={tempSerials.length === activeSerialModalItem.quantity ? "text-emerald-600 font-extrabold" : "text-amber-600"}>
+                  <span className={tempSerials.length === activeSerialModalItem.quantity ? "text-[#0F645D] font-extrabold" : "text-amber-800"}>
                     Selected: {tempSerials.length}/{activeSerialModalItem.quantity}
                   </span>
                 </div>
 
-                <div className="max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">
+                <div className="max-h-40 overflow-y-auto p-2 bg-[#F6F8F3] rounded-2xl border border-[#E5EBE0] space-y-1">
                   {Array.isArray(activeSerialModalItem.item.serials) && activeSerialModalItem.item.serials.length > 0 ? (
                     activeSerialModalItem.item.serials.map((s: string) => {
                       const isSelected = tempSerials.includes(s);
@@ -1522,8 +1522,8 @@ export default function QuickPOSPage() {
                           className={cn(
                             "flex items-center justify-between p-2.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all",
                             isSelected 
-                              ? "bg-emerald-50 text-emerald-800 border-emerald-300 font-bold" 
-                              : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                              ? "bg-[#EAF7EA] text-[#0F645D] border-[#B9E2B5] font-bold" 
+                              : "bg-white text-[#2C4A3E] border-[#E2EBDC] hover:bg-[#F0F5EC]"
                           )}
                         >
                           <span className="font-mono break-all">{s}</span>
@@ -1541,13 +1541,13 @@ export default function QuickPOSPage() {
                                 }
                               }
                             }}
-                            className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500"
+                            className="w-5 h-5 rounded text-[#0F645D] focus:ring-[#0F645D]"
                           />
                         </label>
                       );
                     })
                   ) : (
-                    <p className="text-[11px] text-slate-400 text-center py-3">No pre-loaded serials in stock. You can type/scan new serials above.</p>
+                    <p className="text-[11px] text-[#768C81] text-center py-3">No pre-loaded serials in stock. You can type/scan new serials above.</p>
                   )}
                 </div>
               </div>
@@ -1555,10 +1555,10 @@ export default function QuickPOSPage() {
               {/* Selected Serials Chips */}
               {tempSerials.length > 0 && (
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Assigned S/N for this Bill</span>
+                  <span className="text-[10px] font-bold text-[#768C81] uppercase">Assigned S/N for this Bill</span>
                   <div className="flex flex-wrap gap-1">
                     {tempSerials.map((s, idx) => (
-                      <span key={s} className="text-[10px] font-bold px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1 border border-emerald-200 break-all">
+                      <span key={s} className="text-[10px] font-bold px-2 py-1 bg-[#D7F4D4] text-[#163C2C] rounded-full flex items-center gap-1 border border-[#B9E2B5] break-all">
                         <span>{s}</span>
                         <button type="button" onClick={() => setTempSerials(tempSerials.filter((_, i) => i !== idx))} className="hover:text-rose-600 p-0.5"><X size={12} /></button>
                       </span>
@@ -1568,18 +1568,18 @@ export default function QuickPOSPage() {
               )}
 
               {/* Modal Save Buttons */}
-              <div className="pt-2 border-t border-slate-100 flex gap-2">
+              <div className="pt-2 border-t border-[#E5EBE0] flex gap-2">
                 <button
                   type="button"
                   onClick={() => setActiveSerialModalItem(null)}
-                  className="flex-1 min-h-[44px] py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition-all active:scale-95"
+                  className="flex-1 min-h-[44px] py-2.5 bg-[#F0F5EC] hover:bg-[#E2EBDC] text-[#2C4A3E] font-bold text-xs rounded-xl cursor-pointer transition-all active:scale-95"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={saveSerialModal}
-                  className="flex-1 min-h-[44px] py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs active:scale-95"
+                  className="flex-1 min-h-[44px] py-2.5 bg-[#073E36] hover:bg-[#0A4E44] text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-xs active:scale-95"
                 >
                   Save Serials ({tempSerials.length})
                 </button>
@@ -1597,12 +1597,12 @@ export default function QuickPOSPage() {
               initial={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
               animate={{ y: 0, sm: { scale: 1, opacity: 1 } }}
               exit={{ y: '100%', sm: { scale: 0.95, opacity: 0 } }}
-              className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 pb-safe sm:pb-5"
+              className="bg-white rounded-t-3xl sm:rounded-3xl p-5 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-[#E5EBE0] pb-safe sm:pb-5"
             >
-              <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto sm:hidden -mt-1 mb-2" />
-              <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
-                <h3 className="font-extrabold text-sm text-slate-900">POS Scanner &amp; Setup Guide</h3>
-                <button onClick={() => setShowHelpGuide(false)} className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center active:scale-90"><X size={14} /></button>
+              <div className="w-12 h-1.5 bg-[#DCE6D6] rounded-full mx-auto sm:hidden -mt-1 mb-2" />
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-[#E5EBE0]">
+                <h3 className="font-extrabold text-sm text-[#142921]">POS Scanner &amp; Setup Guide</h3>
+                <button onClick={() => setShowHelpGuide(false)} className="w-8 h-8 rounded-full bg-[#F0F5EC] text-[#2C4A3E] hover:bg-[#E2EBDC] flex items-center justify-center active:scale-90"><X size={14} /></button>
               </div>
               <ScannerHelpGuide />
             </motion.div>

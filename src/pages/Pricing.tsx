@@ -409,24 +409,24 @@ export default function PricingPage() {
       )}
 
       {/* Dynamic Alert Banner */}
-      <div className="bg-gradient-to-r from-[#166534]/10 to-[#166534]/5 rounded-3xl p-6 border border-[#166534]/10 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-[#F8FAF6] rounded-[22px] p-6 border border-[#E5EBE0] flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#166534] shadow-sm border border-[#166534]/5 shrink-0">
-            <Sparkles size={22} className="animate-pulse" />
+          <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#073E36] shadow-xs border border-[#E5EBE0] shrink-0">
+            <Sparkles size={22} className="text-[#0F645D]" />
           </div>
           <div>
-            <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Active Plan State</h4>
-            <p className="text-xs text-slate-500 mt-1">
-              Currently logged in as <span className="font-extrabold text-slate-700">{user?.email}</span> with a <span className="font-extrabold text-[#166534] uppercase">{planTier} account</span>.
+            <h4 className="text-sm font-bold text-[#10251F] uppercase tracking-tight">Active Plan State</h4>
+            <p className="text-xs text-[#52796F] mt-1">
+              Currently logged in as <span className="font-extrabold text-[#10251F]">{user?.email}</span> with a <span className="font-extrabold text-[#073E36] uppercase">{planTier} account</span>.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span className={cn(
-            "text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border",
+            "text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full border",
             planTier === 'pro' 
-              ? "bg-[#F0FDF4] text-[#166534] border-green-100" 
-              : "bg-slate-100 text-slate-500 border-slate-200"
+              ? "bg-[#D7F4D4] text-[#073E36] border-[#C6E9C1]" 
+              : "bg-[#F8FAF6] text-[#52796F] border-[#E5EBE0]"
           )}>
             {planTier === 'pro' ? 'Pro Plan Active' : 'Free Tier Active'}
           </span>
@@ -435,28 +435,28 @@ export default function PricingPage() {
 
       {/* Special Free Pro Offer Card (Controlled by Admin Panel) */}
       {!freeTrialClaimed && planTier !== 'pro' && !isOwner && promoActive && (
-        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-[#0d5c4b] text-white rounded-3xl p-6 shadow-xl border border-emerald-400/30 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="bg-[#073E36] text-white rounded-[26px] p-6 shadow-md border border-[#0F645D] flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-400/20 border border-emerald-300/40 flex items-center justify-center text-emerald-200 shadow-sm shrink-0">
-              <Sparkles size={24} className="animate-pulse" />
+            <div className="w-12 h-12 rounded-2xl bg-[#D7F4D4]/20 border border-[#D7F4D4]/30 flex items-center justify-center text-[#D7F4D4] shadow-xs shrink-0">
+              <Sparkles size={24} className="text-[#D7F4D4]" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="bg-white text-[#166534] font-extrabold text-[10px] px-2 py-0.5 rounded-sm uppercase tracking-wider shadow-xs">
+                <span className="bg-[#D7F4D4] text-[#073E36] font-bold text-[10px] px-2 py-0.5 rounded uppercase tracking-wider shadow-xs">
                   Special Launch Offer
                 </span>
-                <h4 className="text-base font-black text-white uppercase tracking-tight">
+                <h4 className="text-base font-bold text-white uppercase tracking-tight">
                   {dynamicPlans?.promoDays === 365 ? '1 Year Free Pro Plan' : `${dynamicPlans?.promoDays || 30} Days Free Pro Plan`}
                 </h4>
               </div>
-              <p className="text-xs text-emerald-100 mt-1">
+              <p className="text-xs text-white/80 mt-1">
                 Activate {dynamicPlans?.promoDays === 365 ? '365 days' : `${dynamicPlans?.promoDays || 30} days`} of full Pro access instantly with zero payment! Official receipt will be emailed immediately.
               </p>
               {claimTrialError && (
                 <p className="text-xs text-rose-200 font-bold mt-1">{claimTrialError}</p>
               )}
               {claimTrialSuccess && (
-                <p className="text-xs text-emerald-200 font-extrabold mt-1">
+                <p className="text-xs text-[#D7F4D4] font-extrabold mt-1">
                   🎉 Pro Activated! Receipt #{claimTrialSuccess} has been sent to your email.
                 </p>
               )}
@@ -465,7 +465,7 @@ export default function PricingPage() {
           <button
             onClick={handleClaimOffer}
             disabled={claimingTrial || !!claimTrialSuccess}
-            className="px-6 py-3.5 bg-white hover:bg-emerald-50 text-[#166534] rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 disabled:opacity-60 cursor-pointer flex items-center gap-2"
+            className="px-6 py-3.5 bg-[#D7F4D4] hover:bg-[#c4edbf] text-[#073E36] rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm transition-all hover:scale-105 active:scale-95 shrink-0 disabled:opacity-60 cursor-pointer flex items-center gap-2"
           >
             {claimingTrial ? 'Activating...' : claimTrialSuccess ? 'Claimed!' : 'Claim Now (100% Free)'}
             {!claimingTrial && !claimTrialSuccess && <ArrowRight size={14} />}
@@ -475,21 +475,21 @@ export default function PricingPage() {
 
       {/* Header Section */}
       <div className="text-center space-y-4 max-w-2xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight leading-none">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-[#10251F] tracking-tight leading-none">
           Choose the Perfect Plan for Your Business
         </h1>
-        <p className="text-sm text-slate-500 leading-relaxed max-w-lg mx-auto">
+        <p className="text-sm text-[#52796F] leading-relaxed max-w-lg mx-auto">
           Scale effortlessly from simple freelance invoicing to advanced multi-mode retail billing. Upgrade to unlock full automation.
         </p>
 
         {/* Custom Toggle Selector */}
         <div className="pt-2">
-          <div className="bg-slate-100/80 p-1.5 rounded-2xl inline-flex items-center gap-1 border border-slate-200/40">
+          <div className="bg-[#E5EBE0] p-1.5 rounded-2xl inline-flex items-center gap-1 border border-[#E5EBE0]">
             <button 
               onClick={() => setBillingCycle('monthly')}
               className={cn(
-                "px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all",
-                billingCycle === 'monthly' ? "bg-[#166534] text-white shadow-sm" : "text-slate-500 hover:text-slate-800"
+                "px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer",
+                billingCycle === 'monthly' ? "bg-[#073E36] text-white shadow-xs" : "text-[#52796F] hover:text-[#10251F]"
               )}
             >
               Monthly billing
@@ -497,14 +497,14 @@ export default function PricingPage() {
             <button 
               onClick={() => setBillingCycle('yearly')}
               className={cn(
-                "px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-2",
-                billingCycle === 'yearly' ? "bg-[#166534] text-white shadow-sm" : "text-slate-500 hover:text-slate-800"
+                "px-5 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+                billingCycle === 'yearly' ? "bg-[#073E36] text-white shadow-xs" : "text-[#52796F] hover:text-[#10251F]"
               )}
             >
               Yearly billing
               <span className={cn(
                 "text-[9px] px-1.5 py-0.5 rounded-md font-extrabold leading-none select-none uppercase tracking-wide",
-                billingCycle === 'yearly' ? "bg-white/20 text-white" : "bg-[#F0FDF4] text-[#166534]"
+                billingCycle === 'yearly' ? "bg-[#D7F4D4] text-[#073E36]" : "bg-[#D7F4D4] text-[#073E36]"
               )}>
                 Save 16%
               </span>
@@ -517,25 +517,25 @@ export default function PricingPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
         
         {/* FREE PLAN CARD */}
-        <div className="bg-white border border-slate-200/60 rounded-[2.5rem] p-8 md:p-10 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[640px] relative overflow-hidden">
+        <div className="bg-white border border-[#E5EBE0] rounded-[26px] p-8 md:p-10 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[640px] relative overflow-hidden">
           {planTier === 'free' && (
-            <div className="absolute top-4 right-4 bg-slate-100 text-slate-600 px-3.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-slate-200">
+            <div className="absolute top-4 right-4 bg-[#F8FAF6] text-[#52796F] px-3.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border border-[#E5EBE0]">
               Current Plan
             </div>
           )}
           
           <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Free Plan</h3>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Forever Free</p>
+              <h3 className="text-xl font-bold text-[#10251F] uppercase tracking-tight">Free Plan</h3>
+              <p className="text-xs text-[#52796F] font-bold uppercase tracking-wider mt-1">Forever Free</p>
             </div>
 
             <div className="flex items-baseline gap-1.5">
-              <span className="text-4xl font-black text-slate-950 tracking-tight">₹0</span>
-              <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">/ forever</span>
+              <span className="text-4xl font-extrabold text-[#10251F] tracking-tight">₹0</span>
+              <span className="text-xs text-[#52796F] font-bold uppercase tracking-widest">/ forever</span>
             </div>
 
-            <div className="h-px bg-slate-100" />
+            <div className="h-px bg-[#E5EBE0]" />
 
             {/* Feature Checkbox List */}
             <ul className="space-y-4">
@@ -543,13 +543,13 @@ export default function PricingPage() {
                 <li key={idx} className="flex items-start gap-3">
                   <div className={cn(
                     "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                    feat.active ? "bg-[#F0FDF4] text-[#166534]" : "bg-slate-50 text-slate-300"
+                    feat.active ? "bg-[#D7F4D4] text-[#073E36]" : "bg-[#F8FAF6] text-slate-300"
                   )}>
                     {feat.active ? <Check size={12} strokeWidth={3} /> : <X size={12} strokeWidth={3} />}
                   </div>
                   <span className={cn(
                     "text-xs leading-normal",
-                    feat.active ? "text-slate-700 font-medium" : "text-slate-400 line-through decoration-slate-200"
+                    feat.active ? "text-[#10251F] font-medium" : "text-[#52796F]/50 line-through decoration-[#E5EBE0]"
                   )}>
                     {feat.name}
                   </span>
@@ -562,10 +562,10 @@ export default function PricingPage() {
             <button 
               disabled={planTier === 'free'}
               className={cn(
-                "w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all",
+                "w-full py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
                 planTier === 'free' 
-                  ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed" 
-                  : "bg-slate-950 text-white hover:bg-slate-900"
+                  ? "bg-[#F8FAF6] text-[#52796F] border border-[#E5EBE0] cursor-not-allowed" 
+                  : "bg-[#073E36] text-white hover:bg-[#0d4f45]"
               )}
             >
               {planTier === 'free' ? 'Your Current Plan' : 'Standard Free Plan'}
@@ -574,48 +574,48 @@ export default function PricingPage() {
         </div>
 
         {/* PRO PLAN CARD */}
-        <div className="bg-white border-2 border-[#166534] rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-green-900/5 transition-all flex flex-col justify-between min-h-[640px] relative overflow-hidden">
+        <div className="bg-white border-2 border-[#073E36] rounded-[26px] p-8 md:p-10 shadow-sm transition-all flex flex-col justify-between min-h-[640px] relative overflow-hidden">
           {/* Accent Ribbon Badge */}
-          <div className="absolute top-4 right-4 bg-[#166534] text-white px-3.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm">
+          <div className="absolute top-4 right-4 bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1] px-3.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 shadow-xs">
             <Crown size={10} />
             Recommended
           </div>
 
           <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+              <h3 className="text-xl font-bold text-[#10251F] uppercase tracking-tight flex items-center gap-2">
                 Pro Plan
               </h3>
-              <p className="text-xs text-[#166534] font-extrabold uppercase tracking-wider mt-1">Professional Billing Suite</p>
+              <p className="text-xs text-[#073E36] font-bold uppercase tracking-wider mt-1">Professional Billing Suite</p>
             </div>
 
             <div className="space-y-1">
               <div className="flex items-baseline gap-1.5">
-                <span className="text-4xl font-black text-[#166534] tracking-tight">
+                <span className="text-4xl font-extrabold text-[#073E36] tracking-tight">
                   ₹{billingCycle === 'monthly' ? monthlyPrice : yearlyPrice}
                 </span>
-                <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                <span className="text-xs text-[#52796F] font-bold uppercase tracking-widest">
                   / {billingCycle === 'monthly' ? 'month' : 'year'}
                 </span>
               </div>
               {billingCycle === 'yearly' && (
-                <p className="text-[10px] text-emerald-600 font-black uppercase tracking-wider flex items-center gap-1.5 bg-emerald-50 w-fit px-2 py-1 rounded-md">
-                  <Zap size={10} className="fill-emerald-600" />
+                <p className="text-[10px] text-[#073E36] font-bold uppercase tracking-wider flex items-center gap-1.5 bg-[#D7F4D4] w-fit px-2.5 py-1 rounded-md border border-[#C6E9C1]">
+                  <Zap size={10} className="fill-[#073E36]" />
                   Save ₹388 — 2 months free!
                 </p>
               )}
             </div>
 
-            <div className="h-px bg-slate-100" />
+            <div className="h-px bg-[#E5EBE0]" />
 
             {/* Feature Checkbox List */}
             <ul className="space-y-4">
               {proFeatures.map((feat, idx) => (
                 <li key={idx} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-[#F0FDF4] text-[#166534] flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-5 h-5 rounded-full bg-[#D7F4D4] text-[#073E36] flex items-center justify-center shrink-0 mt-0.5">
                     <Check size={12} strokeWidth={3} />
                   </div>
-                  <span className="text-xs leading-normal text-slate-700 font-semibold">
+                  <span className="text-xs leading-normal text-[#10251F] font-semibold">
                     {feat.name}
                   </span>
                 </li>
@@ -628,10 +628,10 @@ export default function PricingPage() {
               onClick={handleCheckoutOpen}
               disabled={planTier === 'pro' || subscriptionPending}
               className={cn(
-                "w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2",
+                "w-full py-3.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer",
                 (planTier === 'pro' || subscriptionPending)
-                  ? "bg-[#F0FDF4] text-[#166534] border border-green-100 cursor-not-allowed" 
-                  : "bg-[#166534] hover:bg-[#0F3D21] text-white shadow-green-700/10 hover:shadow-lg hover:scale-[1.01]"
+                  ? "bg-[#F8FAF6] text-[#52796F] border border-[#E5EBE0] cursor-not-allowed" 
+                  : "bg-[#073E36] hover:bg-[#0d4f45] text-white"
               )}
             >
               {planTier === 'pro' 
@@ -639,7 +639,7 @@ export default function PricingPage() {
                 : subscriptionPending 
                   ? 'Payment Verification Pending' 
                   : `Upgrade to Pro (${billingCycle})`}
-              {planTier !== 'pro' && !subscriptionPending && <ArrowRight size={14} />}
+              {planTier !== 'pro' && !subscriptionPending && <ArrowRight size={14} className="text-[#D7F4D4]" />}
             </button>
           </div>
         </div>

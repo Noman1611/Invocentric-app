@@ -112,17 +112,17 @@ export default function Expenses() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-neutral-900 tracking-tight uppercase">Expenses</h1>
-          <p className="text-neutral-500 font-bold text-sm mt-1 uppercase tracking-wider">Manage your business spending</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#10251F] tracking-tight">Expenses</h1>
+          <p className="text-[#4B6358] font-medium text-sm mt-1">Manage your business spending</p>
         </div>
         
         <div className="flex items-center gap-3">
-          <button className="p-3 text-neutral-400 hover:text-neutral-900 bg-white border border-neutral-100 rounded-2xl shadow-sm transition-all">
-            <Download size={20} />
+          <button className="p-3 text-[#10251F] hover:bg-[#F0F5ED] bg-white border border-[#E5EBE0] rounded-[16px] shadow-xs transition-all cursor-pointer">
+            <Download size={20} className="text-[#4B6358]" />
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-[#000000] text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.15em] shadow-xl shadow-neutral-900/10 hover:translate-y-[-2px] transition-all active:scale-95"
+            className="flex items-center gap-2 px-5 py-3 bg-[#073E36] hover:bg-[#0F645D] text-white rounded-[16px] font-bold uppercase text-xs tracking-wider shadow-[0_8px_20px_rgba(7,62,54,0.18)] transition-all active:scale-95 cursor-pointer"
           >
             <Plus size={16} />
             Add Expense
@@ -134,42 +134,42 @@ export default function Expenses() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[#10191F] rounded-[2rem] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6"
+        className="bg-[#073E36] rounded-[24px] p-6 sm:p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_4px_24px_rgba(7,62,54,0.15)]"
       >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center border border-white/10">
-            <DollarSign className="text-green-400" size={32} />
+        <div className="flex items-center gap-5 sm:gap-6">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 flex items-center justify-center border border-white/15 shrink-0">
+            <Receipt className="text-[#D7F4D4]" size={30} />
           </div>
           <div>
-            <p className="text-[10px] font-black text-green-200 uppercase tracking-widest mb-1">Total Period Expense</p>
-            <h2 className="text-4xl font-black tracking-tighter text-white">{formatCurrency(totalExpense, 'INR')}</h2>
+            <p className="text-[10px] font-bold text-[#D7F4D4] uppercase tracking-widest mb-1">Total Period Expense</p>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white tabular-nums">{formatCurrency(totalExpense, 'INR')}</h2>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl">
-          <AlertCircle size={16} className="text-amber-400" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-100">
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-white/10 border border-white/15 rounded-xl">
+          <AlertCircle size={16} className="text-[#D7F4D4]" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#D7F4D4]">
             Budget status: within limit
           </span>
         </div>
       </motion.div>
 
       {/* List Container */}
-      <div className="glass-card bg-white border border-neutral-100 rounded-[2.5rem] overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-neutral-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-[#E5EBE0] rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+        <div className="p-5 sm:p-6 border-b border-[#E5EBE0] flex flex-col md:flex-row md:items-center justify-between gap-4">
            <div className="relative flex-1 max-w-md px-0">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B6358]" size={18} />
             <input 
               type="text" 
               placeholder="SEARCH EXPENSES..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-neutral-50 border-none rounded-2xl text-xs font-bold uppercase tracking-wider placeholder:text-neutral-400 focus:ring-2 focus:ring-black transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-[#F8FAF6] border border-[#E5EBE0] rounded-[16px] text-xs font-semibold text-[#10251F] placeholder:text-[#4B6358]/60 focus:outline-none focus:ring-2 focus:ring-[#0F645D]/20 focus:border-[#0F645D] transition-all"
             />
           </div>
           
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 text-[10px] font-black text-neutral-500 uppercase tracking-widest hover:bg-neutral-50 rounded-xl transition-all">
+            <button className="flex items-center gap-2 px-4 py-2 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest hover:bg-[#F0F5ED] rounded-xl transition-all">
               <Filter size={14} />
               Sort: Recent
             </button>
@@ -177,35 +177,35 @@ export default function Expenses() {
         </div>
 
         {/* Mobile View: Native Card Stack */}
-        <div className="block md:hidden divide-y divide-neutral-100">
+        <div className="block md:hidden divide-y divide-[#E5EBE0]/60">
           {filteredExpenses.length === 0 ? (
             <div className="p-10 text-center">
-              <div className="p-5 rounded-full bg-neutral-50 w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                <Receipt size={28} className="text-neutral-300" />
+              <div className="p-5 rounded-full bg-[#F0F5ED] w-16 h-16 flex items-center justify-center mx-auto mb-3 border border-[#E5EBE0]">
+                <Receipt size={28} className="text-[#4B6358]" />
               </div>
-              <p className="text-sm font-black text-neutral-900 uppercase tracking-tight">No expenses found</p>
-              <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mt-0.5">Start tracking your business spend</p>
+              <p className="text-sm font-bold text-[#10251F]">No expenses found</p>
+              <p className="text-xs font-medium text-[#4B6358] mt-1">Start tracking your business spend</p>
             </div>
           ) : (
             filteredExpenses.map((exp) => (
-              <div key={exp.id} className="p-4 space-y-2 hover:bg-neutral-50/50 transition-all">
+              <div key={exp.id} className="p-4 space-y-2 hover:bg-[#F6F8F3]/60 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-2.5">
-                    <div className="p-2 rounded-xl bg-neutral-100 text-neutral-600 shrink-0 mt-0.5">
+                    <div className="p-2 rounded-xl bg-[#F0F5ED] text-[#073E36] border border-[#E5EBE0] shrink-0 mt-0.5">
                       <Receipt size={16} />
                     </div>
                     <div>
-                      <span className="text-xs font-black text-neutral-900 uppercase tracking-tight block">{exp.description}</span>
-                      <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mt-0.5">
+                      <span className="text-xs font-bold text-[#10251F] uppercase tracking-tight block">{exp.description}</span>
+                      <span className="text-[10px] font-medium text-[#4B6358] block mt-0.5">
                         {format(new Date(exp.date), 'dd MMM yyyy')} • {exp.payment_method}
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-black text-neutral-900 tracking-tight block">
+                    <span className="text-sm font-bold text-[#10251F] tracking-tight block tabular-nums">
                       {formatCurrency(exp.amount, 'INR')}
                     </span>
-                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-neutral-100 text-[9px] font-bold text-neutral-600 uppercase tracking-wider">
+                    <span className="inline-block mt-1 px-2.5 py-0.5 rounded-lg bg-[#F0F5ED] text-[10px] font-bold text-[#0F645D] uppercase tracking-wider border border-[#E5EBE0]">
                       {exp.category}
                     </span>
                   </div>
@@ -214,7 +214,7 @@ export default function Expenses() {
                 <div className="flex justify-end pt-1">
                   <button 
                     onClick={() => handleDelete(exp.id)}
-                    className="p-1.5 text-rose-600 bg-rose-50 active:scale-95 rounded-lg transition-all"
+                    className="p-1.5 text-[#BA1A1A] hover:bg-[#FFDAD6] bg-[#FFDAD6]/50 rounded-lg transition-all"
                     title="Delete Expense"
                   >
                     <Trash2 size={14} />
@@ -229,41 +229,41 @@ export default function Expenses() {
         <div className="hidden md:block overflow-x-auto px-0">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-neutral-50/50">
-                <th className="px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100">Date</th>
-                <th className="px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100">Description</th>
-                <th className="px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100">Category</th>
-                <th className="px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100">Method</th>
-                <th className="px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100 text-right">Amount</th>
-                <th className="px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100 text-right">Actions</th>
+              <tr className="bg-[#F8FAF6] border-b border-[#E5EBE0]">
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">Date</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">Description</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">Category</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">Method</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest text-right">Amount</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-50">
+            <tbody className="divide-y divide-[#E5EBE0]/60">
               {filteredExpenses.map((exp) => (
-                <tr key={exp.id} className="hover:bg-neutral-50/50 transition-all group">
+                <tr key={exp.id} className="hover:bg-[#F6F8F3]/60 transition-all group">
                   <td className="px-6 py-5 whitespace-nowrap">
-                    <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-tight">
+                    <span className="text-[11px] font-bold text-[#4B6358] uppercase tracking-tight">
                       {format(new Date(exp.date), 'dd MMM yyyy')}
                     </span>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-neutral-100 text-neutral-600">
+                      <div className="p-2 rounded-xl bg-[#F0F5ED] text-[#073E36] border border-[#E5EBE0]">
                         <Receipt size={16} />
                       </div>
-                      <span className="text-xs font-black text-neutral-900 uppercase tracking-tight">{exp.description}</span>
+                      <span className="text-xs font-bold text-[#10251F] uppercase tracking-tight">{exp.description}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap">
-                    <span className="inline-block px-3 py-1 rounded-full bg-neutral-100 text-[10px] font-black text-neutral-500 uppercase tracking-wider">
+                    <span className="inline-block px-3 py-1 rounded-lg bg-[#F0F5ED] text-[10px] font-bold text-[#0F645D] uppercase tracking-wider border border-[#E5EBE0]">
                       {exp.category}
                     </span>
                   </td>
                   <td className="px-6 py-5 whitespace-nowrap">
-                     <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">{exp.payment_method}</span>
+                     <span className="text-xs font-semibold text-[#10251F]">{exp.payment_method}</span>
                   </td>
                   <td className="px-6 py-5 text-right whitespace-nowrap">
-                    <span className="text-sm font-black text-neutral-900 tracking-tight">
+                    <span className="text-sm font-bold text-[#10251F] tracking-tight tabular-nums">
                       {formatCurrency(exp.amount, 'INR')}
                     </span>
                   </td>
@@ -271,7 +271,7 @@ export default function Expenses() {
                     <div className="flex items-center justify-end gap-1.5">
                       <button 
                         onClick={() => handleDelete(exp.id)}
-                        className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition-all"
+                        className="p-2 text-[#BA1A1A] hover:bg-[#FFDAD6] bg-[#FFDAD6]/50 rounded-xl transition-all"
                         title="Delete Expense"
                       >
                         <Trash2 size={16} />

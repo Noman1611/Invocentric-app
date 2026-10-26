@@ -190,31 +190,31 @@ export default function MobileScan() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans select-none pb-6">
+    <div className="min-h-screen bg-[#073E36] text-white flex flex-col font-sans select-none pb-6">
       {/* Header */}
-      <header className="px-4 py-4 border-b border-slate-900 bg-slate-900/40 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between">
+      <header className="px-4 py-4 border-b border-[#144A42] bg-[#073E36]/90 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-green-500/20 text-green-400 flex items-center justify-center border border-green-500/30 shadow-inner animate-pulse">
+          <div className="w-10 h-10 rounded-2xl bg-[#10251F] text-[#D7F4D4] flex items-center justify-center border border-[#163C2C] shadow-inner animate-pulse">
             <ScanLine size={20} />
           </div>
           <div>
             <h1 className="text-sm font-bold tracking-tight">InvoCentric Mobile Scanner</h1>
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Local USB Connection</p>
+            <p className="text-[10px] text-[#A2B5A9] font-semibold uppercase tracking-wider mt-0.5">Local USB Connection</p>
           </div>
         </div>
 
         {/* Connection Status Badge */}
         <div>
           {status === 'connected' ? (
-            <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1 bg-[#D7F4D4] text-[#163C2C] border border-[#B9E2B5] px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
               <CheckCircle size={10} className="fill-current" /> Connected
             </span>
           ) : status === 'connecting' ? (
-            <span className="inline-flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/25 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">
+            <span className="inline-flex items-center gap-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider animate-pulse">
               <RefreshCw size={10} className="animate-spin" /> Connecting
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1 bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
               <AlertCircle size={10} /> Disconnected
             </span>
           )}
@@ -225,21 +225,21 @@ export default function MobileScan() {
       <div className="flex-1 max-w-md mx-auto w-full px-4 py-4 flex flex-col gap-4">
         {/* Connection instruction message if disconnected */}
         {status !== 'connected' && (
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 text-xs text-slate-300 leading-relaxed space-y-2">
-            <p className="font-bold text-amber-400 flex items-center gap-1.5">
+          <div className="bg-[#10251F] border border-[#163C2C] rounded-2xl p-4 text-xs text-[#A2B5A9] leading-relaxed space-y-2">
+            <p className="font-bold text-amber-300 flex items-center gap-1.5">
               <AlertCircle size={14} /> Connecting to Computer...
             </p>
-            <p className="text-slate-300 font-semibold text-[11px]">
+            <p className="text-white font-semibold text-[11px]">
               Connecting to your computer screen...
             </p>
-            <p className="text-slate-400 font-medium text-[10px]">
+            <p className="text-[#A2B5A9] font-medium text-[10px]">
               If connection fails, please ensure your phone and computer are on the same Wi-Fi network or connected via personal hotspot.
             </p>
           </div>
         )}
 
         {/* Camera Scanner Viewfinder */}
-        <div className="relative rounded-3xl overflow-hidden border border-slate-800 bg-slate-900 h-[260px] xs:h-[300px] w-full flex flex-col items-center justify-center shadow-2xl">
+        <div className="relative rounded-3xl overflow-hidden border border-[#144A42] bg-[#10251F] h-[260px] xs:h-[300px] w-full flex flex-col items-center justify-center shadow-2xl">
           <div id="mobile-qr-reader" className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full" />
 
           {/* Floating sound control & camera switcher */}
@@ -248,7 +248,7 @@ export default function MobileScan() {
               <button
                 type="button"
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-90 backdrop-blur-md shadow-lg ${soundEnabled ? 'bg-green-500/20 text-green-400 border-green-500/40' : 'bg-slate-950/80 text-slate-400 border-slate-800'}`}
+                className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all active:scale-90 backdrop-blur-md shadow-lg ${soundEnabled ? 'bg-[#D7F4D4]/20 text-[#D7F4D4] border-[#B9E2B5]/40' : 'bg-[#073E36]/90 text-[#A2B5A9] border-[#144A42]'}`}
                 title={soundEnabled ? 'Mute' : 'Unmute'}
               >
                 {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
@@ -256,7 +256,7 @@ export default function MobileScan() {
               <button
                 type="button"
                 onClick={() => setCameraMode(prev => prev === 'environment' ? 'user' : 'environment')}
-                className="w-9 h-9 rounded-xl border bg-slate-950/80 text-slate-200 border-slate-800 flex items-center justify-center transition-all active:scale-90 backdrop-blur-md shadow-lg"
+                className="w-9 h-9 rounded-xl border bg-[#073E36]/90 text-white border-[#144A42] flex items-center justify-center transition-all active:scale-90 backdrop-blur-md shadow-lg"
                 title="Switch Camera"
               >
                 <RefreshCw size={16} />
@@ -267,70 +267,70 @@ export default function MobileScan() {
           {/* Target Overlay Laser Frame */}
           {cameraActive && !cameraError && (
             <div className="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center">
-              <div className="relative w-[220px] h-[110px] border-2 border-green-400/60 rounded-2xl overflow-hidden bg-black/10 shadow-[0_0_0_9999px_rgba(2,6,23,0.65)]">
+              <div className="relative w-[220px] h-[110px] border-2 border-[#D7F4D4]/80 rounded-2xl overflow-hidden bg-black/10 shadow-[0_0_0_9999px_rgba(7,62,54,0.7)]">
                 <div className="scanner-laser-line" />
                 <div className="scanner-laser-glow" />
-                <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-green-300 rounded-tl" />
-                <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-green-300 rounded-tr" />
-                <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-green-300 rounded-bl" />
-                <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-green-300 rounded-br" />
+                <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#D7F4D4] rounded-tl" />
+                <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#D7F4D4] rounded-tr" />
+                <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#D7F4D4] rounded-bl" />
+                <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#D7F4D4] rounded-br" />
               </div>
             </div>
           )}
 
           {!cameraActive && !cameraError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-slate-950 z-20">
-              <RefreshCw className="animate-spin text-green-400 mb-2" size={24} />
-              <p className="text-xs font-bold text-slate-400">Initializing Phone Camera...</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-[#073E36] z-20">
+              <RefreshCw className="animate-spin text-[#D7F4D4] mb-2" size={24} />
+              <p className="text-xs font-bold text-[#A2B5A9]">Initializing Phone Camera...</p>
             </div>
           )}
 
           {cameraError && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-rose-400 bg-slate-950 z-20 p-6 text-center">
-              <AlertCircle className="mb-2 text-pink-500 animate-pulse" size={32} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-rose-300 bg-[#073E36] z-20 p-6 text-center">
+              <AlertCircle className="mb-2 text-rose-400 animate-pulse" size={32} />
               <p className="text-white font-bold text-sm mb-1 leading-snug">{cameraError}</p>
-              <p className="text-[10px] text-slate-500 font-medium">Please grant permission and restart.</p>
+              <p className="text-[10px] text-[#A2B5A9] font-medium">Please grant permission and restart.</p>
             </div>
           )}
         </div>
 
         {/* Manual Barcode Input Form */}
-        <form onSubmit={handleManualSubmit} className="relative flex items-center bg-slate-900 border border-slate-800 rounded-2xl p-1.5 shadow-lg">
-          <Keyboard className="absolute left-4 text-slate-500" size={16} />
+        <form onSubmit={handleManualSubmit} className="relative flex items-center bg-[#10251F] border border-[#163C2C] rounded-2xl p-1.5 shadow-lg">
+          <Keyboard className="absolute left-4 text-[#A2B5A9]" size={16} />
           <input
             type="text"
             value={manualCode}
             onChange={(e) => setManualCode(e.target.value)}
             placeholder="Type barcode to send manually..."
-            className="w-full bg-transparent text-white placeholder-slate-500 text-xs font-semibold pl-10 pr-24 py-2 focus:outline-none"
+            className="w-full bg-transparent text-white placeholder-[#768C81] text-xs font-semibold pl-10 pr-24 py-2 focus:outline-none"
           />
           <button
             type="submit"
             disabled={!manualCode.trim()}
-            className="absolute right-2 px-3 py-1.5 bg-green-500 text-slate-950 font-extrabold text-[10px] uppercase tracking-wider rounded-xl hover:bg-green-400 active:scale-95 transition-all disabled:opacity-40"
+            className="absolute right-2 px-3 py-1.5 bg-[#D7F4D4] text-[#163C2C] font-extrabold text-[10px] uppercase tracking-wider rounded-xl hover:bg-[#C9ECC5] active:scale-95 transition-all disabled:opacity-40"
           >
             Send to PC
           </button>
         </form>
 
         {/* Scanned Log */}
-        <div className="flex-1 flex flex-col bg-slate-900/40 border border-slate-900/60 rounded-3xl p-4 overflow-hidden min-h-[160px]">
-          <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Barcode Transmission Log</h2>
+        <div className="flex-1 flex flex-col bg-[#10251F] border border-[#163C2C] rounded-3xl p-4 overflow-hidden min-h-[160px]">
+          <h2 className="text-[11px] font-black text-[#A2B5A9] uppercase tracking-widest mb-2.5">Barcode Transmission Log</h2>
           <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
             {lastScanned.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-600 text-center py-6">
-                <ScanLine size={24} className="opacity-20 mb-1.5" />
-                <p className="text-[10px] font-bold">No scanned barcodes yet</p>
-                <p className="text-[9px] text-slate-500/80 mt-0.5 mt-0.5">Scanned codes will appear here in real-time.</p>
+              <div className="h-full flex flex-col items-center justify-center text-[#768C81] text-center py-6">
+                <ScanLine size={24} className="opacity-30 mb-1.5 text-[#D7F4D4]" />
+                <p className="text-[10px] font-bold text-white">No scanned barcodes yet</p>
+                <p className="text-[9px] text-[#A2B5A9] mt-0.5">Scanned codes will appear here in real-time.</p>
               </div>
             ) : (
               lastScanned.map((code, index) => (
                 <div 
                   key={index} 
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold ${index === 0 ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-slate-900/60 text-slate-300 border border-slate-850/50'}`}
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold ${index === 0 ? 'bg-[#D7F4D4]/15 text-[#D7F4D4] border border-[#B9E2B5]/30' : 'bg-[#073E36] text-[#A2B5A9] border border-[#144A42]'}`}
                 >
-                  <span className="font-mono">{code}</span>
-                  <span className="text-[9px] uppercase tracking-wider font-bold opacity-80 flex items-center gap-1">
+                  <span className="font-mono text-white">{code}</span>
+                  <span className="text-[9px] uppercase tracking-wider font-bold opacity-80 flex items-center gap-1 text-[#D7F4D4]">
                     <CheckCircle size={10} className="fill-current" /> Transmitted
                   </span>
                 </div>

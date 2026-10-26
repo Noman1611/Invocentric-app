@@ -678,10 +678,10 @@ export default function Purchases() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-neutral-900 tracking-tight uppercase">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#10251F] tracking-tight">
             Purchases
           </h1>
-          <p className="text-neutral-500 font-bold text-sm mt-1 uppercase tracking-wider">
+          <p className="text-[#4B6358] font-medium text-sm mt-1">
             Manage bought inventory and stock
           </p>
         </div>
@@ -697,31 +697,31 @@ export default function Purchases() {
           <button
             onClick={() => billFileInputRef.current?.click()}
             disabled={isScanningBill}
-            className="flex items-center gap-2 px-4 py-3 bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 rounded-2xl shadow-sm transition-all text-[10px] font-black uppercase tracking-wider leading-none"
+            className="flex items-center gap-2 px-4 py-3 bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1] hover:bg-[#C6E9C1] rounded-[16px] shadow-xs transition-all text-xs font-bold uppercase tracking-wider leading-none cursor-pointer"
             title="Scan or upload supplier bill via AI OCR"
           >
             {isScanningBill ? (
               <>
-                <Loader2 size={16} className="animate-spin text-emerald-600" />
+                <Loader2 size={16} className="animate-spin text-[#073E36]" />
                 <span>Scanning Bill...</span>
               </>
             ) : (
               <>
-                <Sparkles size={16} className="text-emerald-600" />
+                <Sparkles size={16} className="text-[#0F645D]" />
                 <span>Scan/Upload Bill</span>
               </>
             )}
           </button>
           <button
             onClick={() => setIsStatementModalOpen(true)}
-            className="flex items-center gap-2 p-3 text-neutral-400 hover:text-neutral-900 bg-white border border-neutral-100 rounded-2xl shadow-sm transition-all text-[10px] font-black uppercase tracking-widest leading-none"
+            className="flex items-center gap-2 px-4 py-3 text-[#10251F] hover:bg-[#F0F5ED] bg-white border border-[#E5EBE0] rounded-[16px] shadow-xs transition-all text-xs font-bold uppercase tracking-wider leading-none cursor-pointer"
           >
-            <FileText size={16} />
+            <FileText size={16} className="text-[#4B6358]" />
             <span className="hidden md:inline">Statement</span>
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-[#000000] text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.15em] shadow-xl shadow-neutral-900/10 hover:translate-y-[-2px] transition-all active:scale-95"
+            className="flex items-center gap-2 px-5 py-3 bg-[#073E36] hover:bg-[#0F645D] text-white rounded-[16px] font-bold uppercase text-xs tracking-wider shadow-[0_8px_20px_rgba(7,62,54,0.18)] transition-all active:scale-95 cursor-pointer"
           >
             <Plus size={16} />
             Add Purchase
@@ -730,14 +730,14 @@ export default function Purchases() {
       </div>
 
       {billScanSuccess && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center gap-3 text-xs font-bold">
-          <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+        <div className="bg-[#D7F4D4] border border-[#C6E9C1] text-[#073E36] px-4 py-3 rounded-2xl flex items-center gap-3 text-xs font-bold">
+          <CheckCircle2 size={18} className="text-[#0F645D] shrink-0" />
           <span>{billScanSuccess}</span>
         </div>
       )}
       {billScanError && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-2xl flex items-center gap-3 text-xs font-bold">
-          <AlertCircle size={18} className="text-red-600 shrink-0" />
+        <div className="bg-[#FFDAD6] border border-[#BA1A1A]/30 text-[#BA1A1A] px-4 py-3 rounded-2xl flex items-center gap-3 text-xs font-bold">
+          <AlertCircle size={18} className="text-[#BA1A1A] shrink-0" />
           <span>{billScanError}</span>
         </div>
       )}
@@ -746,36 +746,36 @@ export default function Purchases() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[#10191F] rounded-[2rem] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6"
+        className="bg-[#073E36] rounded-[24px] p-6 sm:p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_4px_24px_rgba(7,62,54,0.15)]"
       >
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center border border-white/10">
-            <Package className="text-green-400" size={32} />
+        <div className="flex items-center gap-5 sm:gap-6">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 flex items-center justify-center border border-white/15 shrink-0">
+            <Package className="text-[#D7F4D4]" size={30} />
           </div>
           <div>
-            <p className="text-[10px] font-black text-green-200 uppercase tracking-widest mb-1">
+            <p className="text-[10px] font-bold text-[#D7F4D4] uppercase tracking-widest mb-1">
               Total Purchases
             </p>
-            <h2 className="text-4xl font-black tracking-tighter text-white">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
               {formatCurrency(totalPurchase, "INR")}
             </h2>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-2xl">
-          <AlertCircle size={16} className="text-amber-400" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-100">
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-white/10 border border-white/15 rounded-xl">
+          <AlertCircle size={16} className="text-[#D7F4D4]" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#D7F4D4]">
             Stock Tracking
           </span>
         </div>
       </motion.div>
 
       {/* List Container */}
-      <div className="glass-card bg-white border border-neutral-100 rounded-[2.5rem] overflow-hidden shadow-sm">
-        <div className="p-6 border-b border-neutral-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-[#E5EBE0] rounded-[24px] overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+        <div className="p-5 sm:p-6 border-b border-[#E5EBE0] flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md px-0">
             <Search
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B6358]"
               size={18}
             />
             <input
@@ -783,7 +783,7 @@ export default function Purchases() {
               placeholder="SEARCH PURCHASES..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-neutral-50 border-none rounded-2xl text-xs font-bold uppercase tracking-wider placeholder:text-neutral-400 focus:ring-2 focus:ring-black transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-[#F8FAF6] border border-[#E5EBE0] rounded-[16px] text-xs font-semibold text-[#10251F] placeholder:text-[#4B6358]/60 focus:outline-none focus:ring-2 focus:ring-[#0F645D]/20 focus:border-[#0F645D] transition-all"
             />
           </div>
 
@@ -791,7 +791,7 @@ export default function Purchases() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="px-4 py-2 bg-neutral-50 border-none rounded-xl text-[10px] font-black text-neutral-500 uppercase tracking-widest focus:ring-2 focus:ring-black outline-none transition-all cursor-pointer"
+              className="px-4 py-2.5 bg-[#F8FAF6] border border-[#E5EBE0] rounded-[14px] text-xs font-bold text-[#10251F] uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-[#0F645D]/20 transition-all cursor-pointer"
             >
               <option value="All">All Status</option>
               <option value="Paid">Paid</option>
@@ -801,57 +801,57 @@ export default function Purchases() {
         </div>
 
         {/* Mobile View: Native Card Stack */}
-        <div className="block md:hidden divide-y divide-neutral-100">
+        <div className="block md:hidden divide-y divide-[#E5EBE0]/60">
           {filteredPurchases.length === 0 ? (
             <div className="p-10 text-center">
-              <div className="p-5 rounded-full bg-neutral-50 w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                <Package size={28} className="text-neutral-300" />
+              <div className="p-5 rounded-full bg-[#F0F5ED] w-16 h-16 flex items-center justify-center mx-auto mb-3 border border-[#E5EBE0]">
+                <Package size={28} className="text-[#4B6358]" />
               </div>
-              <p className="text-sm font-black text-neutral-900 uppercase tracking-tight">
+              <p className="text-sm font-bold text-[#10251F]">
                 No purchases found
               </p>
-              <p className="text-xs font-bold text-neutral-400 uppercase tracking-widest mt-0.5">
+              <p className="text-xs font-medium text-[#4B6358] mt-1">
                 Start tracking your supplier purchases
               </p>
             </div>
           ) : (
             filteredPurchases.map((pur: any) => (
-              <div key={pur.id} className="p-4 space-y-2.5 hover:bg-neutral-50/50 transition-all">
+              <div key={pur.id} className="p-4 space-y-2.5 hover:bg-[#F6F8F3]/60 transition-all">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <span className="text-xs font-black text-neutral-900 uppercase tracking-tight block">
+                    <span className="text-xs font-bold text-[#10251F] uppercase tracking-tight block">
                       {pur.supplier_name || "Vendor"}
                     </span>
-                    <span className="text-[11px] font-bold text-neutral-500 block mt-0.5">
+                    <span className="text-[11px] font-medium text-[#4B6358] block mt-0.5">
                       {pur.description}
                     </span>
                     {Array.isArray(pur.items) && pur.items.length > 0 && (
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1]">
                           <Package size={10} />
                           {pur.items.length} {pur.items.length === 1 ? 'Item' : 'Items'}
                         </span>
                         {pur.bill_number && (
-                          <span className="text-[9px] font-mono text-neutral-400">
+                          <span className="text-[9px] font-mono text-[#4B6358]">
                             #{pur.bill_number}
                           </span>
                         )}
                       </div>
                     )}
-                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block mt-1">
+                    <span className="text-[10px] font-semibold text-[#4B6358] uppercase tracking-wider block mt-1">
                       {format(new Date(pur.date), "dd MMM yyyy")} • {pur.payment_method}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-black text-neutral-900 tracking-tight block">
+                    <span className="text-sm font-bold text-[#10251F] tracking-tight block tabular-nums">
                       {formatCurrency(pur.amount, "INR")}
                     </span>
                     <span
                       className={cn(
-                        "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-block",
+                        "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg mt-1 inline-block",
                         (pur.status || "Paid") === "Paid"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700",
+                          ? "bg-[#D7F4D4] text-[#073E36]"
+                          : "bg-[#FFDAD6] text-[#BA1A1A]",
                       )}
                     >
                       {pur.status || "Paid"}
@@ -859,10 +859,10 @@ export default function Purchases() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-1 border-t border-neutral-100/60">
+                <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#E5EBE0]/60">
                   <button
                     onClick={() => setSelectedPurchaseForView(pur)}
-                    className="p-1.5 text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-all"
+                    className="p-1.5 text-[#0F645D] hover:text-[#073E36] bg-[#F0F5ED] hover:bg-[#D7F4D4] rounded-lg transition-all"
                     title="View Purchase Bill & Item Details"
                   >
                     <Eye size={14} />
@@ -870,14 +870,14 @@ export default function Purchases() {
                   {(pur.status || "Paid") === "Unpaid" && (
                     <button
                       onClick={() => markAsPaid(pur.id)}
-                      className="px-3 py-1 bg-neutral-900 text-white rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-neutral-800 transition-all"
+                      className="px-3 py-1 bg-[#073E36] text-white rounded-lg text-[9px] font-bold uppercase tracking-wider hover:bg-[#0F645D] transition-all"
                     >
                       Mark Paid
                     </button>
                   )}
                   <button
                     onClick={() => handleDelete(pur.id)}
-                    className="p-1.5 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-lg transition-all"
+                    className="p-1.5 text-[#BA1A1A] hover:bg-[#FFDAD6] bg-[#FFDAD6]/50 rounded-lg transition-all"
                     title="Delete Purchase"
                   >
                     <Trash2 size={14} />
@@ -892,55 +892,55 @@ export default function Purchases() {
         <div className="hidden md:block overflow-x-auto px-0">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-neutral-50/50">
-                <th className="px-3 md:px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100">
+              <tr className="bg-[#F8FAF6] border-b border-[#E5EBE0]">
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">
                   Date
                 </th>
-                <th className="px-3 md:px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100">
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">
                   Supplier/Items
                 </th>
-                <th className="px-3 md:px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100">
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">
                   Method
                 </th>
-                <th className="px-3 md:px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100 text-right">
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest text-right">
                   Amount
                 </th>
-                <th className="px-3 md:px-6 py-4 text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em] border-b border-neutral-100 text-right">
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest text-right">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-50">
+            <tbody className="divide-y divide-[#E5EBE0]/60">
               {filteredPurchases.map((pur: any) => (
                 <tr
                   key={pur.id}
-                  className="hover:bg-neutral-50/50 transition-all group"
+                  className="hover:bg-[#F6F8F3]/60 transition-all group"
                 >
-                  <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                    <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-tight">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-[11px] font-bold text-[#4B6358] uppercase tracking-tight">
                       {format(new Date(pur.date), "dd MMM yyyy")}
                     </span>
                   </td>
-                  <td className="px-3 md:px-6 py-4">
+                  <td className="px-6 py-4">
                     <div className="flex justify-start items-center gap-3">
-                      <div className="p-2 rounded-xl bg-neutral-100 text-neutral-600 shrink-0">
+                      <div className="p-2 rounded-xl bg-[#F0F5ED] text-[#073E36] border border-[#E5EBE0] shrink-0">
                         <Package size={16} />
                       </div>
                       <div>
-                        <span className="text-xs font-black text-neutral-900 uppercase tracking-tight block">
+                        <span className="text-xs font-bold text-[#10251F] uppercase tracking-tight block">
                           {pur.supplier_name || "Vendor"}
                         </span>
-                        <span className="text-[10px] font-bold text-neutral-500">
+                        <span className="text-[10px] font-medium text-[#4B6358]">
                           {pur.description}
                         </span>
                         {Array.isArray(pur.items) && pur.items.length > 0 && (
                           <div className="flex items-center gap-1.5 mt-1">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1]">
                               <Package size={10} />
                               {pur.items.length} {pur.items.length === 1 ? 'Item' : 'Items'}
                             </span>
                             {pur.bill_number && (
-                              <span className="text-[9px] font-mono text-neutral-400">
+                              <span className="text-[9px] font-mono text-[#4B6358]">
                                 #{pur.bill_number}
                               </span>
                             )}
@@ -949,31 +949,31 @@ export default function Purchases() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-3 md:px-6 py-4 whitespace-nowrap">
-                    <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest block">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-xs font-semibold text-[#10251F] block">
                       {pur.payment_method}
                     </span>
                     <span
                       className={cn(
-                        "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-block",
+                        "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg mt-1 inline-block",
                         (pur.status || "Paid") === "Paid"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700",
+                          ? "bg-[#D7F4D4] text-[#073E36]"
+                          : "bg-[#FFDAD6] text-[#BA1A1A]",
                       )}
                     >
                       {pur.status || "Paid"}
                     </span>
                   </td>
-                  <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
-                    <span className="text-sm font-black text-neutral-900 tracking-tight">
+                  <td className="px-6 py-4 text-right whitespace-nowrap">
+                    <span className="text-sm font-bold text-[#10251F] tracking-tight tabular-nums">
                       {formatCurrency(pur.amount, "INR")}
                     </span>
                   </td>
-                  <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
+                  <td className="px-6 py-4 text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => setSelectedPurchaseForView(pur)}
-                        className="p-2 text-neutral-700 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 rounded-xl transition-all"
+                        className="p-2 text-[#0F645D] hover:text-[#073E36] bg-[#F0F5ED] hover:bg-[#D7F4D4] rounded-xl transition-all"
                         title="View Purchase Bill & Item Details"
                       >
                         <Eye size={16} />
@@ -981,14 +981,14 @@ export default function Purchases() {
                       {(pur.status || "Paid") === "Unpaid" && (
                         <button
                           onClick={() => markAsPaid(pur.id)}
-                          className="px-3 py-1.5 bg-neutral-900 text-white rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-neutral-800 transition-all"
+                          className="px-3 py-1.5 bg-[#073E36] text-white rounded-lg text-[9px] font-bold uppercase tracking-wider hover:bg-[#0F645D] transition-all"
                         >
                           Mark Paid
                         </button>
                       )}
                       <button
                         onClick={() => handleDelete(pur.id)}
-                        className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition-all"
+                        className="p-2 text-[#BA1A1A] hover:bg-[#FFDAD6] bg-[#FFDAD6]/50 rounded-xl transition-all"
                         title="Delete Purchase"
                       >
                         <Trash2 size={16} />

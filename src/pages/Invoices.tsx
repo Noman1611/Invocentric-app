@@ -179,26 +179,54 @@ export default function InvoicesPage() {
   };
 
   return (
-    <div className="space-y-10">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-6 pb-16 font-sans">
+      {/* ======================================================== */}
+      {/* 🌟 PAGE HEADER & PRIMARY CTA                            */}
+      {/* ======================================================== */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl tracking-tight">
-            {appMode === 'freelancer' ? 'Invoices Ledger' : 'Financial Ledger'}
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#7B8B7D] mb-1">
+            {appMode === 'freelancer' ? 'Consulting & Billing' : 'Billing & Invoicing'}
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102723] tracking-tight">
+            {appMode === 'freelancer' ? 'Invoices Ledger' : 'Invoices & Bills'}
           </h1>
-          <p className="text-slate-500 mt-1 text-sm">
-            {appMode === 'freelancer' ? 'Manage and track your professional freelance consulting and project invoices.' : 'Manage and track your primary business billables.'}
+          <p className="text-xs text-[#738375] mt-0.5">
+            {appMode === 'freelancer' ? 'Manage and track your professional freelance consulting and project invoices.' : 'Track GST invoices, payments received, and pending balances.'}
           </p>
         </div>
-      </header>
 
-      <div className="space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={handleExportToday}
+            className="px-3.5 py-2.5 rounded-[18px] bg-white border border-[#E1E8DA] text-[#163B2C] text-xs font-bold hover:bg-[#F2F6EF] transition-colors flex items-center gap-1.5 shadow-xs"
+            title="Export Today's Invoices"
+          >
+            <Download size={14} className="text-[#0F645D]" />
+            <span>Export Today</span>
+          </button>
+          
+          <Link
+            to="/invoices/create"
+            className="px-4 py-2.5 rounded-[18px] bg-[#073E36] hover:bg-[#0B4B42] text-white text-xs font-extrabold transition-all shadow-xs flex items-center gap-2 active:scale-98"
+          >
+            <Plus size={16} />
+            <span>Create Invoice</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* 🔍 SEARCH BAR & FILTER PILLS                             */}
+      {/* ======================================================== */}
+      <div className="space-y-3.5">
+        <div className="flex items-center gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7B8781]" size={17} />
             <input 
               type="text" 
               placeholder="Search by ID, Customer, or Item description..." 
-              className="input-field pl-12 h-12"
+              className="w-full bg-white border border-[#E1E8DA] rounded-[20px] pl-11 pr-4 py-3 text-xs sm:text-sm text-[#102723] placeholder-[#899784] focus:outline-none focus:border-[#0F645D] transition-colors shadow-xs"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -206,31 +234,31 @@ export default function InvoicesPage() {
           <button 
             onClick={() => setShowFilters(!showFilters)}
             className={cn(
-              "btn-secondary flex items-center gap-2 px-6 h-12 justify-center transition-all",
-              showFilters && "bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20 border-emerald-500/30"
+              "h-11 sm:h-12 px-4 rounded-[20px] border border-[#E1E8DA] bg-white text-xs font-bold text-[#102723] hover:bg-[#F2F6EF] transition-all flex items-center gap-2 shadow-xs shrink-0 cursor-pointer",
+              showFilters && "bg-[#D7F4D4] border-[#9ACB94] text-[#163C2C]"
             )}
           >
-            <Filter size={18} className={cn("transition-colors", showFilters ? "text-emerald-600" : "text-slate-500")} />
-            <span className="text-sm">Filters</span>
+            <Filter size={15} className={showFilters ? "text-[#163C2C]" : "text-[#7B8781]"} />
+            <span className="hidden sm:inline">Filters</span>
           </button>
         </div>
 
-        {/* Stitch Quick Status Filter Tabs (with swipe/scroll & arrow buttons) */}
+        {/* Quick Status Filter Tabs with ScrollableTabBar */}
         <ScrollableTabBar className="gap-2 pb-1">
           {[
             { id: 'all', label: `All (${invoices.length})` },
             { id: 'paid', label: `Paid (${invoices.filter(i => i.status === 'paid').length})` },
-            { id: 'sent', label: `Unpaid (${invoices.filter(i => i.status === 'sent').length})` },
+            { id: 'sent', label: `Pending (${invoices.filter(i => i.status === 'sent').length})` },
             { id: 'overdue', label: `Overdue (${invoices.filter(i => i.status === 'overdue').length})` }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
               className={cn(
-                "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer border",
+                "px-4 py-2 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer border",
                 statusFilter === tab.id
-                  ? "bg-slate-900 text-white border-slate-900 shadow-xs"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  ? "bg-[#173C2C] text-white border-[#173C2C] shadow-xs"
+                  : "bg-white text-[#7B8B7D] border-[#E1E8DA] hover:bg-[#F2F6EF]"
               )}
             >
               {tab.label}
@@ -238,6 +266,7 @@ export default function InvoicesPage() {
           ))}
         </ScrollableTabBar>
 
+        {/* Expandable Advanced Filters */}
         <AnimatePresence>
           {showFilters && (
             <motion.div 
@@ -246,11 +275,11 @@ export default function InvoicesPage() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Payment Status</label>
+              <div className="p-5 bg-white border border-[#E9EEE4] rounded-[24px] grid grid-cols-1 md:grid-cols-4 gap-4 items-end shadow-xs">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#7B8B7D]">Status</label>
                   <select 
-                    className="input-field h-11 bg-white"
+                    className="w-full bg-[#F6F8F3] border border-[#E1E8DA] rounded-[15px] px-3 py-2.5 text-xs font-bold text-[#102723] focus:outline-none focus:border-[#0F645D]"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
@@ -262,10 +291,10 @@ export default function InvoicesPage() {
                   </select>
                 </div>
                 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">Timeline</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#7B8B7D]">Timeline</label>
                   <select 
-                    className="input-field h-11 bg-white"
+                    className="w-full bg-[#F6F8F3] border border-[#E1E8DA] rounded-[15px] px-3 py-2.5 text-xs font-bold text-[#102723] focus:outline-none focus:border-[#0F645D]"
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
                   >
@@ -273,26 +302,26 @@ export default function InvoicesPage() {
                     <option value="today">Today</option>
                     <option value="week">Past 7 Days</option>
                     <option value="month">Past 30 Days</option>
-                    <option value="custom">Custom Selection</option>
+                    <option value="custom">Custom Range</option>
                   </select>
                 </div>
 
                 {dateFilter === 'custom' && (
                   <>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">From</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#7B8B7D]">From</label>
                       <input 
                         type="date" 
-                        className="input-field h-11 bg-white"
+                        className="w-full bg-[#F6F8F3] border border-[#E1E8DA] rounded-[15px] px-3 py-2.5 text-xs text-[#102723] focus:outline-none focus:border-[#0F645D]"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">To</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-extrabold uppercase tracking-wider text-[#7B8B7D]">To</label>
                       <input 
                         type="date" 
-                        className="input-field h-11 bg-white"
+                        className="w-full bg-[#F6F8F3] border border-[#E1E8DA] rounded-[15px] px-3 py-2.5 text-xs text-[#102723] focus:outline-none focus:border-[#0F645D]"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
                       />
@@ -300,13 +329,13 @@ export default function InvoicesPage() {
                   </>
                 )}
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-2">
                   <button 
                     onClick={handleExportFiltered}
-                    className="btn-secondary h-11 px-4 text-xs font-bold bg-white flex items-center gap-2 flex-1"
+                    className="flex-1 px-4 py-2.5 bg-[#EFF5E8] hover:bg-[#E3EEDB] text-[#163C2C] rounded-[15px] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <Download size={14} />
-                    Export
+                    Export Filtered
                   </button>
                   <button 
                     onClick={() => {
@@ -316,10 +345,10 @@ export default function InvoicesPage() {
                       setStartDate('');
                       setEndDate('');
                     }}
-                    className="p-2.5 text-slate-500 hover:text-slate-900 transition-colors"
+                    className="p-2.5 bg-[#F6F8F3] hover:bg-[#EAEFE5] text-[#7B8781] hover:text-[#102723] rounded-[15px] transition-colors"
                     title="Clear Filters"
                   >
-                    <X size={20} />
+                    <X size={16} />
                   </button>
                 </div>
               </div>
@@ -328,279 +357,298 @@ export default function InvoicesPage() {
         </AnimatePresence>
       </div>
 
-      <div className="card-base overflow-hidden">
+      {/* ======================================================== */}
+      {/* 📋 INVOICE RECORDS LIST (MOBILE CARDS + DESKTOP TABLE)   */}
+      {/* ======================================================== */}
+      <div className="bg-white border border-[#E9EEE4] rounded-[26px] overflow-hidden shadow-xs">
         {/* Mobile View: Native Card Stack */}
-        <div className="block md:hidden divide-y divide-slate-100/80">
+        <div className="block md:hidden divide-y divide-[#EDF1E8]">
           {loading ? (
-            <div className="p-8 text-center">
+            <div className="p-10 text-center">
               <div className="flex items-center justify-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse [animation-delay:-0.2s]" />
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse [animation-delay:-0.4s]" />
+                <div className="w-2.5 h-2.5 bg-[#0F645D] rounded-full animate-pulse" />
+                <div className="w-2.5 h-2.5 bg-[#0F645D] rounded-full animate-pulse [animation-delay:-0.2s]" />
+                <div className="w-2.5 h-2.5 bg-[#0F645D] rounded-full animate-pulse [animation-delay:-0.4s]" />
               </div>
+              <p className="text-xs text-[#7B8B7D] mt-3 font-semibold">Loading invoices...</p>
             </div>
           ) : filteredInvoices.length === 0 ? (
             <div className="p-10 text-center">
-              <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 mx-auto mb-3">
-                <FileText className="text-slate-400" size={28} />
+              <div className="w-14 h-14 bg-[#EFF5E8] rounded-2xl flex items-center justify-center mx-auto mb-3 text-[#0F645D]">
+                <FileText size={26} />
               </div>
-              <p className="text-slate-900 font-bold text-sm">No transaction records</p>
-              <p className="text-slate-500 text-xs mt-1">Adjust filters or create a new invoice.</p>
+              <p className="text-[#102723] font-bold text-sm">No transaction records</p>
+              <p className="text-[#7B8B7D] text-xs mt-1">Adjust filters or create your first invoice.</p>
+              <Link 
+                to="/invoices/create" 
+                className="inline-flex items-center gap-1.5 mt-3 text-xs font-extrabold text-[#0F645D] hover:underline"
+              >
+                <Plus size={14} /> Create Invoice
+              </Link>
             </div>
           ) : (
-            filteredInvoices.map((invoice) => (
-              <div 
-                key={invoice.id} 
-                onClick={() => navigate(`/invoices/${invoice.id}`)}
-                className="p-4 space-y-3 hover:bg-slate-50/70 transition-colors cursor-pointer active:bg-slate-100/60"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Link 
-                      to={`/invoices/${invoice.id}`} 
-                      onClick={(e) => e.stopPropagation()}
-                      className="font-bold text-slate-900 hover:text-green-600 transition-colors text-sm flex items-center gap-1.5"
-                    >
-                      #INV-{invoice.id.slice(0, 4).toUpperCase()}
-                    </Link>
-                    <p className="text-xs font-semibold text-slate-700 mt-0.5">{invoice.customer_name || 'Individual Profile'}</p>
-                    <span className="text-[10px] text-slate-500 mt-1 font-medium flex items-center gap-1">
-                      <Calendar size={10} className="text-slate-400" />
-                      {invoice.created_at ? format(parseDateSafe(invoice.created_at), 'MMM d, yyyy') : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold text-slate-900 tabular-nums">
-                      {formatCurrency(invoice.amount ?? (invoice as any).total_amount, invoice.currency)}
-                    </div>
-                    <span className={cn(
-                      "inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                      invoice.status === 'paid' && "bg-emerald-50 text-emerald-700 border border-emerald-200/60",
-                      invoice.status === 'sent' && "bg-amber-50 text-amber-700 border border-amber-200/60",
-                      invoice.status === 'draft' && "bg-slate-100 text-slate-600 border border-slate-200",
-                      invoice.status === 'overdue' && "bg-rose-50 text-rose-700 border border-rose-200/60",
-                    )}>
-                      <span className={cn(
-                        "w-1.5 h-1.5 rounded-full",
-                        invoice.status === 'paid' && "bg-emerald-500",
-                        invoice.status === 'sent' && "bg-amber-500",
-                        invoice.status === 'draft' && "bg-slate-400",
-                        invoice.status === 'overdue' && "bg-rose-500",
-                      )} />
-                      {invoice.status}
-                    </span>
-                    {invoice.is_recurring && (
-                      <div className="mt-1">
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          <RefreshCw size={8} />
-                          {invoice.recurring_frequency || 'Recurring'}
+            filteredInvoices.map((invoice) => {
+              const invoiceAmount = invoice.amount ?? (invoice as any).total_amount ?? invoice.total ?? 0;
+              const customerName = invoice.customer_name || 'Individual Profile';
+              return (
+                <div 
+                  key={invoice.id} 
+                  onClick={() => navigate(`/invoices/${invoice.id}`)}
+                  className="p-4 space-y-3 hover:bg-[#F6F8F3] transition-colors cursor-pointer active:bg-[#EDF2E8]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-[#EFF5E8] text-[#1C563C] text-xs font-extrabold flex items-center justify-center shrink-0">
+                        {customerName.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-bold text-[#102723] text-sm">
+                          {invoice.invoice_number || `#INV-${invoice.id.slice(0, 4).toUpperCase()}`}
+                        </div>
+                        <p className="text-xs font-semibold text-[#4F6352] mt-0.5">{customerName}</p>
+                        <span className="text-[10px] text-[#7B8B7D] mt-0.5 flex items-center gap-1">
+                          <Calendar size={10} className="text-[#899784]" />
+                          {invoice.created_at ? format(parseDateSafe(invoice.created_at), 'MMM d, yyyy') : 'N/A'}
                         </span>
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100/60 text-xs">
-                  <span className="text-[11px] text-slate-500">
-                    Due: {invoice.due_date ? format(parseDateSafe(invoice.due_date), 'MMM d') : '-'}
-                  </span>
-                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    {invoice.is_recurring && (
+                    <div className="text-right">
+                      <div className="text-sm font-extrabold text-[#102723] tabular-nums">
+                        {formatCurrency(invoiceAmount, invoice.currency)}
+                      </div>
+                      <span className={cn(
+                        "inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                        invoice.status === 'paid' && "bg-[#DDF3DF] text-[#167653]",
+                        invoice.status === 'sent' && "bg-[#FCF0CC] text-[#9B7121]",
+                        invoice.status === 'draft' && "bg-[#EFF5E8] text-[#4F6352]",
+                        invoice.status === 'overdue' && "bg-[#FBE4E8] text-[#AC394E]",
+                      )}>
+                        {invoice.status}
+                      </span>
+                      {invoice.is_recurring && (
+                        <div className="mt-1">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#E6F3DF] text-[#167653]">
+                            <RefreshCw size={8} />
+                            {invoice.recurring_frequency || 'Recurring'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[#EDF1E8] text-xs">
+                    <span className="text-[11px] text-[#7B8B7D]">
+                      Due: {invoice.due_date ? format(parseDateSafe(invoice.due_date), 'MMM d') : '-'}
+                    </span>
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      {invoice.is_recurring && (
+                        <Link 
+                          to={`/invoices/new?renew_from=${invoice.id}`}
+                          className="p-2 text-[#0F645D] hover:bg-[#D7F4D4] rounded-xl transition-all"
+                          title="Generate Next Cycle / Renew"
+                        >
+                          <RefreshCw size={15} />
+                        </Link>
+                      )}
                       <Link 
-                        to={`/invoices/new?renew_from=${invoice.id}`}
-                        className="p-2 text-indigo-600 hover:text-indigo-700 bg-indigo-50 active:scale-95 rounded-xl transition-all"
-                        title="Generate Next Cycle / Renew"
+                        to={`/invoices/edit/${invoice.id}`}
+                        className="p-2 text-[#167653] hover:bg-[#DDF3DF] rounded-xl transition-all"
+                        title="Edit Invoice"
                       >
-                        <RefreshCw size={16} />
+                        <Edit3 size={15} />
                       </Link>
-                    )}
-                    <Link 
-                      to={`/invoices/edit/${invoice.id}`}
-                      className="p-2 text-emerald-700 hover:text-emerald-800 bg-emerald-50 active:scale-95 rounded-xl transition-all"
-                      title="Edit Invoice"
-                    >
-                      <Edit3 size={16} />
-                    </Link>
-                    <Link 
-                      to={`/invoices/${invoice.id}`}
-                      className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 active:scale-95 rounded-xl transition-all"
-                      title="View Invoice"
-                    >
-                      <FileText size={16} />
-                    </Link>
-                    {invoice.status !== 'paid' && (
-                      <button 
-                        onClick={() => handleMarkAsPaid(invoice.id)}
-                        className="p-2 text-green-600 hover:text-green-700 bg-green-50 active:scale-95 rounded-xl transition-all"
-                        title="Record Payment"
+                      <Link 
+                        to={`/invoices/${invoice.id}`}
+                        className="p-2 text-[#7B8B7D] hover:text-[#102723] hover:bg-[#EFF5E8] rounded-xl transition-all"
+                        title="View Invoice"
                       >
-                        <CheckCircle2 size={16} />
+                        <FileText size={15} />
+                      </Link>
+                      {invoice.status !== 'paid' && (
+                        <button 
+                          onClick={() => handleMarkAsPaid(invoice.id)}
+                          className="p-2 text-[#167653] hover:bg-[#DDF3DF] rounded-xl transition-all"
+                          title="Record Payment"
+                        >
+                          <CheckCircle2 size={15} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => handleDelete(invoice.id)}
+                        className="p-2 text-[#AC394E] hover:bg-[#FBE4E8] rounded-xl transition-all"
+                        title="Delete Record"
+                      >
+                        <Trash2 size={15} />
                       </button>
-                    )}
-                    <button 
-                      onClick={() => handleDelete(invoice.id)}
-                      className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 active:scale-95 rounded-xl transition-all"
-                      title="Delete Record"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
         {/* Desktop View: Full Data Table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-50/50 border-b border-slate-100">
+            <thead className="bg-[#F6F8F3] border-b border-[#E9EEE4]">
               <tr>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Transaction ID</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Client Name</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest tabular-nums">Amount</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Due Date</th>
-                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-[#7B8B7D] uppercase tracking-wider">Transaction ID</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-[#7B8B7D] uppercase tracking-wider">Client Name</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-[#7B8B7D] uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-[#7B8B7D] uppercase tracking-wider tabular-nums">Amount</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-[#7B8B7D] uppercase tracking-wider">Due Date</th>
+                <th className="px-6 py-4 text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100/60">
+            <tbody className="divide-y divide-[#EDF1E8]">
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-16 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:-0.2s]" />
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:-0.4s]" />
+                      <div className="w-2 h-2 bg-[#0F645D] rounded-full animate-pulse" />
+                      <div className="w-2 h-2 bg-[#0F645D] rounded-full animate-pulse [animation-delay:-0.2s]" />
+                      <div className="w-2 h-2 bg-[#0F645D] rounded-full animate-pulse [animation-delay:-0.4s]" />
                     </div>
+                    <p className="text-xs text-[#7B8B7D] mt-3 font-semibold">Loading invoices...</p>
                   </td>
                 </tr>
               ) : filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-24 text-center">
+                  <td colSpan={6} className="px-6 py-20 text-center">
                     <div className="max-w-xs mx-auto">
-                      <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 mx-auto mb-4">
-                        <FileText className="text-slate-500" size={32} />
+                      <div className="w-14 h-14 bg-[#EFF5E8] rounded-2xl flex items-center justify-center mx-auto mb-3 text-[#0F645D]">
+                        <FileText size={28} />
                       </div>
-                      <p className="text-slate-900 font-bold text-sm">No transaction records</p>
-                      <p className="text-slate-500 text-xs mt-1">Adjust your filters or start by creating a new invoice.</p>
+                      <p className="text-[#102723] font-bold text-sm">No transaction records</p>
+                      <p className="text-[#7B8B7D] text-xs mt-1">Adjust your filters or create a new invoice.</p>
+                      <Link 
+                        to="/invoices/create" 
+                        className="inline-flex items-center gap-1.5 mt-3 text-xs font-extrabold text-[#0F645D] hover:underline"
+                      >
+                        <Plus size={14} /> Create Invoice
+                      </Link>
                     </div>
                   </td>
                 </tr>
-              ) : filteredInvoices.map((invoice) => (
-                <tr 
-                  key={invoice.id} 
-                  onClick={() => navigate(`/invoices/${invoice.id}`)}
-                  className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
-                >
-                  <td className="px-6 py-5">
-                    <Link 
-                      to={`/invoices/${invoice.id}`} 
-                      onClick={(e) => e.stopPropagation()}
-                      className="font-bold text-slate-900 hover:text-green-600 transition-colors block leading-none"
-                    >
-                      #INV-{invoice.id.slice(0, 4).toUpperCase()}
-                    </Link>
-                    <span className="text-[10px] text-slate-500 mt-1.5 font-medium uppercase tracking-tight flex items-center gap-1.5">
-                      <Calendar size={10} className="text-slate-500" />
-                      {invoice.created_at ? format(parseDateSafe(invoice.created_at), 'MMM d, yyyy') : 'N/A'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex flex-col">
-                       <p className="text-sm font-semibold text-slate-900">{invoice.customer_name || 'Individual Profile'}</p>
-                       {invoice.items?.length > 0 && (
-                         <p className="text-[11px] text-slate-500 truncate max-w-[200px] mt-0.5">
-                           {invoice.items[0].description}
-                         </p>
-                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className={cn(
-                      "badge",
-                      invoice.status === 'paid' && "bg-green-50 text-green-700",
-                      invoice.status === 'sent' && "bg-amber-50 text-amber-700",
-                      invoice.status === 'draft' && "bg-slate-100 text-slate-600",
-                      invoice.status === 'overdue' && "bg-rose-50 text-rose-700",
-                    )}>
-                      {invoice.status}
-                    </span>
-                    {invoice.is_recurring && (
-                      <div className="mt-1">
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          <RefreshCw size={8} />
-                          {invoice.recurring_frequency || 'Recurring'}
-                        </span>
+              ) : filteredInvoices.map((invoice) => {
+                const invoiceAmount = invoice.amount ?? (invoice as any).total_amount ?? invoice.total ?? 0;
+                const customerName = invoice.customer_name || 'Individual Profile';
+                return (
+                  <tr 
+                    key={invoice.id} 
+                    onClick={() => navigate(`/invoices/${invoice.id}`)}
+                    className="hover:bg-[#F9FAF7] transition-colors group cursor-pointer"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="font-extrabold text-[#102723] group-hover:text-[#0F645D] transition-colors leading-none text-sm">
+                        {invoice.invoice_number || `#INV-${invoice.id.slice(0, 4).toUpperCase()}`}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-5 font-bold text-slate-900 tabular-nums">
-                    <div>{formatCurrency(invoice.amount, invoice.currency)}</div>
-                    {((invoice.advance_amount || invoice.advanceAmount) > 0) && (
-                      <div className="text-[10px] font-semibold text-emerald-600">
-                        Adv: {formatCurrency(invoice.advance_amount || invoice.advanceAmount, invoice.currency)}
+                      <span className="text-[10px] text-[#7B8B7D] mt-1 font-medium flex items-center gap-1">
+                        <Calendar size={10} className="text-[#899784]" />
+                        {invoice.created_at ? format(parseDateSafe(invoice.created_at), 'MMM d, yyyy') : 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <p className="text-xs font-bold text-[#102723]">{customerName}</p>
+                        {invoice.items?.length > 0 && (
+                          <p className="text-[10px] text-[#7B8B7D] truncate max-w-[200px] mt-0.5">
+                            {invoice.items[0].description}
+                          </p>
+                        )}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-5">
-                    <p className={cn(
-                      "text-xs font-medium",
-                      invoice.status !== 'paid' && invoice.due_date && parseDateSafe(invoice.due_date) < new Date() ? "text-rose-500 font-bold" : "text-slate-500"
-                    )}>
-                      {invoice.due_date ? format(parseDateSafe(invoice.due_date), 'MMM d, yyyy') : '-'}
-                    </p>
-                  </td>
-                  <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-end gap-1.5 opacity-100 transition-opacity">
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        "inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                        invoice.status === 'paid' && "bg-[#DDF3DF] text-[#167653]",
+                        invoice.status === 'sent' && "bg-[#FCF0CC] text-[#9B7121]",
+                        invoice.status === 'draft' && "bg-[#EFF5E8] text-[#4F6352]",
+                        invoice.status === 'overdue' && "bg-[#FBE4E8] text-[#AC394E]",
+                      )}>
+                        {invoice.status}
+                      </span>
                       {invoice.is_recurring && (
+                        <div className="mt-1">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#E6F3DF] text-[#167653]">
+                            <RefreshCw size={8} />
+                            {invoice.recurring_frequency || 'Recurring'}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 font-extrabold text-[#102723] tabular-nums text-xs">
+                      <div>{formatCurrency(invoiceAmount, invoice.currency)}</div>
+                      {((invoice.advance_amount || invoice.advanceAmount) > 0) && (
+                        <div className="text-[10px] font-semibold text-[#167653]">
+                          Adv: {formatCurrency(invoice.advance_amount || invoice.advanceAmount, invoice.currency)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className={cn(
+                        "text-xs font-semibold",
+                        invoice.status !== 'paid' && invoice.due_date && parseDateSafe(invoice.due_date) < new Date() ? "text-[#AC394E]" : "text-[#7B8B7D]"
+                      )}>
+                        {invoice.due_date ? format(parseDateSafe(invoice.due_date), 'MMM d, yyyy') : '-'}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1.5">
+                        {invoice.is_recurring && (
+                          <Link 
+                            to={`/invoices/new?renew_from=${invoice.id}`}
+                            className="p-2 text-[#0F645D] hover:bg-[#D7F4D4] rounded-xl transition-all"
+                            title="Generate Next Cycle / Renew"
+                          >
+                            <RefreshCw size={15} />
+                          </Link>
+                        )}
                         <Link 
-                          to={`/invoices/new?renew_from=${invoice.id}`}
-                          className="p-2 text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all"
-                          title="Generate Next Cycle / Renew"
+                          to={`/invoices/edit/${invoice.id}`}
+                          className="p-2 text-[#167653] hover:bg-[#DDF3DF] rounded-xl transition-all"
+                          title="Edit Invoice"
                         >
-                          <RefreshCw size={16} />
+                          <Edit3 size={15} />
                         </Link>
-                      )}
-                      <Link 
-                        to={`/invoices/edit/${invoice.id}`}
-                        className="p-2 text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-all"
-                        title="Edit Invoice"
-                      >
-                        <Edit3 size={16} />
-                      </Link>
-                      <Link 
-                        to={`/invoices/${invoice.id}`}
-                        className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
-                        title="View Ledger"
-                      >
-                        <FileText size={16} />
-                      </Link>
-                      {invoice.status !== 'paid' && (
-                        <button 
-                          onClick={() => handleMarkAsPaid(invoice.id)}
-                          className="p-2 text-green-600 hover:text-green-700 bg-green-50 hover:bg-green-100 rounded-xl transition-all"
-                          title="Record Payment"
+                        <Link 
+                          to={`/invoices/${invoice.id}`}
+                          className="p-2 text-[#7B8B7D] hover:text-[#102723] hover:bg-[#EFF5E8] rounded-xl transition-all"
+                          title="View Ledger"
                         >
-                          <CheckCircle2 size={16} />
+                          <FileText size={15} />
+                        </Link>
+                        {invoice.status !== 'paid' && (
+                          <button 
+                            onClick={() => handleMarkAsPaid(invoice.id)}
+                            className="p-2 text-[#167653] hover:bg-[#DDF3DF] rounded-xl transition-all"
+                            title="Record Payment"
+                          >
+                            <CheckCircle2 size={15} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => handleDelete(invoice.id)}
+                          className="p-2 text-[#AC394E] hover:bg-[#FBE4E8] rounded-xl transition-all"
+                          title="Remove Record"
+                        >
+                          <Trash2 size={15} />
                         </button>
-                      )}
-                      <button 
-                        onClick={() => handleDelete(invoice.id)}
-                        className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition-all"
-                        title="Remove Record"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* ======================================================== */}
+      {/* ⚠️ DELETE CONFIRMATION MODAL                             */}
+      {/* ======================================================== */}
       <AnimatePresence>
         {deletingId && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -609,34 +657,34 @@ export default function InvoicesPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setDeletingId(null)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-[#10251F]/60 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.98 }}
-              className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden p-8 text-center"
+              className="relative w-full max-w-sm bg-white rounded-[26px] border border-[#E9EEE4] shadow-2xl overflow-hidden p-6 text-center"
             >
-              <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-14 h-14 bg-[#FBE4E8] text-[#AC394E] rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <Trash2 size={24} />
               </div>
-              <h2 className="text-xl mb-2 tracking-tight">Delete transaction?</h2>
-              <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+              <h2 className="text-lg font-bold text-[#102723] mb-1 tracking-tight">Delete transaction?</h2>
+              <p className="text-xs text-[#7B8B7D] mb-6 leading-relaxed">
                 This will permanently remove the record from your ledger. This action cannot be reversed.
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2.5">
                 <button 
                   onClick={() => setDeletingId(null)}
-                  className="btn-secondary py-2 text-sm"
+                  className="px-4 py-2.5 rounded-[16px] bg-[#EFF5E8] hover:bg-[#E3EEDB] text-[#163C2C] text-xs font-bold transition-colors cursor-pointer"
                 >
                   Keep Record
                 </button>
                 <button 
                   onClick={confirmDelete}
                   disabled={isDeleting}
-                  className="bg-rose-600 text-white py-2 rounded-xl text-sm font-medium hover:bg-rose-700 transition-all disabled:opacity-50"
+                  className="px-4 py-2.5 rounded-[16px] bg-[#AC394E] hover:bg-[#922D3E] text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  {isDeleting ? 'Removing...' : 'Delete Permanently'}
+                  {isDeleting ? 'Removing...' : 'Delete'}
                 </button>
               </div>
             </motion.div>

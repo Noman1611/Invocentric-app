@@ -519,12 +519,12 @@ export default function DailyBook() {
     <>
       <div className="space-y-8 pb-20 max-w-6xl mx-auto print:hidden">
       {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-[24px] border border-[#E5EBE0] shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
         <div>
-          <h1 className="text-3xl font-black text-neutral-900 tracking-tight uppercase">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#10251F] tracking-tight">
             Daily Cash Book
           </h1>
-          <p className="text-neutral-500 font-bold text-sm mt-1 uppercase tracking-wider">
+          <p className="text-[#4B6358] font-medium text-sm mt-1">
             {formattedHeaderDate}
           </p>
         </div>
@@ -533,33 +533,33 @@ export default function DailyBook() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleToday}
-            className="px-4 py-2 text-xs font-black uppercase tracking-wider text-neutral-700 bg-neutral-100 hover:bg-neutral-200 active:bg-neutral-300 rounded-xl transition duration-150"
+            className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-[#073E36] bg-[#D7F4D4] hover:bg-[#C6E9C1] rounded-[14px] transition-all cursor-pointer"
           >
             Today
           </button>
 
-          <div className="flex items-center bg-neutral-50 rounded-xl border border-neutral-200/60 p-1">
+          <div className="flex items-center bg-[#F8FAF6] rounded-[14px] border border-[#E5EBE0] p-1">
             <button
               onClick={handlePreviousDay}
-              className="p-1.5 hover:bg-white active:bg-neutral-100 rounded-lg text-neutral-600 hover:text-neutral-900 transition"
+              className="p-1.5 hover:bg-white active:bg-[#F0F5ED] rounded-lg text-[#10251F] transition cursor-pointer"
               title="Previous Day"
             >
               <ChevronLeft size={18} />
             </button>
 
             <div className="flex items-center gap-2 px-2">
-              <Calendar className="text-neutral-400" size={16} />
+              <Calendar className="text-[#4B6358]" size={16} />
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="border-none bg-transparent p-0 text-xs font-black uppercase tracking-widest text-neutral-900 focus:ring-0 w-32"
+                className="border-none bg-transparent p-0 text-xs font-bold uppercase tracking-widest text-[#10251F] focus:ring-0 w-32 cursor-pointer"
               />
             </div>
 
             <button
               onClick={handleNextDay}
-              className="p-1.5 hover:bg-white active:bg-neutral-100 rounded-lg text-neutral-600 hover:text-neutral-900 transition"
+              className="p-1.5 hover:bg-white active:bg-[#F0F5ED] rounded-lg text-[#10251F] transition cursor-pointer"
               title="Next Day"
             >
               <ChevronRight size={18} />
@@ -570,39 +570,39 @@ export default function DailyBook() {
           <div className="flex flex-wrap items-center gap-2 print:hidden">
             <button
               onClick={handlePrintDailyBook}
-              className="px-3.5 py-2.5 text-xs font-black uppercase tracking-wider text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-[#10251F] bg-white hover:bg-[#F0F5ED] border border-[#E5EBE0] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Print Excel-Style Sheet"
             >
-              <Printer size={15} />
+              <Printer size={15} className="text-[#4B6358]" />
               <span>Print</span>
             </button>
 
             <button
               onClick={handleDownloadPDF}
               disabled={isDownloading}
-              className="px-3.5 py-2.5 text-xs font-black uppercase tracking-wider text-green-800 bg-green-50 hover:bg-green-100 border border-green-200/60 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-[#073E36] bg-[#D7F4D4] hover:bg-[#C6E9C1] border border-[#C6E9C1] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
               title="Download PDF Statement"
             >
               {isDownloading ? (
-                <LoaderCircle size={15} className="animate-spin text-green-600" />
+                <LoaderCircle size={15} className="animate-spin text-[#073E36]" />
               ) : (
-                <Download size={15} className="text-green-700" />
+                <Download size={15} className="text-[#073E36]" />
               )}
               <span>PDF</span>
             </button>
 
             <button
               onClick={handleExportExcel}
-              className="px-3.5 py-2.5 text-xs font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2.5 text-xs font-bold uppercase tracking-wider text-[#073E36] bg-[#D7F4D4] hover:bg-[#C6E9C1] border border-[#C6E9C1] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Export Excel Sheet (.xlsx)"
             >
-              <FileSpreadsheet size={15} className="text-emerald-700" />
+              <FileSpreadsheet size={15} className="text-[#073E36]" />
               <span>Excel</span>
             </button>
 
             <button
               onClick={handleWhatsAppShare}
-              className="px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white bg-[#25D366] hover:bg-[#128C7E] rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[#25D366] hover:bg-[#128C7E] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Download PDF & Share on WhatsApp"
             >
               <WhatsAppIcon size={16} />
@@ -618,78 +618,78 @@ export default function DailyBook() {
         animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm hover:shadow-md transition duration-200">
+        <div className="bg-white p-6 rounded-[22px] border border-[#E5EBE0] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-md transition duration-200">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#D7F4D4] text-[#073E36] flex items-center justify-center border border-[#C6E9C1] shrink-0">
               <FileText size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-[#0F645D] uppercase tracking-widest">
                 Total Sales
               </p>
-              <h3 className="text-2xl font-black text-neutral-900">
+              <h3 className="text-2xl font-extrabold text-[#10251F] tabular-nums">
                 {formatCurrency(sales.total, "INR")}
               </h3>
             </div>
           </div>
-          <p className="text-xs font-bold text-neutral-500">
+          <p className="text-xs font-medium text-[#4B6358]">
             {sales.count} Invoices created
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm hover:shadow-md transition duration-200">
+        <div className="bg-white p-6 rounded-[22px] border border-[#E5EBE0] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-md transition duration-200">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#D7F4D4] text-[#073E36] flex items-center justify-center border border-[#C6E9C1] shrink-0">
               <CreditCard size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-[#0F645D] uppercase tracking-widest">
                 Payments In
               </p>
-              <h3 className="text-2xl font-black text-neutral-900">
+              <h3 className="text-2xl font-extrabold text-[#10251F] tabular-nums">
                 {formatCurrency(payStats.total, "INR")}
               </h3>
             </div>
           </div>
-          <p className="text-xs font-bold text-neutral-500">
+          <p className="text-xs font-medium text-[#4B6358]">
             {payStats.count} Transactions received
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm hover:shadow-md transition duration-200">
+        <div className="bg-white p-6 rounded-[22px] border border-[#E5EBE0] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-md transition duration-200">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#F0F5ED] text-[#4B6358] flex items-center justify-center border border-[#E5EBE0] shrink-0">
               <ShoppingBag size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">
                 Purchases
               </p>
-              <h3 className="text-2xl font-black text-neutral-900">
+              <h3 className="text-2xl font-extrabold text-[#10251F] tabular-nums">
                 {formatCurrency(purStats.total, "INR")}
               </h3>
             </div>
           </div>
-          <p className="text-xs font-bold text-neutral-500">
+          <p className="text-xs font-medium text-[#4B6358]">
             {purStats.count} Purchase records
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-[2rem] border border-neutral-100 shadow-sm hover:shadow-md transition duration-200">
+        <div className="bg-white p-6 rounded-[22px] border border-[#E5EBE0] shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-md transition duration-200">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#FFDAD6]/50 text-[#BA1A1A] flex items-center justify-center border border-[#FFDAD6] shrink-0">
               <TrendingDown size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-[#BA1A1A] uppercase tracking-widest">
                 Expenses
               </p>
-              <h3 className="text-2xl font-black text-neutral-900">
+              <h3 className="text-2xl font-extrabold text-[#10251F] tabular-nums">
                 {formatCurrency(expStats.total, "INR")}
               </h3>
             </div>
           </div>
-          <p className="text-xs font-bold text-neutral-500">
+          <p className="text-xs font-medium text-[#4B6358]">
             {expStats.count} Expense records
           </p>
         </div>
@@ -700,19 +700,19 @@ export default function DailyBook() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-7 sm:p-8 rounded-3xl text-white flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl border border-slate-800"
+        className="bg-[#073E36] p-7 sm:p-8 rounded-[24px] text-white flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_4px_24px_rgba(7,62,54,0.15)] border border-[#0F645D]"
       >
         <div>
-          <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <p className="text-xs font-bold text-[#D7F4D4] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#D7F4D4] animate-pulse" />
             Net Daily Cash Balance (Payments In - Purchases - Expenses)
           </p>
           <div className="flex items-center gap-4">
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight text-white tabular-nums">
+            <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white tabular-nums">
               {formatCurrency(netBalance, "INR")}
             </h2>
             <div
-              className={`p-2.5 rounded-2xl ${netBalance >= 0 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-rose-500/20 text-rose-400 border border-rose-500/30"}`}
+              className={`p-2.5 rounded-2xl ${netBalance >= 0 ? "bg-white/15 text-[#D7F4D4] border border-white/20" : "bg-[#FFDAD6]/20 text-[#FFDAD6] border border-[#FFDAD6]/30"}`}
             >
               {netBalance >= 0 ? (
                 <ArrowUpRight size={28} />
@@ -726,14 +726,14 @@ export default function DailyBook() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleExportExcel}
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 border border-white/10"
+            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 border border-white/10 cursor-pointer"
           >
             <FileSpreadsheet size={16} />
             <span>Export Excel</span>
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 shadow-lg shadow-emerald-900/30"
+            className="px-4 py-2.5 bg-[#D7F4D4] hover:bg-[#C6E9C1] active:scale-95 text-[#073E36] rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center gap-2 shadow-xs cursor-pointer"
           >
             <Download size={16} />
             <span>Download PDF</span>

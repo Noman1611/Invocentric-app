@@ -767,12 +767,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
           <TrialBanner />
 
           {/* Responsive Header Bar */}
-          <div className="bg-white border-b border-slate-200/60 sticky top-0 z-50 px-3 sm:px-4 md:px-10 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 print:hidden">
+          <div className="bg-white border-b border-[#E5EBE0] sticky top-0 z-50 px-3 sm:px-4 md:px-10 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 print:hidden">
             {/* Left side: Mobile Brand OR Beautiful Desktop Search Bar */}
             <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
               <div id="mobile-brand-logo" className="md:hidden flex items-center gap-1.5 shrink-0">
                 <Logo size={32} showBg={true} />
-                <span className="font-brand text-[11px] sm:text-xs tracking-tight text-slate-900 hidden sm:inline-block">
+                <span className="font-brand text-[11px] sm:text-xs tracking-tight text-[#102723] hidden sm:inline-block">
                   <span className="font-extrabold">Invo</span><span className="font-bold">Centric</span>
                 </span>
               </div>
@@ -780,11 +780,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
               {/* Desktop Search Bar */}
               <div 
                 onClick={() => setIsSearchOpen(true)}
-                className="hidden md:flex items-center gap-2.5 bg-[#F8FAFB] border border-slate-200/60 rounded-xl px-3.5 py-2 w-full max-w-[340px] focus-within:ring-2 focus-within:ring-green-500/20 focus-within:border-green-500/60 transition-all cursor-pointer hover:bg-slate-50/50"
+                className="hidden md:flex items-center gap-2.5 bg-[#F6F8F3] border border-[#E5EBE0] hover:border-[#CCD4C8] rounded-2xl px-3.5 py-2 w-full max-w-[340px] focus-within:ring-2 focus-within:ring-[#163C2C]/10 focus-within:border-[#163C2C]/40 transition-all cursor-pointer"
               >
-                <Search size={16} className="text-slate-500 shrink-0" />
-                <span className="text-[13px] text-slate-500 select-none flex-1">Search anything...</span>
-                <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-200/80 px-1.5 py-0.5 rounded-md font-mono shrink-0 select-none ">
+                <Search size={16} className="text-[#7B8781] shrink-0" />
+                <span className="text-[13px] text-[#7B8781] select-none flex-1">Search anything...</span>
+                <span className="text-[10px] font-bold text-[#7B8781] bg-white border border-[#CCD4C8] px-1.5 py-0.5 rounded-md font-mono shrink-0 select-none">
                   ⌘K
                 </span>
               </div>
@@ -796,14 +796,14 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setIsStorageModalOpen(true)}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 border shrink-0 cursor-pointer",
+                  "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider transition-all duration-200 border shrink-0 cursor-pointer",
                   isLocalPc
-                    ? "bg-emerald-50 border-emerald-300 text-[#0d5c4b] hover:bg-emerald-100 shadow-xs"
-                    : "bg-teal-50 border-teal-200 text-teal-800 hover:bg-teal-100 shadow-xs"
+                    ? "bg-[#D7F4D4] border-[#C6E9C1] text-[#163C2C] hover:bg-[#C6E9C1] shadow-xs"
+                    : "bg-[#F6F8F3] border-[#E5EBE0] text-[#102723] hover:bg-[#E9EFE6] shadow-xs"
                 )}
                 title="Database Storage Mode & Automated Daily Backups"
               >
-                {isLocalPc ? <HardDrive size={13} className="text-[#0d5c4b] shrink-0" /> : <Cloud size={13} className="text-teal-700 shrink-0" />}
+                {isLocalPc ? <HardDrive size={13} className="text-[#163C2C] shrink-0" /> : <Cloud size={13} className="text-[#102723] shrink-0" />}
                 <span className="hidden sm:inline">{isLocalPc ? 'Local PC Storage' : 'Cloud Synced'}</span>
                 <span className="sm:hidden">{isLocalPc ? 'Local PC' : 'Cloud'}</span>
               </button>
@@ -812,13 +812,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setAppMode(appMode === 'shop' ? 'freelancer' : 'shop')}
                 className={cn(
-                  "flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all duration-300 border shrink-0",
-                  appMode === 'shop'
-                    ? "bg-green-50/70 border-green-100 text-green-700 hover:bg-green-100/50"
-                    : "bg-green-50/70 border-green-100 text-green-700 hover:bg-green-100/50"
+                  "flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider transition-all duration-200 border shrink-0",
+                  "bg-[#F6F8F3] border-[#E5EBE0] text-[#102723] hover:bg-[#E9EFE6]"
                 )}
               >
-                {appMode === 'shop' ? <Store size={12} className="text-green-600 shrink-0" /> : <Briefcase size={12} className="text-green-600 shrink-0" />}
+                {appMode === 'shop' ? <Store size={12} className="text-[#163C2C] shrink-0" /> : <Briefcase size={12} className="text-[#163C2C] shrink-0" />}
                 <span className="hidden xs:inline">{appMode === 'shop' ? 'Shop Mode' : 'Freelancer'}</span>
                 <span className="xs:hidden">{appMode === 'shop' ? 'Shop' : 'Free'}</span>
               </button>
@@ -829,13 +827,13 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                 className={cn(
                   "hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all shadow-xs cursor-pointer",
                   isPhoneScannerConnected
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                    ? "bg-[#D7F4D4] border-[#C6E9C1] text-[#163C2C] hover:bg-[#C6E9C1]"
+                    : "bg-[#F6F8F3] border-[#E5EBE0] text-[#7B8781] hover:bg-[#E9EFE6]"
                 )}
                 title="Global Mobile Phone Barcode Scanner (Works across all pages)"
               >
-                <div className={cn("w-2 h-2 rounded-full", isPhoneScannerConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-400")} />
-                <ScanLine size={14} className={isPhoneScannerConnected ? "text-emerald-600" : "text-slate-500"} />
+                <div className={cn("w-2 h-2 rounded-full", isPhoneScannerConnected ? "bg-[#118062] animate-pulse" : "bg-[#CCD4C8]")} />
+                <ScanLine size={14} className={isPhoneScannerConnected ? "text-[#163C2C]" : "text-[#7B8781]"} />
                 <span className="hidden sm:inline">{isPhoneScannerConnected ? 'Phone Scanner Connected' : 'Connect Phone'}</span>
               </button>
 
@@ -843,9 +841,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setIsDemoScriptOpen(true)}
                 title="Interactive App Guide & Voiceover Audio Tour"
-                className="hidden sm:flex px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-800 border border-green-200 rounded-xl transition-all items-center gap-1.5 text-xs font-bold shadow-xs active:scale-95 cursor-pointer"
+                className="hidden sm:flex px-3 py-1.5 bg-[#073E36] hover:bg-[#10251F] text-[#D7F4D4] border border-[#073E36] rounded-xl transition-all items-center gap-1.5 text-xs font-extrabold shadow-xs active:scale-95 cursor-pointer"
               >
-                <Sparkles size={14} className="text-green-700 animate-pulse" />
+                <Sparkles size={14} className="text-[#D7F4D4] animate-pulse" />
                 <span className="hidden sm:inline font-extrabold text-[11px] uppercase tracking-wider">App Guide & Audio Tour</span>
               </button>
 
@@ -858,13 +856,13 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                   setIsProfileOpen(false);
                 }}
                 className={cn(
-                  "relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-xl transition-all flex items-center justify-center",
-                  isNotificationsOpen && "bg-slate-50 text-slate-800 border-slate-200 shadow-inner"
+                  "relative p-2 text-[#7B8781] hover:text-[#102723] hover:bg-[#F6F8F3] border border-[#E5EBE0] rounded-xl transition-all flex items-center justify-center",
+                  isNotificationsOpen && "bg-[#F6F8F3] text-[#102723] border-[#CCD4C8] shadow-inner"
                 )}
               >
                 <Bell size={18} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-white animate-pulse"></span>
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#BE3349] ring-2 ring-white animate-pulse"></span>
                 )}
               </button>
 
@@ -873,12 +871,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent('open_shortcuts_modal'))}
                 title="Keyboard Navigation Shortcuts (Press ? or F1)"
-                className="hidden md:flex p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-xl transition-all items-center justify-center cursor-pointer"
+                className="hidden md:flex p-2 text-[#7B8781] hover:text-[#102723] hover:bg-[#F6F8F3] border border-[#E5EBE0] rounded-xl transition-all items-center justify-center cursor-pointer"
               >
                 <Keyboard size={18} />
               </button>
 
-              <div className="h-6 w-px bg-slate-200/80 hidden xs:block" />
+              <div className="h-6 w-px bg-[#E5EBE0] hidden xs:block" />
 
               {/* User Dropdown Profile Pill */}
               <div 
@@ -889,26 +887,26 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                   setIsNotificationsOpen(false);
                 }}
                 className={cn(
-                  "flex items-center gap-3 hover:bg-slate-50/80 p-1.5 rounded-2xl transition-all cursor-pointer border border-transparent select-none",
-                  isProfileOpen && "bg-slate-50/80 border-slate-100"
+                  "flex items-center gap-3 hover:bg-[#F6F8F3] p-1.5 rounded-2xl transition-all cursor-pointer border border-transparent select-none",
+                  isProfileOpen && "bg-[#F6F8F3] border-[#E5EBE0]"
                 )}
               >
-                <div className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden border border-slate-200 bg-green-50">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden border border-[#C6E9C1] bg-[#D7F4D4]">
                   {userAvatar ? (
                     <img src={userAvatar} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs font-black text-green-600">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
+                    <span className="text-xs font-black text-[#163C2C]">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                   )}
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-[13px] font-bold text-slate-900 leading-tight">
+                  <p className="text-[13px] font-bold text-[#102723] leading-tight">
                     {user?.displayName || user?.email?.split('@')[0] || 'User'}
                   </p>
-                  <p className="text-[9px] font-bold text-slate-500 tracking-wider">
+                  <p className="text-[9px] font-bold text-[#7B8781] tracking-wider">
                     {planTier === 'pro' ? 'Pro Account' : 'Free Account'}
                   </p>
                 </div>
-                <ChevronDown size={14} className="text-slate-500 hidden sm:block" />
+                <ChevronDown size={14} className="text-[#7B8781] hidden sm:block" />
               </div>
 
               {/* FLOATING NOTIFICATION DROPDOWN */}
@@ -920,11 +918,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="max-sm:fixed max-sm:inset-x-4 max-sm:top-16 max-sm:w-auto absolute right-14 top-14 w-80 md:w-96 bg-white border border-slate-200/80 rounded-2xl shadow-xl shadow-slate-200/50 z-50 overflow-hidden"
+                    className="max-sm:fixed max-sm:inset-x-4 max-sm:top-16 max-sm:w-auto absolute right-14 top-14 w-80 md:w-96 bg-white border border-[#E5EBE0] rounded-2xl shadow-xl shadow-[#10251F]/10 z-50 overflow-hidden"
                   >
-                    <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                      <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                        <Bell size={14} className="text-green-600" />
+                    <div className="p-4 border-b border-[#E5EBE0] flex items-center justify-between bg-[#F6F8F3]">
+                      <h3 className="text-xs font-bold text-[#102723] uppercase tracking-wider flex items-center gap-1.5">
+                        <Bell size={14} className="text-[#163C2C]" />
                         Recent Notifications
                       </h3>
                       <div className="flex items-center gap-2">
@@ -938,11 +936,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                               )
                             );
                           }}
-                          className="text-[10px] font-black text-green-600 hover:text-green-700 uppercase tracking-wider"
+                          className="text-[10px] font-black text-[#163C2C] hover:text-[#073E36] uppercase tracking-wider"
                         >
                           Mark all read
                         </button>
-                        <span className="text-slate-300 text-[10px]">|</span>
+                        <span className="text-[#CCD4C8] text-[10px]">|</span>
                         <button 
                           onClick={async () => {
                             if (!user) return;
@@ -953,7 +951,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                               )
                             );
                           }}
-                          className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-wider"
+                          className="text-[10px] font-black text-[#BE3349] hover:text-[#BE3349]/80 uppercase tracking-wider"
                         >
                           Clear All
                         </button>
@@ -961,7 +959,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                     </div>
 
                     {/* Category Tabs */}
-                    <div className="flex border-b border-slate-100 bg-slate-50/20 p-1 gap-1">
+                    <div className="flex border-b border-[#E5EBE0] bg-[#FAFBF7] p-1 gap-1">
                       {(['all', 'invoices', 'inventory', 'other'] as const).map(tab => (
                         <button
                           key={tab}
@@ -969,8 +967,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                           className={cn(
                             "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all",
                             activeTab === tab 
-                              ? "bg-white text-green-600 shadow-sm border border-slate-100" 
-                              : "text-slate-500 hover:text-slate-800 hover:bg-slate-100/50"
+                              ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs border border-[#C6E9C1]" 
+                              : "text-[#7B8781] hover:text-[#102723] hover:bg-[#E9EFE6]"
                           )}
                         >
                           {tab}
@@ -980,10 +978,10 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
                     <div className="divide-y divide-slate-100 max-h-[320px] overflow-y-auto">
                       {filteredNotifications.length === 0 ? (
-                        <div className="p-8 text-center text-slate-400">
-                          <Bell size={24} className="mx-auto mb-2 text-slate-300 stroke-[1.5]" />
-                          <p className="text-xs font-semibold">No notifications</p>
-                          <p className="text-[10px] text-slate-400 mt-1">
+                        <div className="p-8 text-center text-[#7B8781]">
+                          <Bell size={24} className="mx-auto mb-2 text-[#CCD4C8] stroke-[1.5]" />
+                          <p className="text-xs font-semibold text-[#102723]">No notifications</p>
+                          <p className="text-[10px] text-[#7B8781] mt-1">
                             {activeTab === 'all' 
                               ? "Real-time alerts will appear here as you create invoices, make payments, and update inventory."
                               : `No notifications in the ${activeTab} category.`}
@@ -993,18 +991,18 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                         filteredNotifications.map(n => {
                           const cat = (n.category || '').toLowerCase();
                           const txt = (n.text || '').toLowerCase();
-                          let icon = <Bell size={14} className="text-green-600" />;
+                          let icon = <Bell size={14} className="text-[#163C2C]" />;
                           
                           if (cat === 'invoices' || txt.includes('invoice') || txt.includes('payment')) {
-                            icon = <FileText size={14} className="text-green-600" />;
+                            icon = <FileText size={14} className="text-[#163C2C]" />;
                           } else if (cat === 'inventory' || txt.includes('product') || txt.includes('stock') || txt.includes('inventory')) {
-                            icon = <Package size={14} className="text-amber-500" />;
+                            icon = <Package size={14} className="text-[#B7892E]" />;
                           } else if (cat === 'customers' || txt.includes('customer')) {
-                            icon = <Users size={14} className="text-emerald-700" />;
+                            icon = <Users size={14} className="text-[#118062]" />;
                           } else if (cat === 'expenses' || txt.includes('expense') || txt.includes('purchase')) {
-                            icon = <TrendingDown size={14} className="text-rose-500" />;
+                            icon = <TrendingDown size={14} className="text-[#BE3349]" />;
                           } else if (cat === 'settings' || txt.includes('profile') || txt.includes('settings')) {
-                            icon = <Settings size={14} className="text-slate-500" />;
+                            icon = <Settings size={14} className="text-[#7B8781]" />;
                           }
 
                           return (
@@ -1053,18 +1051,18 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                               }}
                               className={cn(
                                 "p-3.5 text-left transition-colors cursor-pointer flex gap-2.5 items-start",
-                                n.read ? "bg-white hover:bg-slate-50/50" : "bg-green-50/20 hover:bg-green-50/40"
+                                n.read ? "bg-white hover:bg-[#F6F8F3]" : "bg-[#D7F4D4]/20 hover:bg-[#D7F4D4]/35"
                               )}
                             >
                               <div className="shrink-0 mt-1 relative flex items-center justify-center">
                                 {icon}
                                 {!n.read && (
-                                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse border border-white" />
+                                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-[#BE3349] rounded-full animate-pulse border border-white" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-[11.5px] font-medium text-slate-700 leading-normal">{n.text}</p>
-                                <p className="text-[9px] text-slate-500 mt-1 font-semibold uppercase">{getRelativeTimeString(n.created_at)}</p>
+                                <p className="text-[11.5px] font-medium text-[#102723] leading-normal">{n.text}</p>
+                                <p className="text-[9px] text-[#7B8781] mt-1 font-semibold uppercase">{getRelativeTimeString(n.created_at)}</p>
                               </div>
                             </div>
                           );
@@ -1077,18 +1075,18 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
               {/* FLOATING USER PROFILE DROPDOWN */}
               {isProfileOpen && (
-                <div ref={profileDropdownRef} className="absolute right-0 top-14 max-sm:fixed max-sm:right-3 max-sm:top-14 w-64 bg-white border border-slate-200/90 rounded-2xl shadow-2xl z-[9999] overflow-hidden animate-fadeIn">
-                  <div className="p-4 border-b border-slate-100 bg-slate-50/70 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border border-slate-200 bg-green-50 shrink-0">
+                <div ref={profileDropdownRef} className="absolute right-0 top-14 max-sm:fixed max-sm:right-3 max-sm:top-14 w-64 bg-white border border-[#E5EBE0] rounded-2xl shadow-2xl z-[9999] overflow-hidden animate-fadeIn">
+                  <div className="p-4 border-b border-[#E5EBE0] bg-[#F6F8F3] flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden border border-[#C6E9C1] bg-[#D7F4D4] shrink-0">
                       {userAvatar ? (
                         <img src={userAvatar} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-sm font-black text-green-600">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
+                        <span className="text-sm font-black text-[#163C2C]">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                       )}
                     </div>
                     <div className="text-left min-w-0">
-                      <p className="text-xs font-black text-slate-800 truncate">{user?.displayName || user?.email?.split('@')[0] || 'User'}</p>
-                      <p className="text-[10px] font-bold text-slate-500 truncate">{user?.email}</p>
+                      <p className="text-xs font-black text-[#102723] truncate">{user?.displayName || user?.email?.split('@')[0] || 'User'}</p>
+                      <p className="text-[10px] font-bold text-[#7B8781] truncate">{user?.email}</p>
                     </div>
                   </div>
                   <div className="p-1.5 space-y-0.5">
@@ -1097,9 +1095,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                         setIsProfileOpen(false);
                         setIsDemoScriptOpen(true);
                       }}
-                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-green-700 bg-green-50/50 hover:bg-green-100/60 transition-all"
+                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#163C2C] bg-[#D7F4D4]/40 hover:bg-[#D7F4D4] transition-all"
                     >
-                      <Sparkles size={14} className="text-green-600 animate-pulse" />
+                      <Sparkles size={14} className="text-[#163C2C] animate-pulse" />
                       App Guide & Audio Tour
                     </button>
                     <button 
@@ -1107,9 +1105,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                         setIsProfileOpen(false);
                         setIsGlobalScannerModalOpen(true);
                       }}
-                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-50 transition-all"
+                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#102723] hover:bg-[#F6F8F3] transition-all"
                     >
-                      <ScanLine size={14} className="text-slate-500" />
+                      <ScanLine size={14} className="text-[#7B8781]" />
                       Phone Scanner
                     </button>
                     <button 
@@ -1117,9 +1115,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                         setIsProfileOpen(false);
                         setIsProfileModalOpen(true);
                       }}
-                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-50 transition-all"
+                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#102723] hover:bg-[#F6F8F3] transition-all"
                     >
-                      <UserIcon size={14} className="text-slate-500" />
+                      <UserIcon size={14} className="text-[#7B8781]" />
                       Quick Edit Card
                     </button>
                     <button 
@@ -1127,20 +1125,20 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                         setIsProfileOpen(false);
                         navigate('/settings');
                       }}
-                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-950 hover:bg-slate-50 transition-all"
+                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[#102723] hover:bg-[#F6F8F3] transition-all"
                     >
-                      <Settings size={14} className="text-slate-500" />
+                      <Settings size={14} className="text-[#7B8781]" />
                       Business Settings
                     </button>
-                    <div className="h-px bg-slate-100 my-1" />
+                    <div className="h-px bg-[#E5EBE0] my-1" />
                     <button 
                       onClick={() => {
                         setIsProfileOpen(false);
                         logout();
                       }}
-                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-50/50 transition-all"
+                      className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#BE3349] hover:bg-[#BE3349]/10 transition-all"
                     >
-                      <LogOut size={14} className="text-rose-400" />
+                      <LogOut size={14} className="text-[#BE3349]" />
                       Logout
                     </button>
                   </div>
@@ -1149,7 +1147,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-10 relative pb-28 md:pb-10 bg-[#F8FAFB] print:p-0 print:m-0 print:h-auto print:overflow-visible print:static print:bg-white" id="main-scroll-container">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-10 relative pb-28 md:pb-10 bg-[#F6F8F3] print:p-0 print:m-0 print:h-auto print:overflow-visible print:static print:bg-white" id="main-scroll-container">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}

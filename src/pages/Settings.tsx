@@ -1207,28 +1207,28 @@ export default function SettingsPage() {
 
         {/* Desktop Header */}
         <header className="mb-6 pt-2">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200/80">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#E5EBE0]">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-100 shadow-xs">
-                <Settings size={26} className="text-emerald-800" />
+              <div className="w-12 h-12 rounded-2xl bg-[#073E36] text-[#D7F4D4] flex items-center justify-center border border-[#0F645D] shadow-xs">
+                <Settings size={24} className="text-[#D7F4D4]" />
               </div>
               <div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tight">Settings</h1>
-                <p className="text-xs text-slate-500 font-semibold mt-0.5">Manage your account, business profiles and system preferences</p>
+                <h1 className="text-2xl font-extrabold text-[#10251F] tracking-tight">Settings</h1>
+                <p className="text-xs text-[#52796F] font-semibold mt-0.5">Manage your account, business profiles and system preferences</p>
               </div>
             </div>
 
             {/* Autosave Status Indicator */}
             <div className="flex items-center gap-3">
               {saveStatus === 'saving' && (
-                <div className="px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse">
-                  <span className="w-2 h-2 bg-emerald-600 rounded-full animate-ping"></span>
+                <div className="px-3.5 py-1.5 bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1] rounded-full text-xs font-bold flex items-center gap-2 animate-pulse">
+                  <span className="w-2 h-2 bg-[#073E36] rounded-full animate-ping"></span>
                   Saving automatically...
                 </div>
               )}
               {saveStatus === 'saved' && (
-                <div className="px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 size={14} className="text-emerald-700" />
+                <div className="px-3.5 py-1.5 bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1] rounded-full text-xs font-bold flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-[#073E36]" />
                   All changes saved
                 </div>
               )}
@@ -1239,8 +1239,8 @@ export default function SettingsPage() {
                 </div>
               )}
               {saveStatus === 'idle' && isLoadedRef.current && (
-                <div className="px-3 py-1.5 text-slate-500 text-xs font-medium flex items-center gap-1.5 bg-slate-50 rounded-full border border-slate-200">
-                  <CheckCircle2 size={13} className="text-emerald-700" />
+                <div className="px-3 py-1.5 text-[#52796F] text-xs font-medium flex items-center gap-1.5 bg-[#F8FAF6] rounded-full border border-[#E5EBE0]">
+                  <CheckCircle2 size={13} className="text-[#073E36]" />
                   Auto-save active
                 </div>
               )}
@@ -1260,11 +1260,11 @@ export default function SettingsPage() {
                   className={cn(
                     "flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shrink-0 cursor-pointer",
                     isActive 
-                      ? "bg-[#166534] text-white shadow-sm shadow-green-900/10" 
-                      : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200"
+                      ? "bg-[#073E36] text-white shadow-xs" 
+                      : "bg-[#F8FAF6] text-[#52796F] hover:text-[#10251F] hover:bg-[#E5EBE0] border border-[#E5EBE0]"
                   )}
                 >
-                  <IconComp size={15} className={isActive ? "text-white" : "text-slate-500"} />
+                  <IconComp size={15} className={isActive ? "text-[#D7F4D4]" : "text-[#52796F]"} />
                   <span>{cat.label}</span>
                   {(cat as any).badge && (
                     <span className={cn(

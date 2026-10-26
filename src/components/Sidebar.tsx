@@ -150,24 +150,27 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
 
   return (
     <aside className={cn(
-      "h-screen flex flex-col transition-all duration-300 ease-in-out relative z-20 shadow-xl bg-white text-[#4F5B66] border-r border-slate-100/80",
+      "h-screen flex flex-col transition-all duration-300 ease-in-out relative z-20 shadow-sm bg-white text-[#102723] border-r border-[#E5EBE0]",
       collapsed ? "w-20" : "w-64"
     )}>
-      {/* Header with App Logo */}
-      <div className="p-5 flex items-center justify-between mb-2">
+      {/* Header with Official App Logo */}
+      <div className="p-5 flex items-center justify-between mb-2 border-b border-[#F0F4EC]">
         <div className={cn("flex items-center gap-2.5 transition-all duration-300", collapsed && "opacity-0 hidden")}>
-          <Logo size={38} showBg={true} />
+          <Logo size={36} showBg={true} />
           <div className="flex flex-col">
-            <span className="font-brand text-[15px] tracking-tight text-slate-900 leading-tight">
-              <span className="font-black text-slate-800">Invo</span><span className="font-bold text-slate-700">Centric</span>
+            <span className="font-brand text-[15px] tracking-tight text-[#102723] leading-tight font-extrabold">
+              Invo<span className="text-[#0F645D]">Centric</span>
             </span>
-            <span className="text-[8px] font-black uppercase tracking-widest leading-none text-[#166534] mt-0.5">Enterprise Edition</span>
+            <span className="text-[8px] font-black uppercase tracking-widest leading-none text-[#0F645D] bg-[#E6F3EE] px-1.5 py-0.5 rounded-full mt-0.5 inline-block w-max">
+              Enterprise
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-1">
           <button 
             onClick={() => setCollapsed(!collapsed)}
-            className="p-1.5 rounded-lg transition-all hover:bg-slate-50 text-slate-500 hover:text-slate-800"
+            className="p-1.5 rounded-xl transition-all hover:bg-[#E9EFE6] text-[#7B8781] hover:text-[#102723] cursor-pointer"
+            title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             <ChevronLeft size={16} className={cn("transition-transform duration-300", collapsed && "rotate-180")} />
           </button>
@@ -175,24 +178,24 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
       </div>
 
       {/* Nav Items Scrollable List */}
-      <div className="flex-1 overflow-y-auto px-4 mt-2 custom-scrollbar no-scrollbar space-y-1">
+      <div className="flex-1 overflow-y-auto px-3.5 mt-2 custom-scrollbar no-scrollbar space-y-1">
         {/* Dashboard Link stands at the very top */}
         <NavLink
           to="/"
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative mb-1.5",
+              "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative mb-1.5",
               isActive 
-                ? "bg-[#F0FDF4] text-[#166534] font-extrabold" 
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs" 
+                : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
             )
           }
         >
           {({ isActive }) => (
             <>
-              <Home size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
+              <Home size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
               {!collapsed && (
-                <span className="text-[13px] tracking-tight font-bold">
+                <span className="text-[13px] tracking-tight">
                   <KeyUnderline text="Dashboard" hotkey="D" />
                 </span>
               )}
@@ -215,23 +218,23 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
           }}
           className={({ isActive }) =>
             cn(
-              "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative mb-4",
+              "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative mb-4",
               isActive 
-                ? "bg-[#F0FDF4] text-[#166534] font-extrabold" 
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs" 
+                : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
             )
           }
         >
           {({ isActive }) => (
             <>
-              <Store size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
+              <Store size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
               {!collapsed && (
-                <span className="text-[13px] tracking-tight font-bold flex items-center justify-between flex-1">
+                <span className="text-[13px] tracking-tight flex items-center justify-between flex-1">
                   <KeyUnderline text="Quick POS" hotkey="K" />
                   {!isPro ? (
-                    <Lock size={12} className="text-emerald-700 ml-1.5 shrink-0" />
+                    <Lock size={12} className="text-[#0F645D] ml-1.5 shrink-0" />
                   ) : (
-                    <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">FAST</span>
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-[#073E36] text-[#D7F4D4] px-1.5 py-0.5 rounded-full">FAST</span>
                   )}
                 </span>
               )}
@@ -241,9 +244,9 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
 
         {/* Grouped menu sections */}
         {menuGroups.map((group) => (
-          <div key={group.title} className={cn("space-y-1 mb-5", collapsed && "mb-3")}>
+          <div key={group.title} className={cn("space-y-1 mb-4", collapsed && "mb-2")}>
             {!collapsed && (
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#8A99AD] px-4 mb-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#7B8B78] px-3.5 mb-1 mt-3">
                 {group.title}
               </p>
             )}
@@ -255,12 +258,12 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                   target="_blank"
                   rel="noopener noreferrer"
                   className={cn(
-                    "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
                   )}
                 >
-                  <item.icon size={18} className="shrink-0 text-slate-500 group-hover:text-slate-600" />
+                  <item.icon size={18} className="shrink-0 text-[#7B8781] group-hover:text-[#102723]" />
                   {!collapsed && (
-                    <span className="text-[13px] tracking-tight font-bold">
+                    <span className="text-[13px] tracking-tight">
                       <KeyUnderline text={item.name} hotkey={(item as any).hotkey} />
                     </span>
                   )}
@@ -271,18 +274,18 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                   to={item.path}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative",
+                      "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative",
                       isActive 
-                        ? "bg-[#F0FDF4] text-[#166534] font-extrabold" 
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                        ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs" 
+                        : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
                     )
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      <item.icon size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
+                      <item.icon size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
                       {!collapsed && (
-                        <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between">
+                        <span className="text-[13px] tracking-tight flex-1 flex items-center justify-between">
                           <span>
                             <KeyUnderline text={item.name} hotkey={(item as any).hotkey} />
                           </span>
@@ -299,26 +302,26 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
         {/* Collapsible Settings Menu */}
         <div className={cn("space-y-1 mb-3 mt-1", collapsed && "mb-2")}>
           {!collapsed && (
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#8A99AD] px-4 mb-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#7B8B78] px-3.5 mb-1 mt-3">
               PREFERENCES
             </p>
           )}
           <button
             onClick={() => setSettingsOpen(!settingsOpen)}
             className={cn(
-              "w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative cursor-pointer",
+              "w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative cursor-pointer",
               location.pathname.startsWith('/settings')
-                ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs"
+                : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
             )}
           >
-            <Settings size={18} className={cn("shrink-0 transition-colors", location.pathname.startsWith('/settings') ? "text-[#166534]" : "text-slate-500 group-hover:text-slate-600")} />
+            <Settings size={18} className={cn("shrink-0 transition-colors", location.pathname.startsWith('/settings') ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
             {!collapsed && (
-              <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between text-left">
+              <span className="text-[13px] tracking-tight flex-1 flex items-center justify-between text-left">
                 <KeyUnderline text="Settings" hotkey="S" />
                 {settingsOpen
-                  ? <ChevronDown size={14} className="text-[#166534] transition-transform duration-200" />
-                  : <ChevronRight size={14} className="text-slate-400 transition-transform duration-200" />
+                  ? <ChevronDown size={14} className="text-[#163C2C] transition-transform duration-200" />
+                  : <ChevronRight size={14} className="text-[#7B8781] transition-transform duration-200" />
                 }
               </span>
             )}
@@ -326,7 +329,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
 
           {/* Settings Sub-Menu */}
           {settingsOpen && !collapsed && (
-            <div className="space-y-0.5 pl-3 border-l-2 border-[#D1FAE5] ml-5">
+            <div className="space-y-0.5 pl-3 border-l-2 border-[#C6E9C1] ml-5 my-1">
               {settingsSubItems.map((sub) => {
                 const isSubActive = location.pathname === '/settings' && location.search === sub.path.replace('/settings', '');
                 return (
@@ -334,14 +337,14 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                     key={sub.path}
                     to={sub.path}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 group relative text-[12px]",
+                      "flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 group relative text-[12px]",
                       isSubActive
-                        ? "bg-[#F0FDF4] text-[#166534] font-extrabold"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                        ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs"
+                        : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
                     )}
                   >
-                    <sub.icon size={15} className={cn("shrink-0", isSubActive ? "text-[#166534]" : "text-slate-400 group-hover:text-slate-600")} />
-                    <span className="tracking-tight font-bold">{sub.name}</span>
+                    <sub.icon size={15} className={cn("shrink-0", isSubActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
+                    <span className="tracking-tight">{sub.name}</span>
                   </NavLink>
                 );
               })}
@@ -351,9 +354,9 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
 
         {/* Admin Section */}
         {showAdmin && (
-          <div className={cn("space-y-1 mb-5", collapsed && "mb-3")}>
+          <div className={cn("space-y-1 mb-4", collapsed && "mb-2")}>
             {!collapsed && (
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#8A99AD] px-4 mb-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#7B8B78] px-3.5 mb-1 mt-3">
                 ADMIN
               </p>
             )}
@@ -361,28 +364,28 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
               to={adminItem.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3.5 px-4 py-2.5 rounded-xl transition-all duration-200 group relative",
+                  "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative",
                   isActive 
-                    ? "bg-[#EEF2F6] text-slate-800 font-extrabold" 
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs" 
+                    : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
                 )
               }
             >
               {({ isActive }) => (
                 <>
-                  <adminItem.icon size={18} className={cn("shrink-0 transition-colors", isActive ? "text-slate-800" : "text-slate-500 group-hover:text-slate-600")} />
+                  <adminItem.icon size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
                   {!collapsed && (
-                    <span className="text-[13px] tracking-tight font-bold flex-1 flex items-center justify-between">
+                    <span className="text-[13px] tracking-tight flex-1 flex items-center justify-between">
                       <KeyUnderline text={adminItem.name} hotkey={adminItem.hotkey} />
                       {pendingCount > 0 && (
-                        <span className="bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                        <span className="bg-[#BE3349] text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
                           {pendingCount}
                         </span>
                       )}
                     </span>
                   )}
                   {collapsed && pendingCount > 0 && (
-                    <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse border-2 border-white" />
+                    <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-[#BE3349] animate-pulse border-2 border-white" />
                   )}
                 </>
               )}
@@ -391,38 +394,38 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
         )}
       </div>
 
-      {/* Footer area matching screenshot exactly */}
-      <div className="p-4 border-t bg-slate-50/50 border-slate-100 space-y-3.5 shrink-0">
+      {/* Footer User Profile & Logout */}
+      <div className="p-3.5 border-t bg-[#FAFBF7] border-[#E5EBE0] space-y-2 shrink-0">
         {!collapsed && (
           <div 
             onClick={onProfileClick}
-            className="flex items-center justify-between p-3.5 rounded-2xl border transition-all bg-white border-slate-100 shadow-sm hover:shadow-md cursor-pointer"
+            className="flex items-center justify-between p-3 rounded-2xl border transition-all bg-white border-[#E5EBE0] shadow-xs hover:bg-[#E9EFE6] cursor-pointer"
           >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-slate-100 bg-green-50 shadow-inner">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-[#C6E9C1] bg-[#D7F4D4]">
                 {userAvatar ? (
                   <img src={userAvatar} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-sm font-black text-green-600">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
+                  <span className="text-xs font-black text-[#0F645D]">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13.5px] font-black truncate leading-tight text-slate-800">{user?.displayName || user?.email?.split('@')[0] || 'Business Owner'}</p>
-                <p className="text-[10px] font-extrabold text-slate-500 leading-none mt-1 uppercase tracking-wider">{planTier === 'pro' ? 'Pro Account' : 'Free Account'}</p>
+                <p className="text-[13px] font-black truncate leading-tight text-[#102723]">{user?.displayName || user?.email?.split('@')[0] || 'Business Owner'}</p>
+                <p className="text-[9px] font-extrabold text-[#7B8781] leading-none mt-1 uppercase tracking-wider">{planTier === 'pro' ? 'Pro Plan' : 'Free Plan'}</p>
               </div>
             </div>
-            <MoreVertical size={16} className="text-slate-500 shrink-0 ml-1 hover:text-slate-600 transition-colors" />
+            <MoreVertical size={16} className="text-[#7B8781] shrink-0 ml-1 hover:text-[#102723] transition-colors" />
           </div>
         )}
 
         <button
           onClick={logout}
           className={cn(
-            "flex items-center gap-3.5 w-full py-2.5 transition-all text-[13px] font-bold px-4 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50/50 cursor-pointer",
+            "flex items-center gap-3 w-full py-2.5 transition-all text-[13px] font-bold px-3.5 rounded-xl text-[#7B8781] hover:text-[#BE3349] hover:bg-[#FCE8E9] cursor-pointer",
             collapsed ? "justify-center" : "justify-start"
           )}
         >
-          <LogOut size={18} className="shrink-0" />
+          <LogOut size={17} className="shrink-0" />
           {!collapsed && <span>Logout</span>}
         </button>
       </div>

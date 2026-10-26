@@ -81,32 +81,34 @@ export default function MobileNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden print:hidden h-[calc(64px+env(safe-area-inset-bottom,0px))] pb-safe flex items-center justify-between px-2 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_16px_rgba(15,23,42,0.04)]">
-        
-        <div className="flex-1 flex justify-around items-center">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
-                  isActive ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-700"
-                )}
-                onClick={() => setMenuOpen(false)}
-              >
-                <div className={cn("flex items-center justify-center px-2 py-0.5 rounded-full transition-all", isActive && "bg-emerald-50 text-emerald-600")}>
-                  <item.icon size={20} className={cn("transition-transform duration-300", isActive && "scale-110")} strokeWidth={isActive ? 2.5 : 1.75} />
-                </div>
-                <span className={cn("text-[9px] font-semibold tracking-wider leading-none", isActive ? "opacity-100" : "opacity-70")}>{item.name}</span>
-              </NavLink>
-            );
-          })}
-        </div>
+      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden print:hidden h-[calc(76px+env(safe-area-inset-bottom,0px))] pb-safe flex items-center justify-center px-2 pointer-events-none">
+        <div className="pointer-events-auto bg-[#10251F] text-[#93A69C] rounded-[40px] shadow-[0_10px_32px_rgba(16,37,31,0.35)] max-w-[422px] w-full p-1.5 flex items-center justify-between h-14 mb-2">
+          
+          <div className="flex-1 flex justify-around items-center">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 h-11 px-3 rounded-full transition-all duration-200 active:scale-95 select-none",
+                    isActive 
+                      ? "bg-[#D7F4D4] text-[#193C30] font-extrabold shadow-sm" 
+                      : "text-[#93A69C] hover:text-white"
+                  )}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                  {isActive && (
+                    <span className="text-[11px] font-black tracking-tight">{item.name}</span>
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
 
-        {/* Center FAB */}
-        <div className="relative -top-5 mx-1">
+          {/* Center Scan / POS Action */}
           <button
             onClick={() => {
               if (!isPro) {
@@ -120,45 +122,51 @@ export default function MobileNav() {
                 navigate('/pos');
               }
             }}
-            className="w-14 h-14 rounded-2xl flex items-center justify-center active:scale-95 transition-all outline-none bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 border-2 border-white ring-2 ring-emerald-500/20"
+            title="Scan & Quick POS"
+            className="h-11 w-11 mx-1 rounded-full bg-[#274439] hover:bg-[#325648] text-[#D7F4D4] flex items-center justify-center shadow-md active:scale-95 shrink-0 transition-all cursor-pointer border border-[#3c6152]"
           >
-            <ScanLine size={24} strokeWidth={2.5} />
+            <ScanLine size={19} strokeWidth={2.5} />
           </button>
-        </div>
 
-        <div className="flex-1 flex justify-around items-center">
-          {rightNavItems.map((item) => {
-            const isActive = location.pathname === item.path || location.pathname.startsWith(item.path);
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
-                  isActive ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-700"
-                )}
-                onClick={() => setMenuOpen(false)}
-              >
-                <div className={cn("flex items-center justify-center px-2 py-0.5 rounded-full transition-all", isActive && "bg-emerald-50 text-emerald-600")}>
-                  <item.icon size={20} className={cn("transition-transform duration-300", isActive && "scale-110")} strokeWidth={isActive ? 2.5 : 1.75} />
-                </div>
-                <span className={cn("text-[9px] font-semibold tracking-wider leading-none", isActive ? "opacity-100" : "opacity-70")}>{item.name}</span>
-              </NavLink>
-            );
-          })}
+          <div className="flex-1 flex justify-around items-center">
+            {rightNavItems.map((item) => {
+              const isActive = location.pathname === item.path || location.pathname.startsWith(item.path);
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    "flex items-center justify-center gap-1.5 h-11 px-3 rounded-full transition-all duration-200 active:scale-95 select-none",
+                    isActive 
+                      ? "bg-[#D7F4D4] text-[#193C30] font-extrabold shadow-sm" 
+                      : "text-[#93A69C] hover:text-white"
+                  )}
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                  {isActive && (
+                    <span className="text-[11px] font-black tracking-tight">{item.name}</span>
+                  )}
+                </NavLink>
+              );
+            })}
 
-          <button
-            onClick={() => setMenuOpen(true)}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 flex-1 max-w-[68px] min-w-0 h-14 rounded-2xl transition-all",
-              menuOpen ? "text-emerald-600 font-bold" : "text-slate-500 hover:text-slate-700"
-            )}
-          >
-            <div className={cn("flex items-center justify-center px-2 py-0.5 rounded-full transition-all", menuOpen && "bg-emerald-50 text-emerald-600")}>
-              <MenuIcon size={20} className={cn("transition-transform duration-300", menuOpen && "scale-110")} strokeWidth={menuOpen ? 2.5 : 1.75} />
-            </div>
-            <span className={cn("text-[9px] font-semibold tracking-wider leading-none", menuOpen ? "opacity-100" : "opacity-70")}>Menu</span>
-          </button>
+            <button
+              onClick={() => setMenuOpen(true)}
+              className={cn(
+                "flex items-center justify-center gap-1.5 h-11 px-3 rounded-full transition-all duration-200 active:scale-95 select-none cursor-pointer",
+                menuOpen 
+                  ? "bg-[#D7F4D4] text-[#193C30] font-extrabold shadow-sm" 
+                  : "text-[#93A69C] hover:text-white"
+              )}
+              title="Open Navigation Menu"
+            >
+              <MenuIcon size={18} strokeWidth={2} className="shrink-0" />
+              {menuOpen && (
+                <span className="text-[11px] font-black tracking-tight">Menu</span>
+              )}
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -171,35 +179,39 @@ export default function MobileNav() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMenuOpen(false)}
-              className="fixed inset-0 backdrop-blur-sm z-[60] bg-neutral-900/40"
+              className="fixed inset-0 backdrop-blur-sm z-[60] bg-[#10251F]/60"
             />
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 rounded-t-3xl z-[70] max-h-[85vh] flex flex-col bg-white pb-safe"
+              className="fixed bottom-0 left-0 right-0 rounded-t-[32px] z-[70] max-h-[88vh] flex flex-col bg-[#F6F8F3] pb-safe shadow-2xl border-t border-[#E5EBE0]"
             >
-              <div className="flex justify-center pt-3 pb-2 w-full" onClick={() => setMenuOpen(false)}>
-                <div className="w-12 h-1.5 rounded-full bg-neutral-200" />
+              <div className="flex justify-center pt-3 pb-2 w-full cursor-pointer" onClick={() => setMenuOpen(false)}>
+                <div className="w-10 h-1.5 rounded-full bg-[#CCD4C8]" />
               </div>
               
-              <div className="flex items-center justify-between px-6 py-4 border-b transition-colors border-neutral-100">
+              <div className="flex items-center justify-between px-6 py-3.5 border-b border-[#E5EBE0] bg-white">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm bg-green-100 text-green-700">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm bg-[#D7F4D4] text-[#0F645D] border border-[#C6E9C1]">
                     {user?.displayName ? user.displayName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-neutral-900">{user?.displayName || 'User'}</p>
-                    <p className="text-[10px] font-medium uppercase text-neutral-500">{user?.email?.split('@')[0]}</p>
+                    <p className="text-sm font-extrabold text-[#102723]">{user?.displayName || 'User'}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#7B8781]">{user?.email?.split('@')[0]}</p>
                   </div>
                 </div>
-                <button onClick={() => setMenuOpen(false)} className="p-2 rounded-full active:scale-95 transition-colors bg-neutral-100 text-neutral-600">
+                <button 
+                  onClick={() => setMenuOpen(false)} 
+                  className="p-2 rounded-full active:scale-95 transition-colors bg-[#E9EFE6] text-[#102723] hover:bg-[#D7E2D3] cursor-pointer"
+                  title="Close Menu"
+                >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="overflow-y-auto px-4 py-4 space-y-2 pb-8 custom-scrollbar">
+              <div className="overflow-y-auto px-4 py-4 space-y-1.5 pb-10 custom-scrollbar">
                 {menuItems.map((item) => {
                   const isActive = !(item as any).external && (location.pathname === item.path || location.pathname.startsWith(item.path));
                   return (item as any).external ? (
@@ -210,11 +222,11 @@ export default function MobileNav() {
                       rel="noopener noreferrer"
                       onClick={() => setMenuOpen(false)}
                       className={cn(
-                        "flex items-center gap-4 p-4 rounded-2xl transition-all text-neutral-600 hover:bg-neutral-50 active:bg-neutral-50"
+                        "flex items-center gap-3.5 p-3.5 rounded-2xl transition-all text-[#102723] bg-white border border-[#E5EBE0] hover:bg-[#E9EFE6] active:scale-95 font-bold text-sm"
                       )}
                     >
-                      <item.icon size={22} className="text-slate-500" />
-                      <span className="text-[15px]">{item.name}</span>
+                      <item.icon size={20} className="text-[#0F645D]" />
+                      <span>{item.name}</span>
                     </a>
                   ) : (
                     <NavLink
@@ -234,18 +246,18 @@ export default function MobileNav() {
                         }
                       }}
                       className={cn(
-                        "flex items-center justify-between p-4 rounded-2xl transition-all",
+                        "flex items-center justify-between p-3.5 rounded-2xl transition-all border text-sm font-bold active:scale-95",
                         isActive 
-                          ? "bg-green-50 text-green-700 font-bold" 
-                          : "text-neutral-600 active:bg-neutral-50"
+                          ? "bg-[#D7F4D4] text-[#163C2C] border-[#C6E9C1] shadow-xs" 
+                          : "bg-white text-[#102723] border-[#E5EBE0] hover:bg-[#E9EFE6]"
                       )}
                     >
-                      <div className="flex items-center gap-4">
-                        <item.icon size={22} className={isActive ? "text-green-600" : "text-slate-500"} />
-                        <span className="text-[15px]">{item.name}</span>
+                      <div className="flex items-center gap-3.5">
+                        <item.icon size={20} className={isActive ? "text-[#163C2C]" : "text-[#0F645D]"} />
+                        <span>{item.name}</span>
                       </div>
                       {item.path === '/qr-generator' && !isPro && (
-                        <Lock size={14} className="text-amber-500 mr-2 shrink-0" />
+                        <Lock size={14} className="text-[#B7892E] mr-2 shrink-0" />
                       )}
                     </NavLink>
                   );
@@ -257,48 +269,48 @@ export default function MobileNav() {
                     setMenuOpen(false);
                     setRecycleBinOpen(true);
                   }}
-                  className="flex items-center justify-between w-full p-4 rounded-2xl transition-all text-neutral-600 hover:bg-neutral-50 active:bg-neutral-50"
+                  className="flex items-center justify-between w-full p-3.5 rounded-2xl transition-all text-[#102723] bg-white border border-[#E5EBE0] hover:bg-[#E9EFE6] active:scale-95 text-sm font-bold cursor-pointer"
                 >
-                  <div className="flex items-center gap-4">
-                    <RotateCcw size={22} className="text-emerald-600" />
-                    <span className="text-[15px] font-medium">Recycle Bin</span>
+                  <div className="flex items-center gap-3.5">
+                    <RotateCcw size={20} className="text-[#0F645D]" />
+                    <span>Recycle Bin</span>
                   </div>
-                  <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-[#E6F3EE] text-[#0F645D] border border-[#C6E9C1]">
                     {recycleBinItems.length} items
                   </span>
                 </button>
 
                 {showAdmin && (
                   <>
-                    <div className="h-px my-4 mx-2 bg-neutral-100" />
-                    <p className="px-4 text-[10px] font-black uppercase text-neutral-400 tracking-widest mb-2">Admin Options</p>
+                    <div className="h-px my-3 mx-2 bg-[#E5EBE0]" />
+                    <p className="px-4 text-[10px] font-black uppercase text-[#7B8B78] tracking-widest mb-1">Admin Operations</p>
                     <NavLink
                       to="/admin"
                       onClick={() => setMenuOpen(false)}
                       className={({ isActive }) => cn(
-                        "flex items-center gap-4 p-4 rounded-2xl transition-all",
+                        "flex items-center gap-3.5 p-3.5 rounded-2xl transition-all border text-sm font-bold active:scale-95",
                         isActive 
-                          ? "bg-green-50 text-green-700 font-bold" 
-                          : "text-green-600 active:bg-green-50/50"
+                          ? "bg-[#D7F4D4] text-[#163C2C] border-[#C6E9C1] shadow-xs" 
+                          : "bg-white text-[#102723] border-[#E5EBE0] hover:bg-[#E9EFE6]"
                       )}
                     >
-                      <ShieldCheck size={22} />
-                      <span className="text-[15px] font-bold">Admin Panel</span>
+                      <ShieldCheck size={20} className="text-[#0F645D]" />
+                      <span>Admin Control Panel</span>
                     </NavLink>
                   </>
                 )}
 
-                <div className="h-px my-4 mx-2 bg-neutral-100" />
+                <div className="h-px my-3 mx-2 bg-[#E5EBE0]" />
                 
                 <button
                   onClick={() => {
                     setMenuOpen(false);
                     logout();
                   }}
-                  className="flex w-full items-center gap-4 p-4 rounded-2xl text-red-600 active:bg-red-50 font-bold transition-all"
+                  className="flex w-full items-center gap-3.5 p-3.5 rounded-2xl text-[#BE3349] bg-[#FCE8E9] hover:bg-[#F9D6D9] active:scale-95 font-bold transition-all text-sm cursor-pointer"
                 >
-                  <LogOut size={22} />
-                  <span className="text-[15px]">Sign Out</span>
+                  <LogOut size={20} />
+                  <span>Sign Out</span>
                 </button>
               </div>
             </motion.div>

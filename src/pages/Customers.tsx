@@ -318,11 +318,13 @@ export default function CustomersPage() {
   );
 
   return (
-    <div className="space-y-10">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-8">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl tracking-tight">{appMode === 'freelancer' ? 'Client Directory' : 'Customer Directory'}</h1>
-          <p className="text-slate-500 mt-1 text-sm">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#10251F]">
+            {appMode === 'freelancer' ? 'Client Directory' : 'Customer Directory'}
+          </h1>
+          <p className="text-[#4B6358] mt-1 text-sm font-medium">
             {appMode === 'freelancer' ? 'Manage your core business clients and profiles.' : 'Manage your business customers and profiles.'}
           </p>
         </div>
@@ -341,19 +343,19 @@ export default function CustomersPage() {
             setCustomFields([]);
             setShowAddModal(true);
           }}
-          className="btn-primary flex items-center gap-2 w-fit group"
+          className="bg-[#073E36] hover:bg-[#0F645D] text-white px-5 py-3 rounded-[16px] text-sm font-bold shadow-[0_8px_20px_rgba(7,62,54,0.18)] active:scale-95 transition-all flex items-center gap-2 w-fit group"
         >
           <UserPlus size={18} className="transition-transform group-hover:scale-110" />
-          <span className="text-sm">{appMode === 'freelancer' ? 'Register Client' : 'Add Customer'}</span>
+          <span>{appMode === 'freelancer' ? 'Register Client' : 'Add Customer'}</span>
         </button>
       </header>
 
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B6358]" size={18} />
         <input 
           type="text" 
           placeholder="Search by name, email, or company entity..." 
-          className="input-field pl-12 h-12"
+          className="w-full h-12 bg-white rounded-[16px] border border-[#E2EBDC] pl-12 pr-4 text-sm text-[#10251F] placeholder:text-[#4B6358]/60 focus:outline-none focus:ring-2 focus:ring-[#0F645D]/20 focus:border-[#0F645D] shadow-xs"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -362,21 +364,21 @@ export default function CustomersPage() {
       {loading ? (
         <div className="py-24 text-center">
           <div className="flex items-center justify-center gap-2">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:-0.2s]" />
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:-0.4s]" />
+            <div className="w-2 h-2 bg-[#0F645D] rounded-full animate-pulse" />
+            <div className="w-2 h-2 bg-[#0F645D] rounded-full animate-pulse [animation-delay:-0.2s]" />
+            <div className="w-2 h-2 bg-[#0F645D] rounded-full animate-pulse [animation-delay:-0.4s]" />
           </div>
         </div>
       ) : filteredCustomers.length === 0 ? (
-        <div className="card-base py-24 text-center bg-slate-50/50">
+        <div className="bg-white rounded-[24px] border border-[#E5EBE0] py-20 text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
             <div className="max-w-xs mx-auto">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center border border-slate-100 mx-auto mb-4">
-                <UserPlus className="text-slate-500" size={32} />
+              <div className="w-16 h-16 bg-[#F0F5ED] rounded-2xl flex items-center justify-center border border-[#E5EBE0] text-[#4B6358] mx-auto mb-4">
+                <UserPlus size={30} />
               </div>
-              <p className="text-slate-900 font-bold text-sm">
+              <p className="text-[#10251F] font-bold text-base">
                 {appMode === 'freelancer' ? 'No client records' : 'No customer records'}
               </p>
-              <p className="text-slate-500 text-xs mt-1">
+              <p className="text-[#4B6358] text-xs mt-1.5 leading-relaxed">
                 {appMode === 'freelancer' ? 'Start by registering your first client to build your directory.' : 'Start by adding your first customer to build your directory.'}
               </p>
             </div>
@@ -394,17 +396,17 @@ export default function CustomersPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
                 onClick={() => setSelectedProfileCustomer(customer)}
-                className="card-base p-6 group hover:ring-2 hover:ring-emerald-500/30 transition-all flex flex-col h-full bg-white cursor-pointer hover:shadow-lg relative"
+                className="bg-white rounded-[22px] border border-[#E5EBE0] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-md hover:border-[#C6E9C1] transition-all flex flex-col h-full cursor-pointer relative group"
               >
                 <div className="flex items-start justify-between mb-5">
-                  <div className="w-11 h-11 rounded-xl bg-slate-50 flex items-center justify-center text-sm font-bold text-slate-700 ring-1 ring-slate-100 overflow-hidden shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-[#F0F5ED] flex items-center justify-center text-sm font-bold text-[#073E36] border border-[#E5EBE0] overflow-hidden shrink-0">
                     {customer.photo_url ? (
                       <img src={customer.photo_url} alt={customer.name} className="w-full h-full object-cover" />
                     ) : (
                       customer.name.charAt(0)
                     )}
                   </div>
-                  <div className="flex items-center gap-1 opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1.5 opacity-100 transition-opacity">
                     <button 
                       type="button"
                       onClick={async (e) => {
@@ -426,7 +428,7 @@ export default function CustomersPage() {
                         const msg = encodeURIComponent(plainMsg);
                         openInBrowser(`https://wa.me/${num}?text=${msg}`);
                       }}
-                      className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all flex items-center justify-center cursor-pointer"
+                      className="p-2 text-[#0F645D] bg-[#D7F4D4] hover:bg-[#C6E9C1] rounded-xl transition-all flex items-center justify-center cursor-pointer"
                       title="1-Click WhatsApp Payment Reminder"
                     >
                       <WhatsAppIcon size={18} />
@@ -434,7 +436,7 @@ export default function CustomersPage() {
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}
-                      className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
+                      className="p-2 text-[#0F645D] bg-[#F0F5ED] hover:bg-[#D7F4D4] rounded-xl transition-all"
                       title="Update Profile"
                     >
                       <Edit2 size={16} />
@@ -442,7 +444,7 @@ export default function CustomersPage() {
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleDelete(customer.id, customer.name); }}
-                      className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all"
+                      className="p-2 text-[#BA1A1A] bg-[#FFDAD6]/50 hover:bg-[#FFDAD6] rounded-xl transition-all"
                       title="Delete Entry"
                     >
                       <Trash2 size={16} />
@@ -451,33 +453,33 @@ export default function CustomersPage() {
                 </div>
 
                 <div className="flex-1">
-                  <h3 className="font-bold text-slate-900 truncate leading-tight group-hover:text-emerald-700 transition-colors">{customer.name}</h3>
+                  <h3 className="font-bold text-[#10251F] text-base truncate leading-tight group-hover:text-[#0F645D] transition-colors">{customer.name}</h3>
                   {customer.company_name && (
-                    <p className="text-[11px] font-bold text-emerald-600 mt-1 uppercase tracking-wider">
+                    <p className="text-[11px] font-bold text-[#0F645D] mt-1 uppercase tracking-wider">
                       {customer.company_name}
                     </p>
                   )}
                   
                   <div className="mt-5 space-y-2.5">
-                    <div className="flex items-center gap-2.5 text-xs text-slate-500">
-                      <Mail size={14} className="text-slate-500" />
+                    <div className="flex items-center gap-2.5 text-xs text-[#4B6358]">
+                      <Mail size={14} className="text-[#4B6358]" />
                       <span className="truncate">{customer.email || '—'}</span>
                     </div>
-                    <div className="flex items-center gap-2.5 text-xs text-slate-500">
-                      <Phone size={14} className="text-slate-500" />
+                    <div className="flex items-center gap-2.5 text-xs text-[#4B6358]">
+                      <Phone size={14} className="text-[#4B6358]" />
                       <span>{customer.phone || '—'}</span>
                     </div>
-                    <div className="flex items-center gap-2.5 text-xs text-slate-500">
-                      <MapPin size={14} className="text-slate-500" />
+                    <div className="flex items-center gap-2.5 text-xs text-[#4B6358]">
+                      <MapPin size={14} className="text-[#4B6358]" />
                       <span className="truncate leading-relaxed">{customer.address || '—'}</span>
                     </div>
                   </div>
 
                   {customer.custom_fields && customer.custom_fields.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap gap-1.5">
+                    <div className="mt-4 pt-3 border-t border-[#E5EBE0] flex flex-wrap gap-1.5">
                       {customer.custom_fields.map((cf: any, idx: number) => (
-                        <div key={idx} className="bg-emerald-50/80 border border-emerald-100/80 text-emerald-800 px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1">
-                          <span className="font-bold text-emerald-600">{cf.label}:</span>
+                        <div key={idx} className="bg-[#F0F5ED] border border-[#E5EBE0] text-[#10251F] px-2.5 py-1 rounded-lg text-[11px] flex items-center gap-1">
+                          <span className="font-bold text-[#0F645D]">{cf.label}:</span>
                           <span className="font-semibold">{cf.value}</span>
                         </div>
                       ))}
@@ -485,22 +487,22 @@ export default function CustomersPage() {
                   )}
 
                   {/* Invoices Count & Total Billed Summary */}
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="inline-flex items-center gap-1.5 font-semibold text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/60">
-                      <FileText size={13} className="text-emerald-600" />
+                  <div className="mt-4 pt-3 border-t border-[#E5EBE0] flex items-center justify-between text-xs">
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-[#073E36] bg-[#F0F5ED] px-2.5 py-1 rounded-lg border border-[#E5EBE0]">
+                      <FileText size={13} className="text-[#0F645D]" />
                       <span>{custInvoices.length} {custInvoices.length === 1 ? 'Invoice' : 'Invoices'}</span>
                     </span>
-                    <span className="font-bold text-slate-900 tabular-nums">
+                    <span className="font-bold text-[#10251F] tabular-nums">
                       {formatCurrency(totalBilled)}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-5 pt-4 border-t border-[#E5EBE0] grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
                   <button
                     type="button"
                     onClick={() => setSelectedProfileCustomer(customer)}
-                    className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border border-emerald-200/60"
+                    className="py-2.5 px-3 bg-[#D7F4D4] hover:bg-[#C6E9C1] text-[#073E36] text-[11px] font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
                   >
                     <Eye size={13} />
                     View Invoices
@@ -508,7 +510,7 @@ export default function CustomersPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/customers/statement/${customer.id}`)}
-                    className="py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg transition-all border border-slate-200/60 uppercase tracking-wider text-center"
+                    className="py-2.5 px-3 bg-[#F0F5ED] hover:bg-[#E5EBE0] text-[#10251F] text-[11px] font-bold rounded-xl transition-all border border-[#E5EBE0] uppercase tracking-wider text-center"
                   >
                     Statement
                   </button>

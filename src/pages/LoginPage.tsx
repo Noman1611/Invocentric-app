@@ -733,11 +733,11 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
 
   return (
     <div 
-      className="min-h-screen w-full flex flex-col justify-center items-center p-4 sm:p-6 md:p-10 font-sans bg-[#f8fafc] text-slate-900 relative selection:bg-emerald-600 selection:text-white overflow-x-hidden"
+      className="min-h-screen w-full flex flex-col justify-center items-center p-4 sm:p-6 md:p-10 font-sans bg-[#F6F8F3] text-slate-900 relative selection:bg-[#073E36] selection:text-white overflow-x-hidden"
       style={{
         backgroundImage: `
-          linear-gradient(to right, rgba(226, 232, 240, 0.5) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(226, 232, 240, 0.5) 1px, transparent 1px)
+          linear-gradient(to right, rgba(229, 235, 224, 0.7) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(229, 235, 224, 0.7) 1px, transparent 1px)
         `,
         backgroundSize: '40px 40px'
       }}
@@ -755,7 +755,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute -top-32 -left-24 w-[540px] h-[540px] bg-gradient-to-br from-emerald-100/60 via-teal-100/35 to-transparent rounded-full blur-3xl opacity-75"
+          className="absolute -top-32 -left-24 w-[540px] h-[540px] bg-gradient-to-br from-[#D7F4D4]/70 via-[#C6E9C1]/40 to-transparent rounded-full blur-3xl opacity-75"
         />
         <motion.div
           animate={{
@@ -768,7 +768,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute -bottom-32 -right-24 w-[580px] h-[580px] bg-gradient-to-tl from-emerald-100/50 via-teal-100/30 to-transparent rounded-full blur-3xl opacity-70"
+          className="absolute -bottom-32 -right-24 w-[580px] h-[580px] bg-gradient-to-tl from-[#D7F4D4]/60 via-[#C6E9C1]/30 to-transparent rounded-full blur-3xl opacity-70"
         />
         <motion.div
           animate={{
@@ -780,7 +780,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-emerald-50/50 rounded-full blur-3xl opacity-60"
+          className="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-[#D7F4D4]/40 rounded-full blur-3xl opacity-60"
         />
       </div>
 
@@ -789,7 +789,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
         <div className="lg:hidden mb-6 flex items-center justify-center gap-2.5">
           <Link to="/" className="inline-flex items-center gap-2.5 hover:opacity-85 transition-opacity">
             <Logo size={36} />
-            <span className="font-extrabold text-xl text-[#0d3b31] tracking-tight">InvoCentric</span>
+            <span className="font-extrabold text-xl text-[#073E36] tracking-tight">InvoCentric</span>
           </Link>
         </div>
 
@@ -805,7 +805,7 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="w-full max-w-[400px] bg-white rounded-[26px] p-7 sm:p-9 border border-slate-200/90 shadow-xl shadow-slate-200/60 relative overflow-hidden"
+              className="w-full max-w-[420px] bg-white rounded-[26px] p-7 sm:p-9 border border-[#E5EBE0] shadow-sm relative overflow-hidden"
             >
               {/* Top InvoCentric Official Brand Badge */}
               <InvoCentricBrandBadge />

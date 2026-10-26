@@ -642,48 +642,48 @@ export default function BarcodeGenerator() {
   }, [flattenedPrintableList, sheetPage, labelsPerPage]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFB] text-slate-900 pb-20 print:bg-white print:p-0 print:m-0">
+    <div className="min-h-screen bg-[#F6F8F3] text-slate-900 pb-20 print:bg-white print:p-0 print:m-0">
       
       {/* ─────────────────────────────────────────────────────────────
           1. TOP APP HEADER & BRANDING
       ───────────────────────────────────────────────────────────── */}
-      <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40 px-4 sm:px-8 py-3.5 print:hidden">
+      <header className="bg-white border-b border-[#E5EBE0] sticky top-0 z-40 px-4 sm:px-8 py-3.5 print:hidden">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#166534] flex items-center justify-center text-white shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-[#073E36] flex items-center justify-center text-[#D7F4D4] shadow-xs">
               <Barcode size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                  Barcode Studio & Label Generator
+                <h1 className="text-base sm:text-lg font-bold text-[#10251F] leading-tight">
+                  Barcode Studio &amp; Label Generator
                 </h1>
-                <span className="px-2 py-0.5 bg-emerald-50 text-[#166534] text-[10px] font-bold uppercase tracking-wider rounded-md border border-emerald-200/80">
+                <span className="px-2 py-0.5 bg-[#D7F4D4] text-[#073E36] text-[10px] font-bold uppercase tracking-wider rounded-md border border-[#C6E9C1]">
                   Inventory Integrated
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
-                Professional multi-step barcode sticker generator for A4 sheets & thermal rolls
+              <p className="text-xs text-[#52796F] font-medium">
+                Professional multi-step barcode sticker generator for A4 sheets &amp; thermal rolls
               </p>
             </div>
           </div>
 
           {/* Quick Stat Pill */}
           <div className="flex items-center gap-2 self-start sm:self-auto">
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-xl text-xs">
-              <span className="text-slate-500 font-medium">Queue:</span>
-              <span className="font-bold text-[#166534]">{queue.length} items</span>
-              <span className="text-slate-300">|</span>
-              <span className="font-bold text-slate-700">{totalStickersCount} stickers</span>
+            <div className="flex items-center gap-2 bg-[#F8FAF6] border border-[#E5EBE0] px-3.5 py-1.5 rounded-xl text-xs">
+              <span className="text-[#52796F] font-medium">Queue:</span>
+              <span className="font-bold text-[#073E36]">{queue.length} items</span>
+              <span className="text-[#E5EBE0]">|</span>
+              <span className="font-bold text-[#10251F]">{totalStickersCount} stickers</span>
             </div>
             {currentStep === 3 && (
               <button
                 type="button"
                 onClick={handleDownloadPdf}
                 disabled={isExportingPdf || flattenedPrintableList.length === 0}
-                className="bg-[#166534] hover:bg-[#14532d] text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="bg-[#073E36] hover:bg-[#0d4f45] text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                <Download size={14} />
+                <Download size={14} className="text-[#D7F4D4]" />
                 <span>{isExportingPdf ? 'Exporting...' : 'Export PDF'}</span>
               </button>
             )}
@@ -694,7 +694,7 @@ export default function BarcodeGenerator() {
       {/* ─────────────────────────────────────────────────────────────
           2. WIZARD STEPPER NAVIGATION
       ───────────────────────────────────────────────────────────── */}
-      <section className="bg-white border-b border-slate-200/80 px-4 sm:px-8 py-3 print:hidden">
+      <section className="bg-white border-b border-[#E5EBE0] px-4 sm:px-8 py-3 print:hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <ScrollableTabBar containerClassName="flex-1 mr-4 min-w-0" className="gap-2 sm:gap-4 py-1">
             {[
@@ -713,25 +713,25 @@ export default function BarcodeGenerator() {
                   className={cn(
                     "flex items-center gap-3 px-3.5 py-2 rounded-xl text-left transition-all cursor-pointer whitespace-nowrap shrink-0",
                     isActive 
-                      ? "bg-emerald-50/80 border border-emerald-200 text-[#166534]" 
+                      ? "bg-[#D7F4D4] border border-[#C6E9C1] text-[#073E36] font-bold" 
                       : isPast
-                        ? "text-slate-700 hover:bg-slate-50"
+                        ? "text-[#10251F] hover:bg-[#F8FAF6]"
                         : "text-slate-400 hover:text-slate-600"
                   )}
                 >
                   <div className={cn(
                     "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all",
                     isActive 
-                      ? "bg-[#166534] text-white shadow-xs" 
+                      ? "bg-[#073E36] text-[#D7F4D4] shadow-xs" 
                       : isPast
-                        ? "bg-emerald-100 text-[#166534]"
+                        ? "bg-[#C6E9C1] text-[#073E36]"
                         : "bg-slate-100 text-slate-500"
                   )}>
                     {isPast ? <Check size={14} strokeWidth={3} /> : step.num}
                   </div>
                   <div>
                     <div className="text-xs font-bold leading-tight">{step.title}</div>
-                    <div className="text-[10px] text-slate-500 font-medium hidden md:block">{step.desc}</div>
+                    <div className="text-[10px] text-[#52796F] font-medium hidden md:block">{step.desc}</div>
                   </div>
                 </button>
               );
@@ -744,7 +744,7 @@ export default function BarcodeGenerator() {
               <button
                 type="button"
                 onClick={() => setCurrentStep(prev => (prev - 1) as WizardStep)}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                className="px-3 py-1.5 bg-[#F8FAF6] hover:bg-[#E5EBE0] text-[#10251F] border border-[#E5EBE0] rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
               >
                 <ChevronLeft size={14} />
                 <span>Back</span>
@@ -755,18 +755,18 @@ export default function BarcodeGenerator() {
                 type="button"
                 onClick={() => setCurrentStep(prev => (prev + 1) as WizardStep)}
                 disabled={queue.length === 0}
-                className="bg-[#166534] hover:bg-[#14532d] text-white px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                className="bg-[#073E36] hover:bg-[#0d4f45] text-white px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-xs disabled:opacity-50"
               >
                 <span>Proceed to Step {currentStep + 1}</span>
-                <ChevronRight size={14} />
+                <ChevronRight size={14} className="text-[#D7F4D4]" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleDirectPrint}
-                className="bg-[#166534] hover:bg-[#14532d] text-white px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                className="bg-[#073E36] hover:bg-[#0d4f45] text-white px-4 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
               >
-                <Printer size={14} />
+                <Printer size={14} className="text-[#D7F4D4]" />
                 <span>Direct Print</span>
               </button>
             )}
@@ -792,29 +792,29 @@ export default function BarcodeGenerator() {
               <div className="space-y-6">
                 
                 {/* Method Selector Tabs */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-5">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="bg-white rounded-[22px] p-6 border border-[#E5EBE0] shadow-sm space-y-5">
+                  <div className="flex items-center justify-between border-b border-[#E5EBE0] pb-3">
                     <div>
-                      <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                        <Package size={16} className="text-[#166534]" />
+                      <h2 className="text-sm font-bold text-[#10251F] uppercase tracking-wider flex items-center gap-2">
+                        <Package size={16} className="text-[#073E36]" />
                         Add Items to Barcode Queue
                       </h2>
-                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                      <p className="text-xs text-[#52796F] font-medium mt-0.5">
                         Choose existing inventory, enter manual items with custom fields, or bulk upload via Excel
                       </p>
                     </div>
                   </div>
 
                   {/* Sub-tabs */}
-                  <div className="grid grid-cols-3 gap-2 bg-slate-100/80 p-1 rounded-xl">
+                  <div className="grid grid-cols-3 gap-2 bg-[#F6F8F3] p-1.5 rounded-xl border border-[#E5EBE0]">
                     <button
                       type="button"
                       onClick={() => setItemEntryTab('inventory')}
                       className={cn(
                         "py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                         itemEntryTab === 'inventory' 
-                          ? "bg-white text-[#166534] shadow-xs" 
-                          : "text-slate-600 hover:text-slate-900"
+                          ? "bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1] shadow-xs" 
+                          : "text-[#52796F] hover:text-[#10251F]"
                       )}
                     >
                       <Store size={14} />
@@ -826,8 +826,8 @@ export default function BarcodeGenerator() {
                       className={cn(
                         "py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                         itemEntryTab === 'manual' 
-                          ? "bg-white text-[#166534] shadow-xs" 
-                          : "text-slate-600 hover:text-slate-900"
+                          ? "bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1] shadow-xs" 
+                          : "text-[#52796F] hover:text-[#10251F]"
                       )}
                     >
                       <Plus size={14} />
@@ -839,8 +839,8 @@ export default function BarcodeGenerator() {
                       className={cn(
                         "py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                         itemEntryTab === 'bulk' 
-                          ? "bg-white text-[#166534] shadow-xs" 
-                          : "text-slate-600 hover:text-slate-900"
+                          ? "bg-[#D7F4D4] text-[#073E36] border border-[#C6E9C1] shadow-xs" 
+                          : "text-[#52796F] hover:text-[#10251F]"
                       )}
                     >
                       <FileSpreadsheet size={14} />

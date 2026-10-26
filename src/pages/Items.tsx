@@ -615,25 +615,28 @@ export default function ItemsPage() {
   });
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="space-y-6 pb-16 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl tracking-tight">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#7B8B7D] mb-1">
+            {appMode === 'freelancer' ? 'Services & Billing' : 'Stock & Catalog'}
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#102723] tracking-tight">
             {appMode === 'freelancer' ? 'Services & Rates' : 'Inventory Management'}
           </h1>
-          <p className="text-slate-500 mt-1 text-sm">
+          <p className="text-xs text-[#738375] mt-0.5">
             {appMode === 'freelancer' ? 'Organize and monitor your professional billing services and fees.' : 'Professional inventory control, stock adjustments, serials, batches, and multi-location tracking.'}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => aiPhotoInputRef.current?.click()}
-            className="px-4 py-3 bg-gradient-to-r from-emerald-600 to-green-700 hover:from-emerald-700 hover:to-green-800 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-md shadow-emerald-900/10 flex items-center gap-2 border-none cursor-pointer"
+            className="px-3.5 py-2.5 bg-[#EFF5E8] hover:bg-[#E2EBDC] text-[#163C2C] text-xs font-bold rounded-[16px] border border-[#E2EBDC] transition-all shadow-2xs flex items-center gap-2 cursor-pointer active:scale-95"
             title="Snap or upload product image to auto-fill details using Gemini AI"
           >
-            <Camera size={16} className="text-emerald-100" />
-            <span>📸 AI Photo to Item</span>
+            <Camera size={15} className="text-[#0F645D]" />
+            <span>📸 AI Photo</span>
           </button>
           <input
             ref={aiPhotoInputRef}
@@ -658,9 +661,9 @@ export default function ItemsPage() {
               setAiSuccessMsg(null);
               setIsAiBillModalOpen(true);
             }}
-            className="px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition-all shadow-lg shadow-emerald-900/10 flex items-center gap-2 border-none cursor-pointer"
+            className="px-3.5 py-2.5 bg-[#D7F4D4] hover:bg-[#C9ECC5] text-[#163C2C] text-xs font-bold rounded-[16px] border border-[#B9E2B5] transition-all shadow-xs flex items-center gap-2 cursor-pointer active:scale-95"
           >
-            <Sparkles size={16} className="animate-pulse text-emerald-200" />
+            <Sparkles size={15} className="text-[#0F645D]" />
             <span>AI Bill Scan</span>
           </button>
 
@@ -693,10 +696,10 @@ export default function ItemsPage() {
               });
               setIsModalOpen(true);
             }}
-            className="btn-primary group flex items-center gap-2"
+            className="px-4 py-2.5 bg-[#073E36] hover:bg-[#0A4E44] text-white text-xs font-bold rounded-[16px] transition-all shadow-xs flex items-center gap-2 active:scale-95 cursor-pointer"
           >
-            <Plus size={20} className="transition-transform group-hover:rotate-90" />
-            <span className="text-sm">
+            <Plus size={16} />
+            <span>
               {appMode === 'freelancer' ? 'Register Service' : 'Add Product'}
             </span>
           </button>
@@ -704,7 +707,7 @@ export default function ItemsPage() {
       </div>
 
       {/* Inventory Navigation Tabs (with swipe/scroll & arrow buttons) */}
-      <ScrollableTabBar containerClassName="border-b border-slate-100" className="gap-2 pb-2">
+      <ScrollableTabBar containerClassName="border-b border-[#E5EBE0]" className="gap-1.5 pb-2">
         {[
           { id: 'products', name: 'Products', icon: Package },
           { id: 'overview', name: 'Stock Overview', icon: BarChart3 },
@@ -724,13 +727,13 @@ export default function ItemsPage() {
               key={tab.id}
               onClick={() => setSearchParams(tab.id === 'products' ? {} : { tab: tab.id })}
               className={cn(
-                "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer",
+                "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border",
                 isActive
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/10"
-                  : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+                  ? "bg-[#073E36] text-white border-[#073E36] shadow-xs"
+                  : "bg-white text-[#60776C] hover:bg-[#F6F8F3] hover:text-[#142921] border-[#E2EBDC]"
               )}
             >
-              <Icon size={15} />
+              <Icon size={14} />
               <span>{tab.name}</span>
             </button>
           );
@@ -1312,21 +1315,21 @@ export default function ItemsPage() {
 
       {currentTab === 'products' && (
         <>
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-3.5 rounded-[22px] border border-[#E5EBE0] shadow-xs">
         <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#768C81]" size={18} />
           <input
             type="text"
             placeholder={appMode === 'freelancer' ? 'Search services by name or category...' : 'Search catalog by name, category, or barcode...'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input-field pl-12 h-11"
+            className="w-full bg-[#F6F8F3] border border-[#E2EBDC] rounded-[16px] pl-11 pr-4 py-2.5 text-xs font-semibold text-[#142921] placeholder-[#768C81] focus:outline-none focus:border-[#0F645D] focus:ring-2 focus:ring-[#0F645D]/15 transition-all shadow-2xs"
           />
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/barcode-generator')}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#EFF5E8] hover:bg-[#E2EBDC] text-[#163C2C] border border-[#E2EBDC] rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-2xs"
             title="Open Barcode Studio & Label Generator"
           >
             <Barcode size={15} />
@@ -1335,25 +1338,25 @@ export default function ItemsPage() {
           <button
             onClick={() => setShowLowStockOnly(!showLowStockOnly)}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border",
+              "flex items-center gap-2 px-3.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all border cursor-pointer",
               showLowStockOnly 
-                ? "bg-rose-50 text-rose-600 border-rose-200" 
-                : "bg-white text-slate-500 border-slate-100 hover:bg-slate-50"
+                ? "bg-[#FBE4E8] text-[#9A1C36] border-[#F4B8C3]" 
+                : "bg-[#F6F8F3] text-[#60776C] border-[#E2EBDC] hover:bg-[#EDF3E8]"
             )}
           >
             <div className={cn("w-1.5 h-1.5 rounded-full", showLowStockOnly ? "bg-rose-500 animate-pulse" : "bg-slate-300")} />
             Alerts Only
           </button>
-          <div className="flex bg-slate-50 p-1 rounded-xl">
+          <div className="flex bg-[#F6F8F3] p-1 rounded-xl border border-[#E2EBDC]">
             <button 
               onClick={() => setViewMode('grid')}
-              className={cn("p-2 rounded-lg transition-all", viewMode === 'grid' ? "bg-white shadow-sm text-slate-900" : "text-slate-500")}
+              className={cn("p-2 rounded-lg transition-all cursor-pointer", viewMode === 'grid' ? "bg-white shadow-2xs text-[#142921]" : "text-[#768C81] hover:text-[#142921]")}
             >
               <LayoutGrid size={16} />
             </button>
             <button 
               onClick={() => setViewMode('list')}
-              className={cn("p-2 rounded-lg transition-all", viewMode === 'list' ? "bg-white shadow-sm text-slate-900" : "text-slate-500")}
+              className={cn("p-2 rounded-lg transition-all cursor-pointer", viewMode === 'list' ? "bg-white shadow-2xs text-[#142921]" : "text-[#768C81] hover:text-[#142921]")}
             >
               <ListIcon size={16} />
             </button>
@@ -1364,20 +1367,20 @@ export default function ItemsPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {[1,2,3,4].map(i => (
-            <div key={i} className="bg-slate-50 rounded-2xl p-6 h-56 animate-pulse border border-slate-100" />
+            <div key={i} className="bg-[#F6F8F3] rounded-[22px] p-6 h-56 animate-pulse border border-[#E5EBE0]" />
           ))}
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="card-base py-24 text-center bg-slate-50/50">
+        <div className="card-base py-20 text-center bg-white rounded-[26px] border border-[#E5EBE0] shadow-xs">
           <div className="max-w-sm mx-auto space-y-4">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center border border-slate-100 mx-auto shadow-sm">
-              <Package className="text-emerald-600" size={32} />
+            <div className="w-16 h-16 bg-[#EFF5E8] rounded-2xl flex items-center justify-center border border-[#E2EBDC] mx-auto shadow-2xs">
+              <Package className="text-[#0F645D]" size={32} />
             </div>
             <div>
-              <p className="text-slate-900 font-bold text-base">No products found in your catalog</p>
-              <p className="text-slate-500 text-xs mt-1">Start adding items manually or use AI Bill Scan to auto-populate inventory instantly with zero errors.</p>
+              <p className="text-[#102723] font-bold text-base">No products found in your catalog</p>
+              <p className="text-[#738375] text-xs mt-1">Start adding items manually or use AI Bill Scan to auto-populate inventory instantly with zero errors.</p>
             </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
+            <div className="flex items-center justify-center gap-2.5 pt-2">
               <button
                 onClick={() => {
                   setExtractedBillData(null);
@@ -1385,9 +1388,9 @@ export default function ItemsPage() {
                   setAiSuccessMsg(null);
                   setIsAiBillModalOpen(true);
                 }}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 border-none cursor-pointer"
+                className="px-4 py-2.5 bg-[#D7F4D4] hover:bg-[#C9ECC5] text-[#163C2C] text-xs font-bold rounded-[16px] border border-[#B9E2B5] transition-all shadow-xs flex items-center gap-2 cursor-pointer active:scale-95"
               >
-                <Sparkles size={14} />
+                <Sparkles size={14} className="text-[#0F645D]" />
                 <span>AI Bill Scan</span>
               </button>
               <button
@@ -1395,7 +1398,7 @@ export default function ItemsPage() {
                   setEditingItem(null);
                   setIsModalOpen(true);
                 }}
-                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 border-none cursor-pointer"
+                className="px-4 py-2.5 bg-[#073E36] hover:bg-[#0A4E44] text-white text-xs font-bold rounded-[16px] transition-all shadow-xs flex items-center gap-2 active:scale-95 cursor-pointer"
               >
                 <Plus size={14} />
                 <span>Add Product</span>
@@ -1409,15 +1412,15 @@ export default function ItemsPage() {
             <motion.div
               layout
               key={item.id}
-              className="card-base p-6 group hover:ring-2 hover:ring-green-500/20 transition-all flex flex-col h-full bg-white"
+              className="p-5 rounded-[22px] border border-[#E5EBE0] bg-white group hover:border-[#B9E2B5] hover:shadow-xs transition-all flex flex-col h-full"
             >
-              <div className="flex justify-between items-start mb-5">
+              <div className="flex justify-between items-start mb-4">
                 <div className="relative">
                   <div className={cn(
-                    "w-11 h-11 rounded-xl flex items-center justify-center transition-colors ring-1 overflow-hidden shrink-0",
+                    "w-11 h-11 rounded-2xl flex items-center justify-center transition-colors border overflow-hidden shrink-0",
                     appMode !== 'freelancer' && item.stock <= (item.low_stock_threshold || 5) 
-                      ? "bg-rose-50 text-rose-600 ring-rose-100" 
-                      : "bg-slate-50 text-slate-600 ring-slate-100"
+                      ? "bg-[#FBE4E8] text-[#9A1C36] border-[#F4B8C3]" 
+                      : "bg-[#F6F8F3] text-[#2C4A3E] border-[#E2EBDC]"
                   )}>
                     {((item as any).image || (item as any).image_url) ? (
                       <img 
@@ -1436,7 +1439,7 @@ export default function ItemsPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex gap-1 opacity-100 transition-opacity">
+                <div className="flex gap-1.5 opacity-100 transition-opacity">
                   <button 
                     type="button"
                     onClick={(e) => {
@@ -1460,10 +1463,10 @@ export default function ItemsPage() {
                       });
                       setIsModalOpen(true);
                     }}
-                    className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
+                    className="p-2 text-[#163C2C] bg-[#EFF5E8] hover:bg-[#E2EBDC] rounded-xl transition-all cursor-pointer active:scale-95"
                     title="Edit Item"
                   >
-                    <Edit2 size={16} />
+                    <Edit2 size={15} />
                   </button>
                   <button 
                     type="button"
@@ -1471,28 +1474,28 @@ export default function ItemsPage() {
                       e.stopPropagation();
                       handleDelete(item.id);
                     }}
-                    className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all"
+                    className="p-2 text-[#AC394E] bg-[#FBE4E8] hover:bg-[#F6CCD3] rounded-xl transition-all cursor-pointer active:scale-95"
                     title="Delete Item"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} />
                   </button>
                 </div>
               </div>
-              <h3 className="font-bold text-slate-900 line-clamp-1 leading-tight">{item.name}</h3>
-              <p className="text-[11px] text-slate-500 mt-1.5 line-clamp-2 min-h-[2.5rem] leading-relaxed italic">
+              <h3 className="font-bold text-[#102723] line-clamp-1 leading-tight text-sm">{item.name}</h3>
+              <p className="text-[11px] text-[#738375] mt-1 line-clamp-2 min-h-[2.2rem] leading-relaxed">
                 {item.description || 'No description provided.'}
               </p>
               
               {appMode === 'freelancer' ? (
-                <div className="mt-5 flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-50 relative z-10">
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Category</div>
-                  <span className="text-xs font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-100 uppercase tracking-wide">
+                <div className="mt-4 flex items-center justify-between p-2.5 bg-[#F6F8F3] rounded-[16px] border border-[#E5EBE0] relative z-10">
+                  <div className="text-[10px] font-bold text-[#7B8B7D] uppercase tracking-widest px-1">Category</div>
+                  <span className="text-xs font-bold text-[#163C2C] bg-[#D7F4D4] px-2.5 py-0.5 rounded-lg border border-[#B9E2B5] uppercase tracking-wide">
                     {item.category || 'Consulting'}
                   </span>
                 </div>
               ) : (
-                <div className="mt-5 flex items-center justify-between p-3 bg-slate-50 rounded-xl group/stock border border-slate-50 relative z-10">
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Units</div>
+                <div className="mt-4 flex items-center justify-between p-2.5 bg-[#F6F8F3] rounded-[16px] group/stock border border-[#E5EBE0] relative z-10">
+                  <div className="text-[10px] font-bold text-[#7B8B7D] uppercase tracking-widest px-1">Units</div>
                   <div className="flex items-center gap-2">
                     <button 
                       type="button"
@@ -1500,13 +1503,13 @@ export default function ItemsPage() {
                         e.stopPropagation();
                         handleUpdateStock(item.id, Math.max(0, item.stock - 1));
                       }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center bg-white border border-slate-100 shadow-sm text-slate-500 hover:text-rose-600 transition-all"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center bg-white border border-[#E2EBDC] shadow-2xs text-[#2C4A3E] hover:bg-[#EFF5E8] transition-all cursor-pointer active:scale-90"
                     >
                       -
                     </button>
                     <span className={cn(
                       "text-xs font-black min-w-[1.5rem] text-center",
-                      item.stock <= (item.low_stock_threshold || 5) ? "text-rose-600" : "text-slate-900"
+                      item.stock <= (item.low_stock_threshold || 5) ? "text-[#9A1C36]" : "text-[#102723]"
                     )}>
                       {item.stock}
                     </span>
@@ -1516,7 +1519,7 @@ export default function ItemsPage() {
                         e.stopPropagation();
                         handleUpdateStock(item.id, item.stock + 1);
                       }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center bg-white border border-slate-100 shadow-sm text-slate-500 hover:text-green-600 transition-all"
+                      className="w-7 h-7 rounded-lg flex items-center justify-center bg-white border border-[#E2EBDC] shadow-2xs text-[#2C4A3E] hover:bg-[#EFF5E8] transition-all cursor-pointer active:scale-90"
                     >
                       +
                     </button>
@@ -1583,23 +1586,23 @@ export default function ItemsPage() {
           ))}
         </div>
       ) : (
-        <div className="card-base overflow-hidden bg-white overflow-x-auto">
+        <div className="bg-white rounded-[22px] border border-[#E5EBE0] shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden overflow-x-auto">
           <table className="w-full text-left min-w-[640px]">
-            <thead className="bg-slate-50/50 border-b border-slate-100">
+            <thead className="bg-[#F8FAF6] border-b border-[#E5EBE0]">
               <tr>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Product Information</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Category</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pricing</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Inventory</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">Product Information</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">Category</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">Pricing</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">Inventory</th>
                 <th className="px-6 py-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-[#E5EBE0]/60">
               {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/40 transition-colors group">
+                <tr key={item.id} className="hover:bg-[#F6F8F3]/60 transition-colors group">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500 ring-1 ring-slate-100 shrink-0 overflow-hidden">
+                      <div className="w-10 h-10 bg-[#F0F5ED] rounded-xl flex items-center justify-center text-[#4B6358] border border-[#E5EBE0] shrink-0 overflow-hidden">
                         {((item as any).image || (item as any).image_url) ? (
                           <img 
                             src={(item as any).image || (item as any).image_url} 
@@ -1611,16 +1614,16 @@ export default function ItemsPage() {
                         )}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-900 flex items-center gap-2">
+                        <p className="font-bold text-[#10251F] flex items-center gap-2">
                           {item.name}
-                          {item.barcode && <span className="text-[9px] text-slate-500 font-mono bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 uppercase tracking-tighter">{item.barcode}</span>}
+                          {item.barcode && <span className="text-[9px] text-[#4B6358] font-mono bg-[#F0F5ED] px-2 py-0.5 rounded border border-[#E5EBE0] uppercase tracking-tighter">{item.barcode}</span>}
                         </p>
-                        <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                        <p className="text-xs text-[#4B6358] line-clamp-1 mt-0.5">
                           {item.description || 'No description'}
                         </p>
                         {(item.size || item.hsn || item.batch_no || item.expiry_date || item.warranty_period || item.custom_box) && (
-                          <div className="flex flex-wrap gap-2 items-center mt-1 text-[10px] text-slate-400">
-                            {item.batch_no && <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 font-mono text-slate-700 font-semibold"><span className="font-bold text-slate-500">B:</span> {item.batch_no}</span>}
+                          <div className="flex flex-wrap gap-2 items-center mt-1 text-[10px] text-[#4B6358]">
+                            {item.batch_no && <span className="bg-[#F0F5ED] px-1.5 py-0.5 rounded border border-[#E5EBE0] font-mono text-[#10251F] font-semibold"><span className="font-bold text-[#4B6358]">B:</span> {item.batch_no}</span>}
                             {item.expiry_date && (() => {
                               const expTime = new Date(item.expiry_date).getTime();
                               const now = Date.now();
@@ -1629,16 +1632,16 @@ export default function ItemsPage() {
                               return (
                                 <span className={cn(
                                   "px-1.5 py-0.5 rounded border font-semibold",
-                                  isExp ? "bg-rose-50 border-rose-200 text-rose-700" : isNear ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-slate-50 border-slate-100 text-slate-600"
+                                  isExp ? "bg-rose-50 border-rose-200 text-rose-700" : isNear ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-[#F0F5ED] border-[#E5EBE0] text-[#4B6358]"
                                 )}>
                                   {isExp ? 'EXPIRED' : isNear ? 'EXP SOON' : 'Exp'}: {item.expiry_date}
                                 </span>
                               );
                             })()}
-                            {item.warranty_period && <span className="bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 font-semibold text-emerald-700"><span className="font-bold">War:</span> {item.warranty_period}</span>}
-                            {item.size && <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100"><span className="font-bold text-slate-500">Size:</span> {item.size}</span>}
-                            {item.hsn && <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100"><span className="font-bold text-slate-500">HSN:</span> {item.hsn}</span>}
-                            {item.custom_box && <span className="italic text-slate-400 max-w-[200px] truncate"><span className="font-bold text-slate-500 not-italic">Box:</span> {item.custom_box}</span>}
+                            {item.warranty_period && <span className="bg-[#D7F4D4] px-1.5 py-0.5 rounded border border-[#C6E9C1] font-semibold text-[#073E36]"><span className="font-bold">War:</span> {item.warranty_period}</span>}
+                            {item.size && <span className="bg-[#F0F5ED] px-1.5 py-0.5 rounded border border-[#E5EBE0]"><span className="font-bold text-[#4B6358]">Size:</span> {item.size}</span>}
+                            {item.hsn && <span className="bg-[#F0F5ED] px-1.5 py-0.5 rounded border border-[#E5EBE0]"><span className="font-bold text-[#4B6358]">HSN:</span> {item.hsn}</span>}
+                            {item.custom_box && <span className="italic text-[#4B6358] max-w-[200px] truncate"><span className="font-bold text-[#4B6358] not-italic">Box:</span> {item.custom_box}</span>}
                           </div>
                         )}
                       </div>
@@ -1646,18 +1649,18 @@ export default function ItemsPage() {
                   </td>
                   <td className="px-6 py-5">
                     {item.category ? (
-                      <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-lg uppercase tracking-tight">
+                      <span className="text-[10px] font-bold text-[#0F645D] bg-[#D7F4D4] px-2.5 py-1 rounded-lg uppercase tracking-tight">
                         {item.category}
                       </span>
                     ) : (
-                      <span className="text-slate-500">—</span>
+                      <span className="text-[#4B6358]">—</span>
                     )}
                   </td>
-                  <td className="px-6 py-5 text-slate-900">
+                  <td className="px-6 py-5 text-[#10251F]">
                     <p className="font-bold flex items-center gap-1 tabular-nums">
-                      <IndianRupee size={12} className="text-slate-500" />
+                      <IndianRupee size={12} className="text-[#4B6358]" />
                       {item.price.toLocaleString()}
-                      <span className="text-[10px] text-slate-500 font-medium">/{item.unit}</span>
+                      <span className="text-[10px] text-[#4B6358] font-medium">/{item.unit}</span>
                     </p>
                   </td>
                   <td className="px-6 py-5">
@@ -1668,13 +1671,13 @@ export default function ItemsPage() {
                           e.stopPropagation();
                           handleUpdateStock(item.id, Math.max(0, item.stock - 1));
                         }}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center border border-slate-100 bg-white text-slate-500 hover:text-rose-600 hover:border-rose-100 shadow-sm transition-all"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center border border-[#E5EBE0] bg-white text-[#10251F] hover:bg-[#D7F4D4] hover:text-[#073E36] shadow-sm transition-all font-bold"
                       >
                         -
                       </button>
                       <span className={cn(
                         "text-xs font-black min-w-[2rem] text-center tabular-nums",
-                        item.stock <= (item.low_stock_threshold || 5) ? "text-rose-600" : "text-slate-900"
+                        item.stock <= (item.low_stock_threshold || 5) ? "text-[#BA1A1A]" : "text-[#10251F]"
                       )}>
                         {item.stock}
                       </span>
@@ -1684,14 +1687,14 @@ export default function ItemsPage() {
                           e.stopPropagation();
                           handleUpdateStock(item.id, item.stock + 1);
                         }}
-                        className="w-7 h-7 rounded-lg flex items-center justify-center border border-slate-100 bg-white text-slate-500 hover:text-green-600 hover:border-green-100 shadow-sm transition-all"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center border border-[#E5EBE0] bg-white text-[#10251F] hover:bg-[#D7F4D4] hover:text-[#073E36] shadow-sm transition-all font-bold"
                       >
                         +
                       </button>
                     </div>
                   </td>
                   <td className="px-3 md:px-6 py-4 text-right whitespace-nowrap">
-                    <div className="flex justify-end gap-1 opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-1.5 opacity-100 transition-opacity">
                       <button 
                         type="button"
                         onClick={(e) => {
@@ -1715,7 +1718,7 @@ export default function ItemsPage() {
                           });
                           setIsModalOpen(true);
                         }}
-                        className="p-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
+                        className="p-2 text-[#0F645D] bg-[#F0F5ED] hover:bg-[#D7F4D4] rounded-xl transition-all"
                         title="Edit Item"
                       >
                         <Edit2 size={16} />
@@ -1726,7 +1729,7 @@ export default function ItemsPage() {
                           e.stopPropagation();
                           handleDelete(item.id);
                         }}
-                        className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all"
+                        className="p-2 text-[#BA1A1A] bg-[#FFDAD6]/50 hover:bg-[#FFDAD6] rounded-xl transition-all"
                         title="Delete Item"
                       >
                         <Trash2 size={16} />

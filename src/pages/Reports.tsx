@@ -685,23 +685,23 @@ export default function Reports() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-neutral-900 tracking-tight uppercase">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#10251F] tracking-tight">
             Reports & Analytics
           </h1>
-          <p className="text-neutral-500 font-bold text-sm mt-1 uppercase tracking-wider">
+          <p className="text-[#4B6358] font-medium text-sm mt-1">
             Track your business performance in real-time
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-neutral-100 shadow-sm">
+          <div className="flex items-center gap-1 bg-[#F8FAF6] p-1 rounded-[14px] border border-[#E5EBE0] shadow-xs">
             <button
               onClick={() => setTimeRange("1m")}
               className={cn(
-                "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
+                "px-3.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer",
                 timeRange === "1m"
-                  ? "bg-neutral-900 text-white shadow-lg"
-                  : "text-neutral-400 hover:text-neutral-900",
+                  ? "bg-[#073E36] text-white shadow-xs"
+                  : "text-[#4B6358] hover:text-[#10251F]",
               )}
             >
               This Month
@@ -719,10 +719,10 @@ export default function Reports() {
                 }
               }}
               className={cn(
-                "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1",
+                "px-3.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1",
                 timeRange === "6m"
-                  ? "bg-neutral-900 text-white shadow-lg"
-                  : "text-neutral-400 hover:text-neutral-900",
+                  ? "bg-[#073E36] text-white shadow-xs"
+                  : "text-[#4B6358] hover:text-[#10251F]",
               )}
             >
               <span>6 Months</span>
@@ -741,10 +741,10 @@ export default function Reports() {
                 }
               }}
               className={cn(
-                "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1",
+                "px-3.5 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1",
                 timeRange === "12m"
-                  ? "bg-neutral-900 text-white shadow-lg"
-                  : "text-neutral-400 hover:text-neutral-900",
+                  ? "bg-[#073E36] text-white shadow-xs"
+                  : "text-[#4B6358] hover:text-[#10251F]",
               )}
             >
               <span>12 Months</span>
@@ -765,10 +765,10 @@ export default function Reports() {
                   handlePrintReport();
                 }
               }}
-              className="px-3.5 py-2 text-xs font-black uppercase tracking-wider text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-[#10251F] bg-white hover:bg-[#F0F5ED] border border-[#E5EBE0] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Print Excel-Style Report"
             >
-              <Printer size={15} />
+              <Printer size={15} className="text-[#4B6358]" />
               <span>Print</span>
               {!isPro && <Lock size={11} className="text-amber-500 shrink-0 ml-0.5" />}
             </button>
@@ -786,13 +786,13 @@ export default function Reports() {
                 }
               }}
               disabled={isDownloading}
-              className="px-3.5 py-2 text-xs font-black uppercase tracking-wider text-green-800 bg-green-50 hover:bg-green-100 border border-green-200/60 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-[#073E36] bg-[#D7F4D4] hover:bg-[#C6E9C1] border border-[#C6E9C1] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
               title="Download PDF Report"
             >
               {isDownloading ? (
-                <LoaderCircle size={15} className="animate-spin text-green-600" />
+                <LoaderCircle size={15} className="animate-spin text-[#073E36]" />
               ) : (
-                <Download size={15} className="text-green-700" />
+                <Download size={15} className="text-[#073E36]" />
               )}
               <span>PDF</span>
               {!isPro && <Lock size={11} className="text-amber-500 shrink-0 ml-0.5" />}
@@ -810,35 +810,35 @@ export default function Reports() {
                   handleExportExcel();
                 }
               }}
-              className="px-3.5 py-2 text-xs font-black uppercase tracking-wider text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-[#073E36] bg-[#D7F4D4] hover:bg-[#C6E9C1] border border-[#C6E9C1] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Export Excel (.xlsx)"
             >
-              <Download size={15} className="text-emerald-700" />
+              <Download size={15} className="text-[#073E36]" />
               <span>Excel</span>
               {!isPro && <Lock size={11} className="text-amber-500 shrink-0 ml-0.5" />}
             </button>
 
             <Link
               to="/accounting-export"
-              className="px-3.5 py-2 text-xs font-black uppercase tracking-wider text-green-900 bg-green-50 hover:bg-green-100 border border-green-200/80 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-[#10251F] bg-white hover:bg-[#F0F5ED] border border-[#E5EBE0] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Universal Double-Entry Accounting Export (Tally / QuickBooks / Zoho / SAP)"
             >
-              <FileCode size={15} className="text-green-700" />
+              <FileCode size={15} className="text-[#4B6358]" />
               <span>Universal ERP</span>
             </Link>
 
             <button
               onClick={() => setShowCaModal(true)}
-              className="px-3.5 py-2 text-xs font-black uppercase tracking-wider text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-[#073E36] bg-[#D7F4D4] hover:bg-[#C6E9C1] border border-[#C6E9C1] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Send Complete Financial & GST Data to CA"
             >
-              <Building2 size={15} className="text-indigo-600" />
+              <Building2 size={15} className="text-[#073E36]" />
               <span>CA Package</span>
             </button>
 
             <button
               onClick={handleWhatsAppShare}
-              className="px-4 py-2 text-xs font-black uppercase tracking-wider text-white bg-[#25D366] hover:bg-[#128C7E] rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-white bg-[#25D366] hover:bg-[#128C7E] rounded-[14px] transition flex items-center gap-1.5 cursor-pointer shadow-xs"
               title="Share Report on WhatsApp"
             >
               <WhatsAppIcon size={16} />
@@ -849,24 +849,24 @@ export default function Reports() {
       </div>
 
       {/* CA Audit Hub Highlight Banner */}
-      <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 rounded-3xl p-4 sm:p-5 text-white border border-indigo-500/30 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-[#073E36] rounded-[24px] p-4 sm:p-5 text-white border border-[#0F645D] shadow-[0_4px_24px_rgba(7,62,54,0.15)] flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3.5 min-w-0">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center shrink-0 shadow-inner">
-            <Building2 size={24} className="text-indigo-300" />
+          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center shrink-0">
+            <Building2 size={24} className="text-[#D7F4D4]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-wider bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded-md border border-indigo-400/30">
+              <span className="text-xs font-bold uppercase tracking-wider bg-white/15 text-[#D7F4D4] px-2 py-0.5 rounded-lg border border-white/20">
                 CA & Tax Audit Hub
               </span>
-              <span className="text-[11px] text-indigo-300 hidden sm:inline font-medium">
+              <span className="text-[11px] text-[#D7F4D4]/80 hidden sm:inline font-medium">
                 GSTR-1 · GSTR-2B · Expenses · Debtors Ledger
               </span>
             </div>
             <h3 className="text-sm sm:text-base font-bold text-white mt-1">
               Send Complete Financial & GST Return Data to CA in 1-Click
             </h3>
-            <p className="text-xs text-indigo-200/80 mt-0.5">
+            <p className="text-xs text-[#D7F4D4]/80 mt-0.5">
               Automatically generate multi-sheet Excel workbook and share directly via WhatsApp or Email.
             </p>
           </div>
@@ -875,7 +875,7 @@ export default function Reports() {
         <div className="flex items-center gap-2 shrink-0 w-full md:w-auto justify-end">
           <button
             onClick={() => setShowCaModal(true)}
-            className="w-full md:w-auto px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-400 hover:to-emerald-400 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
+            className="w-full md:w-auto px-4 py-2.5 bg-[#D7F4D4] hover:bg-[#C6E9C1] text-[#073E36] rounded-[14px] text-xs font-bold uppercase tracking-wider shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
           >
             <FileSpreadsheet size={15} />
             <span>Open CA Package</span>
@@ -925,26 +925,26 @@ export default function Reports() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="glass-card p-6 bg-white border border-neutral-100 rounded-3xl"
+            className="p-6 bg-white border border-[#E5EBE0] rounded-[22px] shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className={cn("p-3 rounded-2xl", stat.bg)}>
+              <div className={cn("p-2.5 rounded-xl border border-[#C6E9C1]", stat.bg)}>
                 <stat.icon className={stat.color} size={20} />
               </div>
-              <div className="flex items-center gap-1 text-[10px] font-black text-green-600 uppercase">
+              <div className="flex items-center gap-1 text-[10px] font-bold text-[#0F645D] uppercase">
                 <ArrowUpRight size={12} />
                 Live Sync
               </div>
             </div>
-            <p className="text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1">
+            <p className="text-[10px] font-bold text-[#4B6358] uppercase tracking-widest mb-1">
               {stat.label}
             </p>
-            <h3 className="text-2xl font-black text-neutral-900 tracking-tight">
+            <h3 className="text-2xl font-extrabold text-[#10251F] tracking-tight tabular-nums">
               {stat.isMoney === false
                 ? stat.value
                 : formatCurrency(stat.value, "INR")}
             </h3>
-            <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-2">
+            <p className="text-[10px] text-[#4B6358] font-medium uppercase tracking-wider mt-2">
               {stat.subLabel}
             </p>
           </motion.div>
@@ -956,27 +956,27 @@ export default function Reports() {
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="lg:col-span-2 glass-card p-8 bg-white border border-neutral-100 rounded-[2.5rem]"
+          className="lg:col-span-2 p-6 sm:p-8 bg-white border border-[#E5EBE0] rounded-[24px] shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
         >
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-lg font-black text-neutral-900 uppercase tracking-tight">
+              <h3 className="text-lg font-bold text-[#10251F] uppercase tracking-tight">
                 Sales vs Collections
               </h3>
-              <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+              <p className="text-xs font-medium text-[#4B6358] uppercase tracking-wider">
                 Revenue flow over time
               </p>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-600" />
-                <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">
+                <div className="w-3 h-3 rounded-full bg-[#0F645D]" />
+                <span className="text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">
                   Sales
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">
+                <div className="w-3 h-3 rounded-full bg-[#073E36]" />
+                <span className="text-[10px] font-bold text-[#4B6358] uppercase tracking-widest">
                   Collections
                 </span>
               </div>
