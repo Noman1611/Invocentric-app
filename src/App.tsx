@@ -445,11 +445,13 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (isNotificationsOpen) {
+        const target = event.target as Element | null;
         if (
           notificationDropdownRef.current && 
-          !notificationDropdownRef.current.contains(event.target as Node) &&
+          !notificationDropdownRef.current.contains(target as Node) &&
           notificationBellRef.current &&
-          !notificationBellRef.current.contains(event.target as Node)
+          !notificationBellRef.current.contains(target as Node) &&
+          !target?.closest?.('[data-notification-trigger]')
         ) {
           setIsNotificationsOpen(false);
         }
