@@ -726,12 +726,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   return (
     <PlanGate>
-      <div className="flex flex-col md:flex-row h-[100dvh] overflow-hidden bg-[#F8FAFB] text-slate-900 print:h-auto print:overflow-visible print:bg-white">
-        <div className="hidden md:block print:hidden">
+      <div className="flex flex-col md:flex-row h-[100dvh] overflow-hidden bg-[#EEF2EB] text-slate-900 print:h-auto print:overflow-visible print:bg-white">
+        <div className="hidden md:block print:hidden shrink-0">
           <Sidebar onProfileClick={() => setIsProfileModalOpen(true)} />
         </div>
         
-        <div className="flex-1 flex flex-col h-[100dvh] overflow-hidden relative print:h-auto print:overflow-visible print:static">
+        <div className="flex-1 flex flex-col h-[100dvh] md:h-[calc(100dvh-24px)] md:my-3 md:mr-3 md:rounded-[32px] md:border md:border-[#E5EBE0] md:shadow-xs overflow-hidden relative bg-[#F6F8F3] print:h-auto print:overflow-visible print:static">
           {/* Top Status Bar Spacer for Mobile PWA / Standalone / Cutout clearance */}
           <div 
             className="w-full bg-[#0F645D] shrink-0 print:hidden transition-all duration-200" 
@@ -767,7 +767,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
           <TrialBanner />
 
           {/* Responsive Header Bar */}
-          <div className="bg-white border-b border-[#E5EBE0] sticky top-0 z-50 px-3 sm:px-4 md:px-10 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 print:hidden">
+          {!location.pathname.startsWith('/pos') && (
+            <div className="bg-white border-b border-[#E5EBE0] sticky top-0 z-40 px-3 sm:px-4 md:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 shrink-0 print:hidden">
             {/* Left side: Mobile Brand OR Beautiful Desktop Search Bar */}
             <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
               <div id="mobile-brand-logo" className="md:hidden flex items-center gap-1.5 shrink-0">
@@ -1146,8 +1147,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
               )}
             </div>
           </div>
+          )}
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-10 relative pb-28 md:pb-10 bg-[#F6F8F3] print:p-0 print:m-0 print:h-auto print:overflow-visible print:static print:bg-white" id="main-scroll-container">
+          <main className={cn(
+            "flex-1 overflow-y-auto overflow-x-hidden relative bg-[#F6F8F3] print:p-0 print:m-0 print:h-auto print:overflow-visible print:static print:bg-white",
+            location.pathname.startsWith('/pos') ? "p-4 sm:p-6 md:p-8 pb-28 md:pb-8" : "p-4 md:p-8 relative pb-28 md:pb-8"
+          )} id="main-scroll-container">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}

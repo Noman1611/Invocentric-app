@@ -34,7 +34,8 @@ import {
   Lock,
   Download,
   HardDrive,
-  Layout as LayoutIcon
+  Layout as LayoutIcon,
+  ScanLine
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useState, useEffect } from 'react';
@@ -148,180 +149,160 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
 
   const adminItem = { name: 'Admin Control', path: '/admin', icon: ShieldCheck, hotkey: 'A' };
 
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+
+  const primaryNavItems = [
+    { name: 'Overview', path: '/', icon: Home, hotkey: 'D' },
+    { name: 'Invoices', path: '/invoices', icon: FileText, hotkey: 'I' },
+    { name: 'Point of Sale', path: '/pos', icon: ScanLine, hotkey: 'K', isPos: true },
+    { name: appMode === 'freelancer' ? 'Products & Tools' : 'Inventory', path: '/items', icon: Package, hotkey: 'T' },
+    { name: appMode === 'freelancer' ? 'Clients' : 'Parties', path: '/customers', icon: Users, hotkey: appMode === 'freelancer' ? 'C' : 'P' },
+    { name: 'Reports', path: '/reports', icon: BarChart3, hotkey: 'R' },
+  ];
+
+  const workspaceSubItems = [
+    { name: appMode === 'freelancer' ? 'Proposals' : 'Quotations', path: '/quotations', icon: FileEdit, hotkey: 'Q' },
+    { name: appMode === 'freelancer' ? 'Software & Tools' : 'Purchases', path: '/purchases', icon: ShoppingBag, hotkey: 'U' },
+    { name: 'Daily Book', path: '/dailybook', icon: Book, hotkey: 'B' },
+    { name: 'Expenses', path: '/expenses', icon: TrendingDown, hotkey: 'E' },
+    { name: 'Payments', path: '/payments', icon: CreditCard, hotkey: 'M' },
+    { name: 'Barcode Generator', path: '/barcode-generator', icon: Barcode, hotkey: 'G' },
+    { name: 'Plans & Pricing', path: '/pricing', icon: Sparkles },
+  ];
+
   return (
     <aside className={cn(
-      "h-screen flex flex-col transition-all duration-300 ease-in-out relative z-20 shadow-sm bg-white text-[#102723] border-r border-[#E5EBE0]",
-      collapsed ? "w-20" : "w-64"
+      "h-[calc(100vh-24px)] flex flex-col transition-all duration-300 ease-in-out relative z-30 bg-[#073E36] text-white rounded-[28px] my-3 ml-3 shadow-2xl border border-[#0d4f45]",
+      collapsed ? "w-20" : "w-56"
     )}>
-      {/* Header with Official App Logo */}
-      <div className="p-5 flex items-center justify-between mb-2 border-b border-[#F0F4EC]">
+      {/* Header with Official App Brand */}
+      <div className="p-4 flex items-center justify-between border-b border-white/10 shrink-0">
         <div className={cn("flex items-center gap-2.5 transition-all duration-300", collapsed && "opacity-0 hidden")}>
-          <Logo size={36} showBg={true} />
+          <Logo size={28} showBg={false} />
           <div className="flex flex-col">
-            <span className="font-brand text-[15px] tracking-tight text-[#102723] leading-tight font-extrabold">
-              Invo<span className="text-[#0F645D]">Centric</span>
-            </span>
-            <span className="text-[8px] font-black uppercase tracking-widest leading-none text-[#0F645D] bg-[#E6F3EE] px-1.5 py-0.5 rounded-full mt-0.5 inline-block w-max">
-              Enterprise
+            <span className="font-brand text-[17px] tracking-tight text-white font-extrabold leading-tight">
+              InvoCentric
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button 
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-1.5 rounded-xl transition-all hover:bg-[#E9EFE6] text-[#7B8781] hover:text-[#102723] cursor-pointer"
-            title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            <ChevronLeft size={16} className={cn("transition-transform duration-300", collapsed && "rotate-180")} />
-          </button>
-        </div>
+        <button 
+          onClick={() => setCollapsed(!collapsed)}
+          className="p-1.5 rounded-xl transition-all hover:bg-white/10 text-white/70 hover:text-white cursor-pointer ml-auto"
+          title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          <ChevronLeft size={16} className={cn("transition-transform duration-300", collapsed && "rotate-180")} />
+        </button>
       </div>
 
       {/* Nav Items Scrollable List */}
-      <div className="flex-1 overflow-y-auto px-3.5 mt-2 custom-scrollbar no-scrollbar space-y-1">
-        {/* Dashboard Link stands at the very top */}
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative mb-1.5",
-              isActive 
-                ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs" 
-                : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <Home size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
-              {!collapsed && (
-                <span className="text-[13px] tracking-tight">
-                  <KeyUnderline text="Dashboard" hotkey="D" />
-                </span>
-              )}
-            </>
-          )}
-        </NavLink>
-
-        {/* Quick POS mode directly under Dashboard */}
-        <NavLink
-          to="/pos"
-          onClick={(e) => {
-            if (!isPro) {
-              e.preventDefault();
-              triggerUpgradeModal('Quick POS & Barcode Billing', [
-                'Fast point-of-sale layout designed for touch screens and thermal printers.',
-                'Real-time barcode scanning using device camera or handheld USB laser scanners.',
-                'Automated cash till logging, customer balance tracking, and retail analytics.'
-              ]);
-            }
-          }}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative mb-4",
-              isActive 
-                ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs" 
-                : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <Store size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
-              {!collapsed && (
-                <span className="text-[13px] tracking-tight flex items-center justify-between flex-1">
-                  <KeyUnderline text="Quick POS" hotkey="K" />
-                  {!isPro ? (
-                    <Lock size={12} className="text-[#0F645D] ml-1.5 shrink-0" />
-                  ) : (
-                    <span className="text-[9px] font-black uppercase tracking-wider bg-[#073E36] text-[#D7F4D4] px-1.5 py-0.5 rounded-full">FAST</span>
-                  )}
-                </span>
-              )}
-            </>
-          )}
-        </NavLink>
-
-        {/* Grouped menu sections */}
-        {menuGroups.map((group) => (
-          <div key={group.title} className={cn("space-y-1 mb-4", collapsed && "mb-2")}>
-            {!collapsed && (
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#7B8B78] px-3.5 mb-1 mt-3">
-                {group.title}
-              </p>
-            )}
-            {group.items.map((item) => (
-              (item as any).external ? (
-                <a
-                  key={item.path}
-                  href={item.path}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
-                  )}
-                >
-                  <item.icon size={18} className="shrink-0 text-[#7B8781] group-hover:text-[#102723]" />
+      <div className="flex-1 overflow-y-auto px-2.5 py-3 custom-scrollbar no-scrollbar space-y-1">
+        {primaryNavItems.map((item) => {
+          const isPosItem = (item as any).isPos;
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              onClick={(e) => {
+                if (isPosItem && !isPro) {
+                  e.preventDefault();
+                  triggerUpgradeModal('Quick POS & Barcode Billing', [
+                    'Fast point-of-sale layout designed for touch screens and thermal printers.',
+                    'Real-time barcode scanning using device camera or handheld USB laser scanners.',
+                    'Automated cash till logging, customer balance tracking, and retail analytics.'
+                  ]);
+                }
+              }}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-200 group relative text-sm select-none",
+                  isActive 
+                    ? "bg-white/15 text-white font-extrabold shadow-xs" 
+                    : "text-[#D4ECE6]/80 hover:bg-white/10 hover:text-white font-medium"
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <item.icon size={18} className={cn("shrink-0 transition-colors", isActive ? "text-white" : "text-[#D4ECE6]/80 group-hover:text-white")} />
                   {!collapsed && (
-                    <span className="text-[13px] tracking-tight">
+                    <span className="text-[13px] tracking-tight flex-1 flex items-center justify-between">
                       <KeyUnderline text={item.name} hotkey={(item as any).hotkey} />
+                      {isPosItem && !isPro && (
+                        <Lock size={12} className="text-[#D7F4D4] ml-1.5 shrink-0" />
+                      )}
                     </span>
                   )}
-                </a>
-              ) : (
-                 <NavLink
-                  key={item.path}
-                  to={item.path}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
+
+        {/* Workspace Dropdown Group */}
+        <div className="pt-1">
+          <button
+            onClick={() => setWorkspaceOpen(!workspaceOpen)}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-200 group relative text-sm cursor-pointer select-none",
+              workspaceOpen || workspaceSubItems.some(sub => location.pathname === sub.path)
+                ? "bg-white/10 text-white font-bold"
+                : "text-[#D4ECE6]/80 hover:bg-white/10 hover:text-white font-medium"
+            )}
+          >
+            <LayoutIcon size={18} className="shrink-0 text-[#D4ECE6]/80 group-hover:text-white" />
+            {!collapsed && (
+              <span className="text-[13px] tracking-tight flex-1 flex items-center justify-between text-left">
+                <span>Workspace</span>
+                {workspaceOpen
+                  ? <ChevronDown size={14} className="text-white/80 transition-transform duration-200" />
+                  : <ChevronRight size={14} className="text-white/60 transition-transform duration-200" />
+                }
+              </span>
+            )}
+          </button>
+
+          {/* Workspace Sub-Items */}
+          {workspaceOpen && !collapsed && (
+            <div className="space-y-0.5 pl-3 border-l border-white/20 ml-5 my-1.5">
+              {workspaceSubItems.map((sub) => (
+                <NavLink
+                  key={sub.path}
+                  to={sub.path}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative",
-                      isActive 
-                        ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs" 
-                        : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
+                      "flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl transition-all duration-150 group text-[12px]",
+                      isActive
+                        ? "bg-white/20 text-white font-extrabold"
+                        : "text-[#D4ECE6]/70 hover:bg-white/10 hover:text-white font-medium"
                     )
                   }
                 >
-                  {({ isActive }) => (
-                    <>
-                      <item.icon size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
-                      {!collapsed && (
-                        <span className="text-[13px] tracking-tight flex-1 flex items-center justify-between">
-                          <span>
-                            <KeyUnderline text={item.name} hotkey={(item as any).hotkey} />
-                          </span>
-                        </span>
-                      )}
-                    </>
-                  )}
+                  <sub.icon size={14} className="shrink-0" />
+                  <span className="tracking-tight truncate">{sub.name}</span>
                 </NavLink>
-              )
-            ))}
-          </div>
-        ))}
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Collapsible Settings Menu */}
-        <div className={cn("space-y-1 mb-3 mt-1", collapsed && "mb-2")}>
-          {!collapsed && (
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#7B8B78] px-3.5 mb-1 mt-3">
-              PREFERENCES
-            </p>
-          )}
+        <div className="pt-1">
           <button
             onClick={() => setSettingsOpen(!settingsOpen)}
             className={cn(
-              "w-full flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative cursor-pointer",
+              "w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-200 group relative text-sm cursor-pointer select-none",
               location.pathname.startsWith('/settings')
-                ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs"
-                : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
+                ? "bg-white/15 text-white font-extrabold shadow-xs"
+                : "text-[#D4ECE6]/80 hover:bg-white/10 hover:text-white font-medium"
             )}
           >
-            <Settings size={18} className={cn("shrink-0 transition-colors", location.pathname.startsWith('/settings') ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
+            <Settings size={18} className="shrink-0 text-[#D4ECE6]/80 group-hover:text-white" />
             {!collapsed && (
               <span className="text-[13px] tracking-tight flex-1 flex items-center justify-between text-left">
                 <KeyUnderline text="Settings" hotkey="S" />
                 {settingsOpen
-                  ? <ChevronDown size={14} className="text-[#163C2C] transition-transform duration-200" />
-                  : <ChevronRight size={14} className="text-[#7B8781] transition-transform duration-200" />
+                  ? <ChevronDown size={14} className="text-white/80 transition-transform duration-200" />
+                  : <ChevronRight size={14} className="text-white/60 transition-transform duration-200" />
                 }
               </span>
             )}
@@ -329,7 +310,7 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
 
           {/* Settings Sub-Menu */}
           {settingsOpen && !collapsed && (
-            <div className="space-y-0.5 pl-3 border-l-2 border-[#C6E9C1] ml-5 my-1">
+            <div className="space-y-0.5 pl-3 border-l border-white/20 ml-5 my-1.5">
               {settingsSubItems.map((sub) => {
                 const isSubActive = location.pathname === '/settings' && location.search === sub.path.replace('/settings', '');
                 return (
@@ -337,14 +318,14 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
                     key={sub.path}
                     to={sub.path}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 group relative text-[12px]",
+                      "flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl transition-all duration-150 group text-[12px]",
                       isSubActive
-                        ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs"
-                        : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
+                        ? "bg-white/20 text-white font-extrabold"
+                        : "text-[#D4ECE6]/70 hover:bg-white/10 hover:text-white font-medium"
                     )}
                   >
-                    <sub.icon size={15} className={cn("shrink-0", isSubActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
-                    <span className="tracking-tight">{sub.name}</span>
+                    <sub.icon size={14} className="shrink-0" />
+                    <span className="tracking-tight truncate">{sub.name}</span>
                   </NavLink>
                 );
               })}
@@ -354,26 +335,21 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
 
         {/* Admin Section */}
         {showAdmin && (
-          <div className={cn("space-y-1 mb-4", collapsed && "mb-2")}>
-            {!collapsed && (
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#7B8B78] px-3.5 mb-1 mt-3">
-                ADMIN
-              </p>
-            )}
+          <div className="pt-1">
             <NavLink
               to={adminItem.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3.5 px-3.5 py-2.5 rounded-2xl transition-all duration-200 group relative",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-200 group relative text-sm",
                   isActive 
-                    ? "bg-[#D7F4D4] text-[#163C2C] font-extrabold shadow-xs" 
-                    : "text-[#7B8781] hover:bg-[#E9EFE6] hover:text-[#102723] font-bold"
+                    ? "bg-white/15 text-white font-extrabold shadow-xs" 
+                    : "text-[#D4ECE6]/80 hover:bg-white/10 hover:text-white font-medium"
                 )
               }
             >
               {({ isActive }) => (
                 <>
-                  <adminItem.icon size={18} className={cn("shrink-0 transition-colors", isActive ? "text-[#163C2C]" : "text-[#7B8781] group-hover:text-[#102723]")} />
+                  <adminItem.icon size={18} className="shrink-0" />
                   {!collapsed && (
                     <span className="text-[13px] tracking-tight flex-1 flex items-center justify-between">
                       <KeyUnderline text={adminItem.name} hotkey={adminItem.hotkey} />
@@ -395,37 +371,37 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
       </div>
 
       {/* Footer User Profile & Logout */}
-      <div className="p-3.5 border-t bg-[#FAFBF7] border-[#E5EBE0] space-y-2 shrink-0">
+      <div className="p-3 border-t border-white/10 space-y-1.5 shrink-0">
         {!collapsed && (
           <div 
             onClick={onProfileClick}
-            className="flex items-center justify-between p-3 rounded-2xl border transition-all bg-white border-[#E5EBE0] shadow-xs hover:bg-[#E9EFE6] cursor-pointer"
+            className="flex items-center justify-between p-2 rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 transition-all cursor-pointer"
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-[#C6E9C1] bg-[#D7F4D4]">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 overflow-hidden bg-[#D7F4D4] text-[#073E36] font-bold text-xs">
                 {userAvatar ? (
                   <img src={userAvatar} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-xs font-black text-[#0F645D]">{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
+                  <span>{user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}</span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-black truncate leading-tight text-[#102723]">{user?.displayName || user?.email?.split('@')[0] || 'Business Owner'}</p>
-                <p className="text-[9px] font-extrabold text-[#7B8781] leading-none mt-1 uppercase tracking-wider">{planTier === 'pro' ? 'Pro Plan' : 'Free Plan'}</p>
+                <p className="text-[12px] font-bold truncate leading-tight text-white">{user?.displayName || user?.email?.split('@')[0] || 'Business Owner'}</p>
+                <p className="text-[9px] font-extrabold text-[#D7F4D4]/80 leading-none mt-0.5 uppercase tracking-wider">{planTier === 'pro' ? 'Pro Plan' : 'Free Plan'}</p>
               </div>
             </div>
-            <MoreVertical size={16} className="text-[#7B8781] shrink-0 ml-1 hover:text-[#102723] transition-colors" />
+            <MoreVertical size={14} className="text-white/60 shrink-0 ml-1 hover:text-white transition-colors" />
           </div>
         )}
 
         <button
           onClick={logout}
           className={cn(
-            "flex items-center gap-3 w-full py-2.5 transition-all text-[13px] font-bold px-3.5 rounded-xl text-[#7B8781] hover:text-[#BE3349] hover:bg-[#FCE8E9] cursor-pointer",
+            "flex items-center gap-2.5 w-full py-2 transition-all text-[12px] font-bold px-3 rounded-xl text-white/70 hover:text-rose-200 hover:bg-white/10 cursor-pointer",
             collapsed ? "justify-center" : "justify-start"
           )}
         >
-          <LogOut size={17} className="shrink-0" />
+          <LogOut size={16} className="shrink-0" />
           {!collapsed && <span>Logout</span>}
         </button>
       </div>

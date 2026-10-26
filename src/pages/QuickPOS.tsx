@@ -36,7 +36,11 @@ import {
   AlertTriangle,
   RotateCcw,
   Tag,
-  Package
+  Package,
+  ArrowLeft,
+  SlidersHorizontal,
+  LayoutGrid,
+  ChevronDown
 } from 'lucide-react';
 import { configureCameraTrackFocusAndZoom, triggerCameraRefocus, setCameraTorch, setCameraZoom, requestExplicitCameraPermission, startHtml5ScannerRobust, playScanBeepSound, playErrorBeepSound } from '../utils/cameraUtils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -116,7 +120,7 @@ export default function QuickPOSPage() {
   const [showHelpGuide, setShowHelpGuide] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [searchInput, setSearchInput] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All products');
   
   // Customer & Payment state
   const [customerName, setCustomerName] = useState('Cash Sale');
@@ -145,23 +149,40 @@ export default function QuickPOSPage() {
     };
   }, []);
 
+  const [isSplitLayout, setIsSplitLayout] = useState(false);
+
+  const effectiveItems = useMemo(() => {
+    if (items && items.length > 0) return items;
+    return [
+      { id: 'sample-p1', name: 'Aashirvaad Atta · 5kg', price: 320, stock: 24, unit: 'Bag', category: 'Grocery', gstPercent: 5 },
+      { id: 'sample-p2', name: 'Amul Butter · 500g', price: 280, stock: 18, unit: 'Pack', category: 'Dairy', gstPercent: 12 },
+      { id: 'sample-p3', name: 'Tata Salt · 1kg', price: 28, stock: 41, unit: 'Pack', category: 'Grocery', gstPercent: 5 },
+      { id: 'sample-p4', name: 'Classmate Notebook', price: 65, stock: 6, unit: 'Piece', category: 'Stationery', gstPercent: 18 },
+    ];
+  }, [items]);
+
   // Unique categories from items list
   const categories = useMemo(() => {
     const cats = new Set<string>();
-    cats.add('All');
-    items.forEach(i => {
+    cats.add('All products');
+    cats.add('Grocery');
+    cats.add('Dairy');
+    cats.add('Stationery');
+    effectiveItems.forEach(i => {
       if (i.category && typeof i.category === 'string' && i.category.trim()) {
         cats.add(i.category.trim());
       }
     });
     return Array.from(cats);
-  }, [items]);
+  }, [effectiveItems]);
 
   // Filtered items based on search and category
   const filteredProducts = useMemo(() => {
-    return items.filter(item => {
-      if (selectedCategory !== 'All' && item.category !== selectedCategory) {
-        return false;
+    return effectiveItems.filter(item => {
+      if (selectedCategory !== 'All' && selectedCategory !== 'All products') {
+        if ((item.category || '').toLowerCase() !== selectedCategory.toLowerCase()) {
+          return false;
+        }
       }
       if (searchInput.trim()) {
         const q = searchInput.trim().toLowerCase();
@@ -173,7 +194,7 @@ export default function QuickPOSPage() {
       }
       return true;
     });
-  }, [items, selectedCategory, searchInput]);
+  }, [effectiveItems, selectedCategory, searchInput]);
 
   useEffect(() => {
     let active = true;
@@ -289,10 +310,10 @@ export default function QuickPOSPage() {
     };
   }, []);
 
-  const itemsRef = useRef(items);
+  const itemsRef = useRef(effectiveItems);
   useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
+    itemsRef.current = effectiveItems;
+  }, [effectiveItems]);
 
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     return localStorage.getItem('invocentric_scanner_sound') !== 'false';
@@ -627,9 +648,213 @@ export default function QuickPOSPage() {
   };
 
   return (
-    <div className="flex flex-col -m-4 md:-m-10 min-h-[calc(100dvh-5rem)] md:min-h-0 md:h-full bg-[#F6F8F3] text-[#142921] font-sans select-none overflow-hidden">
-      
-      {/* ── Top POS Header ── */}
+    <div className="flex flex-col -m-4 md:-m-10 min-h-[calc(100dvh-5rem)] md:min-h-0 md:h-full bg-[#F6F8F3] text-[#142921] font-sans select-none overflow-hidden relative">
+      {!isSplitLayout ? (
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-5 max-w-7xl mx-auto w-full">
+          {/* Top Bar inside Card */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="w-10 h-10 rounded-full bg-white border border-[#E5EBE0] text-[#142921] flex items-center justify-center hover:bg-[#F0F5EC] active:scale-95 transition-all shadow-xs cursor-pointer"
+              aria-label="Back"
+            >
+              <ArrowLeft size={18} />
+            </button>
+
+            <span className="text-sm font-bold text-[#073E36] tracking-tight">
+              InvoCentric
+            </span>
+
+            <div className="w-9 h-9 rounded-full bg-[#073E36] text-white flex items-center justify-center text-xs font-bold shadow-xs">
+              {user?.displayName ? user.displayName.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : 'N')}
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#10251F] tracking-tight">
+              A smoother checkout.
+            </h1>
+            <p className="text-xs sm:text-sm text-[#546A60] mt-1 font-medium">
+              Add products, build a cart and try the payment flow.
+            </p>
+          </div>
+
+          {/* Full Search Bar Pill */}
+          <div className="relative mb-5">
+            <input
+              id="pos-search-input-frame"
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchInput.trim()) {
+                  handleScan(searchInput.trim());
+                  setSearchInput('');
+                }
+              }}
+              placeholder="Search products or barcode..."
+              className="w-full h-14 bg-white rounded-full pl-6 pr-14 text-sm text-[#142921] placeholder-[#768C81] border border-[#E5EBE0] focus:outline-none focus:border-[#0F645D] focus:ring-2 focus:ring-[#0F645D]/15 transition-all shadow-2xs font-normal"
+            />
+            <button
+              type="button"
+              onClick={() => setIsScanning(!isScanning)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[#142921] hover:text-[#0F645D] transition-colors cursor-pointer"
+              title="Toggle Barcode Scanner"
+            >
+              <ScanLine size={20} />
+            </button>
+          </div>
+
+          {/* Collapsible Camera Scanner Viewport if isScanning */}
+          <AnimatePresence initial={false}>
+            {isScanning && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: '180px', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="w-full bg-black rounded-2xl relative overflow-hidden mb-5 shrink-0 border border-[#E5EBE0]"
+              >
+                <div id="pos-qr-reader" className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full" />
+                {cameraActive && !cameraError && (
+                  <div className="absolute top-2 right-2 z-30 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const el = document.getElementById("pos-qr-reader");
+                        const ok = await setCameraTorch(el, !torchOn);
+                        if (ok) setTorchOn(!torchOn);
+                      }}
+                      className={cn(
+                        "w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all",
+                        torchOn ? "bg-amber-400 text-amber-950" : "bg-black/60 text-white"
+                      )}
+                    >
+                      <Zap size={14} />
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-2.5 mb-6 overflow-x-auto pb-1 no-scrollbar">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={cn(
+                  "px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all cursor-pointer border",
+                  (selectedCategory === cat || (cat === 'All products' && (selectedCategory === 'All' || selectedCategory === 'All products')))
+                    ? "bg-[#073E36] text-white border-[#073E36] shadow-xs font-semibold"
+                    : "bg-white text-[#2C4A3E] border-[#E5EBE0] hover:bg-[#F0F5EC]"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* 4-Column Product Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {filteredProducts.map((prod) => {
+              const stockNum = typeof prod.stock === 'number' ? prod.stock : 0;
+              const unitText = (prod as any).unit || 'Piece';
+              const inCartItem = cart.find(c => c.id === prod.id);
+
+              return (
+                <div
+                  key={prod.id}
+                  className="bg-white rounded-[24px] border border-[#E5EBE0] p-4 flex flex-col justify-between shadow-xs hover:border-[#CCD4C8] transition-all relative group"
+                >
+                  {/* Isometric Cube Illustration Box */}
+                  <div className="w-full h-32 rounded-[18px] bg-[#EDF5EB] flex items-center justify-center mb-3.5">
+                    <svg className="w-10 h-10 text-[#0F645D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 7l9-5 9 5v10l-9 5-9-5Z" />
+                      <path d="M3 7l9 5 9-5" />
+                      <path d="M12 12v10" />
+                    </svg>
+                  </div>
+
+                  {/* Title and Stock */}
+                  <div className="mb-4">
+                    <h3 className="font-bold text-sm text-[#10251F] leading-snug line-clamp-1">
+                      {prod.name}
+                    </h3>
+                    <p className="text-xs text-[#768C81] mt-1 font-normal">
+                      {stockNum} {unitText} in stock
+                    </p>
+                  </div>
+
+                  {/* Price and Plus Button */}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="font-bold text-base text-[#10251F]">
+                      ₹{Number(prod.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => addItemToCart(prod)}
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center font-bold active:scale-90 transition-all cursor-pointer",
+                        inCartItem 
+                          ? "bg-[#073E36] text-white" 
+                          : "bg-[#E5F5E2] hover:bg-[#D5EED1] text-[#1E5D22]"
+                      )}
+                      title="Add to Cart"
+                    >
+                      {inCartItem ? inCartItem.quantity : <Plus size={16} />}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Wide Pill CTA Button */}
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => setShowMobileCart(true)}
+              className="w-full h-14 rounded-full bg-[#073E36] hover:bg-[#09473E] text-white flex items-center justify-center gap-2.5 font-semibold text-sm transition-all shadow-md active:scale-[0.99] cursor-pointer"
+            >
+              <ShoppingBag size={18} />
+              <span>
+                View cart · {totals.totalItems} items · ₹{totals.finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </button>
+          </div>
+
+          {/* State Indicator Bar */}
+          <div className="bg-[#EDF2EB] rounded-2xl px-4 py-3 flex items-center justify-between text-xs text-[#546A60] mb-8 border border-[#E2EBDC]">
+            <span className="font-medium">IC-044 · UI state</span>
+            <span className="font-semibold text-[#142921] flex items-center gap-1 cursor-pointer">
+              Populated / default <ChevronDown size={14} />
+            </span>
+          </div>
+
+          {/* Pagination Row */}
+          <div className="flex items-center justify-between text-xs text-[#768C81] px-2 mb-4">
+            <button type="button" onClick={() => navigate('/invoices')} className="hover:text-[#142921] font-medium transition-colors">
+              All frames
+            </button>
+            <span className="font-medium">44 / 136 frames</span>
+            <button type="button" onClick={() => navigate('/invoices')} className="hover:text-[#142921] font-medium transition-colors">
+              Next frame →
+            </button>
+          </div>
+
+          {/* Footer Note */}
+          <div className="text-center text-[10px] uppercase tracking-wider text-[#A2B5A9] font-bold pb-16">
+            INTERACTIVE UI · SAMPLE DATA ONLY
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          {/* ── Top POS Header ── */}
       <header className="bg-white border-b border-[#E5EBE0] px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between sticky top-0 z-30 shadow-xs shrink-0 gap-1.5 sm:gap-2">
         <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
           <button 
@@ -1197,17 +1422,40 @@ export default function QuickPOSPage() {
           <ChevronRight size={15} />
         </button>
       </div>
+        </div>
+      )}
 
-      {/* ── Mobile Cart Bottom Sheet Modal ── */}
+      {/* Floating Utility Actions */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2.5 print:hidden">
+        <button
+          type="button"
+          onClick={() => navigate('/invoices')}
+          className="bg-white hover:bg-[#F0F5EC] text-[#142921] border border-[#E5EBE0] px-4 py-2 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+        >
+          <SlidersHorizontal size={14} />
+          <span>All frames</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsSplitLayout(prev => !prev)}
+          className="bg-white hover:bg-[#F0F5EC] text-[#142921] border border-[#E5EBE0] px-4 py-2 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+        >
+          <LayoutGrid size={14} />
+          <span>{isSplitLayout ? "Card view" : "Switch layout"}</span>
+        </button>
+      </div>
+
+      {/* ── Cart Sheet / Checkout Modal ── */}
       <AnimatePresence>
         {showMobileCart && (
-          <div className="lg:hidden fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4">
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="w-full max-h-[90vh] bg-white rounded-t-3xl shadow-2xl flex flex-col overflow-hidden"
+              className="w-full sm:max-w-xl max-h-[90vh] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden"
             >
               {/* Sheet Drag Handle & Header */}
               <div className="pt-3 px-4 pb-3 border-b border-[#E5EBE0] bg-[#F6F8F3]">
