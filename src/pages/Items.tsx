@@ -80,7 +80,20 @@ export default function ItemsPage() {
   const [showBulkSerialModal, setShowBulkSerialModal] = useState(false);
   const [selectedSerialItem, setSelectedSerialItem] = useState<Item | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [showLowStockOnly, setShowLowStockOnly] = useState(() => {
+    const tab = searchParams.get('tab');
+    const filter = searchParams.get('filter');
+    return tab === 'lowstock' || filter === 'lowstock' || filter === 'low_stock';
+  });
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const filter = searchParams.get('filter');
+    if (tab === 'lowstock' || filter === 'lowstock' || filter === 'low_stock') {
+      setShowLowStockOnly(true);
+    }
+  }, [searchParams]);
+
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

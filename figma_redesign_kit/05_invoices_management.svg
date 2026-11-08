@@ -1,0 +1,128 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Screen 05: Invoices Management -->
+  <rect width="390" height="844" rx="40" fill="#F8FAFC"/>
+
+  <!-- Top App Bar -->
+  <g id="TopBar" transform="translate(20, 24)">
+    <text x="0" y="24" font-family="Inter, sans-serif" font-size="20" font-weight="900" fill="#0F172A">Invoices (Sales)</text>
+    <!-- "+ New Invoice" Button -->
+    <rect x="238" y="2" width="112" height="34" rx="10" fill="#059669"/>
+    <text x="294" y="23" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#FFFFFF">+ Create Bill</text>
+  </g>
+
+  <!-- Search & Filter Bar -->
+  <g id="SearchBar" transform="translate(20, 74)">
+    <rect width="350" height="44" rx="12" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <circle cx="24" cy="22" r="6" stroke="#64748B" stroke-width="2" fill="none"/>
+    <line x1="28" y1="26" x2="34" y2="32" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+    <text x="44" y="27" font-family="Inter, sans-serif" font-size="13" font-weight="500" fill="#94A3B8">Search invoice number, party name...</text>
+  </g>
+
+  <!-- Filter Status Tabs -->
+  <g id="FilterTabs" transform="translate(20, 130)">
+    <!-- All (Active) -->
+    <rect x="0" y="0" width="76" height="32" rx="10" fill="#059669"/>
+    <text x="38" y="20" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="800" fill="#FFFFFF">All (142)</text>
+
+    <!-- Paid -->
+    <rect x="84" y="0" width="84" height="32" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="126" y="20" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#059669">Paid (110)</text>
+
+    <!-- Unpaid -->
+    <rect x="176" y="0" width="86" height="32" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="219" y="20" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#D97706">Unpaid (22)</text>
+
+    <!-- Overdue -->
+    <rect x="270" y="0" width="80" height="32" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="310" y="20" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#E11D48">Overdue (10)</text>
+  </g>
+
+  <!-- Invoices List Card Stack -->
+  <g id="InvoicesList" transform="translate(20, 178)">
+    <!-- Invoice Card 1 -->
+    <g transform="translate(0, 0)">
+      <rect width="350" height="114" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <!-- Header inside card -->
+      <text x="16" y="26" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">INV-2026-1045</text>
+      <text x="130" y="26" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#64748B">• 24 Oct 2026</text>
+      <rect x="286" y="12" width="48" height="20" rx="6" fill="#DEF7EC"/>
+      <text x="310" y="26" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="#03543F">PAID</text>
+
+      <!-- Customer & Amount -->
+      <text x="16" y="52" font-family="Inter, sans-serif" font-size="14" font-weight="800" fill="#0F172A">Aarav Traders</text>
+      <text x="16" y="68" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#64748B">+91 98765 43210 • 3 Items</text>
+      <text x="334" y="60" text-anchor="end" font-family="Inter, sans-serif" font-size="17" font-weight="900" fill="#059669">₹8,450.00</text>
+
+      <!-- Divider & Actions Bar -->
+      <line x1="16" y1="80" x2="334" y2="80" stroke="#F1F5F9"/>
+      <text x="16" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#059669">🖨️ Print Bill</text>
+      <text x="100" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#0284C7">📄 Download PDF</text>
+      <text x="220" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#16A34A">💬 WhatsApp Share</text>
+    </g>
+
+    <!-- Invoice Card 2 -->
+    <g transform="translate(0, 126)">
+      <rect width="350" height="114" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <text x="16" y="26" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">INV-2026-1044</text>
+      <text x="130" y="26" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#64748B">• 23 Oct 2026</text>
+      <rect x="274" y="12" width="60" height="20" rx="6" fill="#FEF3C7"/>
+      <text x="304" y="26" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="#B45309">UNPAID</text>
+
+      <text x="16" y="52" font-family="Inter, sans-serif" font-size="14" font-weight="800" fill="#0F172A">Meera General Store</text>
+      <text x="16" y="68" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#64748B">+91 91234 56789 • 5 Items</text>
+      <text x="334" y="60" text-anchor="end" font-family="Inter, sans-serif" font-size="17" font-weight="900" fill="#D97706">₹3,200.00</text>
+
+      <line x1="16" y1="80" x2="334" y2="80" stroke="#F1F5F9"/>
+      <text x="16" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#059669">💳 Record Payment</text>
+      <text x="140" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#16A34A">💬 Send Reminder</text>
+      <text x="270" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#64748B">✏️ Edit Bill</text>
+    </g>
+
+    <!-- Invoice Card 3 -->
+    <g transform="translate(0, 252)">
+      <rect width="350" height="114" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <text x="16" y="26" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">INV-2026-1043</text>
+      <text x="130" y="26" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#64748B">• 15 Oct 2026</text>
+      <rect x="268" y="12" width="66" height="20" rx="6" fill="#FEE2E2"/>
+      <text x="301" y="26" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="#E11D48">OVERDUE</text>
+
+      <text x="16" y="52" font-family="Inter, sans-serif" font-size="14" font-weight="800" fill="#0F172A">RK Enterprises</text>
+      <text x="16" y="68" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#64748B">+91 99887 76655 • Due 5 days ago</text>
+      <text x="334" y="60" text-anchor="end" font-family="Inter, sans-serif" font-size="17" font-weight="900" fill="#E11D48">₹12,930.00</text>
+
+      <line x1="16" y1="80" x2="334" y2="80" stroke="#F1F5F9"/>
+      <text x="16" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#E11D48">⚠️ Send Legal Notice</text>
+      <text x="160" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#16A34A">💬 WhatsApp Alert</text>
+      <text x="290" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#64748B">View</text>
+    </g>
+
+    <!-- Invoice Card 4 -->
+    <g transform="translate(0, 378)">
+      <rect width="350" height="114" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <text x="16" y="26" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">INV-2026-1042</text>
+      <text x="130" y="26" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#64748B">• 12 Oct 2026</text>
+      <rect x="286" y="12" width="48" height="20" rx="6" fill="#DEF7EC"/>
+      <text x="310" y="26" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="#03543F">PAID</text>
+
+      <text x="16" y="52" font-family="Inter, sans-serif" font-size="14" font-weight="800" fill="#0F172A">National Electric Store</text>
+      <text x="16" y="68" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#64748B">+91 94567 89012 • 1 Item</text>
+      <text x="334" y="60" text-anchor="end" font-family="Inter, sans-serif" font-size="17" font-weight="900" fill="#059669">₹2,400.00</text>
+
+      <line x1="16" y1="80" x2="334" y2="80" stroke="#F1F5F9"/>
+      <text x="16" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#059669">🖨️ Print Bill</text>
+      <text x="120" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#0284C7">📄 Download</text>
+      <text x="230" y="99" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#16A34A">💬 Share</text>
+    </g>
+  </g>
+
+  <!-- Bottom Navigation Bar -->
+  <g id="BottomNav" transform="translate(0, 760)">
+    <rect width="390" height="84" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="39" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">Home</text>
+    <text x="117" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="800" fill="#059669">Invoices</text>
+    <circle cx="195" cy="24" r="22" fill="#059669"/>
+    <text x="195" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="900" fill="#FFFFFF">+</text>
+    <text x="273" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">Stock</text>
+    <text x="351" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">More</text>
+  </g>
+</svg>

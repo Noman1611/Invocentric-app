@@ -53,7 +53,7 @@ import { ScrollableTabBar } from '../components/ScrollableTabBar';
 import { whatsappDesktopService } from '../services/whatsappDesktopService';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { db, OperationType, handleFirestoreError, auth } from '../lib/firebase';
 import { doc, getDoc, updateDoc, setDoc, serverTimestamp, deleteDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
@@ -80,6 +80,7 @@ import {
 } from '../utils/googleDriveSync';
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTabParam = searchParams.get('tab');
   
@@ -2810,7 +2811,14 @@ export default function SettingsPage() {
 
                 <button
                   type="button"
-                  onClick={logout}
+                  onClick={async () => {
+                    try {
+                      await logout();
+                      navigate('/login', { replace: true });
+                    } catch (e) {
+                      navigate('/login', { replace: true });
+                    }
+                  }}
                   className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-rose-50 text-rose-600 transition-colors text-xs font-bold text-left group cursor-pointer"
                 >
                   <span className="flex items-center gap-2">

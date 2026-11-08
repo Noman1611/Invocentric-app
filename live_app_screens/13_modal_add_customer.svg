@@ -1,0 +1,73 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Modal 13: Add Customer (Opened on "+ Add Customer" button click) -->
+  <!-- Dark Backdrop -->
+  <rect width="390" height="844" rx="40" fill="#0F172A" fill-opacity="0.6"/>
+
+  <!-- Bottom Sheet / Modal Card (CreateInvoice.tsx line 106 & Customers.tsx) -->
+  <g id="AddCustomerModal" transform="translate(0, 160)">
+    <rect width="390" height="684" rx="28" fill="#FFFFFF"/>
+    
+    <!-- Drag Handle -->
+    <rect x="175" y="10" width="40" height="4" rx="2" fill="#CBD5E1"/>
+
+    <!-- Modal Header -->
+    <g transform="translate(24, 28)">
+      <text x="0" y="20" font-family="Inter, sans-serif" font-size="19" font-weight="900" fill="#0F172A">Add New Customer</text>
+      <text x="0" y="38" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#64748B">Save party details for instant billing &amp; Khata</text>
+
+      <!-- Close X Button -->
+      <circle cx="330" cy="18" r="14" fill="#F1F5F9"/>
+      <path d="M325 13 L335 23 M335 13 L325 23" stroke="#64748B" stroke-width="2" stroke-linecap="round"/>
+    </g>
+
+    <!-- Form Fields Stack -->
+    <g transform="translate(24, 88)">
+      <!-- Customer / Party Name -->
+      <text x="0" y="14" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#334155">Customer / Contact Name *</text>
+      <rect x="0" y="22" width="342" height="44" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+      <text x="14" y="49" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#0F172A">Aarav Traders</text>
+
+      <!-- Phone Number -->
+      <g transform="translate(0, 78)">
+        <text x="0" y="14" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#334155">Phone Number (WhatsApp) *</text>
+        <rect x="0" y="22" width="342" height="44" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+        <text x="14" y="49" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#0F172A">+91 98765 43210</text>
+      </g>
+
+      <!-- GSTIN -->
+      <g transform="translate(0, 156)">
+        <text x="0" y="14" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#334155">GSTIN (Optional)</text>
+        <rect x="0" y="22" width="342" height="44" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+        <text x="14" y="49" font-family="Inter, sans-serif" font-size="13" font-weight="600" fill="#0F172A">27AABCT3518Q1Z1</text>
+        <rect x="250" y="28" width="80" height="32" rx="6" fill="#ECFDF5"/>
+        <text x="290" y="48" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="800" fill="#059669">Verify GST</text>
+      </g>
+
+      <!-- Billing Address -->
+      <g transform="translate(0, 234)">
+        <text x="0" y="14" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#334155">Billing Address &amp; City</text>
+        <rect x="0" y="22" width="342" height="64" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+        <text x="14" y="44" font-family="Inter, sans-serif" font-size="12.5" font-weight="500" fill="#0F172A">Shop 12, APMC Market, Vashi,</text>
+        <text x="14" y="60" font-family="Inter, sans-serif" font-size="12.5" font-weight="500" fill="#0F172A">Navi Mumbai, Maharashtra - 400703</text>
+      </g>
+
+      <!-- Opening Balance (Khata) -->
+      <g transform="translate(0, 330)">
+        <text x="0" y="14" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#334155">Opening Balance (Purana Baaki)</text>
+        <rect x="0" y="22" width="342" height="44" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+        <text x="14" y="49" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#0F172A">₹0.00</text>
+        <rect x="260" y="28" width="70" height="32" rx="6" fill="#DEF7EC"/>
+        <text x="295" y="48" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="800" fill="#03543F">To Receive</text>
+      </g>
+
+      <!-- Action Buttons -->
+      <g transform="translate(0, 420)">
+        <rect x="0" y="0" width="160" height="48" rx="12" fill="#F1F5F9" stroke="#E2E8F0"/>
+        <text x="80" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#475569">Cancel</text>
+
+        <rect x="172" y="0" width="170" height="48" rx="12" fill="#059669"/>
+        <text x="257" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#FFFFFF">Save Customer ➔</text>
+      </g>
+    </g>
+  </g>
+</svg>

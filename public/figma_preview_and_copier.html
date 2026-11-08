@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InvoCentric - Exact Figma Theme Dashboard Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0A3931;
+      color: #FFFFFF;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 16px;
+    }
+    .header-bar {
+      text-align: center;
+      max-width: 600px;
+      margin-bottom: 24px;
+    }
+    .brand-tag {
+      display: inline-block;
+      background: #0F4A40;
+      color: #34D399;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+    }
+    .title {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 13.5px;
+      color: #9FBDB6;
+      line-height: 1.5;
+    }
+    .actions-row {
+      margin-top: 18px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .copy-btn {
+      background: #34D399;
+      color: #0A3931;
+      font-weight: 900;
+      font-size: 14px;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(52, 211, 153, 0.3);
+      transition: all 0.2s ease;
+    }
+    .copy-btn:hover {
+      background: #6EE7B7;
+      transform: translateY(-2px);
+    }
+    .copy-btn:active {
+      transform: scale(0.98);
+    }
+    .download-btn {
+      background: #0F4A40;
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 14px;
+      border: 1px solid #1E5E53;
+      padding: 12px 20px;
+      border-radius: 12px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    .download-btn:hover {
+      background: #155E52;
+    }
+    .preview-card {
+      background: #EAF2EE;
+      padding: 16px;
+      border-radius: 40px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+      max-width: 420px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      background: #34D399;
+      color: #0A3931;
+      font-weight: 900;
+      padding: 14px 28px;
+      border-radius: 9999px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: none;
+      z-index: 1000;
+      font-size: 14px;
+    }
+    .added-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    .chip {
+      background: #0F4A40;
+      color: #E2ECE9;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid #1A574D;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <div class="brand-tag">EXACT FIGMA THEME (FOREST GREEN & MINT)</div>
+    <h1 class="title">InvoCentric Dashboard (Updated)</h1>
+    <p class="subtitle">Aapke Figma design ke exact colors (`#0A3931` Dark Forest Green, `#EAF2EE` Mint Body) aur exact card layouts me missing features add kar diye gaye hain.</p>
+
+    <div class="added-chips">
+      <span class="chip">🟢 Online Cloud Sync Badge</span>
+      <span class="chip">📈 Sales Trend Monthly Chart</span>
+      <span class="chip">📑 Quotations & Purchases Chips</span>
+      <span class="chip">💬 1-Tap WhatsApp Share on Bills</span>
+      <span class="chip">📱 Complete Bottom Bar (Home/Invoices/POS/Stock/More)</span>
+    </div>
+
+    <div class="actions-row">
+      <button class="copy-btn" onclick="copySvgToClipboard()">
+        📋 Copy SVG to Clipboard
+      </button>
+      <a class="download-btn" href="./figma_dashboard_complete.svg" download="InvoCentric_Figma_Dashboard.svg">
+        ⬇️ Download SVG File
+      </a>
+    </div>
+  </div>
+
+  <div class="preview-card">
+    <img src="./figma_dashboard_complete.svg" alt="InvoCentric Figma Preview" style="width: 100%; height: auto; border-radius: 28px; display: block;" />
+  </div>
+
+  <div class="toast" id="toast">✅ Design Copied! Figma me ja kar Ctrl + V karein ✨</div>
+
+  <script>
+    async function copySvgToClipboard() {
+      try {
+        const response = await fetch('./figma_dashboard_complete.svg');
+        const svgText = await response.text();
+        await navigator.clipboard.writeText(svgText);
+        
+        const toast = document.getElementById('toast');
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 3500);
+      } catch (err) {
+        alert('Copy error: ' + err);
+      }
+    }
+  </script>
+</body>
+</html>

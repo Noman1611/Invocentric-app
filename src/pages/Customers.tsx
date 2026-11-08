@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Mail, Phone, MapPin, UserPlus, X, Trash2, Edit2, Mic, Contact, Tag, Sliders, Camera, Upload, User, FileText, Calendar, IndianRupee, ExternalLink, ArrowRight, Eye, CheckCircle2, Clock, AlertTriangle } from 'lucide-react';
 import { useCustomers, useInvoices } from '../hooks/useData';
@@ -18,6 +18,8 @@ export default function CustomersPage() {
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { customers, loading } = useCustomers();
   const { invoices } = useInvoices();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filterDuesOnly = searchParams.get('filter') === 'dues';
   const [selectedProfileCustomer, setSelectedProfileCustomer] = useState<any>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
@@ -311,11 +313,18 @@ export default function CustomersPage() {
     }
   };
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCustomers = customers.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (filterDuesOnly) {
+      const custInvoices = getCustomerInvoices(c);
+      const hasDues = custInvoices.some((inv: any) => inv.status !== 'paid' && inv.status !== 'cancelled');
+      return matchesSearch && hasDues;
+    }
+    return matchesSearch;
+  });
 
   return (
     <div className="space-y-8">
@@ -349,6 +358,21 @@ export default function CustomersPage() {
           <span>{appMode === 'freelancer' ? 'Register Client' : 'Add Customer'}</span>
         </button>
       </header>
+
+      {filterDuesOnly && (
+        <div className="bg-[#FCF0CC] border border-[#F6D88E] text-[#B7892E] px-4 py-2.5 rounded-2xl flex items-center justify-between text-xs font-bold">
+          <span className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#B7892E] animate-pulse"></span>
+            Showing customers with outstanding dues & overdue balances ({filteredCustomers.length} parties)
+          </span>
+          <button
+            onClick={() => setSearchParams({})}
+            className="text-[11px] underline font-extrabold text-[#7A5B18] hover:text-[#10251F] cursor-pointer"
+          >
+            Show all customers
+          </button>
+        </div>
+      )}
 
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4B6358]" size={18} />

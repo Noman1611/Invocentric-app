@@ -1,0 +1,106 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Screen 12: DailyBook (Cash Book) -->
+  <rect width="390" height="844" rx="40" fill="#F8FAFC"/>
+
+  <!-- Top App Bar -->
+  <g id="TopBar" transform="translate(20, 24)">
+    <text x="0" y="24" font-family="Inter, sans-serif" font-size="20" font-weight="900" fill="#0F172A">DailyBook (Cash in Hand)</text>
+    <rect x="250" y="2" width="100" height="34" rx="10" fill="#059669"/>
+    <text x="300" y="23" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#FFFFFF">📊 Excel Export</text>
+  </g>
+
+  <!-- Cash in Hand Balance Hero Card -->
+  <g id="BalanceCard" transform="translate(20, 74)">
+    <rect width="350" height="114" rx="20" fill="#0A3931"/>
+    <text x="20" y="32" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#9FBDB6">TOTAL CASH IN HAND (TODAY)</text>
+    <text x="20" y="66" font-family="Inter, sans-serif" font-size="28" font-weight="900" fill="#FFFFFF">₹34,850.00</text>
+    
+    <g transform="translate(20, 84)">
+      <text x="0" y="14" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#34D399">▲ Cash In: ₹42,100</text>
+      <text x="140" y="14" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#F87171">▼ Cash Out: ₹7,250</text>
+    </g>
+  </g>
+
+  <!-- Quick Action Buttons (+ Cash In, - Cash Out) -->
+  <g id="CashActions" transform="translate(20, 206)">
+    <!-- Cash In (Green Button) -->
+    <rect x="0" y="0" width="170" height="48" rx="14" fill="#059669"/>
+    <text x="85" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="900" fill="#FFFFFF">+ Cash In (Aaya)</text>
+
+    <!-- Cash Out (Red Button) -->
+    <rect x="180" y="0" width="170" height="48" rx="14" fill="#DC2626"/>
+    <text x="265" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="900" fill="#FFFFFF">- Cash Out (Gaya)</text>
+  </g>
+
+  <!-- Transactions Feed Header -->
+  <g id="TransactionsHeader" transform="translate(20, 276)">
+    <text x="0" y="16" font-family="Inter, sans-serif" font-size="14" font-weight="800" fill="#0F172A">Today's Cash Ledger Entries</text>
+    <text x="350" y="16" text-anchor="end" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#64748B">24 Oct 2026</text>
+  </g>
+
+  <!-- Cash Entries List -->
+  <g id="CashEntries" transform="translate(20, 306)">
+    <!-- Entry 1: Cash In (Sale) -->
+    <g transform="translate(0, 0)">
+      <rect width="350" height="74" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="14" y="14" width="36" height="36" rx="10" fill="#DEF7EC"/>
+      <text x="32" y="36" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="#059669">↓</text>
+
+      <text x="58" y="28" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">Sale Bill #INV-1045 (Aarav Traders)</text>
+      <text x="58" y="44" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">11:30 AM • Cash Counter POS</text>
+
+      <text x="334" y="34" text-anchor="end" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="#059669">+₹8,450</text>
+      <text x="334" y="50" text-anchor="end" font-family="Inter, sans-serif" font-size="9.5" font-weight="700" fill="#059669">CASH IN</text>
+    </g>
+
+    <!-- Entry 2: Cash Out (Expense) -->
+    <g transform="translate(0, 86)">
+      <rect width="350" height="74" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="14" y="14" width="36" height="36" rx="10" fill="#FEE2E2"/>
+      <text x="32" y="36" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="#DC2626">↑</text>
+
+      <text x="58" y="28" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">Shop Electricity &amp; Tea Expenses</text>
+      <text x="58" y="44" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">10:15 AM • Petty Cash / Kharch</text>
+
+      <text x="334" y="34" text-anchor="end" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="#DC2626">-₹450</text>
+      <text x="334" y="50" text-anchor="end" font-family="Inter, sans-serif" font-size="9.5" font-weight="700" fill="#DC2626">CASH OUT</text>
+    </g>
+
+    <!-- Entry 3: Cash In (Customer Khata Payment) -->
+    <g transform="translate(0, 172)">
+      <rect width="350" height="74" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="14" y="14" width="36" height="36" rx="10" fill="#DEF7EC"/>
+      <text x="32" y="36" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="#059669">↓</text>
+
+      <text x="58" y="28" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">Payment Received from RK Enterprises</text>
+      <text x="58" y="44" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">09:40 AM • Old Balance Khata Cleared</text>
+
+      <text x="334" y="34" text-anchor="end" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="#059669">+₹15,000</text>
+      <text x="334" y="50" text-anchor="end" font-family="Inter, sans-serif" font-size="9.5" font-weight="700" fill="#059669">CASH IN</text>
+    </g>
+
+    <!-- Entry 4: Cash Out (Supplier Purchase) -->
+    <g transform="translate(0, 258)">
+      <rect width="350" height="74" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="14" y="14" width="36" height="36" rx="10" fill="#FEE2E2"/>
+      <text x="32" y="36" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="#DC2626">↑</text>
+
+      <text x="58" y="28" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">Supplier Payment: Hindustan Unilever</text>
+      <text x="58" y="44" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">08:20 AM • Stock Purchase</text>
+
+      <text x="334" y="34" text-anchor="end" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="#DC2626">-₹6,800</text>
+      <text x="334" y="50" text-anchor="end" font-family="Inter, sans-serif" font-size="9.5" font-weight="700" fill="#DC2626">CASH OUT</text>
+    </g>
+  </g>
+
+  <!-- Bottom Navigation Bar -->
+  <g id="BottomNav" transform="translate(0, 760)">
+    <rect width="390" height="84" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="39" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">Home</text>
+    <text x="117" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">Invoices</text>
+    <circle cx="195" cy="24" r="22" fill="#059669"/>
+    <text x="195" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="900" fill="#FFFFFF">+</text>
+    <text x="273" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="800" fill="#059669">CashBook</text>
+    <text x="351" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">More</text>
+  </g>
+</svg>

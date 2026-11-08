@@ -1,0 +1,127 @@
+<svg width="390" height="960" viewBox="0 0 390 960" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Screen 06: Invoice View & Receipt -->
+  <rect width="390" height="960" rx="40" fill="#F8FAFC"/>
+
+  <!-- Top Action Header -->
+  <g id="TopBar" transform="translate(20, 24)">
+    <rect x="0" y="0" width="36" height="36" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <path d="M20 13 l-5 5 l5 5" stroke="#0F172A" stroke-width="2" stroke-linecap="round"/>
+
+    <text x="50" y="24" font-family="Inter, sans-serif" font-size="17" font-weight="900" fill="#0F172A">Invoice #INV-1045</text>
+    
+    <rect x="250" y="0" width="46" height="36" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="273" y="23" text-anchor="middle" font-family="Inter, sans-serif" font-size="14">🖨️</text>
+
+    <rect x="304" y="0" width="46" height="36" rx="10" fill="#DEF7EC" stroke="#A7F3D0"/>
+    <text x="327" y="23" text-anchor="middle" font-family="Inter, sans-serif" font-size="14">💬</text>
+  </g>
+
+  <!-- Bill Preview Sheet (Simulating Thermal/A4 Bill) -->
+  <g id="BillSheet" transform="translate(20, 76)">
+    <rect width="350" height="740" rx="16" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+
+    <!-- Business Header -->
+    <g transform="translate(24, 28)">
+      <text x="151" y="0" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="900" fill="#0F172A">INVOICENTRIC STORE</text>
+      <text x="151" y="18" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#64748B">Main Market, Station Road, Mumbai - 400001</text>
+      <text x="151" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#64748B">GSTIN: 27AABCS1429B1Z2 • Ph: +91 98200 12345</text>
+    </g>
+
+    <!-- Invoice Details Strip -->
+    <g transform="translate(20, 90)">
+      <rect width="310" height="48" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <text x="14" y="20" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#64748B">INVOICE NO:</text>
+      <text x="14" y="36" font-family="Inter, sans-serif" font-size="12" font-weight="900" fill="#0F172A">INV-2026-1045</text>
+
+      <text x="180" y="20" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#64748B">DATE &amp; TIME:</text>
+      <text x="180" y="36" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0F172A">24-10-2026 11:30 AM</text>
+    </g>
+
+    <!-- Customer Billed To -->
+    <g transform="translate(20, 150)">
+      <text x="0" y="14" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#64748B">BILLED TO:</text>
+      <text x="0" y="32" font-family="Inter, sans-serif" font-size="13.5" font-weight="800" fill="#0F172A">Aarav Traders (Cash / Khata)</text>
+      <text x="0" y="48" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#64748B">+91 98765 43210 • Mumbai</text>
+    </g>
+
+    <!-- Line Items Table Header -->
+    <g transform="translate(20, 215)">
+      <rect width="310" height="28" fill="#0F172A"/>
+      <text x="10" y="18" font-family="Inter, sans-serif" font-size="10.5" font-weight="800" fill="#FFFFFF">ITEM / DESCRIPTION</text>
+      <text x="180" y="18" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="800" fill="#FFFFFF">QTY</text>
+      <text x="240" y="18" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="800" fill="#FFFFFF">RATE</text>
+      <text x="300" y="18" text-anchor="end" font-family="Inter, sans-serif" font-size="10.5" font-weight="800" fill="#FFFFFF">TOTAL</text>
+    </g>
+
+    <!-- Table Rows -->
+    <g transform="translate(20, 245)">
+      <!-- Row 1 -->
+      <text x="10" y="20" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">Basmati Premium Rice 5kg</text>
+      <text x="10" y="32" font-family="Inter, sans-serif" font-size="9.5" font-weight="500" fill="#64748B">HSN: 1006 (GST 5%)</text>
+      <text x="180" y="24" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">2</text>
+      <text x="240" y="24" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">450</text>
+      <text x="300" y="24" text-anchor="end" font-family="Inter, sans-serif" font-size="11.5" font-weight="800" fill="#0F172A">945.00</text>
+
+      <line x1="10" y1="42" x2="300" y2="42" stroke="#F1F5F9"/>
+
+      <!-- Row 2 -->
+      <text x="10" y="62" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">Tata Tea Gold 500g</text>
+      <text x="10" y="74" font-family="Inter, sans-serif" font-size="9.5" font-weight="500" fill="#64748B">HSN: 0902 (GST 12%)</text>
+      <text x="180" y="66" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">1</text>
+      <text x="240" y="66" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">310</text>
+      <text x="300" y="66" text-anchor="end" font-family="Inter, sans-serif" font-size="11.5" font-weight="800" fill="#0F172A">347.20</text>
+
+      <line x1="10" y1="84" x2="300" y2="84" stroke="#F1F5F9"/>
+
+      <!-- Row 3 -->
+      <text x="10" y="104" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">Dairy Milk Silk 150g</text>
+      <text x="10" y="116" font-family="Inter, sans-serif" font-size="9.5" font-weight="500" fill="#64748B">HSN: 1806 (GST 18%)</text>
+      <text x="180" y="108" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">2</text>
+      <text x="240" y="108" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#0F172A">80</text>
+      <text x="300" y="108" text-anchor="end" font-family="Inter, sans-serif" font-size="11.5" font-weight="800" fill="#0F172A">188.80</text>
+    </g>
+
+    <!-- Calculation Totals -->
+    <g transform="translate(20, 390)">
+      <line x1="0" y1="0" x2="310" y2="0" stroke="#0F172A" stroke-width="1.5"/>
+      <text x="10" y="24" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#64748B">Taxable Subtotal:</text>
+      <text x="300" y="24" text-anchor="end" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#0F172A">₹1,370.00</text>
+
+      <text x="10" y="44" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#64748B">Total GST (CGST + SGST):</text>
+      <text x="300" y="44" text-anchor="end" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#0F172A">₹111.00</text>
+
+      <text x="10" y="64" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#059669">Special Discount:</text>
+      <text x="300" y="64" text-anchor="end" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#059669">-₹50.00</text>
+
+      <rect x="0" y="78" width="310" height="38" rx="8" fill="#DEF7EC"/>
+      <text x="14" y="102" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#03543F">FINAL GRAND TOTAL:</text>
+      <text x="296" y="102" text-anchor="end" font-family="Inter, sans-serif" font-size="16" font-weight="900" fill="#03543F">₹1,431.00</text>
+    </g>
+
+    <!-- UPI Dynamic QR Code for Instant Payment -->
+    <g transform="translate(20, 520)">
+      <rect width="310" height="110" rx="12" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <!-- QR Box -->
+      <rect x="14" y="14" width="82" height="82" rx="8" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.5"/>
+      <rect x="22" y="22" width="22" height="22" fill="#0F172A"/>
+      <rect x="66" y="22" width="22" height="22" fill="#0F172A"/>
+      <rect x="22" y="66" width="22" height="22" fill="#0F172A"/>
+      <rect x="52" y="52" width="12" height="12" fill="#059669"/>
+
+      <text x="110" y="38" font-family="Inter, sans-serif" font-size="12" font-weight="900" fill="#0F172A">Scan UPI QR to Pay</text>
+      <text x="110" y="56" font-family="Inter, sans-serif" font-size="10.5" font-weight="600" fill="#64748B">Amount: ₹1,431.00</text>
+      <text x="110" y="72" font-family="Inter, sans-serif" font-size="10.5" font-weight="600" fill="#059669">UPI ID: invocentric@upi</text>
+      <text x="110" y="88" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#94A3B8">GPay • PhonePe • Paytm</text>
+    </g>
+
+    <!-- Footer Terms & Thank You -->
+    <text x="175" y="665" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#0F172A">THANK YOU FOR YOUR VISIT!</text>
+    <text x="175" y="682" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#64748B">Goods once sold will not be returned without bill.</text>
+  </g>
+
+  <!-- Sticky Bottom Share Button -->
+  <g id="BottomAction" transform="translate(20, 836)">
+    <rect width="350" height="52" rx="14" fill="#059669"/>
+    <text x="175" y="32" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="800" fill="#FFFFFF">💬 Share on WhatsApp Customer ➔</text>
+  </g>
+</svg>

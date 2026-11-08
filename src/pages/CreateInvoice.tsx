@@ -35,6 +35,7 @@ interface InvoiceItem {
   description: string;
   quantity: number;
   price: number;
+  image?: string;
   size?: string;
   hsn?: string;
   mrp?: number;
@@ -1243,7 +1244,8 @@ export default function CreateInvoicePage() {
       batch_no: (invItem as any).batch_no || '',
       expiry_date: (invItem as any).expiry_date || '',
       mfg_date: (invItem as any).manufacturing_date || (invItem as any).mfg_date || '',
-      warranty_period: (invItem as any).warranty_period || ''
+      warranty_period: (invItem as any).warranty_period || '',
+      image: (invItem as any).image || (invItem as any).image_url || (invItem as any).photo_url || ''
     });
     setFocusedItemIndex(null);
   };
@@ -1407,6 +1409,7 @@ export default function CreateInvoicePage() {
           description: item.description || '',
           quantity: Number(item.quantity) || 0,
           price: Number(price) || 0,
+          image: item.image || (item as any).image_url || '',
           size: item.size || '',
           hsn: item.hsn || '',
           mrp: Number(item.mrp) || 0,
@@ -2192,11 +2195,26 @@ export default function CreateInvoicePage() {
                                     isOutOfStock && appMode !== 'freelancer' ? "opacity-60 bg-gray-50/50" : ""
                                   )}
                                 >
-                                  <div className="space-y-0.5">
-                                    <div className="font-semibold text-gray-900 text-sm">
-                                      {invItem.name}
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center text-slate-400">
+                                      {((invItem as any).image || (invItem as any).image_url || (invItem as any).photo_url) ? (
+                                        <img
+                                          src={(invItem as any).image || (invItem as any).image_url || (invItem as any).photo_url}
+                                          alt={invItem.name}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (e.currentTarget as HTMLElement).style.display = 'none';
+                                          }}
+                                        />
+                                      ) : (
+                                        <Tag size={14} />
+                                      )}
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                    <div className="space-y-0.5 min-w-0">
+                                      <div className="font-semibold text-gray-900 text-sm truncate">
+                                        {invItem.name}
+                                      </div>
+                                      <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
                                       {invItem.brand && (
                                         <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">
                                           {invItem.brand}
@@ -2214,7 +2232,8 @@ export default function CreateInvoicePage() {
                                       )}
                                     </div>
                                   </div>
-                                  <div className="text-right space-y-0.5 shrink-0 pl-3">
+                                </div>
+                                <div className="text-right space-y-0.5 shrink-0 pl-3">
                                     <div className="text-sm font-bold text-slate-800">
                                       ₹{invItem.price || 0}
                                     </div>
@@ -2684,11 +2703,26 @@ export default function CreateInvoicePage() {
                                     isOutOfStock && appMode !== 'freelancer' ? "opacity-60 bg-gray-50/50" : ""
                                   )}
                                 >
-                                  <div className="space-y-0.5">
-                                    <div className="font-semibold text-gray-900 text-sm">
-                                      {invItem.name}
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center text-slate-400">
+                                      {((invItem as any).image || (invItem as any).image_url || (invItem as any).photo_url) ? (
+                                        <img
+                                          src={(invItem as any).image || (invItem as any).image_url || (invItem as any).photo_url}
+                                          alt={invItem.name}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (e.currentTarget as HTMLElement).style.display = 'none';
+                                          }}
+                                        />
+                                      ) : (
+                                        <Tag size={14} />
+                                      )}
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                                    <div className="space-y-0.5 min-w-0">
+                                      <div className="font-semibold text-gray-900 text-sm truncate">
+                                        {invItem.name}
+                                      </div>
+                                      <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
                                       {invItem.brand && (
                                         <span className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">
                                           {invItem.brand}
@@ -2706,6 +2740,7 @@ export default function CreateInvoicePage() {
                                       )}
                                     </div>
                                   </div>
+                                </div>
                                   <div className="text-right space-y-0.5 shrink-0 pl-3">
                                     <div className="text-sm font-bold text-slate-800">
                                       ₹{invItem.price || 0}

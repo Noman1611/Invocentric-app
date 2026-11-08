@@ -4,8 +4,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
 import android.os.CancellationSignal;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -277,6 +280,20 @@ public class CredentialManagerHelper {
     }
 
     public void signOut(@NonNull final SignOutCallback callback) {
+        final AtomicBoolean finished = new AtomicBoolean(false);
+        final Runnable finishOnce = new Runnable() {
+            @Override
+            public void run() {
+                if (finished.compareAndSet(false, true)) {
+                    callback.onComplete();
+                }
+            }
+        };
+
+        // Safety watchdog: ensure callback fires within 1.5s even if system dialog or Play Services hangs
+        final Handler watchdog = new Handler(Looper.getMainLooper());
+        watchdog.postDelayed(finishOnce, 1500);
+
         try {
             ClearCredentialStateRequest clearRequest = new ClearCredentialStateRequest();
             CancellationSignal cancellationSignal = new CancellationSignal();
@@ -289,19 +306,22 @@ public class CredentialManagerHelper {
                     new CredentialManagerCallback<Void, ClearCredentialException>() {
                         @Override
                         public void onResult(Void unused) {
-                            callback.onComplete();
+                            watchdog.removeCallbacks(finishOnce);
+                            finishOnce.run();
                         }
 
                         @Override
                         public void onError(ClearCredentialException e) {
                             Log.w(TAG, "Clear credential state error: " + e.getMessage());
-                            callback.onComplete();
+                            watchdog.removeCallbacks(finishOnce);
+                            finishOnce.run();
                         }
                     }
             );
         } catch (Exception e) {
             Log.w(TAG, "Clear credential state exception: " + e.getMessage());
-            callback.onComplete();
+            watchdog.removeCallbacks(finishOnce);
+            finishOnce.run();
         }
     }
 }

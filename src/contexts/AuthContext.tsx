@@ -2283,6 +2283,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    // 1. Immediately reset React state so UI updates instantly (0ms delay)
+    setUser(null);
+    setIsAdmin(false);
+    setRole('user');
+    setPlanTier('free');
+    setImpersonatedUser(null);
+
+    // 2. Synchronously clear all session credentials and tokens
     try {
       localStorage.removeItem('invocentric_jwt_token');
       localStorage.removeItem('invocentric_auth_active');
@@ -2292,30 +2300,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('invocentric_id_token');
       localStorage.removeItem('local_guest_session');
       localStorage.removeItem('email_otp_session');
+      localStorage.removeItem('invocentric_mobile_auth');
+      localStorage.removeItem('invocentric_mobile_session');
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('invocentric_mobile_auth');
+        sessionStorage.removeItem('invocentric_mobile_session');
+      }
       clearGlobalProfileBackup();
+    } catch (storageErr) {
+      console.warn("Storage cleanup notice on logout:", storageErr);
+    }
+
+    // 3. Dispatch global logout event so all listeners/modals reset
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('invocentric_logged_out'));
+      window.dispatchEvent(new CustomEvent('invocentric_auth_changed', { detail: { user: null } }));
+    }
+
+    // 4. Perform background native and cloud teardown without blocking UI transition
+    (async () => {
       if (typeof window !== 'undefined') {
         try {
           const { registerPlugin } = await import('@capacitor/core');
           const NativeGoogleAuth = registerPlugin<any>('NativeGoogleAuth');
           if (NativeGoogleAuth?.signOut) {
-            await NativeGoogleAuth.signOut().catch(() => {});
+            await Promise.race([
+              NativeGoogleAuth.signOut().catch(() => {}),
+              new Promise((res) => setTimeout(res, 1500))
+            ]);
           }
-        } catch (ignored) {}
+        } catch (_) {}
+
         if ((window as any).AndroidGoogleAuth?.signOut) {
           try {
             (window as any).AndroidGoogleAuth.signOut('logout_cb');
-          } catch (ignored) {}
+          } catch (_) {}
         }
       }
-      await signOut(auth);
-      setUser(null);
-      setIsAdmin(false);
-      setRole('user');
-      setPlanTier('free');
-    } catch (error) {
-      console.error("Error signing out:", error);
-      throw error;
-    }
+
+      try {
+        await Promise.race([
+          signOut(auth).catch(() => {}),
+          new Promise((res) => setTimeout(res, 2000))
+        ]);
+      } catch (_) {}
+    })().catch((err) => {
+      console.warn("Background signout notice:", err);
+    });
   };
 
   return (

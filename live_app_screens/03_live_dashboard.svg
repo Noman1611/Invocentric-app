@@ -1,0 +1,264 @@
+<svg width="390" height="1140" viewBox="0 0 390 1140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Screen 03: Live Mobile App Dashboard (Exact Code from Dashboard.tsx) -->
+  <rect width="390" height="1140" rx="40" fill="#F8FAFC"/>
+
+  <!-- Top Status Bar -->
+  <g id="StatusBar" transform="translate(24, 14)">
+    <text x="0" y="14" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#0F172A">9:41</text>
+    <rect x="135" y="-2" width="102" height="22" rx="11" fill="#0F172A"/>
+    <path d="M335 12 h3 v-6 h-3 v6 z M340 12 h3 v-8 h-3 v8 z M345 12 h3 v-10 h-3 v10 z" fill="#0F172A"/>
+    <rect x="354" y="2" width="18" height="10" rx="3" fill="none" stroke="#0F172A" stroke-width="1.5"/>
+    <rect x="356" y="4" width="10" height="6" rx="1.5" fill="#0F172A"/>
+  </g>
+
+  <!-- Welcome Greeting -->
+  <g id="GreetingHeader" transform="translate(20, 52)">
+    <text x="0" y="20" font-family="Inter, sans-serif" font-size="20" font-weight="900" fill="#0F172A">Good Evening, Partner 👋</text>
+    <text x="0" y="38" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#64748B">Here's what's happening with your business today.</text>
+  </g>
+
+  <!-- Store Identity & Cloud Bar (Dashboard.tsx line 321) -->
+  <g id="StoreCard" transform="translate(20, 102)">
+    <rect width="350" height="68" rx="16" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2"/>
+    
+    <!-- Store Avatar -->
+    <rect x="12" y="12" width="44" height="44" rx="12" fill="#059669"/>
+    <text x="34" y="39" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="900" fill="#FFFFFF">I</text>
+
+    <!-- Store Name & Green Live Dot -->
+    <text x="64" y="30" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#0F172A">InvoCentric Store</text>
+    <circle cx="195" cy="26" r="3.5" fill="#10B981"/>
+
+    <!-- Sync status button text -->
+    <text x="64" y="46" font-family="Inter, sans-serif" font-size="10" font-weight="800" fill="#059669">ONLINE • CLOUD SYNC ACTIVE 🔄</text>
+
+    <!-- Top Right Actions (Search, Bell, Plan Badge) -->
+    <g transform="translate(225, 18)">
+      <!-- Search Button -->
+      <rect x="0" y="2" width="28" height="28" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <circle cx="12" cy="14" r="4.5" stroke="#475569" stroke-width="1.5" fill="none"/>
+      <line x1="15.5" y1="17.5" x2="19.5" y2="21.5" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+
+      <!-- Bell Button with Red Dot -->
+      <rect x="34" y="2" width="28" height="28" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+      <path d="M48 10 a3 3 0 0 0 -6 0 c0 3 -1.5 4.5 -1.5 4.5 h9 s-1.5 -1.5 -1.5 -4.5 z" fill="none" stroke="#475569" stroke-width="1.5"/>
+      <circle cx="58" cy="8" r="3" fill="#EF4444"/>
+
+      <!-- Pro / Free Badge -->
+      <rect x="68" y="2" width="46" height="28" rx="8" fill="#FEF3C7" stroke="#FDE68A"/>
+      <text x="91" y="19" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="900" fill="#B45309">PRO</text>
+    </g>
+  </g>
+
+  <!-- 2x2 Bento FinTech KPI Cards (Dashboard.tsx line 392) -->
+  <g id="BentoGrid" transform="translate(20, 182)">
+    <!-- Card 1: Today's Sales -->
+    <g transform="translate(0, 0)">
+      <rect width="170" height="92" rx="16" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1.2"/>
+      <text x="12" y="22" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#166534">Today's Sales</text>
+      <circle cx="148" cy="18" r="10" fill="#DCFCE7"/>
+      <path d="M144 20 l3 -3 l5 5" stroke="#15803D" stroke-width="1.6" fill="none"/>
+      <text x="12" y="54" font-family="Inter, sans-serif" font-size="19" font-weight="900" fill="#0F172A">₹24,580</text>
+      <rect x="12" y="64" width="84" height="18" rx="4" fill="#DCFCE7"/>
+      <text x="18" y="77" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="#15803D">+18.6% vs mo</text>
+    </g>
+
+    <!-- Card 2: Received Total -->
+    <g transform="translate(180, 0)">
+      <rect width="170" height="92" rx="16" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2"/>
+      <text x="12" y="22" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#475569">Received Total</text>
+      <circle cx="148" cy="18" r="10" fill="#CCFBF1"/>
+      <path d="M145 18 l2 2 l4 -4" stroke="#0D9488" stroke-width="1.6" fill="none"/>
+      <text x="12" y="54" font-family="Inter, sans-serif" font-size="19" font-weight="900" fill="#0F172A">₹24,580</text>
+      <text x="12" y="77" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">Cash + UPI Collections</text>
+    </g>
+
+    <!-- Card 3: Customer Due -->
+    <g transform="translate(0, 102)">
+      <rect width="170" height="92" rx="16" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2"/>
+      <text x="12" y="22" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#475569">Customer Due</text>
+      <circle cx="148" cy="18" r="10" fill="#FEE2E2"/>
+      <circle cx="148" cy="18" r="4" stroke="#DC2626" stroke-width="1.5" fill="none"/>
+      <text x="12" y="54" font-family="Inter, sans-serif" font-size="19" font-weight="900" fill="#DC2626">₹18,400</text>
+      <rect x="12" y="64" width="76" height="18" rx="4" fill="#FEE2E2"/>
+      <text x="18" y="77" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="#B91C1C">12 Pending</text>
+    </g>
+
+    <!-- Card 4: Stock Alert -->
+    <g transform="translate(180, 102)">
+      <rect width="170" height="92" rx="16" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2"/>
+      <text x="12" y="22" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#475569">Stock Alert</text>
+      <circle cx="148" cy="18" r="10" fill="#FEF3C7"/>
+      <path d="M144 15 l4 8 h-8 z" fill="#D97706"/>
+      <text x="12" y="54" font-family="Inter, sans-serif" font-size="19" font-weight="900" fill="#D97706">4 Low Items</text>
+      <text x="12" y="77" font-family="Inter, sans-serif" font-size="10" font-weight="800" fill="#D97706">Restock ➔</text>
+    </g>
+  </g>
+
+  <!-- Quick Actions Navigation Cards (Dashboard.tsx line 491) -->
+  <g id="QuickNavSection" transform="translate(20, 390)">
+    <text x="0" y="14" font-family="Inter, sans-serif" font-size="11" font-weight="900" fill="#1E293B" letter-spacing="0.5">QUICK ACTIONS</text>
+    <text x="350" y="14" text-anchor="end" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#94A3B8">DIRECT NAVIGATION</text>
+
+    <!-- 3 Cards: Invoices, Quotations, Purchases -->
+    <g transform="translate(0, 24)">
+      <!-- Invoices -->
+      <rect x="0" y="0" width="110" height="66" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="10" y="10" width="24" height="24" rx="6" fill="#ECFDF5"/>
+      <path d="M16 16 h8 M16 20 h6 M16 24 h4" stroke="#059669" stroke-width="1.5" stroke-linecap="round"/>
+      <text x="10" y="48" font-family="Inter, sans-serif" font-size="11" font-weight="900" fill="#0F172A">Invoices ➔</text>
+      <text x="10" y="58" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#94A3B8">36 Bills</text>
+
+      <!-- Quotations -->
+      <rect x="120" y="0" width="110" height="66" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="130" y="10" width="24" height="24" rx="6" fill="#F0FDFA"/>
+      <path d="M136 22 l2 2 l5 -5" stroke="#0D9488" stroke-width="1.5" stroke-linecap="round"/>
+      <text x="130" y="48" font-family="Inter, sans-serif" font-size="11" font-weight="900" fill="#0F172A">Quotations ➔</text>
+      <text x="130" y="58" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#94A3B8">Estimates</text>
+
+      <!-- Purchases -->
+      <rect x="240" y="0" width="110" height="66" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="250" y="10" width="24" height="24" rx="6" fill="#ECFDF5"/>
+      <path d="M255 18 h14 l-1.5 7 h-11 z" stroke="#047857" stroke-width="1.5" fill="none"/>
+      <text x="250" y="48" font-family="Inter, sans-serif" font-size="11" font-weight="900" fill="#0F172A">Purchases ➔</text>
+      <text x="250" y="58" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#94A3B8">Bills Inward</text>
+    </g>
+
+    <!-- Horizontal Action Pills (Dashboard.tsx line 549) -->
+    <g transform="translate(0, 100)">
+      <!-- POS Sale Button (Green gradient) -->
+      <rect x="0" y="0" width="130" height="38" rx="10" fill="#059669"/>
+      <path d="M14 14 h3 v-3 h-3 z M21 11 h3 v3 h-3 z M14 21 h3 v3 h-3 z M21 21 h3 v3 h-3 z" fill="#FFFFFF"/>
+      <text x="32" y="24" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#FFFFFF">+ Quick POS Sale</text>
+
+      <!-- Create GST Invoice -->
+      <rect x="138" y="0" width="104" height="38" rx="10" fill="#FFFFFF" stroke="#CBD5E1"/>
+      <text x="190" y="24" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#0F172A">+ GST Invoice</text>
+
+      <!-- Add Item -->
+      <rect x="250" y="0" width="100" height="38" rx="10" fill="#FFFFFF" stroke="#CBD5E1"/>
+      <text x="300" y="24" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#0F172A">+ Add Product</text>
+    </g>
+  </g>
+
+  <!-- Sales Trend Area Chart (Dashboard.tsx line 607) -->
+  <g id="ChartCard" transform="translate(20, 542)">
+    <rect width="350" height="136" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="16" y="24" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0F172A">📈 Sales Trend</text>
+    <text x="16" y="38" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#94A3B8">Monthly Performance</text>
+    
+    <rect x="270" y="14" width="66" height="20" rx="10" fill="#ECFDF5" stroke="#A7F3D0"/>
+    <text x="303" y="28" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#065F46">Live Chart</text>
+
+    <!-- Curve Area -->
+    <path d="M 20 95 L 65 80 L 120 86 L 175 66 L 235 72 L 290 50 L 330 60 L 330 105 L 20 105 Z" fill="#10B981" fill-opacity="0.15"/>
+    <path d="M 20 95 L 65 80 L 120 86 L 175 66 L 235 72 L 290 50 L 330 60" stroke="#10B981" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    
+    <!-- Data Point Tooltip -->
+    <circle cx="290" cy="50" r="4" fill="#059669" stroke="#FFFFFF" stroke-width="2"/>
+    <rect x="268" y="32" width="44" height="16" rx="4" fill="#0F172A"/>
+    <text x="290" y="44" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="800" fill="#FFFFFF">₹24.5k</text>
+
+    <!-- Axis labels -->
+    <text x="25" y="120" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#94A3B8">May</text>
+    <text x="80" y="120" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#94A3B8">Jun</text>
+    <text x="140" y="120" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#94A3B8">Jul</text>
+    <text x="195" y="120" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#94A3B8">Aug</text>
+    <text x="250" y="120" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#94A3B8">Sep</text>
+    <text x="310" y="120" font-family="Inter, sans-serif" font-size="9" font-weight="700" fill="#059669">Oct</text>
+  </g>
+
+  <!-- Recent Transactions Card Stack (Dashboard.tsx line 642) -->
+  <g id="RecentTransactions" transform="translate(20, 694)">
+    <text x="0" y="16" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">🕒 Recent Transactions</text>
+    <text x="350" y="16" text-anchor="end" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#059669">See All (36) →</text>
+
+    <!-- Transaction 1: Aarav Traders -->
+    <g transform="translate(0, 28)">
+      <rect width="350" height="74" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <text x="14" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">Aarav Traders</text>
+      <rect x="110" y="12" width="84" height="16" rx="4" fill="#F1F5F9"/>
+      <text x="116" y="24" font-family="Inter, sans-serif" font-size="9" font-weight="700" fill="#64748B">INV-2026-1045</text>
+      <rect x="296" y="12" width="40" height="18" rx="5" fill="#DEF7EC"/>
+      <text x="316" y="25" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#03543F">PAID</text>
+
+      <line x1="14" y1="42" x2="336" y2="42" stroke="#F8FAFC"/>
+      <text x="14" y="60" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#94A3B8">Today • 11:30 AM</text>
+      <text x="286" y="62" text-anchor="end" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#0F172A">₹8,450.00</text>
+      
+      <!-- 1-Tap WhatsApp Button -->
+      <rect x="298" y="44" width="38" height="24" rx="6" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="317" y="60" text-anchor="middle" font-family="Inter, sans-serif" font-size="11">💬</text>
+    </g>
+
+    <!-- Transaction 2: Meera General Store -->
+    <g transform="translate(0, 110)">
+      <rect width="350" height="74" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <text x="14" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">Meera General Store</text>
+      <rect x="156" y="12" width="84" height="16" rx="4" fill="#F1F5F9"/>
+      <text x="162" y="24" font-family="Inter, sans-serif" font-size="9" font-weight="700" fill="#64748B">INV-2026-1044</text>
+      <rect x="284" y="12" width="52" height="18" rx="5" fill="#FEF3C7"/>
+      <text x="310" y="25" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#B45309">UNPAID</text>
+
+      <line x1="14" y1="42" x2="336" y2="42" stroke="#F8FAFC"/>
+      <text x="14" y="60" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#94A3B8">Yesterday • 04:15 PM</text>
+      <text x="286" y="62" text-anchor="end" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#D97706">₹3,200.00</text>
+      
+      <rect x="298" y="44" width="38" height="24" rx="6" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="317" y="60" text-anchor="middle" font-family="Inter, sans-serif" font-size="11">💬</text>
+    </g>
+
+    <!-- Transaction 3: RK Enterprises -->
+    <g transform="translate(0, 192)">
+      <rect width="350" height="74" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <text x="14" y="24" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#0F172A">RK Enterprises</text>
+      <rect x="110" y="12" width="84" height="16" rx="4" fill="#F1F5F9"/>
+      <text x="116" y="24" font-family="Inter, sans-serif" font-size="9" font-weight="700" fill="#64748B">INV-2026-1043</text>
+      <rect x="280" y="12" width="56" height="18" rx="5" fill="#FEE2E2"/>
+      <text x="308" y="25" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#E11D48">OVERDUE</text>
+
+      <line x1="14" y1="42" x2="336" y2="42" stroke="#F8FAFC"/>
+      <text x="14" y="60" font-family="Inter, sans-serif" font-size="11" font-weight="500" fill="#94A3B8">15 Oct • 02:40 PM</text>
+      <text x="286" y="62" text-anchor="end" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#E11D48">₹12,930.00</text>
+      
+      <rect x="298" y="44" width="38" height="24" rx="6" fill="#ECFDF5" stroke="#A7F3D0"/>
+      <text x="317" y="60" text-anchor="middle" font-family="Inter, sans-serif" font-size="11">💬</text>
+    </g>
+  </g>
+
+  <!-- Mobile Bottom Navigation Bar (Dashboard.tsx MobileNav) -->
+  <g id="BottomNav" transform="translate(0, 1056)">
+    <rect width="390" height="84" fill="#FFFFFF" stroke="#E2E8F0"/>
+    
+    <!-- Home (Active) -->
+    <g transform="translate(38, 12)">
+      <circle cx="12" cy="12" r="14" fill="#ECFDF5"/>
+      <path d="M6 14 L12 8 L18 14 V20 H6 Z" fill="#059669"/>
+      <text x="12" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="#059669">Home</text>
+    </g>
+
+    <!-- POS -->
+    <g transform="translate(112, 12)">
+      <path d="M6 8 h4 v-3 h-4 z M14 5 h4 v3 h-4 z M6 15 h4 v3 h-4 z M14 15 h4 v3 h-4 z" fill="#64748B"/>
+      <text x="12" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" fill="#64748B">POS</text>
+    </g>
+
+    <!-- Floating Center Add Button -->
+    <g transform="translate(176, -10)">
+      <circle cx="20" cy="20" r="22" fill="#059669" filter="drop-shadow(0px 4px 10px rgba(5,150,105,0.3))"/>
+      <path d="M20 12 V28 M12 20 H28" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+
+    <!-- Invoices -->
+    <g transform="translate(254, 12)">
+      <path d="M6 6 h10 v14 h-10 z M9 10 h4 M9 14 h4" stroke="#64748B" stroke-width="1.5" fill="none"/>
+      <text x="11" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" fill="#64748B">Invoices</text>
+    </g>
+
+    <!-- Items -->
+    <g transform="translate(324, 12)">
+      <path d="M5 8 l7 -4 l7 4 v8 l-7 4 l-7 -4 z" stroke="#64748B" stroke-width="1.5" fill="none"/>
+      <text x="12" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="600" fill="#64748B">Items</text>
+    </g>
+  </g>
+</svg>

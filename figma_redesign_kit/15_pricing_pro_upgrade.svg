@@ -1,0 +1,85 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Screen 15: Pricing & Pro Subscription -->
+  <rect width="390" height="844" rx="40" fill="#F8FAFC"/>
+
+  <!-- Top Bar -->
+  <g id="TopBar" transform="translate(20, 24)">
+    <rect x="0" y="0" width="36" height="36" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <path d="M20 13 l-5 5 l5 5" stroke="#0F172A" stroke-width="2" stroke-linecap="round"/>
+    <text x="50" y="24" font-family="Inter, sans-serif" font-size="18" font-weight="900" fill="#0F172A">InvoCentric Plans</text>
+  </g>
+
+  <!-- Pro Upgrade Hero Card -->
+  <g id="HeroCard" transform="translate(20, 72)">
+    <rect width="350" height="154" rx="20" fill="#0A3931"/>
+    <!-- Pro Badge -->
+    <rect x="20" y="20" width="60" height="24" rx="6" fill="#FDE68A"/>
+    <text x="50" y="36" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="900" fill="#B45309">★ PRO PLAN</text>
+
+    <text x="20" y="74" font-family="Inter, sans-serif" font-size="22" font-weight="900" fill="#FFFFFF">Unlimited GST Billing &amp; Multi-Device Sync</text>
+    <text x="20" y="96" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="#9FBDB6">Unlock thermal printing, barcode scanning &amp; Cloud backup</text>
+
+    <!-- Price Tag -->
+    <text x="20" y="132" font-family="Inter, sans-serif" font-size="24" font-weight="900" fill="#34D399">₹999 <tspan font-size="12" font-weight="500" fill="#9FBDB6">/ year (Only ₹83/mo)</tspan></text>
+  </g>
+
+  <!-- Monthly vs Yearly Toggle -->
+  <g id="BillingCycleToggle" transform="translate(95, 242)">
+    <rect width="200" height="38" rx="12" fill="#E2E8F0"/>
+    <!-- Yearly (Active) -->
+    <rect x="4" y="4" width="100" height="30" rx="8" fill="#059669"/>
+    <text x="54" y="23" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="800" fill="#FFFFFF">Yearly (Save 40%)</text>
+
+    <!-- Monthly -->
+    <text x="154" y="23" text-anchor="middle" font-family="Inter, sans-serif" font-size="11.5" font-weight="700" fill="#475569">Monthly</text>
+  </g>
+
+  <!-- Features Comparison List -->
+  <g id="FeaturesList" transform="translate(20, 298)">
+    <rect width="350" height="360" rx="18" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="20" y="30" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#0F172A">Everything in Pro Plan:</text>
+
+    <!-- Feature 1 -->
+    <circle cx="30" cy="60" r="10" fill="#DEF7EC"/>
+    <path d="M26 60 l3 3 l6 -6" stroke="#059669" stroke-width="2" stroke-linecap="round"/>
+    <text x="48" y="64" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">Unlimited Invoices &amp; Customers</text>
+    <text x="48" y="78" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">No cap on monthly billing or quotation generation</text>
+
+    <!-- Feature 2 -->
+    <circle cx="30" cy="110" r="10" fill="#DEF7EC"/>
+    <path d="M26 110 l3 3 l6 -6" stroke="#059669" stroke-width="2" stroke-linecap="round"/>
+    <text x="48" y="114" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">Thermal Receipt Printing (58mm &amp; 80mm)</text>
+    <text x="48" y="128" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">Instant ESC/POS wireless &amp; USB thermal printer support</text>
+
+    <!-- Feature 3 -->
+    <circle cx="30" cy="160" r="10" fill="#DEF7EC"/>
+    <path d="M26 160 l3 3 l6 -6" stroke="#059669" stroke-width="2" stroke-linecap="round"/>
+    <text x="48" y="164" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">1-Tap WhatsApp Invoice Dispatch</text>
+    <text x="48" y="178" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">Send PDF and payment link directly to customer phones</text>
+
+    <!-- Feature 4 -->
+    <circle cx="30" cy="210" r="10" fill="#DEF7EC"/>
+    <path d="M26 210 l3 3 l6 -6" stroke="#059669" stroke-width="2" stroke-linecap="round"/>
+    <text x="48" y="214" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">Cloud Backup &amp; Multi-Device Sync</text>
+    <text x="48" y="228" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">Access your billing data safely from PC and Android Phone</text>
+
+    <!-- Feature 5 -->
+    <circle cx="30" cy="260" r="10" fill="#DEF7EC"/>
+    <path d="M26 260 l3 3 l6 -6" stroke="#059669" stroke-width="2" stroke-linecap="round"/>
+    <text x="48" y="264" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">Barcode Scanning &amp; Label Printing</text>
+    <text x="48" y="278" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">Superfast POS counter checkout with camera or USB scanner</text>
+
+    <!-- Feature 6 -->
+    <circle cx="30" cy="310" r="10" fill="#DEF7EC"/>
+    <path d="M26 310 l3 3 l6 -6" stroke="#059669" stroke-width="2" stroke-linecap="round"/>
+    <text x="48" y="314" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">GST Reports &amp; CA Excel Export</text>
+    <text x="48" y="328" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#64748B">One-click GSTR-1, GSTR-3B and Profit &amp; Loss statements</text>
+  </g>
+
+  <!-- Sticky Bottom Upgrade Button -->
+  <g id="BottomCTA" transform="translate(20, 680)">
+    <rect width="350" height="54" rx="16" fill="#059669"/>
+    <text x="175" y="33" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#FFFFFF">Activate Pro Plan via UPI (₹999) ➔</text>
+    <text x="175" y="74" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#64748B">Instant Activation • 100% Money-back Guarantee</text>
+  </g>
+</svg>

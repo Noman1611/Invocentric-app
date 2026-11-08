@@ -1,0 +1,100 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Screen 14: Settings & Business Profile -->
+  <rect width="390" height="844" rx="40" fill="#F8FAFC"/>
+
+  <!-- Top App Bar -->
+  <g id="TopBar" transform="translate(20, 24)">
+    <text x="0" y="24" font-family="Inter, sans-serif" font-size="20" font-weight="900" fill="#0F172A">Business Settings</text>
+    <rect x="250" y="2" width="100" height="34" rx="10" fill="#059669"/>
+    <text x="300" y="23" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#FFFFFF">💾 Save All</text>
+  </g>
+
+  <!-- Business Profile Card -->
+  <g id="ProfileCard" transform="translate(20, 74)">
+    <rect width="350" height="186" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="16" y="24" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#64748B">STORE &amp; TAX IDENTIFICATION</text>
+
+    <!-- Business Name Field -->
+    <text x="16" y="48" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#475569">Business / Shop Name</text>
+    <rect x="16" y="56" width="318" height="38" rx="8" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="28" y="80" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#0F172A">InvoCentric Supermarket &amp; Retail</text>
+
+    <!-- GSTIN & State -->
+    <text x="16" y="112" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#475569">GSTIN (15 Digits)</text>
+    <rect x="16" y="120" width="180" height="38" rx="8" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="28" y="144" font-family="Inter, sans-serif" font-size="12.5" font-weight="800" fill="#0F172A">27AABCS1429B1Z2</text>
+
+    <text x="206" y="112" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#475569">State Code</text>
+    <rect x="206" y="120" width="128" height="38" rx="8" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="218" y="144" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">27 - Maharashtra</text>
+
+    <text x="16" y="174" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#059669">✅ GST Verified via GSTN Portal</text>
+  </g>
+
+  <!-- Bank & UPI Payment Settings -->
+  <g id="BankCard" transform="translate(20, 274)">
+    <rect width="350" height="154" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="16" y="24" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#64748B">BANK &amp; UPI QR BILLING</text>
+
+    <text x="16" y="48" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#475569">UPI ID (For Invoice QR Code)</text>
+    <rect x="16" y="56" width="318" height="38" rx="8" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="28" y="80" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">invocentric@okicici</text>
+
+    <text x="16" y="112" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#475569">Bank Account Number</text>
+    <rect x="16" y="120" width="180" height="38" rx="8" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="28" y="144" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">50200012345678</text>
+
+    <text x="206" y="112" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#475569">IFSC Code</text>
+    <rect x="206" y="120" width="128" height="38" rx="8" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="218" y="144" font-family="Inter, sans-serif" font-size="12.5" font-weight="700" fill="#0F172A">HDFC0001234</text>
+  </g>
+
+  <!-- Printer & Hardware Preferences -->
+  <g id="PrinterCard" transform="translate(20, 442)">
+    <rect width="350" height="154" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="16" y="24" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#64748B">PRINTER &amp; HARDWARE SETUP</text>
+
+    <text x="16" y="48" font-family="Inter, sans-serif" font-size="10.5" font-weight="700" fill="#475569">Default Print Format</text>
+    
+    <!-- Thermal 58mm (Active) -->
+    <rect x="16" y="58" width="98" height="42" rx="10" fill="#ECFDF5" stroke="#059669" stroke-width="1.5"/>
+    <text x="65" y="76" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#065F46">Thermal 58mm</text>
+    <text x="65" y="90" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#047857">2 Inch POS</text>
+
+    <!-- Thermal 80mm -->
+    <rect x="126" y="58" width="98" height="42" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="175" y="76" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#475569">Thermal 80mm</text>
+    <text x="175" y="90" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#64748B">3 Inch POS</text>
+
+    <!-- Classic A4 -->
+    <rect x="236" y="58" width="98" height="42" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="285" y="76" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#475569">Classic A4</text>
+    <text x="285" y="90" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="500" fill="#64748B">Full Sheet GST</text>
+
+    <!-- Auto Print Toggle -->
+    <line x1="16" y1="114" x2="334" y2="114" stroke="#F1F5F9"/>
+    <text x="16" y="136" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#0F172A">Auto-print receipt immediately on sale</text>
+    <rect x="290" y="122" width="44" height="24" rx="12" fill="#059669"/>
+    <circle cx="322" cy="134" r="9" fill="#FFFFFF"/>
+  </g>
+
+  <!-- App Storage & Backup Status -->
+  <g id="BackupStatus" transform="translate(20, 610)">
+    <rect width="350" height="76" rx="16" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="16" y="24" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#64748B">DATA STORAGE &amp; SYNC</text>
+    <text x="16" y="44" font-family="Inter, sans-serif" font-size="12.5" font-weight="800" fill="#0F172A">Local Encrypted PC Drive + Cloud Sync</text>
+    <text x="16" y="60" font-family="Inter, sans-serif" font-size="10.5" font-weight="500" fill="#059669">Last automatic backup: Today, 11:45 AM (5.2 MB)</text>
+    <text x="334" y="52" text-anchor="end" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#0284C7">Backup Now ➔</text>
+  </g>
+
+  <!-- Bottom Navigation Bar -->
+  <g id="BottomNav" transform="translate(0, 760)">
+    <rect width="390" height="84" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="39" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">Home</text>
+    <text x="117" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">Invoices</text>
+    <circle cx="195" cy="24" r="22" fill="#059669"/>
+    <text x="195" y="30" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" font-weight="900" fill="#FFFFFF">+</text>
+    <text x="273" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#64748B">Stock</text>
+    <text x="351" y="38" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="800" fill="#059669">Settings</text>
+  </g>
+</svg>

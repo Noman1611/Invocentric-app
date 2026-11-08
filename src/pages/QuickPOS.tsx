@@ -770,13 +770,31 @@ export default function QuickPOSPage() {
                   key={prod.id}
                   className="bg-white rounded-[24px] border border-[#E5EBE0] p-4 flex flex-col justify-between shadow-xs hover:border-[#CCD4C8] transition-all relative group"
                 >
-                  {/* Isometric Cube Illustration Box */}
-                  <div className="w-full h-32 rounded-[18px] bg-[#EDF5EB] flex items-center justify-center mb-3.5">
-                    <svg className="w-10 h-10 text-[#0F645D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 7l9-5 9 5v10l-9 5-9-5Z" />
-                      <path d="M3 7l9 5 9-5" />
-                      <path d="M12 12v10" />
-                    </svg>
+                  {/* Product Image Thumbnail / Illustration Box */}
+                  <div className="w-full h-32 rounded-[18px] bg-[#EDF5EB] flex items-center justify-center mb-3.5 overflow-hidden border border-[#E5EBE0]">
+                    {((prod as any).image || (prod as any).image_url || (prod as any).photo_url || (prod as any).imageUrl) ? (
+                      <img
+                        src={(prod as any).image || (prod as any).image_url || (prod as any).photo_url || (prod as any).imageUrl}
+                        alt={prod.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'w-full h-full flex items-center justify-center text-[#0F645D]';
+                            fallback.innerHTML = '<svg class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-5 9 5v10l-9 5-9-5Z" /><path d="M3 7l9 5 9-5" /><path d="M12 12v10" /></svg>';
+                            parent.appendChild(fallback);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <svg className="w-10 h-10 text-[#0F645D]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 7l9-5 9 5v10l-9 5-9-5Z" />
+                        <path d="M3 7l9 5 9-5" />
+                        <path d="M12 12v10" />
+                      </svg>
+                    )}
                   </div>
 
                   {/* Title and Stock */}
@@ -1110,11 +1128,21 @@ export default function QuickPOSPage() {
 
                       {/* Product Image Thumbnail */}
                       <div className="w-full aspect-[4/3] mb-2 rounded-xl bg-[#F6F8F3] border border-[#E9EFE4] flex items-center justify-center overflow-hidden shrink-0">
-                        {((prod as any).image || (prod as any).image_url) ? (
+                        {((prod as any).image || (prod as any).image_url || (prod as any).photo_url || (prod as any).imageUrl) ? (
                           <img
-                            src={(prod as any).image || (prod as any).image_url}
+                            src={(prod as any).image || (prod as any).image_url || (prod as any).photo_url || (prod as any).imageUrl}
                             alt={prod.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                const fallback = document.createElement('div');
+                                fallback.className = 'w-full h-full flex items-center justify-center text-[#A2B5A9]';
+                                fallback.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>';
+                                parent.appendChild(fallback);
+                              }
+                            }}
                           />
                         ) : (
                           <Package className="text-[#A2B5A9]" size={24} />
@@ -1212,11 +1240,14 @@ export default function QuickPOSPage() {
                   >
                     <div className="flex items-start justify-between gap-2.5">
                       <div className="w-9 h-9 rounded-xl bg-white border border-[#E5EBE0] overflow-hidden shrink-0 flex items-center justify-center text-[#768C81]">
-                        {((cartItem.item as any).image || (cartItem.item as any).image_url) ? (
+                        {((cartItem.item as any).image || (cartItem.item as any).image_url || (cartItem.item as any).photo_url || (cartItem.item as any).imageUrl) ? (
                           <img
-                            src={(cartItem.item as any).image || (cartItem.item as any).image_url}
+                            src={(cartItem.item as any).image || (cartItem.item as any).image_url || (cartItem.item as any).photo_url || (cartItem.item as any).imageUrl}
                             alt={cartItem.item.name}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                            }}
                           />
                         ) : (
                           <Package size={15} />
@@ -1426,7 +1457,7 @@ export default function QuickPOSPage() {
       )}
 
       {/* Floating Utility Actions */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2.5 print:hidden">
+      <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 flex flex-col items-end gap-2.5 print:hidden">
         <button
           type="button"
           onClick={() => navigate('/invoices')}
@@ -1513,12 +1544,28 @@ export default function QuickPOSPage() {
                   </span>
                   {cart.map((cartItem) => (
                     <div key={cartItem.id} className="p-3 bg-[#F6F8F3] border border-[#E5EBE0] rounded-2xl space-y-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-bold text-xs text-[#142921]">{cartItem.item.name}</h4>
-                          <span className="text-[11px] text-[#768C81]">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</span>
+                      <div className="flex justify-between items-start gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-white border border-[#E5EBE0] overflow-hidden shrink-0 flex items-center justify-center text-[#768C81]">
+                            {((cartItem.item as any).image || (cartItem.item as any).image_url || (cartItem.item as any).photo_url || (cartItem.item as any).imageUrl) ? (
+                              <img
+                                src={(cartItem.item as any).image || (cartItem.item as any).image_url || (cartItem.item as any).photo_url || (cartItem.item as any).imageUrl}
+                                alt={cartItem.item.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <Package size={16} />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-xs text-[#142921] truncate">{cartItem.item.name}</h4>
+                            <span className="text-[11px] text-[#768C81]">₹{Number(cartItem.item.price || 0).toLocaleString('en-IN')} each</span>
+                          </div>
                         </div>
-                        <span className="font-black text-xs text-[#142921]">
+                        <span className="font-black text-xs text-[#142921] shrink-0">
                           ₹{(Number(cartItem.item.price || 0) * cartItem.quantity).toLocaleString('en-IN')}
                         </span>
                       </div>

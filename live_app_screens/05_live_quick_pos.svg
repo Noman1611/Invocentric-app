@@ -1,0 +1,145 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Screen 05: Live Quick POS Billing (Exact Code from QuickPOS.tsx) -->
+  <rect width="390" height="844" rx="40" fill="#F8FAFC"/>
+
+  <!-- Top App Bar -->
+  <g id="TopBar" transform="translate(20, 24)">
+    <text x="0" y="24" font-family="Inter, sans-serif" font-size="19" font-weight="900" fill="#0F172A">Quick POS Billing</text>
+    <rect x="274" y="4" width="76" height="28" rx="8" fill="#ECFDF5" stroke="#A7F3D0"/>
+    <text x="312" y="22" text-anchor="middle" font-family="Inter, sans-serif" font-size="10.5" font-weight="800" fill="#065F46">COUNTER 1</text>
+  </g>
+
+  <!-- Search & Barcode Header (QuickPOS.tsx line 181) -->
+  <g id="SearchHeader" transform="translate(20, 70)">
+    <rect width="290" height="44" rx="12" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <path d="M14 15 h3 v-3 h-3 z M20 12 h3 v3 h-3 z M14 20 h3 v3 h-3 z M20 20 h3 v3 h-3 z" fill="#059669"/>
+    <text x="36" y="27" font-family="Inter, sans-serif" font-size="12.5" font-weight="500" fill="#94A3B8">Scan Barcode / Search Product...</text>
+
+    <!-- Camera Trigger Button -->
+    <rect x="300" y="0" width="50" height="44" rx="12" fill="#059669"/>
+    <circle cx="325" cy="22" r="6" stroke="#FFFFFF" stroke-width="2" fill="none"/>
+    <path d="M320 12 h10" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Category Pills (QuickPOS.tsx line 185) -->
+  <g id="CategoryPills" transform="translate(20, 126)">
+    <!-- All -->
+    <rect x="0" y="0" width="54" height="30" rx="8" fill="#059669"/>
+    <text x="27" y="19" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#FFFFFF">All</text>
+
+    <!-- Groceries -->
+    <rect x="62" y="0" width="80" height="30" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="102" y="19" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#475569">Groceries</text>
+
+    <!-- Beverages -->
+    <rect x="150" y="0" width="84" height="30" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="192" y="19" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#475569">Beverages</text>
+
+    <!-- Snacks -->
+    <rect x="242" y="0" width="70" height="30" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="277" y="19" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#475569">Snacks</text>
+  </g>
+
+  <!-- 2x3 Product Touch Grid (QuickPOS.tsx line 186) -->
+  <g id="ProductGrid" transform="translate(20, 172)">
+    <!-- Item 1 -->
+    <g transform="translate(0, 0)">
+      <rect width="170" height="116" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="12" y="12" width="34" height="34" rx="8" fill="#ECFDF5"/>
+      <text x="29" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="16">🍚</text>
+      <text x="54" y="24" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#059669">Stock: 42</text>
+      <text x="12" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0F172A">Basmati Rice 5kg</text>
+      <text x="12" y="96" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#059669">₹450</text>
+      <circle cx="146" cy="90" r="13" fill="#059669"/>
+      <text x="146" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#FFFFFF">+</text>
+    </g>
+
+    <!-- Item 2 -->
+    <g transform="translate(180, 0)">
+      <rect width="170" height="116" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="12" y="12" width="34" height="34" rx="8" fill="#F0FDFA"/>
+      <text x="29" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="16">☕</text>
+      <text x="54" y="24" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#0D9488">Stock: 18</text>
+      <text x="12" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0F172A">Tata Tea Gold</text>
+      <text x="12" y="96" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#059669">₹310</text>
+      <circle cx="146" cy="90" r="13" fill="#059669"/>
+      <text x="146" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#FFFFFF">+</text>
+    </g>
+
+    <!-- Item 3 -->
+    <g transform="translate(0, 126)">
+      <rect width="170" height="116" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="12" y="12" width="34" height="34" rx="8" fill="#FEF3C7"/>
+      <text x="29" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="16">🍪</text>
+      <text x="54" y="24" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#D97706">Stock: 64</text>
+      <text x="12" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0F172A">Good Day Biscuit</text>
+      <text x="12" y="96" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#059669">₹30</text>
+      <circle cx="146" cy="90" r="13" fill="#059669"/>
+      <text x="146" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#FFFFFF">+</text>
+    </g>
+
+    <!-- Item 4 -->
+    <g transform="translate(180, 126)">
+      <rect width="170" height="116" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="12" y="12" width="34" height="34" rx="8" fill="#FEE2E2"/>
+      <text x="29" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="16">🍫</text>
+      <text x="54" y="24" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#E11D48">Stock: 4</text>
+      <text x="12" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0F172A">Dairy Milk Silk</text>
+      <text x="12" y="96" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#059669">₹80</text>
+      <circle cx="146" cy="90" r="13" fill="#059669"/>
+      <text x="146" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#FFFFFF">+</text>
+    </g>
+
+    <!-- Item 5 -->
+    <g transform="translate(0, 252)">
+      <rect width="170" height="116" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="12" y="12" width="34" height="34" rx="8" fill="#EFF6FF"/>
+      <text x="29" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="16">🧼</text>
+      <text x="54" y="24" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#2563EB">Stock: 52</text>
+      <text x="12" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0F172A">Dettol Soap 125g</text>
+      <text x="12" y="96" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#059669">₹55</text>
+      <circle cx="146" cy="90" r="13" fill="#059669"/>
+      <text x="146" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#FFFFFF">+</text>
+    </g>
+
+    <!-- Item 6 -->
+    <g transform="translate(180, 252)">
+      <rect width="170" height="116" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+      <rect x="12" y="12" width="34" height="34" rx="8" fill="#F3E8FF"/>
+      <text x="29" y="34" text-anchor="middle" font-family="Inter, sans-serif" font-size="16">🧴</text>
+      <text x="54" y="24" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#7C3AED">Stock: 22</text>
+      <text x="12" y="70" font-family="Inter, sans-serif" font-size="12" font-weight="800" fill="#0F172A">Surf Excel 1kg</text>
+      <text x="12" y="96" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#059669">₹140</text>
+      <circle cx="146" cy="90" r="13" fill="#059669"/>
+      <text x="146" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="900" fill="#FFFFFF">+</text>
+    </g>
+  </g>
+
+  <!-- Persistent Mobile Cart Drawer (QuickPOS.tsx line 190) -->
+  <g id="CartDrawer" transform="translate(0, 676)">
+    <rect width="390" height="168" rx="26" fill="#0F172A"/>
+    <rect x="175" y="10" width="40" height="4" rx="2" fill="#334155"/>
+
+    <g transform="translate(24, 26)">
+      <text x="0" y="20" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#94A3B8">3 Items in Cart</text>
+      <text x="0" y="44" font-family="Inter, sans-serif" font-size="24" font-weight="900" fill="#FFFFFF">₹840.00</text>
+
+      <!-- Payment Modes: Cash, UPI, Card -->
+      <g transform="translate(160, 12)">
+        <rect x="0" y="0" width="54" height="28" rx="8" fill="#10B981"/>
+        <text x="27" y="18" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#FFFFFF">Cash</text>
+
+        <rect x="60" y="0" width="54" height="28" rx="8" fill="#1E293B" stroke="#334155"/>
+        <text x="87" y="18" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#CBD5E1">UPI</text>
+
+        <rect x="120" y="0" width="54" height="28" rx="8" fill="#1E293B" stroke="#334155"/>
+        <text x="147" y="18" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#CBD5E1">Card</text>
+      </g>
+    </g>
+
+    <g transform="translate(24, 90)">
+      <rect width="342" height="52" rx="14" fill="#10B981"/>
+      <text x="171" y="32" text-anchor="middle" font-family="Inter, sans-serif" font-size="15" font-weight="900" fill="#022C22">Pay &amp; Thermal Print (F12) ➔</text>
+    </g>
+  </g>
+</svg>

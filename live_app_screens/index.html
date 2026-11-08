@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InvoCentric Live App - Figma Design Kit & Screen Exporter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0B0F19;
+      color: #F8FAFC;
+      min-height: 100vh;
+      padding: 30px 24px;
+    }
+    .top-header {
+      max-width: 1200px;
+      margin: 0 auto 32px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 24px;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #059669;
+      color: #FFFFFF;
+      font-size: 22px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #FFFFFF;
+      letter-spacing: -0.5px;
+    }
+    .header-sub {
+      font-size: 13px;
+      color: #94A3B8;
+      margin-top: 2px;
+    }
+    .info-pill {
+      background: #064E3B;
+      color: #34D399;
+      border: 1px solid #059669;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .grid-screens {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 28px;
+    }
+    .screen-card {
+      background: #111827;
+      border: 1px solid #1F2937;
+      border-radius: 24px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      transition: all 0.2s ease;
+    }
+    .screen-card:hover {
+      border-color: #059669;
+      transform: translateY(-3px);
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .screen-name {
+      font-size: 16px;
+      font-weight: 800;
+      color: #FFFFFF;
+    }
+    .screen-route {
+      font-size: 11.5px;
+      color: #10B981;
+      font-family: monospace;
+      margin-top: 2px;
+    }
+    .screen-type-tag {
+      background: #1F2937;
+      color: #CBD5E1;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .preview-box {
+      background: #0F172A;
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 16px;
+      min-height: 280px;
+      max-height: 380px;
+      overflow: hidden;
+      border: 1px solid #1E293B;
+    }
+    .preview-img {
+      max-width: 100%;
+      height: auto;
+      max-height: 350px;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: auto;
+    }
+    .btn-copy {
+      flex: 1;
+      background: #059669;
+      color: #FFFFFF;
+      font-size: 12.5px;
+      font-weight: 800;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-copy:hover { background: #10B981; }
+    .btn-dl {
+      background: #1F2937;
+      color: #E2E8F0;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 10px 14px;
+      border-radius: 10px;
+      text-decoration: none;
+      border: 1px solid #374151;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn-dl:hover { background: #374151; }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #10B981;
+      color: #022C22;
+      font-weight: 800;
+      padding: 12px 24px;
+      border-radius: 9999px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      display: none;
+      z-index: 1000;
+      font-size: 13.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-header">
+    <div class="brand-group">
+      <div class="logo-badge">✓</div>
+      <div>
+        <h1 class="header-title">InvoCentric Live App — Figma Design Kit</h1>
+        <p class="header-sub">Har ek screen aur modal ka exact live layout (with 100% open editable text for Figma redesign)</p>
+      </div>
+    </div>
+    <div class="info-pill">
+      ✨ 100% Editable Text in Figma (Ctrl + V)
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="grid-screens">
+
+      <!-- Card 1: Desktop Login -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">1. Live Login Screen</div>
+            <div class="screen-route">/login (Desktop &amp; Web)</div>
+          </div>
+          <span class="screen-type-tag">Auth</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="./01_live_login_screen.svg" alt="Login Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('./01_live_login_screen.svg', 'Login Screen Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="./01_live_login_screen.svg" download="01_live_login.svg">⬇️ SVG</a>
+          <a class="btn-dl" href="./01_live_login_screen.html" target="_blank">👁️ HTML</a>
+        </div>
+      </div>
+
+      <!-- Card 2: Mobile Login -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">2. Live Mobile Login</div>
+            <div class="screen-route">/login (Mobile APK)</div>
+          </div>
+          <span class="screen-type-tag">Auth</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="./02_live_mobile_login.svg" alt="Mobile Login Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('./02_live_mobile_login.svg', 'Mobile Login Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="./02_live_mobile_login.svg" download="02_live_mobile_login.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 3: Dashboard -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">3. Live App Dashboard</div>
+            <div class="screen-route">/dashboard (Main Home)</div>
+          </div>
+          <span class="screen-type-tag">Home</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="./03_live_dashboard.svg" alt="Dashboard Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('./03_live_dashboard.svg', 'Dashboard Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="./03_live_dashboard.svg" download="03_live_dashboard.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 4: Create Invoice -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">4. Create Invoice &amp; Bill</div>
+            <div class="screen-route">/invoices/create</div>
+          </div>
+          <span class="screen-type-tag">Billing</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="./04_live_create_invoice.svg" alt="Create Invoice Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('./04_live_create_invoice.svg', 'Create Invoice Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="./04_live_create_invoice.svg" download="04_live_create_invoice.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 5: Quick POS -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">5. Quick POS Counter</div>
+            <div class="screen-route">/pos (Barcode Checkout)</div>
+          </div>
+          <span class="screen-type-tag">POS</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="./05_live_quick_pos.svg" alt="POS Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('./05_live_quick_pos.svg', 'POS Screen Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="./05_live_quick_pos.svg" download="05_live_quick_pos.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 6: Invoices Management -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">6. Invoices Management</div>
+            <div class="screen-route">/invoices (Sales List)</div>
+          </div>
+          <span class="screen-type-tag">List</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="../figma_redesign_kit/05_invoices_management.svg" alt="Invoices List Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('../figma_redesign_kit/05_invoices_management.svg', 'Invoices List Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="../figma_redesign_kit/05_invoices_management.svg" download="06_invoices.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 7: Invoice View / Receipt -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">7. Invoice View &amp; Print</div>
+            <div class="screen-route">/invoices/:id (Receipt &amp; QR)</div>
+          </div>
+          <span class="screen-type-tag">Receipt</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="../figma_redesign_kit/06_invoice_view_receipt.svg" alt="Invoice View Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('../figma_redesign_kit/06_invoice_view_receipt.svg', 'Invoice Receipt Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="../figma_redesign_kit/06_invoice_view_receipt.svg" download="07_receipt.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 8: Items & Inventory -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">8. Items &amp; Stock</div>
+            <div class="screen-route">/items (Inventory)</div>
+          </div>
+          <span class="screen-type-tag">Stock</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="../figma_redesign_kit/08_inventory_products.svg" alt="Items Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('../figma_redesign_kit/08_inventory_products.svg', 'Inventory Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="../figma_redesign_kit/08_inventory_products.svg" download="08_items.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 9: Customers Khata -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">9. Customers (Khata)</div>
+            <div class="screen-route">/customers (Receivables)</div>
+          </div>
+          <span class="screen-type-tag">Khata</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="../figma_redesign_kit/09_customers_khata.svg" alt="Customers Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('../figma_redesign_kit/09_customers_khata.svg', 'Customers Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="../figma_redesign_kit/09_customers_khata.svg" download="09_customers.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 10: DailyBook -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">10. DailyBook (Cash Book)</div>
+            <div class="screen-route">/dailybook (Cash in Hand)</div>
+          </div>
+          <span class="screen-type-tag">Cash</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="../figma_redesign_kit/12_daily_cashbook.svg" alt="DailyBook Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('../figma_redesign_kit/12_daily_cashbook.svg', 'DailyBook Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="../figma_redesign_kit/12_daily_cashbook.svg" download="10_dailybook.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 11: Settings -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">11. Business Settings</div>
+            <div class="screen-route">/settings (Profile &amp; Printer)</div>
+          </div>
+          <span class="screen-type-tag">Settings</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="../figma_redesign_kit/14_settings_business.svg" alt="Settings Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('../figma_redesign_kit/14_settings_business.svg', 'Settings Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="../figma_redesign_kit/14_settings_business.svg" download="11_settings.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 12: Pricing Pro Upgrade -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">12. Pricing &amp; Pro Plan</div>
+            <div class="screen-route">/pricing (Upgrade Plan)</div>
+          </div>
+          <span class="screen-type-tag">Pro</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="../figma_redesign_kit/15_pricing_pro_upgrade.svg" alt="Pricing Screen" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('../figma_redesign_kit/15_pricing_pro_upgrade.svg', 'Pricing Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="../figma_redesign_kit/15_pricing_pro_upgrade.svg" download="12_pricing.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 13: Modal Add Customer -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">13. Modal: Add Customer</div>
+            <div class="screen-route">Button: + Add Customer</div>
+          </div>
+          <span class="screen-type-tag">Modal</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="./13_modal_add_customer.svg" alt="Add Customer Modal" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('./13_modal_add_customer.svg', 'Add Customer Modal Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="./13_modal_add_customer.svg" download="13_modal_add_customer.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+      <!-- Card 14: Modal Add Item -->
+      <div class="screen-card">
+        <div class="card-top">
+          <div>
+            <div class="screen-name">14. Modal: Add Product</div>
+            <div class="screen-route">Button: + Add Product</div>
+          </div>
+          <span class="screen-type-tag">Modal</span>
+        </div>
+        <div class="preview-box">
+          <img class="preview-img" src="./14_modal_add_item.svg" alt="Add Item Modal" />
+        </div>
+        <div class="btn-row">
+          <button class="btn-copy" onclick="copySvg('./14_modal_add_item.svg', 'Add Item Modal Copied! Ab Figma me Ctrl + V karein')">
+            📋 Copy for Figma
+          </button>
+          <a class="btn-dl" href="./14_modal_add_item.svg" download="14_modal_add_item.svg">⬇️ SVG</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    async function copySvg(path, msg) {
+      try {
+        const res = await fetch(path);
+        const svgCode = await res.text();
+        await navigator.clipboard.writeText(svgCode);
+
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3500);
+      } catch (err) {
+        alert('Copy error: ' + err);
+      }
+    }
+  </script>
+</body>
+</html>

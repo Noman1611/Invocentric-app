@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
 import { KeyUnderline } from './KeyUnderline';
@@ -45,6 +45,7 @@ import { db } from '../lib/firebase';
 export default function Sidebar({ onProfileClick }: { onProfileClick?: () => void }) {
   const { logout, user, isAdmin, appMode, planTier, isPro, triggerUpgradeModal } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(() => location.pathname.startsWith('/settings'));
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
@@ -400,7 +401,14 @@ export default function Sidebar({ onProfileClick }: { onProfileClick?: () => voi
         )}
 
         <button
-          onClick={logout}
+          onClick={async () => {
+            try {
+              await logout();
+              navigate('/login', { replace: true });
+            } catch (e) {
+              navigate('/login', { replace: true });
+            }
+          }}
           className={cn(
             "flex items-center gap-2.5 w-full py-2 transition-all text-[12px] font-bold px-3 rounded-xl text-white/70 hover:text-rose-200 hover:bg-white/10 cursor-pointer",
             collapsed ? "justify-center" : "justify-start"

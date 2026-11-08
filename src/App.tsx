@@ -1144,9 +1144,14 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
                     </button>
                     <div className="h-px bg-[#E5EBE0] my-1" />
                     <button 
-                      onClick={() => {
+                      onClick={async () => {
                         setIsProfileOpen(false);
-                        logout();
+                        try {
+                          await logout();
+                          navigate('/login', { replace: true });
+                        } catch (e) {
+                          navigate('/login', { replace: true });
+                        }
                       }}
                       className="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold text-[#BE3349] hover:bg-[#BE3349]/10 transition-all"
                     >

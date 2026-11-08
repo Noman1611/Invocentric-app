@@ -17,27 +17,24 @@ if (!TOKEN) {
 }
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.52';
+const TAG = 'v1.0.53';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.52 - Guaranteed Profile & Multi-Device Sync, Protected Local Storage & System Reliability';
-const RELEASE_NOTES = `## InvoCentric v1.0.52 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.53 - Enhanced Instant Logout, Modernized UI Design & Multi-Platform Performance';
+const RELEASE_NOTES = `## InvoCentric v1.0.53 Release Notes
 
-### What's New in v1.0.52:
-- **Guaranteed Business Profile & Bank Details Sync:**
-  - Essential business & banking fields (Business Name, Phone, GSTIN, Address, Bank Name, Account Number, IFSC, UPI ID) now have an automatic guaranteed cloud fallback so they never fail to sync or get lost.
-  - Added smart payload sanitization to protect against document size limits when branding logos or signatures are uploaded.
-- **Reliable Multi-Device & Next-Day Login Hydration:**
-  - Increased profile hydration network timeout to 8 seconds on initial login to prevent false timeout dropouts.
-  - Added Candidate UID self-healing to seamlessly link and restore business profiles across login methods (Google / Email).
-  - Immediate local storage layer synchronization across tabs and sessions.
-- **Party (Customer) & Invoice Data Resilience:**
-  - Extended network write timeouts to 6 seconds so mobile & fluctuating connections don't drop customer/invoice creation to offline queue.
-  - Real-time event listeners instantly refresh UI when remote data arrives without requiring manual page reload.
-- **Strict Local Storage Protection:**
-  - Completely preserves 100% of offline and Local PC Mode data. Users who choose local storage remain entirely private with zero unrequested cloud pushes or data resets.
+### What's New in v1.0.53:
+- **Instant & Reliable Android App Logout:**
+  - Resolved Android app session teardown issue where clicking logout remained on the active view until restart.
+  - Implemented 0ms synchronous state reset, comprehensive credential & session token clearance across storage engines.
+  - Added non-blocking Android Credential Manager watchdog and background Firebase Auth teardown to ensure instant logout without app restart.
+- **UI Modernization & Responsive Enhancements:**
+  - Integrated rich product image thumbnails in invoice item pickers, Quick POS catalog and cart views.
+  - Streamlined MobileNav bottom toolbar with quick 1-tap navigation for Create Invoice, POS, and Settings.
+  - Enhanced Parties & Customers list with dedicated outstanding dues and overdue balances filter.
+  - Unified real-time notifications with clean popover triggers.
 - **Cross-Platform Releases:**
   - **Desktop Software:** Updated Windows installer (\`InvoCentric-Setup.exe\`) with auto-updater support (\`latest.yml\`).
-  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 52.
+  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 53.
   - **Web Application:** Production-optimized static web assets and server bundle.
 `;
 

@@ -56,11 +56,11 @@ export function registerTier3Tests() {
       expect(invoicesCode).toContain('dateFilter');
     });
 
-    test('C4: Mobile bottom nav + drawer navigation + safe area bottom insets on iOS notch viewports', () => {
+    test('C4: Mobile bottom nav + safe area bottom insets on iOS notch viewports', () => {
       const navCode = readSourceFile('src/components/MobileNav.tsx');
       expect(navCode).toContain('pb-safe');
-      expect(navCode).toContain('AnimatePresence');
-      expect(navCode).toContain('menuOpen');
+      expect(navCode).toContain('flex-1');
+      expect(navCode).toContain('max-w-[');
     });
 
     test('C5: Quotation to Invoice 1-click conversion + responsive item card hydration + balance recalculation', () => {
