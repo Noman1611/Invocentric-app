@@ -85,6 +85,8 @@ try {
     autoUpdater.logger = console;
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.disableDifferentialDownload = true;
+    autoUpdater.allowDowngrade = false;
   }
 } catch (err) {
   console.warn('[AutoUpdater] electron-updater could not be loaded:', err?.message || err);
@@ -497,19 +499,20 @@ ipcMain.handle('check-for-updates', async () => {
 });
 
 ipcMain.handle('restart-and-install', () => {
-  if (!isUpdateDownloaded) {
-    console.warn('[AutoUpdater] Refusing restart-and-install: No update has been downloaded yet.');
-    return { success: false, error: 'Update is not downloaded yet.' };
-  }
   if (autoUpdater) {
     try {
       console.log('[AutoUpdater] Initiating restart and in-place installer execution...');
-      // Pass isSilent: false so NSIS installer GUI launches and cleanly prompts user for permission, then launches updated app
-      autoUpdater.quitAndInstall(false, true);
+      // Pass isSilent: true, isForceRunAfter: true so the NSIS installer runs seamlessly and restarts the app
+      autoUpdater.quitAndInstall(true, true);
       return { success: true };
     } catch (err) {
-      console.error('[AutoUpdater] Error during quitAndInstall:', err);
-      return { success: false, error: err?.message || String(err) };
+      console.error('[AutoUpdater] Error during quitAndInstall (silent), attempting non-silent fallback:', err);
+      try {
+        autoUpdater.quitAndInstall(false, true);
+        return { success: true };
+      } catch (fallbackErr) {
+        return { success: false, error: err?.message || String(err) };
+      }
     }
   }
   return { success: false, error: 'autoUpdater not available' };

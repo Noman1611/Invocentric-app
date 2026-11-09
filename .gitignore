@@ -13,6 +13,7 @@ dist_electron/
 !InvoCentric-Test.apk
 !public/InvoCentric-Test.apk
 *.exe
+*.blockmap
 *.jar
 *.idsig
 .vscode/

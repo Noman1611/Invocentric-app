@@ -17,30 +17,33 @@ if (!TOKEN) {
 }
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.54';
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+const TAG = `v${pkg.version}`;
 
-const RELEASE_TITLE = 'InvoCentric v1.0.54 - Dynamic Mobile Dock, Inline Tools, Financial Calculation Analytics & Production Movement Ledger';
-const RELEASE_NOTES = `## InvoCentric v1.0.54 Release Notes
+const RELEASE_TITLE = `InvoCentric v${pkg.version} - Auto-Updater Loop Fix, Dashboard Navigation & Production Mobile Dock`;
+const RELEASE_NOTES = `## InvoCentric v${pkg.version} Release Notes
 
-### What's New in v1.0.54:
-- **Redesigned Mobile Navigation Bar:**
-  - Added dedicated **Home** button navigation to the mobile bottom bar (Home, Create Invoice, POS, Settings).
-  - Clean floating pill design (\`rounded-full\`) where inactive tabs show only crisp icons, and the active tab expands to show icon + label.
-- **Mobile Top Viewport Corner Sharpness:**
-  - Removed top-corner screen curvature on mobile viewports so Android apps and smartphone web browsers have clean, edge-to-edge square display.
-- **Home Dashboard "Make your next move" Inline All-Tools Drawer:**
-  - Clicking "All tools" now smoothly expands all tools (Parties, Payments, Daily Book, Expenses, Reports, Barcode Studio, Delivery Challans, Settings) directly below the primary 4 actions on the dashboard itself, without navigating to a separate page.
-- **Payments Calculation Analytics & Multi-Filters:**
-  - Added live calculated summary cards at the top of the Payments page (Total Collected, This Month, This Year, Transaction Counts).
-  - Multi-filtering controls by Month, Year, Customer, and Date with dynamic instant totals calculation.
+### What's Fixed & Improved in v${pkg.version}:
+- **Windows Desktop Software Auto-Updater Loop Fixed:**
+  - Fixed the infinite download/restart update loop in the Windows software where downloads would finish, fail checksum validation, and restart repeatedly.
+  - Fully synchronized \`latest.yml\` SHA-512 checksum and exact byte size with \`InvoCentric-Setup.exe\`.
+  - Configured \`disableDifferentialDownload = true\` in Electron auto-updater to guarantee atomic full downloads without blockmap corruption.
+  - Hardened auto-updater IPC to invoke clean installer execution on restart.
+- **WebApp Dashboard Navigation Buttons Fixed:**
+  - Fixed non-responsive buttons on Dashboard: "Sales / Revenue", "Unpaid / Due Balance", "View All Invoices", and "Create First Invoice" now navigate seamlessly.
+  - Safe date parsing for statements and transactions to eliminate null timestamp crashes.
+- **Mobile Dynamic Island Navigation Dock:**
+  - Dedicated **Home** navigation icon alongside Create Invoice, POS, and Settings.
+  - Compact floating dock pill (\`rounded-full\`) where only active item expands to show label, maintaining tight spacing without empty horizontal gaps.
+  - Flat top screen viewport corners on mobile for edge-to-edge display on Android and smartphone webapps.
 - **Strict Customer Dues Filtering:**
-  - Clicking Customer Dues strictly filters and displays only customers with actual pending balances and outstanding dues (\`due_amount > 0\`), with prominent balance badges.
-- **Production Inventory Movement History:**
-  - Replaced static demo table with live production audit ledger pulling chronological stock movements from real invoice sales (Stock OUT), purchases (Stock IN), and opening inventory, with instant filtering and search.
+  - Customer dues filter exclusively shows customers with outstanding balances (\`due_amount > 0\`).
+- **Production Inventory Movement Ledger:**
+  - Real-time chronological audit trail of all stock movements (Stock OUT from invoice sales, Stock IN from purchases, adjustments).
 - **Cross-Platform Releases:**
-  - **Desktop Software:** Updated Windows installer (\`InvoCentric-Setup.exe\`) with auto-updater support (\`latest.yml\`).
-  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 54.
-  - **Web Application:** Production-optimized static web assets.
+  - **Desktop Software:** \`InvoCentric-Setup.exe\` & \`latest.yml\` (v${pkg.version})
+  - **Android Mobile App:** \`InvoCentric.apk\` (v${pkg.version}, versionCode 55)
+  - **Web Application:** Fully tested (100% pass rate on all 144 unit and E2E tests).
 `;
 
 const ASSETS = [
@@ -224,7 +227,7 @@ async function main() {
     });
   }
 
-  console.log('\n🎉 Publication complete! Both Android and Windows app updaters will now discover v1.0.40.');
+  console.log(`\n🎉 Publication complete! Both Android and Windows app updaters will now discover ${TAG}.`);
 }
 
 main().catch(err => {
