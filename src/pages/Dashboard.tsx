@@ -36,7 +36,12 @@ import {
   Eye,
   ExternalLink,
   ShieldCheck,
-  HardDrive
+  HardDrive,
+  BookOpen,
+  BarChart3,
+  Barcode,
+  Truck,
+  Settings
 } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { useInvoices, useCustomers, useItems, useRecycleBin, useNotifications } from '../hooks/useData';
@@ -61,6 +66,7 @@ export default function DashboardPage() {
   const { items: inventoryItems, loading: itemsLoading } = useItems();
   const { recycleBinItems } = useRecycleBin();
   const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
+  const [isAllToolsOpen, setIsAllToolsOpen] = useState(false);
   useAutoReminders();
 
   const { notifications } = useNotifications();
@@ -431,7 +437,7 @@ export default function DashboardPage() {
 
           {/* Metric 2: Customer Dues (Dark Card #073E36) */}
           <button
-            onClick={() => navigate('/customers')}
+            onClick={() => navigate('/customers?filter=dues')}
             className="bg-[#073E36] text-white hover:bg-[#10251F] rounded-[25px] p-5 text-left relative transition-all active:scale-[0.99] cursor-pointer shadow-xs"
           >
             <Users size={18} className="absolute right-5 top-5 text-[#D7F4D4]" />
@@ -450,10 +456,12 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-3 px-1">
             <h2 className="text-[15px] font-bold text-[#102723] tracking-tight">Make your next move</h2>
             <button 
-              onClick={() => navigate('/invoices')} 
-              className="text-[11px] font-extrabold text-[#0F645D] hover:underline"
+              type="button"
+              onClick={() => setIsAllToolsOpen(prev => !prev)} 
+              className="text-[11px] font-extrabold text-[#0F645D] hover:underline flex items-center gap-1 cursor-pointer select-none"
             >
-              All tools ↗
+              <span>{isAllToolsOpen ? 'Less tools' : 'All tools'}</span>
+              <span>{isAllToolsOpen ? '▲' : '▼'}</span>
             </button>
           </div>
 
@@ -498,6 +506,91 @@ export default function DashboardPage() {
               <span className="text-[11px] font-extrabold text-[#102723] leading-tight">Products</span>
             </button>
           </div>
+
+          {/* All tools inline expanded panel */}
+          {isAllToolsOpen && (
+            <div className="mt-3 pt-3 border-t border-[#E5EBE0] grid grid-cols-4 gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              <button
+                onClick={() => navigate('/customers')}
+                className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
+              >
+                <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
+                  <Users size={22} />
+                </div>
+                <span className="text-[11px] font-extrabold text-[#102723] leading-tight">Parties</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/payments')}
+                className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
+              >
+                <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
+                  <CreditCard size={22} />
+                </div>
+                <span className="text-[11px] font-extrabold text-[#102723] leading-tight">Payments</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/daily-book')}
+                className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
+              >
+                <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
+                  <BookOpen size={22} />
+                </div>
+                <span className="text-[11px] font-extrabold text-[#102723] leading-tight">Daily Book</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/expenses')}
+                className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
+              >
+                <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
+                  <Receipt size={22} />
+                </div>
+                <span className="text-[11px] font-extrabold text-[#102723] leading-tight">Expenses</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/reports')}
+                className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
+              >
+                <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
+                  <BarChart3 size={22} />
+                </div>
+                <span className="text-[11px] font-extrabold text-[#102723] leading-tight">Reports</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/barcode-studio')}
+                className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
+              >
+                <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
+                  <Barcode size={22} />
+                </div>
+                <span className="text-[11px] font-extrabold text-[#102723] leading-tight">Barcode</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/delivery-challans')}
+                className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
+              >
+                <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
+                  <Truck size={22} />
+                </div>
+                <span className="text-[11px] font-extrabold text-[#102723] leading-tight">Delivery</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/settings')}
+                className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
+              >
+                <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
+                  <Settings size={22} />
+                </div>
+                <span className="text-[11px] font-extrabold text-[#102723] leading-tight">Settings</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ⚡ QUICK POS SALE PROMINENT BANNER */}

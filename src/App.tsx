@@ -742,7 +742,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
           <Sidebar onProfileClick={() => setIsProfileModalOpen(true)} />
         </div>
         
-        <div className="flex-1 flex flex-col h-[100dvh] md:h-[calc(100dvh-24px)] md:my-3 md:mr-3 md:rounded-[32px] md:border md:border-[#E5EBE0] md:shadow-xs overflow-hidden relative bg-[#F6F8F3] print:h-auto print:overflow-visible print:static">
+        <div className="app-main-viewport flex-1 flex flex-col h-[100dvh] md:h-[calc(100dvh-24px)] md:my-3 md:mr-3 rounded-none md:rounded-[32px] md:border md:border-[#E5EBE0] md:shadow-xs overflow-hidden relative bg-[#F6F8F3] print:h-auto print:overflow-visible print:static">
           {/* Top Status Bar Spacer for Mobile PWA / Standalone / Cutout clearance */}
           <div 
             className="w-full bg-[#0F645D] shrink-0 print:hidden transition-all duration-200" 

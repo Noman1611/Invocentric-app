@@ -17,25 +17,30 @@ if (!TOKEN) {
 }
 const OWNER = 'Noman1611';
 const REPO = 'Invocentric-app';
-const TAG = 'v1.0.53';
+const TAG = 'v1.0.54';
 
-const RELEASE_TITLE = 'InvoCentric v1.0.53 - Enhanced Instant Logout, Modernized UI Design & Multi-Platform Performance';
-const RELEASE_NOTES = `## InvoCentric v1.0.53 Release Notes
+const RELEASE_TITLE = 'InvoCentric v1.0.54 - Dynamic Mobile Dock, Inline Tools, Financial Calculation Analytics & Production Movement Ledger';
+const RELEASE_NOTES = `## InvoCentric v1.0.54 Release Notes
 
-### What's New in v1.0.53:
-- **Instant & Reliable Android App Logout:**
-  - Resolved Android app session teardown issue where clicking logout remained on the active view until restart.
-  - Implemented 0ms synchronous state reset, comprehensive credential & session token clearance across storage engines.
-  - Added non-blocking Android Credential Manager watchdog and background Firebase Auth teardown to ensure instant logout without app restart.
-- **UI Modernization & Responsive Enhancements:**
-  - Integrated rich product image thumbnails in invoice item pickers, Quick POS catalog and cart views.
-  - Streamlined MobileNav bottom toolbar with quick 1-tap navigation for Create Invoice, POS, and Settings.
-  - Enhanced Parties & Customers list with dedicated outstanding dues and overdue balances filter.
-  - Unified real-time notifications with clean popover triggers.
+### What's New in v1.0.54:
+- **Redesigned Mobile Navigation Bar:**
+  - Added dedicated **Home** button navigation to the mobile bottom bar (Home, Create Invoice, POS, Settings).
+  - Clean floating pill design (\`rounded-full\`) where inactive tabs show only crisp icons, and the active tab expands to show icon + label.
+- **Mobile Top Viewport Corner Sharpness:**
+  - Removed top-corner screen curvature on mobile viewports so Android apps and smartphone web browsers have clean, edge-to-edge square display.
+- **Home Dashboard "Make your next move" Inline All-Tools Drawer:**
+  - Clicking "All tools" now smoothly expands all tools (Parties, Payments, Daily Book, Expenses, Reports, Barcode Studio, Delivery Challans, Settings) directly below the primary 4 actions on the dashboard itself, without navigating to a separate page.
+- **Payments Calculation Analytics & Multi-Filters:**
+  - Added live calculated summary cards at the top of the Payments page (Total Collected, This Month, This Year, Transaction Counts).
+  - Multi-filtering controls by Month, Year, Customer, and Date with dynamic instant totals calculation.
+- **Strict Customer Dues Filtering:**
+  - Clicking Customer Dues strictly filters and displays only customers with actual pending balances and outstanding dues (\`due_amount > 0\`), with prominent balance badges.
+- **Production Inventory Movement History:**
+  - Replaced static demo table with live production audit ledger pulling chronological stock movements from real invoice sales (Stock OUT), purchases (Stock IN), and opening inventory, with instant filtering and search.
 - **Cross-Platform Releases:**
   - **Desktop Software:** Updated Windows installer (\`InvoCentric-Setup.exe\`) with auto-updater support (\`latest.yml\`).
-  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 53.
-  - **Web Application:** Production-optimized static web assets and server bundle.
+  - **Android Mobile App:** Rebuilt and signed release APK (\`InvoCentric.apk\`) with updated versionCode 54.
+  - **Web Application:** Production-optimized static web assets.
 `;
 
 const ASSETS = [

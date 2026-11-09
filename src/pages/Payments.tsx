@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, CreditCard, X, Trash2, FileText, CheckCircle2, Building2, Upload, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Plus, Search, CreditCard, X, Trash2, FileText, CheckCircle2, Building2, Upload, Loader2, Sparkles, AlertCircle, Calendar, Filter, RotateCcw, Wallet, Users, TrendingUp } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { OperationType, handleFirestoreError } from '../lib/firebase';
 import { usePayments, useCustomers, useInvoices } from '../hooks/useData';
@@ -19,6 +19,12 @@ export default function PaymentsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
+
+  // Top Calculation & Dynamic Filter States
+  const [filterMonth, setFilterMonth] = useState<string>('all');
+  const [filterYear, setFilterYear] = useState<string>('all');
+  const [filterCustomerId, setFilterCustomerId] = useState<string>('all');
+  const [filterDate, setFilterDate] = useState<string>('');
 
   // Bank Statement Reconciliation State
   const statementFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -284,13 +290,102 @@ export default function PaymentsPage() {
     setDeletingId(paymentId);
   };
 
-  const filteredPayments = payments.filter(p => {
-    const customer = customers.find(c => c.id === p.customer_id);
-    const customerName = customer?.name.toLowerCase() || '';
-    const note = p.note?.toLowerCase() || '';
-    const search = searchTerm.toLowerCase();
-    return customerName.includes(search) || note.includes(search);
-  });
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set<string>();
+    const currentYear = format(new Date(), 'yyyy');
+    yearsSet.add(currentYear);
+    payments.forEach(p => {
+      try {
+        const y = format(parseDateSafe(p.date), 'yyyy');
+        if (y && y !== 'NaN') yearsSet.add(y);
+      } catch {}
+    });
+    return Array.from(yearsSet).sort().reverse();
+  }, [payments]);
+
+  const months = [
+    { value: 'all', label: 'All Months' },
+    { value: '01', label: 'Jan - January' },
+    { value: '02', label: 'Feb - February' },
+    { value: '03', label: 'Mar - March' },
+    { value: '04', label: 'Apr - April' },
+    { value: '05', label: 'May - May' },
+    { value: '06', label: 'Jun - June' },
+    { value: '07', label: 'Jul - July' },
+    { value: '08', label: 'Aug - August' },
+    { value: '09', label: 'Sep - September' },
+    { value: '10', label: 'Oct - October' },
+    { value: '11', label: 'Nov - November' },
+    { value: '12', label: 'Dec - December' },
+  ];
+
+  const filteredPayments = useMemo(() => {
+    return payments.filter(p => {
+      const customer = customers.find(c => c.id === p.customer_id);
+      const customerName = (customer?.name || p.customer_name || '').toLowerCase();
+      const note = (p.note || '').toLowerCase();
+      const search = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || customerName.includes(search) || note.includes(search);
+      if (!matchesSearch) return false;
+
+      if (filterCustomerId !== 'all' && p.customer_id !== filterCustomerId) {
+        return false;
+      }
+
+      const pDate = parseDateSafe(p.date);
+      const pYear = format(pDate, 'yyyy');
+      const pMonth = format(pDate, 'MM');
+      const pDayStr = format(pDate, 'yyyy-MM-dd');
+
+      if (filterYear !== 'all' && pYear !== filterYear) {
+        return false;
+      }
+      if (filterMonth !== 'all' && pMonth !== filterMonth) {
+        return false;
+      }
+      if (filterDate && pDayStr !== filterDate) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [payments, customers, searchTerm, filterCustomerId, filterYear, filterMonth, filterDate]);
+
+  const now = new Date();
+  const currentMonthStr = format(now, 'MM');
+  const currentYearStr = format(now, 'yyyy');
+
+  const filteredTotalAmount = useMemo(() => {
+    return filteredPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [filteredPayments]);
+
+  const thisMonthTotal = useMemo(() => {
+    return payments
+      .filter(p => {
+        const pDate = parseDateSafe(p.date);
+        return format(pDate, 'yyyy') === currentYearStr && format(pDate, 'MM') === currentMonthStr;
+      })
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [payments, currentMonthStr, currentYearStr]);
+
+  const thisYearTotal = useMemo(() => {
+    return payments
+      .filter(p => {
+        const pDate = parseDateSafe(p.date);
+        return format(pDate, 'yyyy') === currentYearStr;
+      })
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [payments, currentYearStr]);
+
+  const isFilterActive = filterMonth !== 'all' || filterYear !== 'all' || filterCustomerId !== 'all' || filterDate !== '' || searchTerm !== '';
+
+  const resetFilters = () => {
+    setFilterMonth('all');
+    setFilterYear('all');
+    setFilterCustomerId('all');
+    setFilterDate('');
+    setSearchTerm('');
+  };
 
   return (
     <div className="space-y-8">
@@ -348,17 +443,187 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      <div className="relative">
-        <label htmlFor="paymentSearch" className="sr-only">Search Payments</label>
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
-        <input 
-          id="paymentSearch"
-          type="text" 
-          placeholder="Search by customer name or note..." 
-          className="input-field pl-10"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      {/* 📊 TOP CALCULATED SUMMARY CARDS (Dynamic by Month, Year, Customer & Date) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* Card 1: Filtered Calculated Amount */}
+        <div className="bg-[#073E36] text-white rounded-[22px] p-4 sm:p-5 shadow-xs relative overflow-hidden flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-[#D7F4D4] uppercase tracking-wider">
+              {isFilterActive ? 'Filtered Total' : 'Total Collected'}
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-white/10 text-[#D7F4D4] flex items-center justify-center">
+              <Wallet size={16} />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl sm:text-[26px] font-black tracking-tight text-white font-mono tabular-nums my-1">
+              {formatCurrency(filteredTotalAmount)}
+            </div>
+            <div className="text-[10.5px] text-[#CDE9C3] font-semibold">
+              {filteredPayments.length} transactions {isFilterActive ? '(filtered)' : 'total'}
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: This Month */}
+        <div className="bg-white border border-[#E5EBE0] rounded-[22px] p-4 sm:p-5 shadow-xs relative flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-[#4B6358] uppercase tracking-wider">
+              This Month ({format(now, 'MMM')})
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-[#F0F5ED] text-[#0F645D] flex items-center justify-center">
+              <Calendar size={16} />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl sm:text-[26px] font-black tracking-tight text-[#102723] font-mono tabular-nums my-1">
+              {formatCurrency(thisMonthTotal)}
+            </div>
+            <div className="text-[10.5px] text-[#7B8781] font-semibold">
+              Collected in {format(now, 'MMMM yyyy')}
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: This Year */}
+        <div className="bg-white border border-[#E5EBE0] rounded-[22px] p-4 sm:p-5 shadow-xs relative flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-[#4B6358] uppercase tracking-wider">
+              Year {currentYearStr}
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-[#F0F5ED] text-[#0F645D] flex items-center justify-center">
+              <TrendingUp size={16} />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl sm:text-[26px] font-black tracking-tight text-[#102723] font-mono tabular-nums my-1">
+              {formatCurrency(thisYearTotal)}
+            </div>
+            <div className="text-[10.5px] text-[#7B8781] font-semibold">
+              Full fiscal year receipts
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Active Customer Filter Info */}
+        <div className="bg-white border border-[#E5EBE0] rounded-[22px] p-4 sm:p-5 shadow-xs relative flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-[#4B6358] uppercase tracking-wider">
+              Party Breakdown
+            </span>
+            <div className="w-8 h-8 rounded-xl bg-[#F0F5ED] text-[#0F645D] flex items-center justify-center">
+              <Users size={16} />
+            </div>
+          </div>
+          <div>
+            <div className="text-xl sm:text-[22px] font-black tracking-tight text-[#102723] truncate my-1">
+              {filterCustomerId === 'all' 
+                ? 'All Customers' 
+                : (customers.find(c => c.id === filterCustomerId)?.name || 'Selected Customer')}
+            </div>
+            <div className="text-[10.5px] text-[#7B8781] font-semibold">
+              {filterCustomerId === 'all' ? `${customers.length} total parties registered` : 'Viewing individual party ledger'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 🎛️ MULTI-FILTER BAR (Month, Year, Customer, Date, Search) */}
+      <div className="bg-white border border-[#E5EBE0] rounded-[22px] p-3.5 sm:p-4 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#102723]">
+            <Filter size={15} className="text-[#0F645D]" />
+            <span>Filter & Calculate Receipts By:</span>
+          </div>
+          {isFilterActive && (
+            <button
+              onClick={resetFilters}
+              className="text-[11px] font-extrabold text-[#BE3349] hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <RotateCcw size={12} />
+              <span>Reset Filters</span>
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          {/* 1. Month Selector */}
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#7B8781] mb-1">
+              Month
+            </label>
+            <select
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="w-full bg-[#F6F8F3] border border-[#E2EBDC] rounded-xl px-3 py-2 text-xs font-bold text-[#142921] focus:outline-none focus:border-[#0F645D]"
+            >
+              {months.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2. Year Selector */}
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#7B8781] mb-1">
+              Year
+            </label>
+            <select
+              value={filterYear}
+              onChange={(e) => setFilterYear(e.target.value)}
+              className="w-full bg-[#F6F8F3] border border-[#E2EBDC] rounded-xl px-3 py-2 text-xs font-bold text-[#142921] focus:outline-none focus:border-[#0F645D]"
+            >
+              <option value="all">All Years</option>
+              {availableYears.map(yr => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Customer Selector */}
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#7B8781] mb-1">
+              Customer
+            </label>
+            <select
+              value={filterCustomerId}
+              onChange={(e) => setFilterCustomerId(e.target.value)}
+              className="w-full bg-[#F6F8F3] border border-[#E2EBDC] rounded-xl px-3 py-2 text-xs font-bold text-[#142921] focus:outline-none focus:border-[#0F645D]"
+            >
+              <option value="all">All Customers ({customers.length})</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Date Picker */}
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#7B8781] mb-1">
+              Specific Date
+            </label>
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="w-full bg-[#F6F8F3] border border-[#E2EBDC] rounded-xl px-3 py-1.5 text-xs font-bold text-[#142921] focus:outline-none focus:border-[#0F645D]"
+            />
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative pt-1">
+          <label htmlFor="paymentSearch" className="sr-only">Search Payments</label>
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" size={16} />
+          <input 
+            id="paymentSearch"
+            type="text" 
+            placeholder="Search by customer name or transaction note..." 
+            className="w-full bg-[#F6F8F3] border border-[#E2EBDC] rounded-xl pl-10 pr-4 py-2 text-xs font-medium text-[#142921] focus:outline-none focus:border-[#0F645D]"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
       {loading ? (

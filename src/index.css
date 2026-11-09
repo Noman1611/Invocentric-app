@@ -648,8 +648,17 @@
   [class*="rounded-3xl"],
   [class*="rounded-4xl"],
   [class*="rounded-["]
-):not([class*="rounded-full"]):not([class*="rounded-t-"]):not([class*="rounded-b-"]):not([class*="rounded-l-"]):not([class*="rounded-r-"]):not([class*="rounded-[50%"]):not([class*="rounded-[9999px]"]) {
+):not([class*="rounded-full"]):not([class*="rounded-t-"]):not([class*="rounded-b-"]):not([class*="rounded-l-"]):not([class*="rounded-r-"]):not([class*="rounded-[50%"]):not([class*="rounded-[9999px]"]):not(.app-main-viewport):not([class*="rounded-none"]) {
   border-radius: 12px !important;
+}
+
+/* Mobile Screen Sharp Corners Reset (Prevents top screen corners from inappropriately curving on smartphones/Android apps) */
+@media (max-width: 767px) {
+  html, body, #root, .app-main-viewport {
+    border-radius: 0px !important;
+    border-top-left-radius: 0px !important;
+    border-top-right-radius: 0px !important;
+  }
 }
 
 /* Safe Area Utility Classes */

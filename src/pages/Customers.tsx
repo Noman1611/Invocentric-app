@@ -313,15 +313,24 @@ export default function CustomersPage() {
     }
   };
 
+  const getCustomerDues = (customer: any) => {
+    const custInvoices = getCustomerInvoices(customer);
+    return custInvoices
+      .filter((inv: any) => inv && inv.status !== 'paid' && inv.status !== 'cancelled')
+      .reduce((sum: number, inv: any) => {
+        const due = Number(inv.balance_due ?? inv.balance ?? inv.due_amount ?? inv.total ?? inv.amount ?? inv.grand_total ?? 0);
+        return sum + (due > 0 ? due : 0);
+      }, 0);
+  };
+
   const filteredCustomers = customers.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     if (filterDuesOnly) {
-      const custInvoices = getCustomerInvoices(c);
-      const hasDues = custInvoices.some((inv: any) => inv.status !== 'paid' && inv.status !== 'cancelled');
-      return matchesSearch && hasDues;
+      const dues = getCustomerDues(c);
+      return matchesSearch && dues > 0;
     }
     return matchesSearch;
   });
@@ -396,15 +405,27 @@ export default function CustomersPage() {
       ) : filteredCustomers.length === 0 ? (
         <div className="bg-white rounded-[24px] border border-[#E5EBE0] py-20 text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
             <div className="max-w-xs mx-auto">
-              <div className="w-16 h-16 bg-[#F0F5ED] rounded-2xl flex items-center justify-center border border-[#E5EBE0] text-[#4B6358] mx-auto mb-4">
-                <UserPlus size={30} />
+              <div className="w-16 h-16 bg-[#F0F5ED] rounded-2xl flex items-center justify-center border border-[#E5EBE0] text-[#0F645D] mx-auto mb-4">
+                {filterDuesOnly ? <CheckCircle2 size={30} className="text-emerald-600" /> : <UserPlus size={30} />}
               </div>
               <p className="text-[#10251F] font-bold text-base">
-                {appMode === 'freelancer' ? 'No client records' : 'No customer records'}
+                {filterDuesOnly 
+                  ? 'All Accounts Clear!' 
+                  : (appMode === 'freelancer' ? 'No client records' : 'No customer records')}
               </p>
               <p className="text-[#4B6358] text-xs mt-1.5 leading-relaxed">
-                {appMode === 'freelancer' ? 'Start by registering your first client to build your directory.' : 'Start by adding your first customer to build your directory.'}
+                {filterDuesOnly 
+                  ? 'No customers have any pending dues or overdue balances right now.' 
+                  : (appMode === 'freelancer' ? 'Start by registering your first client to build your directory.' : 'Start by adding your first customer to build your directory.')}
               </p>
+              {filterDuesOnly && (
+                <button
+                  onClick={() => setSearchParams({})}
+                  className="mt-4 px-4 py-2 bg-[#D7F4D4] text-[#193C30] rounded-xl text-xs font-bold hover:bg-[#C6E9C1] transition-all cursor-pointer"
+                >
+                  View All Customers
+                </button>
+              )}
             </div>
         </div>
       ) : (
@@ -412,6 +433,7 @@ export default function CustomersPage() {
           {filteredCustomers.map((customer, i) => {
             const custInvoices = getCustomerInvoices(customer);
             const totalBilled = custInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.amount ?? inv.total_amount ?? inv.grand_total) || 0), 0);
+            const customerDues = getCustomerDues(customer);
 
             return (
               <motion.div
@@ -520,6 +542,18 @@ export default function CustomersPage() {
                       {formatCurrency(totalBilled)}
                     </span>
                   </div>
+
+                  {customerDues > 0 && (
+                    <div className="mt-2.5 flex items-center justify-between text-xs bg-[#FCF0CC] border border-[#F6D88E] text-[#B7892E] px-2.5 py-1.5 rounded-xl font-bold">
+                      <span className="flex items-center gap-1 text-[11px]">
+                        <AlertTriangle size={13} />
+                        <span>Pending Dues:</span>
+                      </span>
+                      <span className="font-mono tabular-nums font-black text-sm">
+                        {formatCurrency(customerDues)}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-5 pt-4 border-t border-[#E5EBE0] grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { db, OperationType, handleFirestoreError } from '../lib/firebase';
 import { 
   collection, 
@@ -13,11 +13,13 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
-import { useItems, useCustomers } from '../hooks/useData';
+import { useItems, useCustomers, useInvoices, usePurchases } from '../hooks/useData';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Search, Package, Edit2, Trash2, X, LayoutGrid, List as ListIcon, Tag, IndianRupee, Barcode, ScanLine, Camera, Loader2, Zap, Focus, ZoomIn, Volume2, VolumeX, Keyboard, Phone, CheckCircle2, HelpCircle, BarChart3, ArrowRight, Database, TrendingDown, AlertCircle, FileText, ArrowUpDown, Truck, History, Calendar, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { parseDateSafe } from '../utils/dateUtils';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { configureCameraTrackFocusAndZoom, triggerCameraRefocus, setCameraTorch, setCameraZoom, requestExplicitCameraPermission, startHtml5ScannerRobust, playScanBeepSound } from '../utils/cameraUtils';
 import { initializeUsbScanner, registerScanListener, registerStatusListener, getScannerSessionId } from '../utils/usbScanner';
@@ -70,6 +72,146 @@ export default function ItemsPage() {
   const { user, isOfflineMode, appMode, isPro, triggerUpgradeModal } = useAuth();
   const { items, loading } = useItems();
   const { customers } = useCustomers();
+  const { invoices } = useInvoices();
+  const { purchases } = usePurchases();
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'in' | 'out'>('all');
+
+  const inventoryMovements = useMemo(() => {
+    const list: Array<{
+      id: string;
+      timestamp: string;
+      type: 'Stock IN (Purchase)' | 'Stock OUT (Sale)' | 'Opening Stock';
+      direction: 'in' | 'out';
+      productName: string;
+      quantity: number;
+      unit: string;
+      reference: string;
+      partyName: string;
+      user: string;
+    }> = [];
+
+    // 1. Sales from Invoices (Stock OUT)
+    if (Array.isArray(invoices)) {
+      invoices.forEach((inv: any) => {
+        if (!inv || inv.status === 'cancelled') return;
+        const invDate = inv.date || inv.created_at || new Date().toISOString();
+        const refNo = inv.invoice_number ? `Invoice #${inv.invoice_number}` : 'Direct Sale';
+        const party = inv.customer_name || 'Customer Sale';
+
+        if (Array.isArray(inv.items) && inv.items.length > 0) {
+          inv.items.forEach((it: any, idx: number) => {
+            const qty = Number(it.quantity) || 1;
+            list.push({
+              id: `sale-${inv.id || invDate}-${idx}`,
+              timestamp: invDate,
+              type: 'Stock OUT (Sale)',
+              direction: 'out',
+              productName: it.name || it.item_name || 'Product Sale',
+              quantity: -Math.abs(qty),
+              unit: it.unit || 'Units',
+              reference: refNo,
+              partyName: party,
+              user: 'POS / Sales'
+            });
+          });
+        }
+      });
+    }
+
+    // 2. Purchases from Purchase Bills (Stock IN)
+    if (Array.isArray(purchases)) {
+      purchases.forEach((pur: any) => {
+        if (!pur || pur.status === 'Cancelled') return;
+        const purDate = pur.date || pur.created_at || new Date().toISOString();
+        const refNo = pur.purchase_number || pur.invoice_number || pur.billNo 
+          ? `Bill #${pur.purchase_number || pur.invoice_number || pur.billNo}` 
+          : 'Purchase Entry';
+        const party = pur.supplier_name || pur.vendor_name || pur.seller_name || 'Vendor Inward';
+
+        if (Array.isArray(pur.items) && pur.items.length > 0) {
+          pur.items.forEach((it: any, idx: number) => {
+            const qty = Number(it.quantity) || 1;
+            list.push({
+              id: `pur-${pur.id || purDate}-${idx}`,
+              timestamp: purDate,
+              type: 'Stock IN (Purchase)',
+              direction: 'in',
+              productName: it.name || it.description || 'Stock Purchase',
+              quantity: Math.abs(qty),
+              unit: it.unit || 'Units',
+              reference: refNo,
+              partyName: party,
+              user: 'Purchase Inward'
+            });
+          });
+        } else if (pur.item_name || pur.description) {
+          const qty = Number(pur.quantity) || 1;
+          list.push({
+            id: `pur-${pur.id || purDate}-0`,
+            timestamp: purDate,
+            type: 'Stock IN (Purchase)',
+            direction: 'in',
+            productName: pur.item_name || pur.description,
+            quantity: Math.abs(qty),
+            unit: pur.unit || 'Units',
+            reference: refNo,
+            partyName: party,
+            user: 'Purchase Inward'
+          });
+        }
+      });
+    }
+
+    // 3. Opening Stock from Catalog Items
+    if (Array.isArray(items)) {
+      items.forEach((item: any) => {
+        if (!item) return;
+        const openingQty = Number(item.opening_stock ?? item.stock ?? item.quantity ?? 0);
+        if (openingQty > 0) {
+          list.push({
+            id: `opening-${item.id}`,
+            timestamp: item.created_at || item.updated_at || new Date().toISOString(),
+            type: 'Opening Stock',
+            direction: 'in',
+            productName: item.name,
+            quantity: openingQty,
+            unit: item.unit || 'Units',
+            reference: 'Initial Stock / Opening Balance',
+            partyName: 'Store Catalog',
+            user: 'Inventory Manager'
+          });
+        }
+      });
+    }
+
+    // Sort descending by timestamp
+    return list.sort((a, b) => {
+      try {
+        const timeA = new Date(a.timestamp).getTime() || 0;
+        const timeB = new Date(b.timestamp).getTime() || 0;
+        return timeB - timeA;
+      } catch {
+        return 0;
+      }
+    });
+  }, [invoices, purchases, items]);
+
+  const filteredMovements = useMemo(() => {
+    return inventoryMovements.filter(m => {
+      if (historyFilter === 'in' && m.direction !== 'in') return false;
+      if (historyFilter === 'out' && m.direction !== 'out') return false;
+      if (historySearch) {
+        const query = historySearch.toLowerCase();
+        return (
+          m.productName.toLowerCase().includes(query) ||
+          m.reference.toLowerCase().includes(query) ||
+          m.partyName.toLowerCase().includes(query)
+        );
+      }
+      return true;
+    });
+  }, [inventoryMovements, historyFilter, historySearch]);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const currentTab = searchParams.get('tab') || 'products';
@@ -1297,31 +1439,125 @@ export default function ItemsPage() {
 
       {currentTab === 'history' && (
         <div className="card-base p-6 bg-white border border-slate-100 shadow-sm space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">Inventory Movement History</h3>
-            <p className="text-xs text-slate-500">Complete audit trail of purchases, sales, stock adjustments, and transfers.</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Inventory Movement History</h3>
+              <p className="text-xs text-slate-500">Live production audit trail of sales (stock out), purchases (stock in), and opening inventory.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[#0F645D] bg-[#F0F5ED] border border-[#E5EBE0] px-3 py-1.5 rounded-xl">
+                {filteredMovements.length} Records
+              </span>
+            </div>
           </div>
+
+          {/* Search & Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-2.5 items-center justify-between">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+              <input
+                type="text"
+                placeholder="Search product, reference, or party..."
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                className="w-full bg-[#F6F8F3] border border-[#E2EBDC] rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-[#142921] focus:outline-none focus:border-[#0F645D]"
+              />
+            </div>
+            <div className="flex items-center gap-1.5 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setHistoryFilter('all')}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                  historyFilter === 'all' 
+                    ? "bg-[#10251F] text-white" 
+                    : "bg-[#F0F5ED] text-[#4B6358] hover:bg-[#E5EBE0]"
+                )}
+              >
+                All Movements
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryFilter('in')}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                  historyFilter === 'in' 
+                    ? "bg-emerald-600 text-white" 
+                    : "bg-[#F0F5ED] text-[#4B6358] hover:bg-[#E5EBE0]"
+                )}
+              >
+                Stock IN (+)
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryFilter('out')}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                  historyFilter === 'out' 
+                    ? "bg-rose-600 text-white" 
+                    : "bg-[#F0F5ED] text-[#4B6358] hover:bg-[#E5EBE0]"
+                )}
+              >
+                Stock OUT (-)
+              </button>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase font-bold tracking-wider">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-xl">Timestamp</th>
-                  <th className="px-4 py-3">Movement Type</th>
-                  <th className="px-4 py-3">Product</th>
-                  <th className="px-4 py-3">Quantity</th>
-                  <th className="px-4 py-3 rounded-r-xl">User / Reference</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                <tr className="hover:bg-slate-50/60 transition-colors">
-                  <td className="px-4 py-3 text-slate-500">Today, 02:26 AM</td>
-                  <td className="px-4 py-3 font-bold text-emerald-600">Opening Stock</td>
-                  <td className="px-4 py-3 font-semibold text-slate-900">Sample Product</td>
-                  <td className="px-4 py-3 font-bold text-slate-800">+100 Units</td>
-                  <td className="px-4 py-3 text-slate-500">Admin</td>
-                </tr>
-              </tbody>
-            </table>
+            {filteredMovements.length === 0 ? (
+              <div className="py-14 text-center">
+                <Package size={32} className="mx-auto text-slate-300 mb-2" />
+                <p className="text-sm font-bold text-slate-700">No inventory movements found</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {historySearch || historyFilter !== 'all' 
+                    ? 'Try clearing your search or filter criteria.' 
+                    : 'Sales invoices and purchase entries will automatically log live stock movements here.'}
+                </p>
+              </div>
+            ) : (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-bold tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3 rounded-l-xl">Timestamp</th>
+                    <th className="px-4 py-3">Movement Type</th>
+                    <th className="px-4 py-3">Product</th>
+                    <th className="px-4 py-3">Quantity</th>
+                    <th className="px-4 py-3 rounded-r-xl">Party / Reference</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredMovements.map((m) => {
+                    const parsedDate = parseDateSafe(m.timestamp);
+                    const formattedDate = format(parsedDate, 'dd MMM yyyy, hh:mm a');
+                    return (
+                      <tr key={m.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{formattedDate}</td>
+                        <td className="px-4 py-3">
+                          <span className={cn(
+                            "px-2.5 py-1 rounded-lg text-[10.5px] font-bold inline-flex items-center gap-1",
+                            m.direction === 'in' 
+                              ? (m.type === 'Opening Stock' ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200")
+                              : "bg-rose-50 text-rose-700 border border-rose-200"
+                          )}>
+                            {m.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-bold text-slate-900">{m.productName}</td>
+                        <td className="px-4 py-3 font-black tabular-nums whitespace-nowrap">
+                          <span className={m.direction === 'in' ? "text-emerald-600" : "text-rose-600"}>
+                            {m.quantity > 0 ? `+${m.quantity}` : m.quantity} {m.unit}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          <div className="font-bold text-slate-800">{m.reference}</div>
+                          <div className="text-[10px] text-slate-400">{m.partyName}</div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
