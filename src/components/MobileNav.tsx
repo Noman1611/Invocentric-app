@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard,
@@ -33,38 +33,113 @@ export default function MobileNav() {
   const isPosActive = location.pathname.startsWith('/pos');
   const isSettingsActive = location.pathname.startsWith('/settings');
 
+  // Currently expanded tab (shows text label for a timed window, then collapses to compact dock)
+  const [expandedTab, setExpandedTab] = useState<string | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerExpansion = (tabKey: string) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    setExpandedTab(tabKey);
+    // Auto-collapse after 3.2 seconds back to the small compact icon dock
+    timerRef.current = setTimeout(() => {
+      setExpandedTab(null);
+    }, 3200);
+  };
+
+  // Expand briefly on route changes to give clear feedback, then collapse
+  useEffect(() => {
+    let key: string | null = null;
+    if (location.pathname === '/' || location.pathname === '/dashboard') key = 'home';
+    else if (location.pathname === '/invoices/create' || location.pathname === '/invoices/new') key = 'create';
+    else if (location.pathname.startsWith('/pos')) key = 'pos';
+    else if (location.pathname.startsWith('/settings')) key = 'settings';
+
+    if (key) {
+      triggerExpansion(key);
+    } else {
+      setExpandedTab(null);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [location.pathname]);
+
+  // Outside touch listener: collapse immediately if user touches the app content
+  useEffect(() => {
+    const handleOutsideTouch = (e: TouchEvent) => {
+      const dock = document.getElementById('mobile-bottom-dock');
+      if (dock && !dock.contains(e.target as Node)) {
+        setExpandedTab(null);
+      }
+    };
+    window.addEventListener('touchstart', handleOutsideTouch, { passive: true });
+    return () => window.removeEventListener('touchstart', handleOutsideTouch);
+  }, []);
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden print:hidden h-[calc(76px+env(safe-area-inset-bottom,0px))] pb-safe flex items-center justify-center px-2 pointer-events-none">
-      <div className="pointer-events-auto bg-[#10251F] text-[#93A69C] rounded-full shadow-[0_10px_32px_rgba(16,37,31,0.35)] max-w-[420px] w-full p-1.5 flex justify-around items-center h-14 mb-2 border border-[#274439]/60">
+      <div 
+        id="mobile-bottom-dock"
+        className="pointer-events-auto bg-[#10251F] text-[#93A69C] rounded-full shadow-[0_12px_36px_rgba(16,37,31,0.45)] border border-[#274439]/70 p-1.5 h-14 mb-2 flex justify-around items-center gap-1.5 transition-all duration-300 ease-out max-w-[420px] w-auto select-none"
+      >
         
         {/* 1. Home Button */}
         <NavLink
           to="/dashboard"
+          onClick={() => {
+            if (isHomeActive && expandedTab === 'home') {
+              setExpandedTab(null);
+            } else {
+              triggerExpansion('home');
+            }
+          }}
           className={cn(
-            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-200 active:scale-95 select-none text-[10.5px] sm:text-xs tracking-tight",
+            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0",
             isHomeActive 
-              ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm px-3 gap-1.5" 
-              : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40"
+              ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm" 
+              : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40",
+            expandedTab === 'home' ? "px-3.5 gap-1.5" : "w-11 px-0"
           )}
           title="Dashboard Home"
         >
-          <LayoutDashboard size={isHomeActive ? 16 : 18} strokeWidth={isHomeActive ? 2.8 : 2.2} className="shrink-0" />
-          {isHomeActive && <span className="whitespace-nowrap">Home</span>}
+          <LayoutDashboard size={isHomeActive ? 17 : 18} strokeWidth={isHomeActive ? 2.8 : 2.2} className="shrink-0" />
+          {expandedTab === 'home' && (
+            <span className="whitespace-nowrap font-black animate-in fade-in zoom-in-95 duration-200">
+              Home
+            </span>
+          )}
         </NavLink>
 
         {/* 2. Create Invoice Button */}
         <NavLink
           to="/invoices/create"
+          onClick={() => {
+            if (isCreateActive && expandedTab === 'create') {
+              setExpandedTab(null);
+            } else {
+              triggerExpansion('create');
+            }
+          }}
           className={cn(
-            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-200 active:scale-95 select-none text-[10.5px] sm:text-xs tracking-tight",
+            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0",
             isCreateActive 
-              ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm px-3 gap-1.5" 
-              : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40"
+              ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm" 
+              : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40",
+            expandedTab === 'create' ? "px-3.5 gap-1.5" : "w-11 px-0"
           )}
           title="Create New Invoice"
         >
-          <Plus size={isCreateActive ? 16 : 18} strokeWidth={isCreateActive ? 3 : 2.2} className="shrink-0" />
-          {isCreateActive && <span className="whitespace-nowrap">Create Invoice</span>}
+          <Plus size={isCreateActive ? 17 : 18} strokeWidth={isCreateActive ? 3 : 2.2} className="shrink-0" />
+          {expandedTab === 'create' && (
+            <span className="whitespace-nowrap font-black animate-in fade-in zoom-in-95 duration-200">
+              Create Invoice
+            </span>
+          )}
         </NavLink>
 
         {/* 3. POS Button */}
@@ -78,34 +153,56 @@ export default function MobileNav() {
                 'Automated cash till logging, customer balance tracking, and retail analytics.'
               ]);
             } else {
+              if (isPosActive && expandedTab === 'pos') {
+                setExpandedTab(null);
+              } else {
+                triggerExpansion('pos');
+              }
               navigate('/pos');
             }
           }}
           className={cn(
-            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-200 active:scale-95 select-none text-[10.5px] sm:text-xs tracking-tight cursor-pointer",
+            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight cursor-pointer shrink-0",
             isPosActive 
-              ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm px-3 gap-1.5" 
-              : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40"
+              ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm" 
+              : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40",
+            expandedTab === 'pos' ? "px-3.5 gap-1.5" : "w-11 px-0"
           )}
           title="Point of Sale (POS)"
         >
-          <ScanLine size={isPosActive ? 16 : 18} strokeWidth={isPosActive ? 2.8 : 2.2} className="shrink-0" />
-          {isPosActive && <span className="whitespace-nowrap">POS</span>}
+          <ScanLine size={isPosActive ? 17 : 18} strokeWidth={isPosActive ? 2.8 : 2.2} className="shrink-0" />
+          {expandedTab === 'pos' && (
+            <span className="whitespace-nowrap font-black animate-in fade-in zoom-in-95 duration-200">
+              POS
+            </span>
+          )}
         </button>
 
         {/* 4. Setting Button */}
         <NavLink
           to="/settings"
+          onClick={() => {
+            if (isSettingsActive && expandedTab === 'settings') {
+              setExpandedTab(null);
+            } else {
+              triggerExpansion('settings');
+            }
+          }}
           className={cn(
-            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-200 active:scale-95 select-none text-[10.5px] sm:text-xs tracking-tight",
+            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0",
             isSettingsActive 
-              ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm px-3 gap-1.5" 
-              : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40"
+              ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm" 
+              : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40",
+            expandedTab === 'settings' ? "px-3.5 gap-1.5" : "w-11 px-0"
           )}
           title="Application Settings"
         >
-          <Settings size={isSettingsActive ? 16 : 18} strokeWidth={isSettingsActive ? 2.8 : 2.2} className="shrink-0" />
-          {isSettingsActive && <span className="whitespace-nowrap">Setting</span>}
+          <Settings size={isSettingsActive ? 17 : 18} strokeWidth={isSettingsActive ? 2.8 : 2.2} className="shrink-0" />
+          {expandedTab === 'settings' && (
+            <span className="whitespace-nowrap font-black animate-in fade-in zoom-in-95 duration-200">
+              Setting
+            </span>
+          )}
         </NavLink>
 
       </div>
