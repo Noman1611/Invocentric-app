@@ -175,6 +175,10 @@ export default function LoginPage({ defaultMode }: LoginPageProps) {
   // If user is already authenticated on web (and NOT in an APK handshake session), navigate immediately to dashboard
   useEffect(() => {
     if (user && !authLoading && !isMobileAuth) {
+      if (typeof window !== 'undefined') {
+        const hasSession = localStorage.getItem('invocentric_session_user') || localStorage.getItem('invocentric_auth_active');
+        if (!hasSession) return;
+      }
       navigate('/dashboard', { replace: true });
     }
   }, [user, authLoading, isMobileAuth, navigate]);

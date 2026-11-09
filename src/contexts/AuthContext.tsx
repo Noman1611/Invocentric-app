@@ -389,6 +389,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => getInitialSessionUser());
+  const isLoggingOutRef = useRef<boolean>(false);
   
   const initialProfile = (() => {
     if (typeof window === 'undefined') return null;
@@ -1111,6 +1112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleUserChange = async (firebaseUser: User | null) => {
+    if (isLoggingOutRef.current) {
+      console.log("Ignoring auth transition because logout is in progress");
+      return;
+    }
     console.log("Auth transition:", firebaseUser ? `User logged in [REDACTED]` : "No user");
     try {
       if (firebaseUser) {
@@ -2283,6 +2288,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    isLoggingOutRef.current = true;
+
     // 1. Immediately reset React state so UI updates instantly (0ms delay)
     setUser(null);
     setIsAdmin(false);
@@ -2317,8 +2324,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.dispatchEvent(new CustomEvent('invocentric_auth_changed', { detail: { user: null } }));
     }
 
-    // 4. Perform background native and cloud teardown without blocking UI transition
-    (async () => {
+    // 4. Cleanly await native and Firebase signout so auth.currentUser is actually null before returning
+    try {
       if (typeof window !== 'undefined') {
         try {
           const { registerPlugin } = await import('@capacitor/core');
@@ -2326,7 +2333,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (NativeGoogleAuth?.signOut) {
             await Promise.race([
               NativeGoogleAuth.signOut().catch(() => {}),
-              new Promise((res) => setTimeout(res, 1500))
+              new Promise((res) => setTimeout(res, 800))
             ]);
           }
         } catch (_) {}
@@ -2338,15 +2345,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      try {
-        await Promise.race([
-          signOut(auth).catch(() => {}),
-          new Promise((res) => setTimeout(res, 2000))
-        ]);
-      } catch (_) {}
-    })().catch((err) => {
-      console.warn("Background signout notice:", err);
-    });
+      await Promise.race([
+        signOut(auth).catch(() => {}),
+        new Promise((res) => setTimeout(res, 1200))
+      ]);
+    } catch (err) {
+      console.warn("Signout completion notice:", err);
+    } finally {
+      setUser(null);
+      setTimeout(() => {
+        isLoggingOutRef.current = false;
+      }, 1000);
+    }
   };
 
   return (

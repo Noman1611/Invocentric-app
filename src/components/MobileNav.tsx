@@ -69,16 +69,16 @@ export default function MobileNav() {
     };
   }, [location.pathname]);
 
-  // Outside touch listener: collapse immediately if user touches the app content
+  // Outside touch listener: collapse immediately if user touches the app content outside the dock
   useEffect(() => {
-    const handleOutsideTouch = (e: TouchEvent) => {
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       const dock = document.getElementById('mobile-bottom-dock');
       if (dock && !dock.contains(e.target as Node)) {
         setExpandedTab(null);
       }
     };
-    window.addEventListener('touchstart', handleOutsideTouch, { passive: true });
-    return () => window.removeEventListener('touchstart', handleOutsideTouch);
+    window.addEventListener('click', handleOutsideClick, { passive: true });
+    return () => window.removeEventListener('click', handleOutsideClick);
   }, []);
 
   return (
@@ -143,26 +143,17 @@ export default function MobileNav() {
         </NavLink>
 
         {/* 3. POS Button */}
-        <button
-          type="button"
+        <NavLink
+          to="/pos"
           onClick={() => {
-            if (!isPro) {
-              triggerUpgradeModal('Quick POS & Barcode Billing', [
-                'Fast point-of-sale layout designed for touch screens and thermal printers.',
-                'Real-time barcode scanning using device camera or handheld USB laser scanners.',
-                'Automated cash till logging, customer balance tracking, and retail analytics.'
-              ]);
+            if (isPosActive && expandedTab === 'pos') {
+              setExpandedTab(null);
             } else {
-              if (isPosActive && expandedTab === 'pos') {
-                setExpandedTab(null);
-              } else {
-                triggerExpansion('pos');
-              }
-              navigate('/pos');
+              triggerExpansion('pos');
             }
           }}
           className={cn(
-            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight cursor-pointer shrink-0",
+            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0",
             isPosActive 
               ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm" 
               : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40",
@@ -176,7 +167,7 @@ export default function MobileNav() {
               POS
             </span>
           )}
-        </button>
+        </NavLink>
 
         {/* 4. Setting Button */}
         <NavLink

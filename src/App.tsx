@@ -443,7 +443,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
       if (isNotificationsOpen) {
         const target = event.target as Element | null;
         if (
@@ -467,9 +467,9 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
         }
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside);
     };
   }, [isNotificationsOpen, isProfileOpen]);
 
@@ -1937,6 +1937,14 @@ function ImpersonationBanner() {
               <Route path="/accounting-export" element={<PrivateRoute><AccountingExportPage /></PrivateRoute>} />
               <Route path="/accounting-preview" element={<AccountingExportPage />} />
               
+              {/* Route Aliases & Fallbacks */}
+              <Route path="/daily-book" element={<Navigate to="/dailybook" replace />} />
+              <Route path="/barcode-studio" element={<Navigate to="/barcode-generator" replace />} />
+              <Route path="/delivery-challans" element={<Navigate to="/invoices/create?type=challan" replace />} />
+              <Route path="/delivery-challan" element={<Navigate to="/invoices/create?type=challan" replace />} />
+              <Route path="/challan" element={<Navigate to="/invoices/create?type=challan" replace />} />
+              <Route path="/challans" element={<Navigate to="/invoices" replace />} />
+
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </Suspense>

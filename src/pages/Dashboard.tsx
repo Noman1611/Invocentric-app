@@ -531,7 +531,7 @@ export default function DashboardPage() {
               </button>
 
               <button
-                onClick={() => navigate('/daily-book')}
+                onClick={() => navigate('/dailybook')}
                 className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
               >
                 <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
@@ -561,7 +561,7 @@ export default function DashboardPage() {
               </button>
 
               <button
-                onClick={() => navigate('/barcode-studio')}
+                onClick={() => navigate('/barcode-generator')}
                 className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
               >
                 <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">
@@ -571,7 +571,7 @@ export default function DashboardPage() {
               </button>
 
               <button
-                onClick={() => navigate('/delivery-challans')}
+                onClick={() => navigate('/invoices/create?type=challan')}
                 className="flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/60 transition-all cursor-pointer group active:scale-95"
               >
                 <div className="w-14 h-14 rounded-full bg-white border border-[#E5EBE0] flex items-center justify-center text-[#102723] mb-2 group-hover:scale-105 transition-transform shadow-xs">

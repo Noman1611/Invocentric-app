@@ -54,9 +54,18 @@ const formatDateString = (dateVal: any): string => {
 
 const parseDateSafe = (dateVal: any): Date => {
   if (!dateVal) return new Date();
-  if (typeof dateVal.toDate === "function") return dateVal.toDate();
-  if (dateVal instanceof Date) return dateVal;
-  return new Date(dateVal);
+  if (typeof dateVal.toDate === "function") {
+    try {
+      const d = dateVal.toDate();
+      if (!isNaN(d.getTime())) return d;
+    } catch (_) {}
+  }
+  if (dateVal instanceof Date && !isNaN(dateVal.getTime())) return dateVal;
+  try {
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) return d;
+  } catch (_) {}
+  return new Date();
 };
 
 export default function DailyBook() {

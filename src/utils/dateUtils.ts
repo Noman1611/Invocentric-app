@@ -2,24 +2,39 @@ import { format, parseISO } from 'date-fns';
 
 export const parseDateSafe = (dateVal: any): Date => {
   if (!dateVal) return new Date();
-  if (typeof dateVal === 'string') {
+
+  let result: Date | null = null;
+
+  if (dateVal instanceof Date) {
+    result = dateVal;
+  } else if (dateVal.toDate && typeof dateVal.toDate === 'function') {
     try {
-      return parseISO(dateVal);
-    } catch (e) {
-      return new Date();
+      result = dateVal.toDate();
+    } catch (_) {}
+  } else if (typeof dateVal === 'number') {
+    result = new Date(dateVal);
+  } else if (dateVal.seconds) {
+    result = new Date(dateVal.seconds * 1000);
+  } else if (typeof dateVal === 'string') {
+    try {
+      const parsedIso = parseISO(dateVal);
+      if (!isNaN(parsedIso.getTime())) {
+        result = parsedIso;
+      }
+    } catch (_) {}
+
+    if (!result || isNaN(result.getTime())) {
+      try {
+        const nativeParsed = new Date(dateVal);
+        if (!isNaN(nativeParsed.getTime())) {
+          result = nativeParsed;
+        }
+      } catch (_) {}
     }
   }
-  if (dateVal.toDate && typeof dateVal.toDate === 'function') {
-    return dateVal.toDate();
-  }
-  if (dateVal.seconds) {
-    return new Date(dateVal.seconds * 1000);
-  }
-  if (dateVal instanceof Date) {
-    return dateVal;
-  }
-  if (typeof dateVal === 'number') {
-    return new Date(dateVal);
+
+  if (result && !isNaN(result.getTime())) {
+    return result;
   }
   return new Date();
 };
@@ -28,6 +43,7 @@ export const formatDateSafe = (dateVal: any, fmt: string) => {
   if (!dateVal) return 'N/A';
   try {
     const d = parseDateSafe(dateVal);
+    if (isNaN(d.getTime())) return 'N/A';
     return format(d, fmt);
   } catch (e) {
     return 'Invalid Date';
