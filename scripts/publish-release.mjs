@@ -20,29 +20,25 @@ const REPO = 'Invocentric-app';
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const TAG = `v${pkg.version}`;
 
-const RELEASE_TITLE = `InvoCentric v${pkg.version} - Auto-Updater Loop Fix, Dashboard Navigation & Production Mobile Dock`;
+const RELEASE_TITLE = `InvoCentric v${pkg.version} - Admin Panel in Settings, Real-Time User Roster & Cloud Sync Performance`;
 const RELEASE_NOTES = `## InvoCentric v${pkg.version} Release Notes
 
 ### What's Fixed & Improved in v${pkg.version}:
-- **Windows Desktop Software Auto-Updater Loop Fixed:**
-  - Fixed the infinite download/restart update loop in the Windows software where downloads would finish, fail checksum validation, and restart repeatedly.
-  - Fully synchronized \`latest.yml\` SHA-512 checksum and exact byte size with \`InvoCentric-Setup.exe\`.
-  - Configured \`disableDifferentialDownload = true\` in Electron auto-updater to guarantee atomic full downloads without blockmap corruption.
-  - Hardened auto-updater IPC to invoke clean installer execution on restart.
-- **WebApp Dashboard Navigation Buttons Fixed:**
-  - Fixed non-responsive buttons on Dashboard: "Sales / Revenue", "Unpaid / Due Balance", "View All Invoices", and "Create First Invoice" now navigate seamlessly.
-  - Safe date parsing for statements and transactions to eliminate null timestamp crashes.
-- **Mobile Dynamic Island Navigation Dock:**
-  - Dedicated **Home** navigation icon alongside Create Invoice, POS, and Settings.
-  - Compact floating dock pill (\`rounded-full\`) where only active item expands to show label, maintaining tight spacing without empty horizontal gaps.
-  - Flat top screen viewport corners on mobile for edge-to-edge display on Android and smartphone webapps.
-- **Strict Customer Dues Filtering:**
-  - Customer dues filter exclusively shows customers with outstanding balances (\`due_amount > 0\`).
-- **Production Inventory Movement Ledger:**
-  - Real-time chronological audit trail of all stock movements (Stock OUT from invoice sales, Stock IN from purchases, adjustments).
-- **Cross-Platform Releases:**
+- **Admin Panel in Settings & Mobile Navigation:**
+  - Added dedicated Admin Panel category card with ShieldCheck badge in Settings.
+  - Implemented instant navigation for authorized admins and secure Passcode PIN verification modal (\`2026\`).
+  - Added mobile-friendly top navigation bar with direct back to Settings/Dashboard and live Sync trigger.
+- **Real-time User Roster Bridge:**
+  - Integrated \`POST /api/users/sync-profile\` and \`GET /api/admin/users\` to bridge Firestore and server database (\`users_db.json\`).
+  - All new user registrations, email sign-ups, and Google logins appear in real-time in Admin Panel.
+  - Added desktop and mobile manual and periodic (15s) roster sync.
+- **Cloud Sync & Mobile Latency Optimization:**
+  - Increased cloud write timeout from 2500ms to 8000ms in \`dbService.ts\`, eliminating premature write aborts on 3G/4G mobile networks.
+  - Increased \`safetyTimeout\` from 1500ms to 4000ms in \`useData.ts\` to prevent blank screens before cloud snapshot delivery.
+  - Fixed transient offline mode trap on Web and Android apps.
+- **Cross-Platform Production Releases:**
   - **Desktop Software:** \`InvoCentric-Setup.exe\` & \`latest.yml\` (v${pkg.version})
-  - **Android Mobile App:** \`InvoCentric.apk\` (v${pkg.version}, versionCode 55)
+  - **Android Mobile App:** \`InvoCentric.apk\` (v${pkg.version}, versionCode 56)
   - **Web Application:** Fully tested (100% pass rate on all 144 unit and E2E tests).
 `;
 
