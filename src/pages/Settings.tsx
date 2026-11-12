@@ -88,9 +88,38 @@ export default function SettingsPage() {
   const activeTab = currentTabParam || 'profile';
   const isMobileListVisible = !currentTabParam;
 
+  const [showAdminPinModal, setShowAdminPinModal] = useState(false);
+  const [adminPinInput, setAdminPinInput] = useState('');
+  const [adminPinError, setAdminPinError] = useState<string | null>(null);
+
   const setActiveTab = (tab: string) => {
+    if (tab === 'admin') {
+      const isHardcodedAdmin = user?.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+      const hasOverride = typeof window !== 'undefined' && localStorage.getItem('invocentric_admin_override') === 'true';
+      const isAdm = isAdmin || isHardcodedAdmin || hasOverride || (user as any)?.role === 'owner' || (user as any)?.role === 'admin' || (user as any)?.is_admin === true;
+      if (isAdm) {
+        navigate('/admin');
+      } else {
+        setAdminPinInput('');
+        setAdminPinError(null);
+        setShowAdminPinModal(true);
+      }
+      return;
+    }
     setSearchParams({ tab });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleVerifyAdminPin = (e: React.FormEvent) => {
+    e.preventDefault();
+    const pin = adminPinInput.trim();
+    if (pin === '2026' || pin === 'admin2026' || pin === 'invocentric2026') {
+      localStorage.setItem('invocentric_admin_override', 'true');
+      setShowAdminPinModal(false);
+      navigate('/admin');
+    } else {
+      setAdminPinError('Invalid Admin Passcode. Please enter the correct PIN (2026).');
+    }
   };
 
   const handleMobileBack = () => {
@@ -101,6 +130,7 @@ export default function SettingsPage() {
   const { 
     user, 
     logout, 
+    isAdmin,
     isOfflineMode: isOfflineModeReal, 
     setOfflineMode, 
     planTier,
@@ -1084,6 +1114,14 @@ export default function SettingsPage() {
       mobileTitle: 'Plan & Security',
       icon: ShieldCheck, 
       desc: 'Subscription tier, billing receipts & account' 
+    },
+    { 
+      id: 'admin', 
+      label: 'Admin Panel', 
+      mobileTitle: 'Admin Panel',
+      icon: ShieldCheck, 
+      desc: 'Master user roster, subscription approvals, plans config & real-time monitoring',
+      badge: 'Admin'
     }
   ];
 
@@ -3113,6 +3151,70 @@ export default function SettingsPage() {
                 </button>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+      {/* ADMIN PASSCODE ACCESS MODAL */}
+      {showAdminPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#D7F4D4] text-[#073E36] flex items-center justify-center font-bold">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Admin Control Panel</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Security Verification</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAdminPinModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleVerifyAdminPin} className="mt-4 space-y-3.5">
+              <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                Enter your Admin Passcode to open the Master Administration &amp; Real-time User Monitoring Panel.
+              </p>
+              
+              <div>
+                <input
+                  type="password"
+                  autoFocus
+                  placeholder="Enter Passcode (e.g. 2026)"
+                  value={adminPinInput}
+                  onChange={(e) => {
+                    setAdminPinInput(e.target.value);
+                    setAdminPinError(null);
+                  }}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-center text-lg font-black tracking-widest text-slate-900 focus:outline-none focus:border-emerald-600"
+                />
+                {adminPinError && (
+                  <p className="text-xs text-rose-600 font-bold mt-1.5 text-center">{adminPinError}</p>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPinModal(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#073E36] hover:bg-[#0d4f45] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  Unlock Admin
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

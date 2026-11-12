@@ -34,7 +34,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId) || isAdmin() || isSignedIn();
       allow update: if (isOwner(userId) && (!incoming().diff(existing()).affectedKeys().hasAny(['is_admin']) || incoming().get('is_admin', false) == existing().get('is_admin', false)))
                     || isAdmin()
                     || incoming().diff(existing()).affectedKeys().hasOnly(['inactivity_reminder_status', 'inactivity_reminder_sent_at', 'inactivity_reminder_cycle_id', 'inactivity_reminder_error', 'last_active_at', 'updated_at']);

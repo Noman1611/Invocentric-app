@@ -252,7 +252,7 @@ export function useInvoices() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     const q = query(collection(db, 'invoices'), where('user_id', '==', user.uid));
 
@@ -365,7 +365,7 @@ export function useCustomers() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     const q = query(collection(db, 'customers'), where('user_id', '==', user.uid));
 
@@ -476,7 +476,7 @@ export function useItems() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     const q = query(collection(db, 'items'), where('user_id', '==', user.uid));
 
@@ -591,7 +591,7 @@ export function usePayments(customerId?: string) {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     let q = query(collection(db, 'payments'), where('user_id', '==', user.uid));
 
@@ -708,7 +708,7 @@ export function useExpenses() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     const q = query(collection(db, 'expenses'), where('user_id', '==', user.uid));
 
@@ -816,7 +816,7 @@ export function usePurchases() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     const q = query(collection(db, 'purchases'), where('user_id', '==', user.uid));
 
@@ -1025,7 +1025,7 @@ export function useNotifications() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     const loadLocal = () => {
       const local = getResilientLocalData("notifications", user.uid);
@@ -1152,7 +1152,7 @@ export function useRecycleBin() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     if (isOfflineMode) {
       refreshLocalRecycleBin();
@@ -1267,7 +1267,7 @@ export function useTemplates() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 4000);
 
     const q = query(collection(db, 'templates'), where('user_id', '==', user.uid));
 

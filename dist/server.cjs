@@ -3480,6 +3480,98 @@ To stop receiving these alerts, update your settings at https://invocentric.in/s
     res.status(500).json({ error: err.message || err });
   }
 });
+app.post("/api/users/sync-profile", async (req, res) => {
+  try {
+    const { uid, email, displayName, name, photoURL, businessName, phone, plan, status, role, is_admin, provider } = req.body;
+    if (!email && !uid) {
+      return res.status(400).json({ error: "UID or Email is required" });
+    }
+    const cleanEmail = (email || "").trim().toLowerCase();
+    const cleanUid = uid || (cleanEmail ? "user_" + cleanEmail.replace(/[^a-zA-Z0-9]/g, "_") : "user_" + Date.now());
+    const db = loadUsersDb();
+    const isOwnerEmail = cleanEmail === "nomanshaikh1999@gmail.com";
+    const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+    const existing = db[cleanEmail] || db[cleanUid] || {};
+    const updated = {
+      ...existing,
+      uid: cleanUid,
+      email: cleanEmail || existing.email,
+      name: displayName || name || existing.name || (cleanEmail ? cleanEmail.split("@")[0] : "User"),
+      displayName: displayName || name || existing.displayName || (cleanEmail ? cleanEmail.split("@")[0] : "User"),
+      photoURL: photoURL !== void 0 ? photoURL : existing.photoURL || "",
+      provider: provider || existing.provider || "email",
+      plan: plan || existing.plan || (isOwnerEmail ? "pro" : "free"),
+      plan_tier: plan || existing.plan_tier || (isOwnerEmail ? "pro" : "free"),
+      businessName: businessName || existing.businessName || "",
+      phone: phone || existing.phone || "",
+      status: status || existing.status || "Active",
+      role: isOwnerEmail ? "owner" : role || existing.role || "user",
+      is_admin: isOwnerEmail ? true : is_admin !== void 0 ? is_admin : existing.is_admin || false,
+      createdAt: existing.createdAt || nowIso,
+      lastLoginAt: nowIso,
+      lastActiveAt: nowIso
+    };
+    if (cleanEmail) db[cleanEmail] = updated;
+    if (cleanUid) db[cleanUid] = updated;
+    saveUsersDb(db);
+    return res.json({ success: true, user: updated });
+  } catch (err) {
+    console.error("[Profile Sync Server] Error syncing user:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+app.get("/api/admin/users", checkAuth, async (req, res) => {
+  try {
+    const callerEmail = req.user?.email?.toLowerCase().trim();
+    const isHardcodedAdmin = callerEmail === "nomanshaikh1999@gmail.com";
+    const db = loadUsersDb();
+    const callerRecord = (callerEmail ? db[callerEmail] : null) || {};
+    const isAdmin = isHardcodedAdmin || callerRecord.is_admin === true || callerRecord.role === "owner" || callerRecord.role === "admin";
+    if (!isAdmin) {
+      return res.status(403).json({ error: "FORBIDDEN: Admin privileges required." });
+    }
+    const seenEmails = /* @__PURE__ */ new Set();
+    const seenUids = /* @__PURE__ */ new Set();
+    const usersList = [];
+    for (const key of Object.keys(db)) {
+      const u = db[key];
+      if (!u) continue;
+      const cleanEmail = (u.email || "").toLowerCase().trim();
+      const uUid = u.uid || key;
+      if (cleanEmail && seenEmails.has(cleanEmail)) continue;
+      if (uUid && seenUids.has(uUid)) continue;
+      if (cleanEmail) seenEmails.add(cleanEmail);
+      if (uUid) seenUids.add(uUid);
+      usersList.push({
+        id: uUid,
+        uid: uUid,
+        email: cleanEmail || u.email,
+        name: u.displayName || u.name || (cleanEmail ? cleanEmail.split("@")[0] : "User"),
+        displayName: u.displayName || u.name || (cleanEmail ? cleanEmail.split("@")[0] : "User"),
+        business: u.businessName || "",
+        business_name: u.businessName || "",
+        phone: u.phone || "",
+        photo_url: u.photoURL || "",
+        photoURL: u.photoURL || "",
+        status: u.status || "Active",
+        role: u.role || "user",
+        is_admin: Boolean(u.is_admin || cleanEmail === "nomanshaikh1999@gmail.com"),
+        plan: u.plan || "free",
+        plan_tier: u.plan_tier || u.plan || "free",
+        provider: u.provider || "email",
+        created_at: u.createdAt || (/* @__PURE__ */ new Date()).toISOString(),
+        joinedOn: u.createdAt || (/* @__PURE__ */ new Date()).toISOString(),
+        last_active_at: u.lastActiveAt || u.lastLoginAt || (/* @__PURE__ */ new Date()).toISOString(),
+        lastActiveDate: u.lastActiveAt || u.lastLoginAt || (/* @__PURE__ */ new Date()).toISOString(),
+        invoiceCount: 0
+      });
+    }
+    return res.json({ success: true, count: usersList.length, users: usersList });
+  } catch (err) {
+    console.error("[Admin Users Server] Error fetching users:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
 app.get("/api/cron/reminders", async (req, res) => {
   const isVercelCron = req.headers["x-vercel-cron"] === "1";
   const cronSecret = process.env.CRON_SECRET;

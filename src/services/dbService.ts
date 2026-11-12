@@ -349,7 +349,7 @@ async function triggerNotification(
   }
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number = 6000, fallbackMsg: string = 'Operation timed out'): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number = 8000, fallbackMsg: string = 'Operation timed out'): Promise<T> {
   return Promise.race([
     promise,
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error(fallbackMsg)), ms))
@@ -419,7 +419,7 @@ export const dbService = {
           created_at: toFirestoreTimestamp(data.created_at),
           updated_at: serverTimestamp()
         };
-        await withTimeout(setDoc(doc(db, collectionName, docId), payload, { merge: true }), 2500, 'Cloud write timeout');
+        await withTimeout(setDoc(doc(db, collectionName, docId), payload, { merge: true }), 8000, 'Cloud write timeout');
 
         // Cloud write succeeded: dequeue from offline_upserts (fresh queue read)
         const upsertsKey = `offline_upserts_${userId}`;
@@ -471,7 +471,7 @@ export const dbService = {
           user_id: userId,
           updated_at: serverTimestamp()
         };
-        await withTimeout(setDoc(docRef, payload, { merge: true }), 2500, 'Cloud update timeout');
+        await withTimeout(setDoc(docRef, payload, { merge: true }), 8000, 'Cloud update timeout');
 
         // Dequeue from offline upserts if sync succeeded (fresh queue read)
         const upsertsKey = `offline_upserts_${userId}`;
@@ -535,10 +535,10 @@ export const dbService = {
           await withTimeout(setDoc(doc(db, 'recycle_bin', binDocId), {
             ...recycleItem,
             created_at: serverTimestamp()
-          }), 2500, 'Cloud recycle-bin write timeout');
+          }), 8000, 'Cloud recycle-bin write timeout');
         }
 
-        await withTimeout(deleteDoc(docRef), 2500, 'Cloud delete timeout');
+        await withTimeout(deleteDoc(docRef), 8000, 'Cloud delete timeout');
 
         if (collectionName === 'recycle_bin') {
           const knownPrefixRegex = /^(invoices|customers|items|expenses|purchases|quotations|daily_books|recycle_bin)_/;

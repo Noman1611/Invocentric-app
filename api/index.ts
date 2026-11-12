@@ -885,8 +885,15 @@ interface UserDbRecord {
   photoURL?: string;
   provider?: string;
   plan?: string;
+  plan_tier?: string;
+  businessName?: string;
+  phone?: string;
+  role?: string;
+  is_admin?: boolean;
+  status?: string;
   createdAt?: string;
   lastLoginAt?: string;
+  lastActiveAt?: string;
 }
 
 function loadUsersDb(): Record<string, UserDbRecord> {
@@ -4080,6 +4087,115 @@ app.post("/api/admin/send-user-reminder", checkAuth, async (req, res) => {
     }
   } catch (err: any) {
     res.status(500).json({ error: err.message || err });
+  }
+});
+
+// --- USER PROFILE SYNC ENDPOINT (Real-time bridge across all devices and auth methods) ---
+app.post("/api/users/sync-profile", async (req, res) => {
+  try {
+    const { uid, email, displayName, name, photoURL, businessName, phone, plan, status, role, is_admin, provider } = req.body;
+    if (!email && !uid) {
+      return res.status(400).json({ error: "UID or Email is required" });
+    }
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanUid = uid || (cleanEmail ? 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : 'user_' + Date.now());
+    const db = loadUsersDb();
+    
+    const isOwnerEmail = cleanEmail === 'nomanshaikh1999@gmail.com';
+    const nowIso = new Date().toISOString();
+    
+    const existing: Partial<UserDbRecord> = db[cleanEmail] || db[cleanUid] || {};
+    
+    const updated: UserDbRecord = {
+      ...existing,
+      uid: cleanUid,
+      email: cleanEmail || existing.email,
+      name: displayName || name || existing.name || (cleanEmail ? cleanEmail.split('@')[0] : 'User'),
+      displayName: displayName || name || existing.displayName || (cleanEmail ? cleanEmail.split('@')[0] : 'User'),
+      photoURL: photoURL !== undefined ? photoURL : (existing.photoURL || ''),
+      provider: provider || existing.provider || 'email',
+      plan: plan || existing.plan || (isOwnerEmail ? 'pro' : 'free'),
+      plan_tier: plan || existing.plan_tier || (isOwnerEmail ? 'pro' : 'free'),
+      businessName: businessName || existing.businessName || '',
+      phone: phone || existing.phone || '',
+      status: status || existing.status || 'Active',
+      role: isOwnerEmail ? 'owner' : (role || existing.role || 'user'),
+      is_admin: isOwnerEmail ? true : (is_admin !== undefined ? is_admin : (existing.is_admin || false)),
+      createdAt: existing.createdAt || nowIso,
+      lastLoginAt: nowIso,
+      lastActiveAt: nowIso
+    };
+    
+    if (cleanEmail) db[cleanEmail] = updated;
+    if (cleanUid) db[cleanUid] = updated;
+    saveUsersDb(db);
+    
+    return res.json({ success: true, user: updated });
+  } catch (err: any) {
+    console.error("[Profile Sync Server] Error syncing user:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// --- ADMIN USERS LIST ENDPOINT (Real-time live user roster for Admin Panel) ---
+app.get("/api/admin/users", checkAuth, async (req, res) => {
+  try {
+    const callerEmail = (req as any).user?.email?.toLowerCase().trim();
+    const isHardcodedAdmin = callerEmail === "nomanshaikh1999@gmail.com";
+    
+    const db = loadUsersDb();
+    const callerRecord: Partial<UserDbRecord> = (callerEmail ? db[callerEmail] : null) || {};
+    const isAdmin = isHardcodedAdmin || callerRecord.is_admin === true || callerRecord.role === "owner" || callerRecord.role === "admin";
+    
+    if (!isAdmin) {
+      return res.status(403).json({ error: "FORBIDDEN: Admin privileges required." });
+    }
+    
+    const seenEmails = new Set<string>();
+    const seenUids = new Set<string>();
+    const usersList: any[] = [];
+    
+    for (const key of Object.keys(db)) {
+      const u = db[key];
+      if (!u) continue;
+      const cleanEmail = (u.email || '').toLowerCase().trim();
+      const uUid = u.uid || key;
+      
+      if (cleanEmail && seenEmails.has(cleanEmail)) continue;
+      if (uUid && seenUids.has(uUid)) continue;
+      
+      if (cleanEmail) seenEmails.add(cleanEmail);
+      if (uUid) seenUids.add(uUid);
+      
+      usersList.push({
+        id: uUid,
+        uid: uUid,
+        email: cleanEmail || u.email,
+        name: u.displayName || u.name || (cleanEmail ? cleanEmail.split('@')[0] : 'User'),
+        displayName: u.displayName || u.name || (cleanEmail ? cleanEmail.split('@')[0] : 'User'),
+        business: u.businessName || '',
+        business_name: u.businessName || '',
+        phone: u.phone || '',
+        photo_url: u.photoURL || '',
+        photoURL: u.photoURL || '',
+        status: u.status || 'Active',
+        role: u.role || 'user',
+        is_admin: Boolean(u.is_admin || cleanEmail === 'nomanshaikh1999@gmail.com'),
+        plan: u.plan || 'free',
+        plan_tier: u.plan_tier || u.plan || 'free',
+        provider: u.provider || 'email',
+        created_at: u.createdAt || new Date().toISOString(),
+        joinedOn: u.createdAt || new Date().toISOString(),
+        last_active_at: u.lastActiveAt || u.lastLoginAt || new Date().toISOString(),
+        lastActiveDate: u.lastActiveAt || u.lastLoginAt || new Date().toISOString(),
+        invoiceCount: 0
+      });
+    }
+    
+    return res.json({ success: true, count: usersList.length, users: usersList });
+  } catch (err: any) {
+    console.error("[Admin Users Server] Error fetching users:", err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

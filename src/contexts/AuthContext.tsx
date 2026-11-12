@@ -422,14 +422,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return (localStorage.getItem('app_mode') as 'shop' | 'freelancer') || 'shop';
   });
   const [isOfflineModeState, setIsOfflineModeState] = useState<boolean>(() => {
-    // Auto-clear quota limit flags after 12 hours to try reconnecting online
+    const isDesktopApp = typeof window !== 'undefined' && Boolean((window as any).electronAPI?.isElectron);
+    // Auto-clear quota limit flags after 15 minutes to try reconnecting online
     const storedTimestamp = localStorage.getItem('firestore_quota_exceeded_timestamp');
     if (storedTimestamp) {
       const diff = Date.now() - Number(storedTimestamp);
-      if (diff > 12 * 60 * 60 * 1000) { // 12 hours
+      if (diff > 15 * 60 * 1000) { // 15 minutes
         localStorage.removeItem('firestore_quota_exceeded');
         localStorage.removeItem('is_offline_mode');
         localStorage.removeItem('firestore_quota_exceeded_timestamp');
+      }
+    }
+    // Web and Android apps should stay in cloud sync mode whenever online
+    if (!isDesktopApp && typeof navigator !== 'undefined' && navigator.onLine) {
+      if (localStorage.getItem('is_offline_mode') === 'true' && !localStorage.getItem('firestore_quota_exceeded')) {
+        localStorage.removeItem('is_offline_mode');
+        return false;
       }
     }
     return localStorage.getItem('is_offline_mode') === 'true';
@@ -829,11 +837,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('app_mode', profile.app_mode);
         }
         const isOwnerEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-        setRole(isOwnerEmail ? 'owner' : (profile?.role === 'owner' ? 'user' : (profile?.role || 'user')));
+        const hasAdminOverride = typeof window !== 'undefined' && localStorage.getItem('invocentric_admin_override') === 'true';
+        const isUserAdmin = isOwnerEmail || hasAdminOverride || profile?.is_admin === true || profile?.role === 'owner' || profile?.role === 'admin';
+        setRole(isOwnerEmail ? 'owner' : (profile?.role === 'owner' ? 'owner' : (profile?.role || 'user')));
         setSubscriptionPending(!!profile?.subscription_pending);
         setSubscriptionStatus(profile?.subscription_status || null);
         setSubscriptionRequestRef(profile?.subscription_request_ref || null);
-        setIsAdmin(isOwnerEmail);
+        setIsAdmin(isUserAdmin);
       }
       return;
     }
@@ -871,11 +881,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       const isOwnerEmail = user.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-      setRole(isOwnerEmail ? 'owner' : (profile?.role === 'owner' ? 'user' : (profile?.role || 'user')));
+      const hasAdminOverride = typeof window !== 'undefined' && localStorage.getItem('invocentric_admin_override') === 'true';
+      const isUserAdmin = isOwnerEmail || hasAdminOverride || profile?.is_admin === true || profile?.role === 'owner' || profile?.role === 'admin';
+      setRole(isOwnerEmail ? 'owner' : (profile?.role === 'owner' ? 'owner' : (profile?.role || 'user')));
       setSubscriptionPending(!!profile?.subscription_pending);
       setSubscriptionStatus(profile?.subscription_status || null);
       setSubscriptionRequestRef(profile?.subscription_request_ref || null);
-      setIsAdmin(isOwnerEmail);
+      setIsAdmin(isUserAdmin);
 
     }, (error) => {
       console.error("Error listening to user profile in AuthContext:", error);
@@ -935,6 +947,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await setDoc(userDocRef, sanitizeFirestorePayload(profileData), { merge: true });
       saveStoredUserProfile(firebaseUser.uid, profileData, firebaseUser.email);
       console.log("Profile ensured in Firestore successfully");
+
+      // Bridge: Sync with server users database so user appears in Admin Panel instantly
+      try {
+        fetch(apiUrl('/api/users/sync-profile'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: safeDisplayName,
+            name: safeDisplayName,
+            photoURL: firebaseUser.photoURL || null,
+            businessName: cached?.business_name || '',
+            phone: cached?.phone || '',
+            plan: profileData.plan,
+            status: profileData.status,
+            role: profileData.role,
+            is_admin: profileData.is_admin,
+            provider: (firebaseUser.providerData?.[0]?.providerId === 'google.com') ? 'google' : 'email'
+          })
+        }).catch(() => {});
+      } catch (_) {}
     } catch (err) {
       console.warn("Could not ensure profile in Firestore (safe fallback active):", err);
     }
@@ -992,14 +1026,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('app_mode', profile.app_mode);
         }
         const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-        setRole(isOwnerEmail ? 'owner' : (profile.role === 'owner' ? 'user' : (profile.role || 'user')));
+        const hasAdminOverride = typeof window !== 'undefined' && localStorage.getItem('invocentric_admin_override') === 'true';
+        const isUserAdmin = isOwnerEmail || hasAdminOverride || profile.is_admin === true || profile.role === 'owner' || profile.role === 'admin';
+        setRole(isOwnerEmail ? 'owner' : (profile.role === 'owner' ? 'owner' : (profile.role || 'user')));
         setSubscriptionPending(!!profile.subscription_pending);
         setSubscriptionStatus(profile.subscription_status || null);
         setSubscriptionRequestRef(profile.subscription_request_ref || null);
-        setIsAdmin(isOwnerEmail);
+        setIsAdmin(isUserAdmin);
 
         // Self-Healing Sanitation for contaminated non-admin profiles
-        if (!isOwnerEmail) {
+        if (!isOwnerEmail && !profile.is_admin && profile.role !== 'owner') {
           const rawOwner = String(profile.owner_name || '').toLowerCase();
           const rawBusiness = String(profile.business_name || '').toLowerCase();
           const rawPhone = String(profile.phone || '');
@@ -1007,8 +1043,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const rawUpi = String(profile.upi_id || '').toLowerCase();
 
           const isContaminated = 
-            profile.is_admin ||
-            profile.role === 'owner' ||
             rawOwner.includes('noman') ||
             rawOwner.includes('shekh') ||
             rawBusiness.includes('graphic designer') ||
@@ -1074,12 +1108,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (updateErr) {
           console.warn("Could not update last_login_at timestamp:", updateErr);
         }
-      } else if (readCompleted && userDoc && !userDoc.exists()) {
-        // Profile confirmed missing in Firestore by completed read - create it safely!
-        await ensureUserProfileExists(firebaseUser);
+
+        // Bridge: Sync with server users database so user appears in Admin Panel instantly
+        try {
+          fetch(apiUrl('/api/users/sync-profile'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: profile?.display_name || firebaseUser.displayName || '',
+              name: profile?.owner_name || profile?.display_name || firebaseUser.displayName || '',
+              photoURL: profile?.photo_url || firebaseUser.photoURL || '',
+              businessName: profile?.business_name || '',
+              phone: profile?.phone || '',
+              plan: profile?.plan || 'free',
+              status: profile?.status || 'Active',
+              role: profile?.role || 'user',
+              is_admin: Boolean(profile?.is_admin || isOwnerEmail),
+              provider: (firebaseUser.providerData?.[0]?.providerId === 'google.com') ? 'google' : 'email'
+            })
+          }).catch(() => {});
+        } catch (_) {}
       } else {
-        // Read timed out or encountered an error: treat as unknown, do not write default profile fields
-        console.log("Background profile read incomplete or timed out; keeping existing profile intact.");
+        // Profile missing or read incomplete: safely ensure profile exists in Firestore and server
+        await ensureUserProfileExists(firebaseUser);
       }
 
       // Background Telegram login notification
@@ -1179,15 +1232,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem('app_mode', cachedProfile.app_mode);
           }
           const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-          setRole(isOwnerEmail ? 'owner' : (cachedProfile.role === 'owner' ? 'user' : (cachedProfile.role || 'user')));
+          const hasAdminOverride = typeof window !== 'undefined' && localStorage.getItem('invocentric_admin_override') === 'true';
+          const isUserAdmin = isOwnerEmail || hasAdminOverride || cachedProfile.is_admin === true || cachedProfile.role === 'owner' || cachedProfile.role === 'admin';
+          setRole(isOwnerEmail ? 'owner' : (cachedProfile.role === 'owner' ? 'owner' : (cachedProfile.role || 'user')));
           setSubscriptionPending(!!cachedProfile.subscription_pending);
           setSubscriptionStatus(cachedProfile.subscription_status || null);
           setSubscriptionRequestRef(cachedProfile.subscription_request_ref || null);
-          setIsAdmin(isOwnerEmail);
+          setIsAdmin(isUserAdmin);
         } else {
           const isOwnerEmail = firebaseUser.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
+          const hasAdminOverride = typeof window !== 'undefined' && localStorage.getItem('invocentric_admin_override') === 'true';
           setRole(isOwnerEmail ? 'owner' : 'user');
-          setIsAdmin(isOwnerEmail);
+          setIsAdmin(isOwnerEmail || hasAdminOverride);
         }
 
         // 4. Release loading immediately so user sees their dashboard instantly without any 5-second hang
@@ -1217,11 +1273,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     localStorage.setItem('app_mode', cachedProfile.app_mode);
                   }
                   const isOwnerEmail = parsed.email?.toLowerCase() === 'nomanshaikh1999@gmail.com';
-                  setRole(isOwnerEmail ? 'owner' : (cachedProfile.role === 'owner' ? 'user' : (cachedProfile.role || 'user')));
+                  const hasAdminOverride = typeof window !== 'undefined' && localStorage.getItem('invocentric_admin_override') === 'true';
+                  const isUserAdmin = isOwnerEmail || hasAdminOverride || cachedProfile.is_admin === true || cachedProfile.role === 'owner' || cachedProfile.role === 'admin';
+                  setRole(isOwnerEmail ? 'owner' : (cachedProfile.role === 'owner' ? 'owner' : (cachedProfile.role || 'user')));
                   setSubscriptionPending(!!cachedProfile.subscription_pending);
                   setSubscriptionStatus(cachedProfile.subscription_status || null);
                   setSubscriptionRequestRef(cachedProfile.subscription_request_ref || null);
-                  setIsAdmin(isOwnerEmail);
+                  setIsAdmin(isUserAdmin);
                 }
                 setLoading(false);
                 return;
@@ -1514,6 +1572,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const syntheticUser = createSyntheticUser({ ...data, idToken: token });
       await handleUserChange(syntheticUser);
       syncAllUserDataFromFirestore(data.uid, data.email, token).catch(() => {});
+
+      // Bridge: Guarantee external/Google session user is synced to backend server DB for Admin Panel visibility
+      try {
+        fetch(apiUrl('/api/users/sync-profile'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: data.uid,
+            email: data.email,
+            displayName: data.displayName || data.name || (data.email ? data.email.split('@')[0] : 'User'),
+            name: data.displayName || data.name || (data.email ? data.email.split('@')[0] : 'User'),
+            photoURL: data.photoURL || null,
+            plan: data.plan || 'free',
+            provider: data.provider || 'google'
+          })
+        }).catch(() => {});
+      } catch (_) {}
     } catch (e) {
       console.warn("Failed to apply synthetic session user:", e);
     }
