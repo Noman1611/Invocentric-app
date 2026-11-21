@@ -18,6 +18,16 @@ Allow: /barcode-billing
 Allow: /inventory-management
 Allow: /ledger-software
 Allow: /quotation-maker
+Allow: /vyapar-alternative
+Allow: /khatabook-alternative
+Allow: /mybillbook-alternative
+Allow: /tally-alternative
+Allow: /retail-billing-software
+Allow: /kirana-billing-software
+Allow: /mobile-shop-billing-software
+Allow: /thermal-printer-billing-software
+Allow: /llms.txt
+Allow: /llms-full.txt
 
 # Protected / Private User App Areas (Noindex for crawler hygiene)
 Disallow: /api/

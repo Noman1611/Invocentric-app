@@ -1892,7 +1892,7 @@ function ImpersonationBanner() {
               <Route path="/downloads" element={<DownloadPage />} />
               <Route path="/mobile-scan" element={<MobileScanPage />} />
               
-              {/* Public SEO Feature Landing Pages */}
+              {/* Public SEO Feature & Competitor Landing Pages */}
               <Route path="/invoice-software" element={<SeoLandingPage pageKey="invoice-software" />} />
               <Route path="/free-invoice-maker" element={<SeoLandingPage pageKey="free-invoice-maker" />} />
               <Route path="/gst-billing-software" element={<SeoLandingPage pageKey="gst-billing-software" />} />
@@ -1903,6 +1903,14 @@ function ImpersonationBanner() {
               <Route path="/inventory-management" element={<SeoLandingPage pageKey="inventory-management" />} />
               <Route path="/ledger-software" element={<SeoLandingPage pageKey="ledger-software" />} />
               <Route path="/quotation-maker" element={<SeoLandingPage pageKey="quotation-maker" />} />
+              <Route path="/vyapar-alternative" element={<SeoLandingPage pageKey="vyapar-alternative" />} />
+              <Route path="/khatabook-alternative" element={<SeoLandingPage pageKey="khatabook-alternative" />} />
+              <Route path="/mybillbook-alternative" element={<SeoLandingPage pageKey="mybillbook-alternative" />} />
+              <Route path="/tally-alternative" element={<SeoLandingPage pageKey="tally-alternative" />} />
+              <Route path="/retail-billing-software" element={<SeoLandingPage pageKey="retail-billing-software" />} />
+              <Route path="/kirana-billing-software" element={<SeoLandingPage pageKey="kirana-billing-software" />} />
+              <Route path="/mobile-shop-billing-software" element={<SeoLandingPage pageKey="mobile-shop-billing-software" />} />
+              <Route path="/thermal-printer-billing-software" element={<SeoLandingPage pageKey="thermal-printer-billing-software" />} />
               <Route path="/gst-calculator" element={<GstCalculatorPage />} />
               <Route path="/calculator" element={<GstCalculatorPage />} />
               <Route path="/gst-calc" element={<GstCalculatorPage />} />

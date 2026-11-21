@@ -40,6 +40,10 @@ export const clearMemoryCache = () => {
 };
 
 export const setSecureStorage = (key: string, data: any, silent = false) => {
+  const cached = memoryCache.get(key);
+  if (cached && cached.parsed === data) {
+    return;
+  }
   const encrypted = encryptData(data);
   localStorage.setItem(key, encrypted);
   memoryCache.set(key, { raw: encrypted, parsed: data });

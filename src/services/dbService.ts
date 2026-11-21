@@ -1,12 +1,12 @@
 import { db } from '../lib/firebase';
-import { 
-  collection, 
-  deleteDoc, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  where, 
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
   serverTimestamp,
   setDoc
 } from 'firebase/firestore';
@@ -117,7 +117,7 @@ function saveToLocalCache(collectionName: string, userId: string, record: any) {
     setSecureStorage(delKey, filteredDels);
 
     // Keep localDbEngine in sync for Desktop Electron JSON files & in-memory cache
-    localDbEngine.saveItem(collectionName, record).catch(() => {});
+    localDbEngine.saveItem(collectionName, record).catch(() => { });
 
     notifyLocalChange(collectionName, userId, record.id);
   } catch (err) {
@@ -175,8 +175,8 @@ function removeFromLocalCache(collectionName: string, userId: string, docId: str
     const idsToQueue = (collectionName === 'recycle_bin' && cleanDocId !== docId && hasLegacyMatch) ? [docId, cleanDocId] : [docId];
     for (const dId of idsToQueue) {
       if (dId && !dels.some((d: any) => d.collection === collectionName && d.id === dId && (!origCol || d.original_collection === origCol))) {
-        dels.push({ 
-          collection: collectionName, 
+        dels.push({
+          collection: collectionName,
           id: dId,
           ...(origCol ? { original_collection: origCol } : {})
         });
@@ -200,7 +200,7 @@ function removeFromLocalCache(collectionName: string, userId: string, docId: str
     }
 
     // Call localDbEngine deleteItem
-    localDbEngine.deleteItem(collectionName, docId, permanent).catch(() => {});
+    localDbEngine.deleteItem(collectionName, docId, permanent).catch(() => { });
 
     notifyLocalChange(collectionName, userId, docId);
   } catch (err) {
@@ -367,7 +367,7 @@ export async function findLinkedPayments(userId: string, invoiceId: string, isOf
     if (localMatches.length > 0) {
       return localMatches;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // 2. Query Firestore if online and not local-only with strict timeout
   if (!isOfflineMode && !isLocalOnlyMode() && typeof navigator !== 'undefined' && navigator.onLine) {
@@ -409,26 +409,28 @@ export const dbService = {
       triggerNotification('create', collectionName, docId, data, null, options).catch(console.error);
     }
 
-    // 2. If online and local-only storage is NOT active, attempt cloud write with consistent Timestamp and timeout
+    // 2. Non-blocking cloud synchronization (optimistic local-first speed: returns <5ms without button freezes)
     if (!isLocalOnlyMode(options) && typeof navigator !== 'undefined' && navigator.onLine) {
-      try {
-        const payload = {
-          ...data,
-          id: docId,
-          user_id: userId,
-          created_at: toFirestoreTimestamp(data.created_at),
-          updated_at: serverTimestamp()
-        };
-        await withTimeout(setDoc(doc(db, collectionName, docId), payload, { merge: true }), 8000, 'Cloud write timeout');
+      (async () => {
+        try {
+          const payload = {
+            ...data,
+            id: docId,
+            user_id: userId,
+            created_at: toFirestoreTimestamp(data.created_at),
+            updated_at: serverTimestamp()
+          };
+          await withTimeout(setDoc(doc(db, collectionName, docId), payload, { merge: true }), 10000, 'Cloud write timeout');
 
-        // Cloud write succeeded: dequeue from offline_upserts (fresh queue read)
-        const upsertsKey = `offline_upserts_${userId}`;
-        const freshUpserts = getSecureStorage(upsertsKey, []);
-        const filtered = freshUpserts.filter((u: any) => !(u.collection === collectionName && u.item?.id === docId));
-        setSecureStorage(upsertsKey, filtered);
-      } catch (cloudErr: any) {
-        console.warn(`[dbService] Cloud write deferred for ${collectionName}/${docId} (${cloudErr?.message || cloudErr}). Saved locally.`);
-      }
+          // Cloud write succeeded: dequeue from offline_upserts (fresh queue read)
+          const upsertsKey = `offline_upserts_${userId}`;
+          const freshUpserts = getSecureStorage(upsertsKey, []);
+          const filtered = freshUpserts.filter((u: any) => !(u.collection === collectionName && u.item?.id === docId));
+          setSecureStorage(upsertsKey, filtered);
+        } catch (cloudErr: any) {
+          console.warn(`[dbService] Cloud write deferred for ${collectionName}/${docId} (${cloudErr?.message || cloudErr}). Saved locally in offline queue.`);
+        }
+      })();
     }
 
     return { id: docId };
@@ -445,7 +447,7 @@ export const dbService = {
     try {
       const cached = getSecureStorage(`offline_${collectionName}_${userId}`, []);
       oldDoc = cached.find((item: any) => item.id === docId);
-    } catch (_) {}
+    } catch (_) { }
 
     const updatedRecord = {
       ...(oldDoc || {}),
@@ -462,25 +464,27 @@ export const dbService = {
       triggerNotification('update', collectionName, docId, data, oldDoc, options).catch(console.error);
     }
 
-    // 2. If online and not local-only, attempt cloud update gracefully with timeout
+    // 2. Non-blocking cloud update (optimistic local-first speed)
     if (!isLocalOnlyMode(options) && typeof navigator !== 'undefined' && navigator.onLine) {
-      try {
-        const docRef = doc(db, collectionName, docId);
-        const payload = {
-          ...data,
-          user_id: userId,
-          updated_at: serverTimestamp()
-        };
-        await withTimeout(setDoc(docRef, payload, { merge: true }), 8000, 'Cloud update timeout');
+      (async () => {
+        try {
+          const docRef = doc(db, collectionName, docId);
+          const payload = {
+            ...data,
+            user_id: userId,
+            updated_at: serverTimestamp()
+          };
+          await withTimeout(setDoc(docRef, payload, { merge: true }), 10000, 'Cloud update timeout');
 
-        // Dequeue from offline upserts if sync succeeded (fresh queue read)
-        const upsertsKey = `offline_upserts_${userId}`;
-        const freshUpserts = getSecureStorage(upsertsKey, []);
-        const filtered = freshUpserts.filter((u: any) => !(u.collection === collectionName && u.item?.id === docId));
-        setSecureStorage(upsertsKey, filtered);
-      } catch (cloudErr: any) {
-        console.warn(`[dbService] Cloud update deferred for ${collectionName}/${docId} (${cloudErr?.message || cloudErr}). Saved locally.`);
-      }
+          // Dequeue from offline upserts if sync succeeded (fresh queue read)
+          const upsertsKey = `offline_upserts_${userId}`;
+          const freshUpserts = getSecureStorage(upsertsKey, []);
+          const filtered = freshUpserts.filter((u: any) => !(u.collection === collectionName && u.item?.id === docId));
+          setSecureStorage(upsertsKey, filtered);
+        } catch (cloudErr: any) {
+          console.warn(`[dbService] Cloud update deferred for ${collectionName}/${docId} (${cloudErr?.message || cloudErr}). Saved locally in offline queue.`);
+        }
+      })();
     }
 
     return { id: docId };
@@ -494,7 +498,7 @@ export const dbService = {
     try {
       const cached = getSecureStorage(`offline_${collectionName}_${userId}`, []);
       oldDoc = cached.find((item: any) => item.id === docId);
-    } catch (_) {}
+    } catch (_) { }
 
     if (collectionName === 'invoices' && userId) {
       try {
@@ -514,50 +518,52 @@ export const dbService = {
       triggerNotification('delete', collectionName, docId, null, oldDoc, options).catch(console.error);
     }
 
-    // 2. If online and not local-only, attempt cloud delete
+    // 2. Non-blocking cloud delete
     if (!isLocalOnlyMode(options) && typeof navigator !== 'undefined' && navigator.onLine) {
-      try {
-        const docRef = doc(db, collectionName, docId);
+      (async () => {
+        try {
+          const docRef = doc(db, collectionName, docId);
 
-        // Move to Recycle Bin if NOT permanent
-        if (collectionName !== 'recycle_bin' && collectionName !== 'notifications' && !options.permanent) {
-          const binDocId = `${collectionName}_${docId}`;
-          const recycleItem = {
-            id: binDocId,
-            original_collection: collectionName,
-            original_id: docId,
-            item_data: oldDoc ? { ...oldDoc, id: docId } : { id: docId },
-            deleted_at: new Date().toISOString(),
-            user_id: userId,
-            title: getRecycleTitle(collectionName, oldDoc, docId)
-          };
+          // Move to Recycle Bin if NOT permanent
+          if (collectionName !== 'recycle_bin' && collectionName !== 'notifications' && !options.permanent) {
+            const binDocId = `${collectionName}_${docId}`;
+            const recycleItem = {
+              id: binDocId,
+              original_collection: collectionName,
+              original_id: docId,
+              item_data: oldDoc ? { ...oldDoc, id: docId } : { id: docId },
+              deleted_at: new Date().toISOString(),
+              user_id: userId,
+              title: getRecycleTitle(collectionName, oldDoc, docId)
+            };
 
-          await withTimeout(setDoc(doc(db, 'recycle_bin', binDocId), {
-            ...recycleItem,
-            created_at: serverTimestamp()
-          }), 8000, 'Cloud recycle-bin write timeout');
-        }
-
-        await withTimeout(deleteDoc(docRef), 8000, 'Cloud delete timeout');
-
-        if (collectionName === 'recycle_bin') {
-          const knownPrefixRegex = /^(invoices|customers|items|expenses|purchases|quotations|daily_books|recycle_bin)_/;
-          const matchPrefix = docId.match(knownPrefixRegex);
-          const cleanDocId = matchPrefix ? docId.slice(matchPrefix[0].length) : docId;
-          if (cleanDocId !== docId) {
-            try { await deleteDoc(doc(db, 'recycle_bin', cleanDocId)); } catch (_) {}
+            await withTimeout(setDoc(doc(db, 'recycle_bin', binDocId), {
+              ...recycleItem,
+              created_at: serverTimestamp()
+            }), 10000, 'Cloud recycle-bin write timeout');
           }
-        }
 
-        // For non-recycle_bin collections, remove from deletions queue if cloud delete succeeded
-        if (collectionName !== 'recycle_bin') {
-          const delKey = `offline_deletions_${userId}`;
-          const freshDels = getSecureStorage(delKey, []);
-          setSecureStorage(delKey, freshDels.filter((d: any) => !(d.collection === collectionName && d.id === docId)));
+          await withTimeout(deleteDoc(docRef), 10000, 'Cloud delete timeout');
+
+          if (collectionName === 'recycle_bin') {
+            const knownPrefixRegex = /^(invoices|customers|items|expenses|purchases|quotations|daily_books|recycle_bin)_/;
+            const matchPrefix = docId.match(knownPrefixRegex);
+            const cleanDocId = matchPrefix ? docId.slice(matchPrefix[0].length) : docId;
+            if (cleanDocId !== docId) {
+              try { await deleteDoc(doc(db, 'recycle_bin', cleanDocId)); } catch (_) { }
+            }
+          }
+
+          // For non-recycle_bin collections, remove from deletions queue if cloud delete succeeded
+          if (collectionName !== 'recycle_bin') {
+            const delKey = `offline_deletions_${userId}`;
+            const freshDels = getSecureStorage(delKey, []);
+            setSecureStorage(delKey, freshDels.filter((d: any) => !(d.collection === collectionName && d.id === docId)));
+          }
+        } catch (cloudErr: any) {
+          console.warn(`[dbService] Cloud delete deferred for ${collectionName}/${docId} (${cloudErr?.message || cloudErr}).`);
         }
-      } catch (cloudErr: any) {
-        console.warn(`[dbService] Cloud delete deferred for ${collectionName}/${docId} (${cloudErr?.message || cloudErr}).`);
-      }
+      })();
     }
   },
 
@@ -570,7 +576,7 @@ export const dbService = {
     try {
       const cached = getSecureStorage(`offline_recycle_bin_${userId}`, []);
       recycleDoc = cached.find((r: any) => r.id === recycleBinDocId);
-    } catch (_) {}
+    } catch (_) { }
 
     // Check cloud if not in local and not local-only
     if (!recycleDoc && !isLocalOnlyMode(options) && typeof navigator !== 'undefined' && navigator.onLine) {
@@ -578,7 +584,7 @@ export const dbService = {
         const binRef = doc(db, 'recycle_bin', recycleBinDocId);
         const binSnap = await getDoc(binRef);
         if (binSnap.exists()) recycleDoc = binSnap.data();
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (!recycleDoc) return;
@@ -586,11 +592,11 @@ export const dbService = {
     if (!original_collection || !item_data) return;
 
     const targetDocId = original_id || item_data.id || recycleBinDocId.replace(`${original_collection}_`, '');
-    const restoredItem = { 
-      ...item_data, 
-      id: targetDocId, 
-      user_id: userId, 
-      updated_at: new Date().toISOString() 
+    const restoredItem = {
+      ...item_data,
+      id: targetDocId,
+      user_id: userId,
+      updated_at: new Date().toISOString()
     };
     delete (restoredItem as any).deleted_at;
     delete (restoredItem as any).is_deleted;
@@ -617,12 +623,12 @@ export const dbService = {
         if (original_collection === 'invoices' && item_data.linked_payments && Array.isArray(item_data.linked_payments)) {
           for (const p of item_data.linked_payments) {
             if (p.id) {
-              const restoredP = { 
-                ...p, 
-                user_id: userId, 
-                invoice_id: targetDocId, 
+              const restoredP = {
+                ...p,
+                user_id: userId,
+                invoice_id: targetDocId,
                 created_at: toFirestoreTimestamp(p.created_at),
-                updated_at: serverTimestamp() 
+                updated_at: serverTimestamp()
               };
               delete (restoredP as any).deleted_at;
               delete (restoredP as any).is_deleted;

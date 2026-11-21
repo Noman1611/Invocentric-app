@@ -3,10 +3,10 @@ import { getStoredUserProfile, saveStoredUserProfile, sanitizeFirestorePayload, 
 import { syncAllUserDataFromFirestore, fetchCollectionRest } from '../utils/firestoreRestFallback';
 import { useState, useEffect } from 'react';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { 
-  collection, 
-  query, 
-  where, 
+import {
+  collection,
+  query,
+  where,
   onSnapshot,
   doc,
   updateDoc,
@@ -30,20 +30,20 @@ function getCandidateUids(user: { uid: string; email?: string | null }): string[
 function mergeOfflineQueue(data: any[], collectionName: string, userId: string) {
   const upserts = getSecureStorage(`offline_upserts_${userId}`, []);
   const collectionUpserts = upserts.filter((u: any) => u.collection === collectionName).map((u: any) => u.item);
-  
+
   const mergedData = [...data];
   collectionUpserts.forEach((upsertItem: any) => {
-     const index = mergedData.findIndex(d => d.id === upsertItem.id);
-     if (index >= 0) {
-        mergedData[index] = upsertItem;
-     } else {
-        mergedData.unshift(upsertItem);
-     }
+    const index = mergedData.findIndex(d => d.id === upsertItem.id);
+    if (index >= 0) {
+      mergedData[index] = upsertItem;
+    } else {
+      mergedData.unshift(upsertItem);
+    }
   });
-  
+
   const deletions = getSecureStorage(`offline_deletions_${userId}`, []);
   const collectionDeletions = deletions.filter((d: any) => d.collection === collectionName);
-  
+
   return mergedData.filter(d => {
     if (!d) return false;
     if (collectionDeletions.some((del: any) => (typeof del === 'string' ? del : del.id) === d.id)) return false;
@@ -149,7 +149,7 @@ function getResilientLocalData(colName: string, userId: string, userEmail?: stri
         const otherProfile = getSecureStorage(`user_profile_${otherUid}`, null);
         const emailMatches = cleanEmail && otherProfile && (otherProfile.email || '').toLowerCase() === cleanEmail;
         const isEmailDerivedUid = cleanEmail && (
-          otherUid === 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') || 
+          otherUid === 'user_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') ||
           otherUid === 'google_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')
         );
 
@@ -219,11 +219,11 @@ export function useInvoices() {
     const loadLocal = () => {
       const localInvoices = getResilientLocalData("invoices", user.uid, user.email);
       const finalData = mergeOfflineQueue(localInvoices, "invoices", user.uid);
-      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
       setInvoices(uniqueLocal);
       setLoading(false);
       if (uniqueLocal.length === 0) {
-        syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+        syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
       }
     };
 
@@ -241,8 +241,10 @@ export function useInvoices() {
     window.addEventListener('invocentric_data_updated', handleLocalEvent);
     window.addEventListener('storage', handleStorageChange);
 
+    // Always load local cache immediately on mount so UI renders in <5ms without blocking
+    loadLocal();
+
     if (isOfflineMode) {
-      loadLocal();
       return () => {
         window.removeEventListener('storage', handleStorageChange);
         window.removeEventListener('invoices_updated', handleLocalEvent);
@@ -252,7 +254,7 @@ export function useInvoices() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 4000);
+    }, 1200);
 
     const q = query(collection(db, 'invoices'), where('user_id', '==', user.uid));
 
@@ -275,7 +277,7 @@ export function useInvoices() {
       const combined = [...data, ...unmigratedOrLocal];
 
       combined.sort((a, b) => new Date(b.created_at || b.date || 0).getTime() - new Date(a.created_at || a.date || 0).getTime());
-      const finalData = mergeOfflineQueue(combined, "invoices", user.uid); 
+      const finalData = mergeOfflineQueue(combined, "invoices", user.uid);
       setInvoices(finalData);
       setSecureStorage(`offline_invoices_${user.uid}`, finalData);
       setLoading(false);
@@ -287,7 +289,7 @@ export function useInvoices() {
         console.error("Error fetching invoices (handled):", err);
       }
       loadLocal();
-      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
     });
 
     return () => {
@@ -334,11 +336,11 @@ export function useCustomers() {
     const loadLocal = () => {
       const local = getResilientLocalData("customers", user.uid, user.email);
       const finalData = mergeOfflineQueue(local, "customers", user.uid);
-      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
       setCustomers(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
       setLoading(false);
       if (uniqueLocal.length === 0) {
-        syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+        syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
       }
     };
 
@@ -354,8 +356,10 @@ export function useCustomers() {
     window.addEventListener('invocentric_data_updated', handleLocalEvent);
     window.addEventListener('storage', handleStorage);
 
+    // Always load local cache immediately on mount so UI renders in <5ms without blocking
+    loadLocal();
+
     if (isOfflineMode) {
-      loadLocal();
       return () => {
         window.removeEventListener('storage', handleStorage);
         window.removeEventListener('customers_updated', handleLocalEvent);
@@ -365,7 +369,7 @@ export function useCustomers() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 4000);
+    }, 1200);
 
     const q = query(collection(db, 'customers'), where('user_id', '==', user.uid));
 
@@ -386,7 +390,7 @@ export function useCustomers() {
       const combined = [...data, ...unmigratedOrLocal];
 
       combined.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      const finalData = mergeOfflineQueue(combined, "customers", user.uid); 
+      const finalData = mergeOfflineQueue(combined, "customers", user.uid);
       setCustomers(finalData);
       setSecureStorage(`offline_customers_${user.uid}`, finalData);
       setLoading(false);
@@ -398,7 +402,7 @@ export function useCustomers() {
         console.error("Error fetching customers (handled):", err);
       }
       loadLocal();
-      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
     });
 
     return () => {
@@ -445,11 +449,11 @@ export function useItems() {
     const loadLocal = () => {
       const local = getResilientLocalData("items", user.uid, user.email);
       const finalData = mergeOfflineQueue(local, "items", user.uid);
-      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
       setItems(uniqueLocal.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')));
       setLoading(false);
       if (uniqueLocal.length === 0) {
-        syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+        syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
       }
     };
 
@@ -465,8 +469,10 @@ export function useItems() {
     window.addEventListener('invocentric_data_updated', handleLocalEvent);
     window.addEventListener('storage', handleStorage);
 
+    // Always load local cache immediately on mount so UI renders in <5ms without blocking
+    loadLocal();
+
     if (isOfflineMode) {
-      loadLocal();
       return () => {
         window.removeEventListener('storage', handleStorage);
         window.removeEventListener('items_updated', handleLocalEvent);
@@ -476,7 +482,7 @@ export function useItems() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 4000);
+    }, 1200);
 
     const q = query(collection(db, 'items'), where('user_id', '==', user.uid));
 
@@ -497,7 +503,7 @@ export function useItems() {
       const combined = [...data, ...unmigratedOrLocal];
 
       combined.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-      const finalData = mergeOfflineQueue(combined, "items", user.uid); 
+      const finalData = mergeOfflineQueue(combined, "items", user.uid);
       setItems(finalData);
       setSecureStorage(`offline_items_${user.uid}`, finalData);
       setLoading(false);
@@ -509,7 +515,7 @@ export function useItems() {
         console.error("Error fetching items (handled):", err);
       }
       loadLocal();
-      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
     });
 
     return () => {
@@ -563,7 +569,7 @@ export function usePayments(customerId?: string) {
       if (customerId) {
         list = list.filter((p: any) => p.customer_id === customerId);
       }
-      const uniqueLocal = list.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      const uniqueLocal = list.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
       setPayments(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
       setLoading(false);
     };
@@ -580,8 +586,10 @@ export function usePayments(customerId?: string) {
     window.addEventListener('invocentric_data_updated', handleLocalEvent);
     window.addEventListener('storage', handleStorage);
 
+    // Always load local cache immediately on mount so UI renders in <5ms without blocking
+    loadLocal();
+
     if (isOfflineMode) {
-      loadLocal();
       return () => {
         window.removeEventListener('storage', handleStorage);
         window.removeEventListener('payments_updated', handleLocalEvent);
@@ -591,7 +599,7 @@ export function usePayments(customerId?: string) {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 4000);
+    }, 1200);
 
     let q = query(collection(db, 'payments'), where('user_id', '==', user.uid));
 
@@ -619,7 +627,7 @@ export function usePayments(customerId?: string) {
       }
 
       combined.sort((a: any, b: any) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
-      const finalData = mergeOfflineQueue(combined, "payments", user.uid); 
+      const finalData = mergeOfflineQueue(combined, "payments", user.uid);
       setPayments(finalData);
       if (!customerId) {
         setSecureStorage(`offline_payments_${user.uid}`, finalData);
@@ -633,7 +641,7 @@ export function usePayments(customerId?: string) {
         console.error("Error fetching payments (handled):", err);
       }
       loadLocal();
-      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
     });
 
     return () => {
@@ -680,7 +688,7 @@ export function useExpenses() {
     const loadLocal = () => {
       const local = getResilientLocalData("expenses", user.uid, user.email);
       const finalData = mergeOfflineQueue(local, "expenses", user.uid);
-      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
       setExpenses(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
       setLoading(false);
     };
@@ -697,8 +705,10 @@ export function useExpenses() {
     window.addEventListener('invocentric_data_updated', handleLocalEvent);
     window.addEventListener('storage', handleStorage);
 
+    // Always load local cache immediately on mount so UI renders in <5ms without blocking
+    loadLocal();
+
     if (isOfflineMode) {
-      loadLocal();
       return () => {
         window.removeEventListener('storage', handleStorage);
         window.removeEventListener('expenses_updated', handleLocalEvent);
@@ -708,7 +718,7 @@ export function useExpenses() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 4000);
+    }, 1200);
 
     const q = query(collection(db, 'expenses'), where('user_id', '==', user.uid));
 
@@ -729,7 +739,7 @@ export function useExpenses() {
       const combined = [...data, ...unmigratedOrLocal];
 
       combined.sort((a, b) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
-      const finalData = mergeOfflineQueue(combined, "expenses", user.uid); 
+      const finalData = mergeOfflineQueue(combined, "expenses", user.uid);
       setExpenses(finalData);
       setSecureStorage(`offline_expenses_${user.uid}`, finalData);
       setLoading(false);
@@ -741,7 +751,7 @@ export function useExpenses() {
         console.error("Error fetching expenses (handled):", err);
       }
       loadLocal();
-      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
     });
 
     return () => {
@@ -788,7 +798,7 @@ export function usePurchases() {
     const loadLocal = () => {
       const local = getResilientLocalData("purchases", user.uid, user.email);
       const finalData = mergeOfflineQueue(local, "purchases", user.uid);
-      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id)); 
+      const uniqueLocal = finalData.filter((item: any, index: number, self: any[]) => index === self.findIndex((t: any) => t.id === item.id));
       setPurchases(uniqueLocal.sort((a: any, b: any) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
       setLoading(false);
     };
@@ -805,8 +815,10 @@ export function usePurchases() {
     window.addEventListener('invocentric_data_updated', handleLocalEvent);
     window.addEventListener('storage', handleStorage);
 
+    // Always load local cache immediately on mount so UI renders in <5ms without blocking
+    loadLocal();
+
     if (isOfflineMode) {
-      loadLocal();
       return () => {
         window.removeEventListener('storage', handleStorage);
         window.removeEventListener('purchases_updated', handleLocalEvent);
@@ -816,7 +828,7 @@ export function usePurchases() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 4000);
+    }, 1200);
 
     const q = query(collection(db, 'purchases'), where('user_id', '==', user.uid));
 
@@ -837,7 +849,7 @@ export function usePurchases() {
       const combined = [...data, ...unmigratedOrLocal];
 
       combined.sort((a, b) => new Date(b.date || b.created_at || 0).getTime() - new Date(a.date || a.created_at || 0).getTime());
-      const finalData = mergeOfflineQueue(combined, "purchases", user.uid); 
+      const finalData = mergeOfflineQueue(combined, "purchases", user.uid);
       setPurchases(finalData);
       setSecureStorage(`offline_purchases_${user.uid}`, finalData);
       setLoading(false);
@@ -849,7 +861,7 @@ export function usePurchases() {
         console.error("Error fetching purchases (handled):", err);
       }
       loadLocal();
-      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
     });
 
     return () => {
@@ -877,7 +889,7 @@ export function useSettings() {
       } else if (isLocallyCompleted) {
         return { id: user.uid, wizard_completed: true };
       }
-    } catch (_) {}
+    } catch (_) { }
     return null;
   });
   const [loading, setLoading] = useState<boolean>(() => {
@@ -1061,7 +1073,7 @@ export function useNotifications() {
         return { id: doc.id, ...d };
       });
       data.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-      
+
       const combined = [...data];
       unmigratedOrLocal.forEach((item: any) => {
         if (!combined.some(c => c.id === item.id)) {
@@ -1082,7 +1094,7 @@ export function useNotifications() {
       }
       loadLocal();
       setLoading(false);
-      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => {});
+      syncAllUserDataFromFirestore(user.uid, user.email).catch(() => { });
     });
 
     const handleCustomEvent = (e?: Event) => {
@@ -1150,12 +1162,13 @@ export function useRecycleBin() {
       setRecycleBinItems(purgeExpired(freshMerged));
     };
 
+    refreshLocalRecycleBin();
+
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 4000);
+    }, 1200);
 
     if (isOfflineMode) {
-      refreshLocalRecycleBin();
       setLoading(false);
       clearTimeout(safetyTimeout);
 
@@ -1247,12 +1260,15 @@ export function useTemplates() {
       return uniqueLocal;
     };
 
+    // Load local templates immediately
+    setTemplates(loadLocal());
+    setLoading(false);
+
     if (isOfflineMode) {
       const handleLoad = () => {
         setTemplates(loadLocal());
         setLoading(false);
       };
-      handleLoad();
       const handleStorage = (e: StorageEvent) => {
         if (e.key === `offline_templates_${user.uid}`) handleLoad();
       };
@@ -1267,7 +1283,7 @@ export function useTemplates() {
 
     const safetyTimeout = setTimeout(() => {
       setLoading(false);
-    }, 4000);
+    }, 1200);
 
     const q = query(collection(db, 'templates'), where('user_id', '==', user.uid));
 
