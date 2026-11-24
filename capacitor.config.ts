@@ -20,6 +20,8 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     cleartext: true,
     allowNavigation: [
+      'invocentric.in',
+      '*.invocentric.in',
       '*.firebaseapp.com',
       'accounts.google.com',
       '*.google.com',

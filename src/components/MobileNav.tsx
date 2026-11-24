@@ -77,15 +77,19 @@ export default function MobileNav() {
         setExpandedTab(null);
       }
     };
+    window.addEventListener('touchstart', handleOutsideClick, { passive: true });
     window.addEventListener('click', handleOutsideClick, { passive: true });
-    return () => window.removeEventListener('click', handleOutsideClick);
+    return () => {
+      window.removeEventListener('touchstart', handleOutsideClick);
+      window.removeEventListener('click', handleOutsideClick);
+    };
   }, []);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden print:hidden h-[calc(76px+env(safe-area-inset-bottom,0px))] pb-safe flex items-center justify-center px-2 pointer-events-none">
       <div 
         id="mobile-bottom-dock"
-        className="pointer-events-auto bg-[#10251F] text-[#93A69C] rounded-full shadow-[0_12px_36px_rgba(16,37,31,0.45)] border border-[#274439]/70 p-1.5 h-14 mb-2 flex justify-around items-center gap-1.5 transition-all duration-300 ease-out max-w-[420px] w-auto select-none"
+        className="pointer-events-auto bg-[#10251F] text-[#93A69C] rounded-full shadow-[0_12px_36px_rgba(16,37,31,0.45)] border border-[#274439]/70 p-1.5 h-14 mb-2 flex justify-around items-center gap-1.5 transition-all duration-300 ease-out max-w-[420px] w-auto select-none touch-manipulation transform-gpu"
       >
         
         {/* 1. Home Button */}
@@ -99,7 +103,7 @@ export default function MobileNav() {
             }
           }}
           className={cn(
-            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0",
+            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0 touch-manipulation",
             isHomeActive 
               ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm" 
               : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40",
@@ -126,7 +130,7 @@ export default function MobileNav() {
             }
           }}
           className={cn(
-            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0",
+            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0 touch-manipulation",
             isCreateActive 
               ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm" 
               : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40",
@@ -145,7 +149,17 @@ export default function MobileNav() {
         {/* 3. POS Button */}
         <NavLink
           to="/pos"
-          onClick={() => {
+          onClick={(e) => {
+            if (!isPro) {
+              e.preventDefault();
+              triggerExpansion('pos');
+              triggerUpgradeModal('Quick POS & Barcode Billing', [
+                'Fast point-of-sale layout designed for touch screens and thermal printers.',
+                'Real-time barcode scanning using device camera or handheld USB laser scanners.',
+                'Automated cash till logging, customer balance tracking, and retail analytics.'
+              ]);
+              return;
+            }
             if (isPosActive && expandedTab === 'pos') {
               setExpandedTab(null);
             } else {
@@ -153,7 +167,7 @@ export default function MobileNav() {
             }
           }}
           className={cn(
-            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0",
+            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0 touch-manipulation",
             isPosActive 
               ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm" 
               : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40",
@@ -180,7 +194,7 @@ export default function MobileNav() {
             }
           }}
           className={cn(
-            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0",
+            "flex-1 flex items-center justify-center h-11 rounded-full transition-all duration-300 active:scale-95 select-none text-[11px] sm:text-xs tracking-tight shrink-0 touch-manipulation",
             isSettingsActive 
               ? "bg-[#D7F4D4] text-[#193C30] font-black shadow-sm" 
               : "text-[#93A69C] hover:text-white font-bold hover:bg-[#193C30]/40",

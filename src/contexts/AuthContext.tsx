@@ -2246,6 +2246,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           photoURL: null,
           savedAt: Date.now()
         }));
+
+        // Immediately sync to server DB for instant Admin visibility
+        try {
+          fetch(apiUrl('/api/users/sync-profile'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: cred.user.uid,
+              email: cleanEmail,
+              displayName: formattedName,
+              name: formattedName,
+              plan: 'free',
+              provider: 'email',
+              status: 'Active'
+            })
+          }).catch(() => {});
+        } catch (_) {}
       }
     } catch (error) {
       console.error("Error signing up with email:", error);
